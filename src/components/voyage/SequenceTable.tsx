@@ -7,7 +7,7 @@ import { useVoyageContext, type SequenceRowUI } from "@/context/VoyageContext";
 const operationOptions = ["load", "disch", "pssg", "Repos"];
 
 export function SequenceTable() {
-  const { sequence, setSequence, updateSequenceRow } = useVoyageContext();
+  const { sequence, setSequence, updateSequenceRow, recalculateDistances, autoDistanceEnabled, setAutoDistanceEnabled } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const handlePortChange = (id: number, port: Port | null) => {
@@ -199,9 +199,14 @@ export function SequenceTable() {
               <Plus className="h-3 w-3" />
               Add sequence
             </button>
-            <button className="btn-primary">Get distances</button>
+            <button onClick={recalculateDistances} className="btn-primary">Get distances</button>
             <label className="flex items-center gap-2 text-xs">
-              <input type="checkbox" className="rounded" defaultChecked />
+              <input 
+                type="checkbox" 
+                className="rounded" 
+                checked={autoDistanceEnabled}
+                onChange={(e) => setAutoDistanceEnabled(e.target.checked)}
+              />
               Auto dist.
             </label>
           </div>
