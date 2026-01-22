@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
 import { useVoyageCalculation, type VoyageInputs, type VoyageResults, parseDistanceString, parsePortDays } from "@/hooks/useVoyageCalculation";
 import { defaultVessel, type VesselData } from "@/data/vessels";
-
+import { getPortByUnloc, type Port } from "@/data/ports";
+import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
 // Sequence row for UI state
 export interface SequenceRowUI {
   id: number;
@@ -31,7 +32,9 @@ interface VoyageContextValue {
   sequence: SequenceRowUI[];
   setSequence: React.Dispatch<React.SetStateAction<SequenceRowUI[]>>;
   updateSequenceRow: (id: number, field: keyof SequenceRowUI, value: string | number) => void;
-  
+  recalculateDistances: () => void;
+  autoDistanceEnabled: boolean;
+  setAutoDistanceEnabled: (enabled: boolean) => void;
   // Cargo state
   cargo: CargoState;
   setCargo: React.Dispatch<React.SetStateAction<CargoState>>;
@@ -166,12 +169,54 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [cargo, setCargo] = useState<CargoState>(initialCargo);
   const [bunker, setBunker] = useState<BunkerState>(initialBunker);
   const [hireRate, setHireRate] = useState(8542);
+  const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
 
   const updateSequenceRow = useCallback((id: number, field: keyof SequenceRowUI, value: string | number) => {
     setSequence(prev => prev.map(row =>
       row.id === id ? { ...row, [field]: value } : row
     ));
   }, []);
+
+  // Recalculate all distances using sea route algorithm
+  const recalculateDistances = useCallback(() => {
+    setSequence(prev => {
+      const newSequence = [...prev];
+      for (let i = 0; i < newSequence.length; i++) {
+        if (i === 0) {
+          // First port - distance is from vessel's current position (usually 0 or manually set)
+          continue;
+        }
+        
+        const prevRow = newSequence[i - 1];
+        const currRow = newSequence[i];
+        
+        if (prevRow.portUnloc && currRow.portUnloc) {
+          const prevPort = getPortByUnloc(prevRow.portUnloc);
+          const currPort = getPortByUnloc(currRow.portUnloc);
+          
+          if (prevPort && currPort) {
+            const result = calculateSeaRouteDistance(prevPort, currPort);
+            if (result.success) {
+              newSequence[i] = { ...currRow, distanceEca: String(result.distance) };
+            }
+          }
+        }
+      }
+      return newSequence;
+    });
+  }, []);
+
+  // Auto-recalculate distances when ports change
+  useEffect(() => {
+    if (autoDistanceEnabled) {
+      const portUnlocs = sequence.map(s => s.portUnloc).join(',');
+      // Debounce: only recalculate when port selection stabilizes
+      const timer = setTimeout(() => {
+        recalculateDistances();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [sequence.map(s => s.portUnloc).join(','), autoDistanceEnabled, recalculateDistances]);
 
   const updateCargo = useCallback((field: keyof CargoState, value: number | string) => {
     setCargo(prev => ({ ...prev, [field]: value }));
@@ -231,6 +276,9 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         sequence,
         setSequence,
         updateSequenceRow,
+        recalculateDistances,
+        autoDistanceEnabled,
+        setAutoDistanceEnabled,
         cargo,
         setCargo,
         updateCargo,
