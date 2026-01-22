@@ -1,10 +1,13 @@
 import { ChevronDown, Plus, Trash2, Anchor } from "lucide-react";
 import { useState } from "react";
+import { PortSelect } from "./PortSelect";
+import type { Port } from "@/data/ports";
 
 interface SequenceRow {
   id: number;
   operation: string;
   port: string;
+  portUnloc: string;
   cgo: string;
   distanceEca: string;
   time: string;
@@ -24,6 +27,7 @@ const initialSequence: SequenceRow[] = [
     id: 1,
     operation: "load",
     port: "Paradip",
+    portUnloc: "INPAV",
     cgo: "#1",
     distanceEca: "370 & EL",
     time: "0 nm EV",
@@ -41,6 +45,7 @@ const initialSequence: SequenceRow[] = [
     id: 2,
     operation: "pssg",
     port: "Singapore",
+    portUnloc: "SGSIN",
     cgo: "",
     distanceEca: "1555 & EL",
     time: "0 nm EV",
@@ -58,6 +63,7 @@ const initialSequence: SequenceRow[] = [
     id: 3,
     operation: "disch",
     port: "Ho Chi Minh City",
+    portUnloc: "VNSGN",
     cgo: "#1",
     distanceEca: "660 & EL",
     time: "0 nm EV",
@@ -75,6 +81,7 @@ const initialSequence: SequenceRow[] = [
     id: 4,
     operation: "Repos",
     port: "",
+    portUnloc: "",
     cgo: "",
     distanceEca: "0 & EL",
     time: "0 nm EV",
@@ -96,6 +103,22 @@ export function SequenceTable() {
   const [sequence, setSequence] = useState<SequenceRow[]>(initialSequence);
   const [isExpanded, setIsExpanded] = useState(true);
 
+  const updateRow = (id: number, field: keyof SequenceRow, value: string | number) => {
+    setSequence(prev => prev.map(row => 
+      row.id === id ? { ...row, [field]: value } : row
+    ));
+  };
+
+  const handlePortChange = (id: number, port: Port | null) => {
+    setSequence(prev => prev.map(row => 
+      row.id === id ? { 
+        ...row, 
+        port: port?.name || "", 
+        portUnloc: port?.unloc || "" 
+      } : row
+    ));
+  };
+
   const addSequence = () => {
     const newId = Math.max(...sequence.map((s) => s.id)) + 1;
     setSequence([
@@ -104,6 +127,7 @@ export function SequenceTable() {
         id: newId,
         operation: "load",
         port: "",
+        portUnloc: "",
         cgo: "",
         distanceEca: "0 & EL",
         time: "0 nm EV",
@@ -146,7 +170,7 @@ export function SequenceTable() {
               <thead>
                 <tr>
                   <th className="w-16">Open</th>
-                  <th className="w-24">Port</th>
+                  <th className="w-32">Port</th>
                   <th className="w-12">Cgo</th>
                   <th className="w-24">Distance & ECA</th>
                   <th className="w-20">Time</th>
@@ -168,6 +192,7 @@ export function SequenceTable() {
                       <select
                         className="form-select w-full text-xs"
                         value={row.operation}
+                        onChange={(e) => updateRow(row.id, "operation", e.target.value)}
                       >
                         {operationOptions.map((op) => (
                           <option key={op} value={op}>
@@ -176,44 +201,116 @@ export function SequenceTable() {
                         ))}
                       </select>
                     </td>
+                    <td className="p-0.5">
+                      <PortSelect
+                        value={row.port}
+                        onChange={(port) => handlePortChange(row.id, port)}
+                        placeholder="Select port..."
+                      />
+                    </td>
                     <td>
                       <input
                         type="text"
-                        className="form-input-sm w-full"
-                        value={row.port}
-                        readOnly
+                        className="form-input-sm w-full text-center font-mono"
+                        value={row.cgo}
+                        onChange={(e) => updateRow(row.id, "cgo", e.target.value)}
+                        placeholder=""
                       />
                     </td>
-                    <td className="font-mono text-xs text-center">{row.cgo}</td>
-                    <td className="font-mono text-xs">{row.distanceEca}</td>
-                    <td className="font-mono text-xs">{row.time}</td>
-                    <td className="font-mono text-xs">{row.wdaysPort}</td>
-                    <td className="font-mono text-xs">{row.draft}</td>
-                    <td className="font-mono text-xs">{row.c}</td>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-input-sm w-full font-mono text-xs"
+                        value={row.distanceEca}
+                        onChange={(e) => updateRow(row.id, "distanceEca", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-input-sm w-full font-mono text-xs"
+                        value={row.time}
+                        onChange={(e) => updateRow(row.id, "time", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-input-sm w-full font-mono text-xs"
+                        value={row.wdaysPort}
+                        onChange={(e) => updateRow(row.id, "wdaysPort", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-input-sm w-full font-mono text-xs"
+                        value={row.draft}
+                        onChange={(e) => updateRow(row.id, "draft", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-input-sm w-full font-mono text-xs"
+                        value={row.c}
+                        onChange={(e) => updateRow(row.id, "c", e.target.value)}
+                      />
+                    </td>
                     <td>
                       <div className="flex items-center gap-1">
                         <input
                           type="text"
                           className="form-input-sm w-16 font-mono text-right"
                           value={row.quantity}
-                          readOnly
+                          onChange={(e) => updateRow(row.id, "quantity", e.target.value)}
                         />
-                        <span className="text-xs text-muted-foreground">
-                          {row.quantityUnit}
-                        </span>
+                        <select
+                          className="form-select text-[10px] w-10 p-0.5"
+                          value={row.quantityUnit}
+                          onChange={(e) => updateRow(row.id, "quantityUnit", e.target.value)}
+                        >
+                          <option value="mt">mt</option>
+                          <option value="cbm">cbm</option>
+                        </select>
                       </div>
                     </td>
                     <td>
-                      <select className="form-select text-xs w-full" value={row.terms}>
+                      <select 
+                        className="form-select text-xs w-full" 
+                        value={row.terms}
+                        onChange={(e) => updateRow(row.id, "terms", e.target.value)}
+                      >
+                        <option value="">-</option>
                         <option value="sshex">sshex</option>
                         <option value="shinc">shinc</option>
                         <option value="fhex">fhex</option>
                       </select>
                     </td>
-                    <td className="font-mono text-xs text-right">{row.tt}</td>
-                    <td className="font-mono text-xs text-center">{row.et}</td>
-                    <td className="font-mono text-xs text-right tabular-nums">
-                      {row.expDa > 0 ? row.expDa.toLocaleString() : ""}
+                    <td>
+                      <input
+                        type="text"
+                        className="form-input-sm w-full font-mono text-xs text-right"
+                        value={row.tt}
+                        onChange={(e) => updateRow(row.id, "tt", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-input-sm w-full font-mono text-xs text-center"
+                        value={row.et}
+                        onChange={(e) => updateRow(row.id, "et", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        className="form-input-sm w-full font-mono text-xs text-right tabular-nums"
+                        value={row.expDa || ""}
+                        onChange={(e) => updateRow(row.id, "expDa", parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                      />
                     </td>
                     <td>
                       <button
