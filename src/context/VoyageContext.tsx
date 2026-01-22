@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from "react";
 import { useVoyageCalculation, type VoyageInputs, type VoyageResults, parseDistanceString, parsePortDays } from "@/hooks/useVoyageCalculation";
 import { defaultVessel, type VesselData } from "@/data/vessels";
 import { getPortByUnloc, type Port } from "@/data/ports";
@@ -206,17 +206,19 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Memoize port unlocs string for dependency tracking
+  const portUnlocsKey = useMemo(() => sequence.map(s => s.portUnloc).join(','), [sequence]);
+
   // Auto-recalculate distances when ports change
   useEffect(() => {
-    if (autoDistanceEnabled) {
-      const portUnlocs = sequence.map(s => s.portUnloc).join(',');
+    if (autoDistanceEnabled && portUnlocsKey) {
       // Debounce: only recalculate when port selection stabilizes
       const timer = setTimeout(() => {
         recalculateDistances();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [sequence.map(s => s.portUnloc).join(','), autoDistanceEnabled, recalculateDistances]);
+  }, [portUnlocsKey, autoDistanceEnabled, recalculateDistances]);
 
   const updateCargo = useCallback((field: keyof CargoState, value: number | string) => {
     setCargo(prev => ({ ...prev, [field]: value }));
