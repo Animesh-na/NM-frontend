@@ -1,6 +1,7 @@
 import { ChevronDown, Fuel } from "lucide-react";
 import { useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
+import { InfoTooltip } from "./InfoTooltip";
 
 export function BunkerSection() {
   const { bunker, updateBunker, setBunker, results } = useVoyageContext();
@@ -39,9 +40,13 @@ export function BunkerSection() {
               </div>
             </div>
             <div className="flex items-end justify-end">
-              <div className="text-xs">
+              <div className="text-xs flex items-center">
                 <span className="text-muted-foreground mr-2">Total Bunker Cost:</span>
-                <span className="font-mono font-semibold text-primary">
+                <InfoTooltip 
+                  formula="(HSFO t × $/t) + (VLSFO t × $/t) + (LSMGO t × $/t) + (CO₂ t × $/t)" 
+                  description="Sum of all fuel costs plus carbon emissions cost"
+                />
+                <span className="font-mono font-semibold text-primary ml-2">
                   ${results.totalBunkerCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </span>
               </div>
@@ -52,7 +57,13 @@ export function BunkerSection() {
             <div className="font-medium text-muted-foreground">Fuel Type</div>
             <div className="font-medium text-muted-foreground text-center">Price ($/t)</div>
             <div className="font-medium text-muted-foreground text-center">ROB Start (t)</div>
-            <div className="font-medium text-muted-foreground text-center">Consumption (t)</div>
+            <div className="font-medium text-muted-foreground text-center flex items-center justify-center">
+              Consumption (t)
+              <InfoTooltip 
+                formula="(Sea Days Ballast × Ballast Rate) + (Sea Days Laden × Laden Rate)" 
+                description="Fuel burned based on voyage profile and vessel consumption rates"
+              />
+            </div>
           </div>
 
           {/* HSFO */}
@@ -136,16 +147,28 @@ export function BunkerSection() {
           {/* CO2 Summary */}
           <div className="border-t border-border pt-2 mt-2">
             <div className="grid grid-cols-3 gap-3 text-xs">
-              <div>
+              <div className="flex items-center">
                 <span className="text-muted-foreground">Total CO₂:</span>
+                <InfoTooltip 
+                  formula="(HSFO × 3.114) + (VLSFO × 3.151) + (LSMGO × 3.206)" 
+                  description="IMO emission factors per fuel type"
+                />
                 <span className="font-mono ml-2">{results.totalCo2.toFixed(2)} t</span>
               </div>
-              <div>
+              <div className="flex items-center">
                 <span className="text-muted-foreground">Laden:</span>
+                <InfoTooltip 
+                  formula="Laden fuel consumption × emission factors" 
+                  description="CO₂ emitted during laden voyage legs"
+                />
                 <span className="font-mono ml-2">{results.co2Laden.toFixed(2)} t</span>
               </div>
-              <div>
+              <div className="flex items-center">
                 <span className="text-muted-foreground">Ballast:</span>
+                <InfoTooltip 
+                  formula="Ballast fuel consumption × emission factors" 
+                  description="CO₂ emitted during ballast voyage legs"
+                />
                 <span className="font-mono ml-2">{results.co2Ballast.toFixed(2)} t</span>
               </div>
             </div>
