@@ -1,25 +1,10 @@
 import { ChevronDown, Fuel } from "lucide-react";
 import { useState } from "react";
-
-interface BunkerData {
-  co2Price: number;
-  hsfo: { quantity: number; price: number };
-  vlsfo: { quantity: number; price: number };
-  lsmgo: { quantity: number; price: number };
-}
-
-const defaultBunker: BunkerData = {
-  co2Price: 0,
-  hsfo: { quantity: 0, price: 0 },
-  vlsfo: { quantity: 1234, price: 450 },
-  lsmgo: { quantity: 0, price: 750 },
-};
+import { useVoyageContext } from "@/context/VoyageContext";
 
 export function BunkerSection() {
-  const [bunker] = useState<BunkerData>(defaultBunker);
+  const { bunker, updateBunker, setBunker, results } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
-
-  const rewardFactor = 1.0;
 
   return (
     <div className="calc-card">
@@ -45,83 +30,123 @@ export function BunkerSection() {
               </label>
               <div className="input-with-unit">
                 <input
-                  type="text"
+                  type="number"
                   className="form-input w-20 font-mono text-right"
                   value={bunker.co2Price}
-                  readOnly
+                  onChange={(e) => setBunker(prev => ({ ...prev, co2Price: parseFloat(e.target.value) || 0 }))}
                 />
-                <span className="unit">$</span>
+                <span className="unit">$/t</span>
               </div>
             </div>
             <div className="flex items-end justify-end">
-              <label className="text-xs text-muted-foreground mr-2">
-                Reward factor for wind-assisted propulsion
-              </label>
-              <select className="form-select w-20">
-                <option>1.00</option>
-                <option>0.95</option>
-                <option>0.90</option>
-              </select>
+              <div className="text-xs">
+                <span className="text-muted-foreground mr-2">Total Bunker Cost:</span>
+                <span className="font-mono font-semibold text-primary">
+                  ${results.totalBunkerCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-4 gap-3 text-xs">
-            <div className="font-medium text-muted-foreground">BOB</div>
+            <div className="font-medium text-muted-foreground">Fuel Type</div>
+            <div className="font-medium text-muted-foreground text-center">Price ($/t)</div>
+            <div className="font-medium text-muted-foreground text-center">ROB Start (t)</div>
+            <div className="font-medium text-muted-foreground text-center">Consumption (t)</div>
+          </div>
+
+          {/* HSFO */}
+          <div className="grid grid-cols-4 gap-3 text-xs items-center">
+            <div className="font-medium">HSFO</div>
             <div>
-              <label className="text-muted-foreground block mb-1">HSFO</label>
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  className="form-input-sm w-16 font-mono text-right"
-                  value={bunker.hsfo.quantity}
-                  readOnly
-                />
-                <span className="text-muted-foreground">t @</span>
-                <input
-                  type="text"
-                  className="form-input-sm w-16 font-mono text-right"
-                  value={bunker.hsfo.price}
-                  readOnly
-                />
-                <span className="text-muted-foreground">USD/t</span>
-              </div>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono text-right"
+                value={bunker.hsfo.price || ""}
+                onChange={(e) => updateBunker("hsfo", "price", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">VLSFO</label>
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  className="form-input-sm w-16 font-mono text-right"
-                  value={bunker.vlsfo.quantity}
-                  readOnly
-                />
-                <span className="text-muted-foreground">t @</span>
-                <input
-                  type="text"
-                  className="form-input-sm w-16 font-mono text-right"
-                  value={bunker.vlsfo.price}
-                  readOnly
-                />
-                <span className="text-muted-foreground">USD/t</span>
-              </div>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono text-right"
+                value={bunker.hsfo.robStart || ""}
+                onChange={(e) => updateBunker("hsfo", "robStart", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div className="font-mono text-right bg-muted px-2 py-1 rounded">
+              {results.hsfoConsumption.toFixed(2)}
+            </div>
+          </div>
+
+          {/* VLSFO */}
+          <div className="grid grid-cols-4 gap-3 text-xs items-center">
+            <div className="font-medium">VLSFO</div>
+            <div>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono text-right"
+                value={bunker.vlsfo.price || ""}
+                onChange={(e) => updateBunker("vlsfo", "price", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">LSMGO</label>
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  className="form-input-sm w-16 font-mono text-right"
-                  value={bunker.lsmgo.quantity}
-                  readOnly
-                />
-                <span className="text-muted-foreground">t @</span>
-                <input
-                  type="text"
-                  className="form-input-sm w-16 font-mono text-right"
-                  value={bunker.lsmgo.price}
-                  readOnly
-                />
-                <span className="text-muted-foreground">USD/t</span>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono text-right"
+                value={bunker.vlsfo.robStart || ""}
+                onChange={(e) => updateBunker("vlsfo", "robStart", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div className="font-mono text-right bg-muted px-2 py-1 rounded">
+              {results.vlsfoConsumption.toFixed(2)}
+            </div>
+          </div>
+
+          {/* LSMGO */}
+          <div className="grid grid-cols-4 gap-3 text-xs items-center">
+            <div className="font-medium">LSMGO</div>
+            <div>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono text-right"
+                value={bunker.lsmgo.price || ""}
+                onChange={(e) => updateBunker("lsmgo", "price", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono text-right"
+                value={bunker.lsmgo.robStart || ""}
+                onChange={(e) => updateBunker("lsmgo", "robStart", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div className="font-mono text-right bg-muted px-2 py-1 rounded">
+              {results.lsmgoConsumption.toFixed(2)}
+            </div>
+          </div>
+
+          {/* CO2 Summary */}
+          <div className="border-t border-border pt-2 mt-2">
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              <div>
+                <span className="text-muted-foreground">Total CO₂:</span>
+                <span className="font-mono ml-2">{results.totalCo2.toFixed(2)} t</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Laden:</span>
+                <span className="font-mono ml-2">{results.co2Laden.toFixed(2)} t</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Ballast:</span>
+                <span className="font-mono ml-2">{results.co2Ballast.toFixed(2)} t</span>
               </div>
             </div>
           </div>

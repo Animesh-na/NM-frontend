@@ -1,34 +1,9 @@
 import { ChevronDown, Package, Plus, Minus } from "lucide-react";
 import { useState } from "react";
-
-interface CargoData {
-  ntc: number;
-  tcComm: number;
-  gtc: string;
-  rate: number;
-  rateUnit: string;
-  lumpsum: number;
-  voyComm: number;
-  netBb: number;
-  grossBb: number;
-  vesselCost: number;
-}
-
-const defaultCargo: CargoData = {
-  ntc: 8542.19,
-  tcComm: 3.75,
-  gtc: "GTC",
-  rate: 13,
-  rateUnit: "$/mt",
-  lumpsum: 0,
-  voyComm: 2.5,
-  netBb: 0,
-  grossBb: 0,
-  vesselCost: 8542.19,
-};
+import { useVoyageContext } from "@/context/VoyageContext";
 
 export function CargoSection() {
-  const [cargo] = useState<CargoData>(defaultCargo);
+  const { cargo, updateCargo, hireRate, setHireRate, results } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -50,12 +25,12 @@ export function CargoSection() {
         <div className="p-3 space-y-3">
           <div className="grid grid-cols-8 gap-2 items-end text-xs">
             <div>
-              <label className="text-muted-foreground block mb-1">NTC</label>
+              <label className="text-muted-foreground block mb-1">NTC (calc)</label>
               <div className="input-with-unit">
                 <input
                   type="text"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={cargo.ntc.toLocaleString()}
+                  className="form-input-sm w-full font-mono text-right bg-muted"
+                  value={results.ntce.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   readOnly
                 />
                 <span className="unit">$/d</span>
@@ -65,20 +40,21 @@ export function CargoSection() {
               <label className="text-muted-foreground block mb-1">TC Comm</label>
               <div className="input-with-unit">
                 <input
-                  type="text"
+                  type="number"
+                  step="0.25"
                   className="form-input-sm w-full font-mono text-right"
-                  value={cargo.tcComm}
-                  readOnly
+                  value={cargo.tcCommission}
+                  onChange={(e) => updateCargo("tcCommission", parseFloat(e.target.value) || 0)}
                 />
                 <span className="unit">%</span>
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">GTC</label>
+              <label className="text-muted-foreground block mb-1">GTC (calc)</label>
               <input
                 type="text"
-                className="form-input-sm w-full"
-                value={cargo.gtc}
+                className="form-input-sm w-full font-mono text-right bg-muted"
+                value={results.gtce.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 readOnly
               />
             </div>
@@ -86,34 +62,43 @@ export function CargoSection() {
               <label className="text-muted-foreground block mb-1">Rate</label>
               <div className="flex items-center gap-1">
                 <input
-                  type="text"
+                  type="number"
+                  step="0.5"
                   className="form-input-sm w-16 font-mono text-right"
                   value={cargo.rate}
-                  readOnly
+                  onChange={(e) => updateCargo("rate", parseFloat(e.target.value) || 0)}
                 />
-                <select className="form-select text-xs h-6 w-16">
-                  <option>$/mt</option>
-                  <option>$/d</option>
+                <select 
+                  className="form-select text-xs h-6 w-20"
+                  value={cargo.rateType}
+                  onChange={(e) => updateCargo("rateType", e.target.value)}
+                >
+                  <option value="mt">$/mt</option>
+                  <option value="lumpsum">Lumpsum</option>
                 </select>
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">Lumpsum</label>
-              <input
-                type="text"
-                className="form-input-sm w-full font-mono text-right"
-                value={cargo.lumpsum}
-                readOnly
-              />
+              <label className="text-muted-foreground block mb-1">Quantity</label>
+              <div className="input-with-unit">
+                <input
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={cargo.quantity}
+                  onChange={(e) => updateCargo("quantity", parseFloat(e.target.value) || 0)}
+                />
+                <span className="unit">mt</span>
+              </div>
             </div>
             <div>
               <label className="text-muted-foreground block mb-1">Voy Comm</label>
               <div className="input-with-unit">
                 <input
-                  type="text"
+                  type="number"
+                  step="0.25"
                   className="form-input-sm w-full font-mono text-right"
-                  value={cargo.voyComm}
-                  readOnly
+                  value={cargo.voyageCommission}
+                  onChange={(e) => updateCargo("voyageCommission", parseFloat(e.target.value) || 0)}
                 />
                 <span className="unit">%</span>
               </div>
@@ -123,37 +108,48 @@ export function CargoSection() {
 
           <div className="grid grid-cols-8 gap-2 items-end text-xs">
             <div>
-              <label className="text-muted-foreground block mb-1">Net BB</label>
+              <label className="text-muted-foreground block mb-1">Hire Rate</label>
+              <div className="input-with-unit">
+                <input
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={hireRate}
+                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
+                />
+                <span className="unit">$/d</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-muted-foreground block mb-1">Gross Freight</label>
               <div className="input-with-unit">
                 <input
                   type="text"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={cargo.netBb}
+                  className="form-input-sm w-full font-mono text-right bg-muted"
+                  value={results.grossFreight.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   readOnly
                 />
                 <span className="unit">$</span>
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">Gross BB</label>
+              <label className="text-muted-foreground block mb-1">Net Freight</label>
               <div className="input-with-unit">
                 <input
                   type="text"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={cargo.grossBb}
+                  className="form-input-sm w-full font-mono text-right bg-muted"
+                  value={results.netFreight.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   readOnly
                 />
                 <span className="unit">$</span>
               </div>
             </div>
-            <div></div>
             <div>
-              <label className="text-muted-foreground block mb-1">Vessel cost</label>
+              <label className="text-muted-foreground block mb-1">TCE</label>
               <div className="input-with-unit">
                 <input
                   type="text"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={cargo.vesselCost.toLocaleString()}
+                  className="form-input-sm w-full font-mono text-right bg-muted"
+                  value={results.tce.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   readOnly
                 />
                 <span className="unit">$/d</span>
@@ -163,27 +159,24 @@ export function CargoSection() {
               <label className="text-muted-foreground block mb-1">Demurrage</label>
               <div className="input-with-unit">
                 <input
-                  type="text"
+                  type="number"
                   className="form-input-sm w-full font-mono text-right"
-                  value={0}
-                  readOnly
+                  value={cargo.demurrage}
+                  onChange={(e) => updateCargo("demurrage", parseFloat(e.target.value) || 0)}
                 />
                 <span className="unit">$</span>
               </div>
             </div>
             <div className="col-span-2">
               <label className="text-muted-foreground block mb-1">Despatch</label>
-              <div className="flex items-center gap-1">
+              <div className="input-with-unit">
                 <input
-                  type="text"
-                  className="form-input-sm w-16 font-mono text-right"
-                  value={0}
-                  readOnly
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={cargo.despatch}
+                  onChange={(e) => updateCargo("despatch", parseFloat(e.target.value) || 0)}
                 />
-                <select className="form-select text-xs h-6">
-                  <option>average</option>
-                  <option>all time</option>
-                </select>
+                <span className="unit">$</span>
               </div>
             </div>
           </div>

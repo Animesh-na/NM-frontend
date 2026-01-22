@@ -78,7 +78,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-sm border border-border bg-popover shadow-md">
+        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-sm border border-border bg-popover shadow-lg">
           {results.length === 0 ? (
             <div className="px-3 py-2 text-xs text-muted-foreground">No ports found</div>
           ) : (
