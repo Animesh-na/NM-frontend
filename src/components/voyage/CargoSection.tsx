@@ -1,6 +1,7 @@
 import { ChevronDown, Package, Plus, Minus } from "lucide-react";
 import { useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
+import { InfoTooltip } from "./InfoTooltip";
 
 export function CargoSection() {
   const { cargo, updateCargo, hireRate, setHireRate, results } = useVoyageContext();
@@ -25,7 +26,13 @@ export function CargoSection() {
         <div className="p-3 space-y-3">
           <div className="grid grid-cols-8 gap-2 items-end text-xs">
             <div>
-              <label className="text-muted-foreground block mb-1">NTC (calc)</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                NTC (calc)
+                <InfoTooltip 
+                  formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" 
+                  description="Net Time Charter Equivalent"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="text"
@@ -37,7 +44,13 @@ export function CargoSection() {
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">TC Comm</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                TC Comm
+                <InfoTooltip 
+                  formula="Deducted from Net Freight" 
+                  description="Time Charter Commission percentage"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="number"
@@ -50,7 +63,13 @@ export function CargoSection() {
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">GTC (calc)</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                GTC (calc)
+                <InfoTooltip 
+                  formula="Gross Freight / Total Days" 
+                  description="Gross Time Charter Equivalent"
+                />
+              </label>
               <input
                 type="text"
                 className="form-input-sm w-full font-mono text-right bg-muted"
@@ -91,7 +110,13 @@ export function CargoSection() {
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">Voy Comm</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                Voy Comm
+                <InfoTooltip 
+                  formula="Gross Freight × Voy Comm%" 
+                  description="Voyage Commission deducted from freight"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="number"
@@ -108,7 +133,13 @@ export function CargoSection() {
 
           <div className="grid grid-cols-8 gap-2 items-end text-xs">
             <div>
-              <label className="text-muted-foreground block mb-1">Hire Rate</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                Hire Rate
+                <InfoTooltip 
+                  formula="Input: Daily vessel hire cost" 
+                  description="Daily rate paid to vessel owner"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="number"
@@ -120,7 +151,13 @@ export function CargoSection() {
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">Gross Freight</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                Gross Freight
+                <InfoTooltip 
+                  formula="Rate × Quantity (or Lumpsum amount)" 
+                  description="Total freight before any deductions"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="text"
@@ -132,7 +169,13 @@ export function CargoSection() {
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">Net Freight</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                Net Freight
+                <InfoTooltip 
+                  formula="Gross Freight × (1 - Voy Comm% - TC Comm%)" 
+                  description="Freight after all commission deductions"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="text"
@@ -144,7 +187,13 @@ export function CargoSection() {
               </div>
             </div>
             <div>
-              <label className="text-muted-foreground block mb-1">TCE</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                TCE
+                <InfoTooltip 
+                  formula="(Gross Freight - Voyage Cost Excl Hire) / Total Days" 
+                  description="Time Charter Equivalent - key profitability metric"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="text"
@@ -156,7 +205,13 @@ export function CargoSection() {
               </div>
             </div>
             <div className="col-span-2">
-              <label className="text-muted-foreground block mb-1">Demurrage</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                Demurrage
+                <InfoTooltip 
+                  formula="Added to revenue if port time exceeds allowed" 
+                  description="Penalty paid by charterer for delays"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="number"
@@ -168,7 +223,13 @@ export function CargoSection() {
               </div>
             </div>
             <div className="col-span-2">
-              <label className="text-muted-foreground block mb-1">Despatch</label>
+              <label className="text-muted-foreground mb-1 flex items-center">
+                Despatch
+                <InfoTooltip 
+                  formula="Deducted from revenue if port time is faster" 
+                  description="Bonus to charterer for fast operations"
+                />
+              </label>
               <div className="input-with-unit">
                 <input
                   type="number"
