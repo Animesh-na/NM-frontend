@@ -2,6 +2,7 @@ import { ChevronDown, Ship } from "lucide-react";
 import { useState } from "react";
 import { VesselSelect } from "./VesselSelect";
 import { vesselTypes, defaultVessel, type VesselData } from "@/data/vessels";
+import { useVoyageContext } from "@/context/VoyageContext";
 
 interface ConsumptionRow {
   key: keyof VesselData["consumption"];
@@ -18,14 +19,7 @@ const consumptionRows: ConsumptionRow[] = [
 ];
 
 export function VesselPanel() {
-  const [vessel, setVessel] = useState<VesselData>({ ...defaultVessel, name: "Ap Dubrava", dwt: 38703, gt: 25494, cubic: 50905, draft: 10.5, tpcTpi: 53.9, consumption: {
-    speed: { ecoBallast: 12.5, ecoLaden: 12, canal: 0 },
-    hsfo: { ecoBallast: 16, ecoLaden: 16, canal: 2.5 },
-    vlsfo: { ecoBallast: 21, ecoLaden: 22, canal: 2.5 },
-    lsmgo: { ecoBallast: 16, ecoLaden: 16, canal: 2.5 },
-    ae: { ecoBallast: 0.1, ecoLaden: 0.1, canal: 0.2 },
-    aeScrubber: { ecoBallast: 0.2, ecoLaden: 0.2, canal: 0.2 },
-  }});
+  const { vessel, setVessel } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const handleVesselSelect = (selectedVessel: VesselData | null) => {
@@ -37,7 +31,7 @@ export function VesselPanel() {
   };
 
   const handleFieldChange = (field: keyof VesselData, value: string | number) => {
-    setVessel(prev => ({ ...prev, [field]: value }));
+    setVessel({ ...vessel, [field]: value });
   };
 
   const handleConsumptionChange = (
@@ -46,16 +40,16 @@ export function VesselPanel() {
     value: string
   ) => {
     const numValue = parseFloat(value) || 0;
-    setVessel(prev => ({
-      ...prev,
+    setVessel({
+      ...vessel,
       consumption: {
-        ...prev.consumption,
+        ...vessel.consumption,
         [row]: {
-          ...prev.consumption[row],
+          ...vessel.consumption[row],
           [col]: numValue,
         },
       },
-    }));
+    });
   };
 
   return (
