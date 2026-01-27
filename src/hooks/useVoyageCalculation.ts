@@ -118,7 +118,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       totalPortDays += leg.portDays || 0;
       portCosts += leg.expDa || 0;
 
-      if (leg.operation === "load") {
+      // Check for loading operations (handles both old "load" and new "loading")
+      if (leg.operation === "load" || leg.operation === "loading") {
         isLaden = true;
       }
 
@@ -128,7 +129,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         ballastDistance += leg.distance || 0;
       }
 
-      if (leg.operation === "disch") {
+      // Check for discharge operations (handles both old "disch" and new "discharging")
+      if (leg.operation === "disch" || leg.operation === "discharging") {
         isLaden = false;
       }
     });

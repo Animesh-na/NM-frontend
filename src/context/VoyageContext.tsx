@@ -3,10 +3,15 @@ import { useVoyageCalculation, type VoyageInputs, type VoyageResults, parseDista
 import { defaultVessel, type VesselData } from "@/data/vessels";
 import { getPortByUnloc, type Port } from "@/data/ports";
 import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
+// Sequence types
+export type SequenceType = "open" | "port" | "repos";
+export type PortOperation = "loading" | "discharging" | "waiting" | "bunkering";
+
 // Sequence row for UI state
 export interface SequenceRowUI {
   id: number;
-  operation: string;
+  sequenceType: SequenceType; // "open", "port", or "repos"
+  operation: PortOperation | ""; // only for port type
   port: string;
   portUnloc: string;
   cgo: string;
@@ -73,7 +78,27 @@ interface BunkerState {
 const initialSequence: SequenceRowUI[] = [
   {
     id: 1,
-    operation: "load",
+    sequenceType: "open",
+    operation: "",
+    port: "Chittagong",
+    portUnloc: "BDCGP",
+    cgo: "",
+    distanceEca: "0",
+    time: "0 nm EV",
+    wdaysPort: "0d",
+    draft: "5 % VL",
+    c: "0 m",
+    quantity: "",
+    quantityUnit: "mt",
+    terms: "",
+    tt: "",
+    et: "0h",
+    expDa: 0,
+  },
+  {
+    id: 2,
+    sequenceType: "port",
+    operation: "loading",
     port: "Paradip",
     portUnloc: "INPAV",
     cgo: "#1",
@@ -90,8 +115,9 @@ const initialSequence: SequenceRowUI[] = [
     expDa: 65000,
   },
   {
-    id: 2,
-    operation: "pssg",
+    id: 3,
+    sequenceType: "port",
+    operation: "bunkering",
     port: "Singapore",
     portUnloc: "SGSIN",
     cgo: "",
@@ -108,8 +134,9 @@ const initialSequence: SequenceRowUI[] = [
     expDa: 2000,
   },
   {
-    id: 3,
-    operation: "disch",
+    id: 4,
+    sequenceType: "port",
+    operation: "discharging",
     port: "Ho Chi Minh City",
     portUnloc: "VNSGN",
     cgo: "#1",
