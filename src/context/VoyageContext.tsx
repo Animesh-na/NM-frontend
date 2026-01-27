@@ -1,30 +1,46 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from "react";
-import { useVoyageCalculation, type VoyageInputs, type VoyageResults, parseDistanceString, parsePortDays } from "@/hooks/useVoyageCalculation";
+import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/hooks/useVoyageCalculation";
 import { defaultVessel, type VesselData } from "@/data/vessels";
 import { getPortByUnloc, type Port } from "@/data/ports";
 import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
-// Sequence types
-export type SequenceType = "open" | "port" | "repos";
+
+// Season options for Open Port
+export type Season = "summer" | "winter" | "tropical" | "eca";
+
+// Operation types for port sequences
 export type PortOperation = "loading" | "discharging" | "waiting" | "bunkering";
 
 // Sequence row for UI state
 export interface SequenceRowUI {
   id: number;
-  sequenceType: SequenceType; // "open", "port", or "repos"
-  operation: PortOperation | ""; // only for port type
+  type: "open" | "port" | "repos";
+  operation?: PortOperation; // only for port type
   port: string;
   portUnloc: string;
-  cgo: string;
-  distanceEca: string;
-  time: string;
-  wdaysPort: string;
-  draft: string;
-  c: string;
-  quantity: string;
-  quantityUnit: string;
-  terms: string;
-  tt: string;
-  et: string;
+  season?: Season; // only for open type
+  
+  // Distance (auto-calculated, read-only)
+  distance: number;
+  ecaDistance: number;
+  
+  // Cargo quantity & productivity (for loading/discharging)
+  quantity: number; // MT
+  productivity: number; // MT/day
+  
+  // Terms and time calculations
+  terms: "shinc" | "sshex" | "fhex" | "";
+  turnTime: number; // hours
+  extraTime: number; // hours
+  
+  // Calculated port days (read-only, derived from quantity/productivity/terms/extra time)
+  calculatedPortDays: number;
+  
+  // Bunkering data (for bunkering operation)
+  bunkeringHsfo: number;
+  bunkeringVlsfo: number;
+  bunkeringLsmgo: number;
+  
+  // Expected DA
   expDa: number;
 }
 
@@ -37,9 +53,13 @@ interface VoyageContextValue {
   sequence: SequenceRowUI[];
   setSequence: React.Dispatch<React.SetStateAction<SequenceRowUI[]>>;
   updateSequenceRow: (id: number, field: keyof SequenceRowUI, value: string | number) => void;
+  addPort: (operation: PortOperation) => void;
+  addRepositioning: () => void;
+  removeSequence: (id: number) => void;
   recalculateDistances: () => void;
   autoDistanceEnabled: boolean;
   setAutoDistanceEnabled: (enabled: boolean) => void;
+  
   // Cargo state
   cargo: CargoState;
   setCargo: React.Dispatch<React.SetStateAction<CargoState>>;
@@ -75,90 +95,145 @@ interface BunkerState {
   co2Price: number;
 }
 
+// Helper to calculate port days
+function calculatePortDays(row: SequenceRowUI): number {
+  if (row.type === "open" || row.type === "repos") {
+    return 0;
+  }
+  
+  if (row.operation === "waiting" || row.operation === "bunkering") {
+    // For waiting/bunkering, use turn time + extra time only
+    return (row.turnTime + row.extraTime) / 24;
+  }
+  
+  if (row.operation === "loading" || row.operation === "discharging") {
+    if (row.productivity <= 0 || row.quantity <= 0) {
+      return (row.turnTime + row.extraTime) / 24;
+    }
+    
+    // Base port days = quantity / productivity
+    const basePortDays = row.quantity / row.productivity;
+    
+    // Terms multiplier
+    const termsMultiplier = row.terms === "sshex" ? 1.5 : row.terms === "fhex" ? 1.25 : 1.0;
+    
+    // Final port days with terms multiplier
+    const portDaysWithTerms = basePortDays * termsMultiplier;
+    
+    // Add turn time and extra time
+    const totalPortDays = portDaysWithTerms + (row.turnTime + row.extraTime) / 24;
+    
+    return totalPortDays;
+  }
+  
+  return 0;
+}
+
+const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation): SequenceRowUI => ({
+  id: nextId,
+  type,
+  operation,
+  port: "",
+  portUnloc: "",
+  season: type === "open" ? "summer" : undefined,
+  distance: 0,
+  ecaDistance: 0,
+  quantity: 0,
+  productivity: type === "port" && (operation === "loading" || operation === "discharging") ? 8000 : 0,
+  terms: type === "port" && (operation === "loading" || operation === "discharging") ? "shinc" : "",
+  turnTime: type === "port" ? 18 : 0,
+  extraTime: 0,
+  calculatedPortDays: 0,
+  bunkeringHsfo: 0,
+  bunkeringVlsfo: 0,
+  bunkeringLsmgo: 0,
+  expDa: 0,
+});
+
 const initialSequence: SequenceRowUI[] = [
   {
     id: 1,
-    sequenceType: "open",
-    operation: "",
+    type: "open",
     port: "Chittagong",
     portUnloc: "BDCGP",
-    cgo: "",
-    distanceEca: "0",
-    time: "0 nm EV",
-    wdaysPort: "0d",
-    draft: "5 % VL",
-    c: "0 m",
-    quantity: "",
-    quantityUnit: "mt",
+    season: "summer",
+    distance: 0,
+    ecaDistance: 0,
+    quantity: 0,
+    productivity: 0,
     terms: "",
-    tt: "",
-    et: "0h",
+    turnTime: 0,
+    extraTime: 0,
+    calculatedPortDays: 0,
+    bunkeringHsfo: 0,
+    bunkeringVlsfo: 0,
+    bunkeringLsmgo: 0,
     expDa: 0,
   },
   {
     id: 2,
-    sequenceType: "port",
+    type: "port",
     operation: "loading",
     port: "Paradip",
     portUnloc: "INPAV",
-    cgo: "#1",
-    distanceEca: "370",
-    time: "0 nm EV",
-    wdaysPort: "5.42d",
-    draft: "5 % VL",
-    c: "0 m",
-    quantity: "30000",
-    quantityUnit: "mt",
-    terms: "sshex",
-    tt: "1.5555",
-    et: "18h",
-    expDa: 65000,
+    distance: 370,
+    ecaDistance: 0,
+    quantity: 56550,
+    productivity: 8000,
+    terms: "shinc",
+    turnTime: 18,
+    extraTime: 0,
+    calculatedPortDays: 0,
+    bunkeringHsfo: 0,
+    bunkeringVlsfo: 0,
+    bunkeringLsmgo: 0,
+    expDa: 13000,
   },
   {
     id: 3,
-    sequenceType: "port",
+    type: "port",
     operation: "bunkering",
     port: "Singapore",
     portUnloc: "SGSIN",
-    cgo: "",
-    distanceEca: "1555",
-    time: "0 nm EV",
-    wdaysPort: "0.5d",
-    draft: "5 % VL",
-    c: "0 m",
-    quantity: "",
-    quantityUnit: "",
+    distance: 1555,
+    ecaDistance: 0,
+    quantity: 0,
+    productivity: 0,
     terms: "",
-    tt: "",
-    et: "12h",
-    expDa: 2000,
+    turnTime: 12,
+    extraTime: 0,
+    calculatedPortDays: 0,
+    bunkeringHsfo: 0,
+    bunkeringVlsfo: 1234,
+    bunkeringLsmgo: 1234,
+    expDa: 2500,
   },
   {
     id: 4,
-    sequenceType: "port",
+    type: "port",
     operation: "discharging",
     port: "Ho Chi Minh City",
     portUnloc: "VNSGN",
-    cgo: "#1",
-    distanceEca: "660",
-    time: "0 nm EV",
-    wdaysPort: "3.75d",
-    draft: "10 % VL",
-    c: "0 m",
-    quantity: "30000",
-    quantityUnit: "mt",
+    distance: 660,
+    ecaDistance: 0,
+    quantity: 56550,
+    productivity: 5000,
     terms: "shinc",
-    tt: "1.0000",
-    et: "18h",
+    turnTime: 18,
+    extraTime: 0,
+    calculatedPortDays: 0,
+    bunkeringHsfo: 0,
+    bunkeringVlsfo: 0,
+    bunkeringLsmgo: 0,
     expDa: 25000,
   },
 ];
 
 const initialCargo: CargoState = {
-  rate: 13,
+  rate: 13.7,
   rateType: "mt",
-  quantity: 30000,
-  voyageCommission: 2.5,
+  quantity: 56550,
+  voyageCommission: 1.25,
   tcCommission: 3.75,
   demurrage: 0,
   despatch: 0,
@@ -198,10 +273,53 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [hireRate, setHireRate] = useState(8542);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
 
+  // Recalculate port days whenever relevant fields change
+  useEffect(() => {
+    setSequence(prev => prev.map(row => ({
+      ...row,
+      calculatedPortDays: calculatePortDays(row),
+    })));
+  }, []);
+
   const updateSequenceRow = useCallback((id: number, field: keyof SequenceRowUI, value: string | number) => {
-    setSequence(prev => prev.map(row =>
-      row.id === id ? { ...row, [field]: value } : row
-    ));
+    setSequence(prev => prev.map(row => {
+      if (row.id !== id) return row;
+      
+      const updatedRow = { ...row, [field]: value };
+      // Recalculate port days when relevant fields change
+      if (['quantity', 'productivity', 'terms', 'turnTime', 'extraTime', 'operation'].includes(field)) {
+        updatedRow.calculatedPortDays = calculatePortDays(updatedRow);
+      }
+      return updatedRow;
+    }));
+  }, []);
+
+  const addPort = useCallback((operation: PortOperation) => {
+    setSequence(prev => {
+      const nextId = Math.max(...prev.map(s => s.id), 0) + 1;
+      const newRow = createNewRow("port", nextId, operation);
+      
+      // Insert before repos (if any exist at the end)
+      const reposRows = prev.filter(r => r.type === "repos");
+      const nonReposRows = prev.filter(r => r.type !== "repos");
+      return [...nonReposRows, newRow, ...reposRows];
+    });
+  }, []);
+
+  const addRepositioning = useCallback(() => {
+    setSequence(prev => {
+      const nextId = Math.max(...prev.map(s => s.id), 0) + 1;
+      const newRow = createNewRow("repos", nextId);
+      return [...prev, newRow];
+    });
+  }, []);
+
+  const removeSequence = useCallback((id: number) => {
+    setSequence(prev => {
+      const row = prev.find(s => s.id === id);
+      if (row?.type === "open") return prev; // Can't remove open port
+      return prev.filter(s => s.id !== id);
+    });
   }, []);
 
   // Recalculate all distances using sea route algorithm
@@ -209,10 +327,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     setSequence(prev => {
       const newSequence = [...prev];
       for (let i = 0; i < newSequence.length; i++) {
-        if (i === 0) {
-          // First port - distance is from vessel's current position (usually 0 or manually set)
-          continue;
-        }
+        if (i === 0) continue; // First port has no distance
         
         const prevRow = newSequence[i - 1];
         const currRow = newSequence[i];
@@ -224,7 +339,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
           if (prevPort && currPort) {
             const result = calculateSeaRouteDistance(prevPort, currPort);
             if (result.success) {
-              newSequence[i] = { ...currRow, distanceEca: String(result.distance) };
+              newSequence[i] = { ...currRow, distance: result.distance };
             }
           }
         }
@@ -239,7 +354,6 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   // Auto-recalculate distances when ports change
   useEffect(() => {
     if (autoDistanceEnabled && portUnlocsKey) {
-      // Debounce: only recalculate when port selection stabilizes
       const timer = setTimeout(() => {
         recalculateDistances();
       }, 500);
@@ -261,22 +375,18 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   // Transform UI state to calculation inputs
   const voyageInputs: VoyageInputs = {
     vessel,
-    sequence: sequence.map(row => {
-      const { distance, ecaDistance } = parseDistanceString(row.distanceEca);
-      const portDays = parsePortDays(row.wdaysPort);
-      return {
-        id: row.id,
-        operation: row.operation,
-        port: row.port,
-        portUnloc: row.portUnloc,
-        cgo: row.cgo,
-        distance,
-        ecaDistance,
-        portDays,
-        quantity: parseFloat(row.quantity) || 0,
-        expDa: row.expDa || 0,
-      };
-    }),
+    sequence: sequence.map(row => ({
+      id: row.id,
+      operation: row.operation || "",
+      port: row.port,
+      portUnloc: row.portUnloc,
+      cgo: "",
+      distance: row.distance,
+      ecaDistance: row.ecaDistance,
+      portDays: row.calculatedPortDays,
+      quantity: row.quantity,
+      expDa: row.expDa,
+    })),
     cargo: {
       rate: cargo.rate,
       rateType: cargo.rateType,
@@ -305,6 +415,9 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         sequence,
         setSequence,
         updateSequenceRow,
+        addPort,
+        addRepositioning,
+        removeSequence,
         recalculateDistances,
         autoDistanceEnabled,
         setAutoDistanceEnabled,
