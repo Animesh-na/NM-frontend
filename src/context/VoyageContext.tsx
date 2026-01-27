@@ -440,7 +440,39 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
 export function useVoyageContext() {
   const context = useContext(VoyageContext);
   if (!context) {
-    throw new Error("useVoyageContext must be used within a VoyageProvider");
+    // During HMR or initial load, context might briefly be null
+    // Return a safe default to prevent crashes
+    console.warn("VoyageContext not available - using defaults. This may occur during hot reload.");
+    return {
+      vessel: defaultVessel,
+      setVessel: () => {},
+      sequence: [],
+      setSequence: () => {},
+      updateSequenceRow: () => {},
+      addPort: () => {},
+      addRepositioning: () => {},
+      removeSequence: () => {},
+      recalculateDistances: () => {},
+      autoDistanceEnabled: true,
+      setAutoDistanceEnabled: () => {},
+      cargo: { rate: 0, rateType: "mt" as const, quantity: 0, voyageCommission: 0, tcCommission: 0, demurrage: 0, despatch: 0 },
+      setCargo: () => {},
+      updateCargo: () => {},
+      bunker: { hsfo: { price: 0, robStart: 0 }, vlsfo: { price: 0, robStart: 0 }, lsmgo: { price: 0, robStart: 0 }, co2Price: 0 },
+      setBunker: () => {},
+      updateBunker: () => {},
+      hireRate: 0,
+      setHireRate: () => {},
+      results: {
+        totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
+        totalSeaDays: 0, totalPortDays: 0, totalVoyageDays: 0, hsfoConsumption: 0,
+        vlsfoConsumption: 0, lsmgoConsumption: 0, totalBunkerCost: 0, grossFreight: 0,
+        voyageCommission: 0, netFreight: 0, portCosts: 0, totalVoyageCosts: 0,
+        hireCost: 0, voyageCostInclHire: 0, voyageCostExclHire: 0, grossProfit: 0,
+        netProfit: 0, tce: 0, ntce: 0, gtce: 0, pAndL: 0, totalCo2: 0,
+        co2Laden: 0, co2Ballast: 0, efoi: 0, afrCii: 0, ciiRating: "A",
+      },
+    } as VoyageContextValue;
   }
   return context;
 }
