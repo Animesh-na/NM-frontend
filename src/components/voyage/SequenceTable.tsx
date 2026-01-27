@@ -159,12 +159,16 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Distance (read-only) */}
+                    {/* Distance (editable) */}
                     <td className="text-right">
                       {row.type !== "open" ? (
-                        <span className="font-mono text-xs tabular-nums">
-                          {row.distance.toFixed(0)}
-                        </span>
+                        <input
+                          type="number"
+                          className="form-input-sm w-full font-mono text-xs text-right tabular-nums"
+                          value={row.distance || ""}
+                          onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)}
+                          placeholder="0"
+                        />
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
@@ -192,8 +196,9 @@ export function SequenceTable() {
                           placeholder="0"
                         />
                       ) : showBunkeringFields(row) ? (
-                        <div className="text-[10px] text-muted-foreground">
-                          VLSFO: {row.bunkeringVlsfo}t
+                        <div className="text-[10px] text-muted-foreground space-y-0.5">
+                          <div>HSFO: {row.bunkeringHsfo || 0}t</div>
+                          <div>VLSFO: {row.bunkeringVlsfo || 0}t</div>
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -212,7 +217,7 @@ export function SequenceTable() {
                         />
                       ) : showBunkeringFields(row) ? (
                         <div className="text-[10px] text-muted-foreground">
-                          LSMGO: {row.bunkeringLsmgo}t
+                          LSMGO: {row.bunkeringLsmgo || 0}t
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
