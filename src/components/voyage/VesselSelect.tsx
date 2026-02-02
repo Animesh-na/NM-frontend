@@ -88,12 +88,13 @@ function marineVesselToVesselData(vessel: MarineVessel): VesselData {
     imo: vessel.imo || "",
     dwt: vessel.dwt || 0,
     gt: vessel.gt || 0,
-    cubic: 0,
+    cubic: vessel.capacitycuft || 0,
     draft: vessel.draught || 0,
     tpcTpi: estimateTpc(vessel.dwt || 0),
     hsfoScrubbers: "N",
     builtYear: vessel.builtyear,
     builder: vessel.builder,
+    owner: vessel.owner,
     loa: vessel.loa,
     beam: vessel.beam,
     consumption: estimateConsumption(vessel.dwt || 0),
@@ -263,19 +264,30 @@ export function VesselSelect({ value, onChange, placeholder = "Search vessel..."
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{vessel.name}</div>
                     <div className="text-[10px] text-muted-foreground flex gap-2 flex-wrap">
-                      <span>{vessel.type}</span>
+                      <span className="text-primary/80">{vessel.type}</span>
                       <span>•</span>
                       <span>DWT: {vessel.dwt?.toLocaleString()}</span>
-                      {vessel.imo && (
-                        <>
-                          <span>•</span>
-                          <span>IMO: {vessel.imo}</span>
-                        </>
-                      )}
+                      <span>•</span>
+                      <span>GT: {vessel.gt?.toLocaleString()}</span>
                       {vessel.builtyear && (
                         <>
                           <span>•</span>
                           <span>Built: {vessel.builtyear}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/70 flex gap-2 flex-wrap mt-0.5">
+                      {vessel.owner && <span>Owner: {vessel.owner}</span>}
+                      {vessel.loa && (
+                        <>
+                          <span>•</span>
+                          <span>LOA: {vessel.loa}m</span>
+                        </>
+                      )}
+                      {vessel.beam && (
+                        <>
+                          <span>•</span>
+                          <span>Beam: {vessel.beam}m</span>
                         </>
                       )}
                     </div>
