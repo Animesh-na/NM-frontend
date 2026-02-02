@@ -1,5 +1,5 @@
 import searoute from 'searoute-js';
-import type { Port } from '@/data/ports';
+import type { Port } from '@/components/voyage/PortSelect';
 
 interface GeoJSONPoint {
   type: 'Feature';
