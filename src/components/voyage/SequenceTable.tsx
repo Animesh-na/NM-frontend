@@ -1,7 +1,6 @@
 import { ChevronDown, Plus, Trash2, Ship, Clock } from "lucide-react";
 import { useState } from "react";
-import { PortSelect } from "./PortSelect";
-import type { Port } from "@/data/ports";
+import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season } from "@/context/VoyageContext";
 import { SequenceSummary } from "./SequenceSummary";
 
@@ -46,7 +45,9 @@ export function SequenceTable() {
       row.id === id ? { 
         ...row, 
         port: port?.name || "", 
-        portUnloc: port?.unloc || "" 
+        portUnloc: port?.unloc || "",
+        portId: port?.id,
+        coordinates: port?.coordinates,
       } : row
     ));
   };

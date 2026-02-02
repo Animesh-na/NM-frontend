@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from "react";
 import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/hooks/useVoyageCalculation";
 import { defaultVessel, type VesselData } from "@/data/vessels";
-import { getPortByUnloc, type Port } from "@/data/ports";
 import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
+import { type Port } from "@/components/voyage/PortSelect";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
@@ -17,6 +17,8 @@ export interface SequenceRowUI {
   operation?: PortOperation; // only for port type
   port: string;
   portUnloc: string;
+  portId?: number; // Port ID from API
+  coordinates?: [number, number]; // [longitude, latitude] for distance calculation
   season?: Season; // only for open type
   
   // Distance (auto-calculated, read-only)
@@ -332,15 +334,28 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         const prevRow = newSequence[i - 1];
         const currRow = newSequence[i];
         
-        if (prevRow.portUnloc && currRow.portUnloc) {
-          const prevPort = getPortByUnloc(prevRow.portUnloc);
-          const currPort = getPortByUnloc(currRow.portUnloc);
+        // Use coordinates from sequence rows if available
+        if (prevRow.coordinates && currRow.coordinates) {
+          const prevPort: Port = {
+            id: prevRow.portId || 0,
+            unloc: prevRow.portUnloc,
+            name: prevRow.port,
+            city: prevRow.port,
+            country: "",
+            coordinates: prevRow.coordinates,
+          };
+          const currPort: Port = {
+            id: currRow.portId || 0,
+            unloc: currRow.portUnloc,
+            name: currRow.port,
+            city: currRow.port,
+            country: "",
+            coordinates: currRow.coordinates,
+          };
           
-          if (prevPort && currPort) {
-            const result = calculateSeaRouteDistance(prevPort, currPort);
-            if (result.success) {
-              newSequence[i] = { ...currRow, distance: result.distance };
-            }
+          const result = calculateSeaRouteDistance(prevPort, currPort);
+          if (result.success) {
+            newSequence[i] = { ...currRow, distance: result.distance };
           }
         }
       }
