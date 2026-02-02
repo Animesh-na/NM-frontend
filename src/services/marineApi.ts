@@ -17,11 +17,16 @@ export interface MarineVessel {
   imo: string;
   builtyear: number;
   builder: string;
+  buildercountry: string;
   dwt: number;
+  capacitycuft: number;
+  owner: string;
   gt: number;
   loa: number;
   draught: number;
   beam: number;
+  classificationsociety: string;
+  companynationality: string;
 }
 
 export interface MarinePort {
