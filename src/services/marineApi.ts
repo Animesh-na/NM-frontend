@@ -1,8 +1,7 @@
-// Marine API Service
-// Base URL and API Key for Effimove Marine APIs
+// Marine API Service - calls via Edge Function proxy to avoid CORS
 
-const BASE_URL = "https://development.effimove.in/marine/api/v1";
-const API_KEY = "effimove@2026";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Types
 export interface VesselType {
@@ -38,25 +37,28 @@ export interface MarinePort {
   longitude: number;
 }
 
-// Helper for API requests
+// Helper for API requests via Edge Function
 async function apiRequest<T>(endpoint: string, params?: Record<string, string | number>): Promise<T> {
-  const url = new URL(`${BASE_URL}${endpoint}`);
+  const queryParams = new URLSearchParams({ endpoint });
   
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
-        url.searchParams.append(key, String(value));
+        queryParams.append(key, String(value));
       }
     });
   }
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      "API-Key": API_KEY,
-      "Content-Type": "application/json",
-    },
-  });
+  const response = await fetch(
+    `${SUPABASE_URL}/functions/v1/marine-api?${queryParams.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
@@ -67,8 +69,13 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, string | 
 
 // 1. Get Vessel Types
 export async function getVesselTypes(): Promise<VesselType[]> {
-  const data = await apiRequest<{ types: VesselType[] }>("/vessel-types");
-  return data.types || [];
+  try {
+    const data = await apiRequest<{ types: VesselType[] }>("/vessel-types");
+    return data.types || [];
+  } catch (error) {
+    console.error("Failed to fetch vessel types:", error);
+    return [];
+  }
 }
 
 // 2. Search Vessels
@@ -77,16 +84,26 @@ export async function searchVessels(
   typeId?: number,
   limit: number = 10
 ): Promise<MarineVessel[]> {
-  const params: Record<string, string | number> = { q: query, limit };
-  if (typeId) {
-    params.type_id = typeId;
+  try {
+    const params: Record<string, string | number> = { q: query, limit };
+    if (typeId) {
+      params.type_id = typeId;
+    }
+    const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels/search", params);
+    return data.vessels || [];
+  } catch (error) {
+    console.error("Failed to search vessels:", error);
+    return [];
   }
-  const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels/search", params);
-  return data.vessels || [];
 }
 
 // 3. Search Ports
 export async function searchPorts(query: string, limit: number = 10): Promise<MarinePort[]> {
-  const data = await apiRequest<{ ports: MarinePort[] }>("/ports/search", { q: query, limit });
-  return data.ports || [];
+  try {
+    const data = await apiRequest<{ ports: MarinePort[] }>("/ports/search", { q: query, limit });
+    return data.ports || [];
+  } catch (error) {
+    console.error("Failed to search ports:", error);
+    return [];
+  }
 }
