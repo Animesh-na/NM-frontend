@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Search, MapPin, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchPorts as searchMarinePorts, type MarinePort } from "@/services/marineApi";
@@ -46,17 +47,47 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
   const [search, setSearch] = useState(value);
   const [results, setResults] = useState<Port[]>(popularPorts);
   const [loading, setLoading] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSearch(value);
   }, [value]);
 
+  // Update dropdown position when open
+  const updatePosition = useCallback(() => {
+    if (containerRef.current && isOpen) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    updatePosition();
+    if (isOpen) {
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen, updatePosition]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+      const target = event.target as Node;
+      // Check if click is outside both container and portal dropdown
+      if (containerRef.current && !containerRef.current.contains(target)) {
+        const portalDropdown = document.getElementById('port-select-dropdown');
+        if (!portalDropdown || !portalDropdown.contains(target)) {
+          setIsOpen(false);
+        }
       }
     };
 
@@ -103,8 +134,57 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
     setResults(popularPorts);
   };
 
+  const dropdownContent = (
+    <div 
+      id="port-select-dropdown"
+      className="fixed max-h-60 overflow-auto rounded-sm border border-border bg-popover shadow-lg"
+      style={{ 
+        top: dropdownPosition.top, 
+        left: dropdownPosition.left, 
+        width: dropdownPosition.width,
+        zIndex: 99999,
+      }}
+    >
+      {loading ? (
+        <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-3 w-3 animate-spin" /> Searching ports...
+        </div>
+      ) : results.length === 0 ? (
+        <div className="px-3 py-2 text-xs text-muted-foreground">No ports found</div>
+      ) : (
+        <div>
+          {search.length < 2 && (
+            <div className="px-2 py-1 text-[10px] text-muted-foreground bg-muted/50 border-b border-border">
+              Popular Ports
+            </div>
+          )}
+          {results.map((port) => (
+            <button
+              key={`${port.id}-${port.unloc}`}
+              onClick={() => handleSelect(port)}
+              className="w-full flex items-start gap-2 px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-xs"
+            >
+              <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{port.name}</div>
+                <div className="text-[10px] text-muted-foreground truncate">
+                  {port.country} • {port.unloc}
+                  {port.coordinates && (
+                    <span className="ml-1 opacity-60">
+                      ({port.coordinates[1].toFixed(2)}, {port.coordinates[0].toFixed(2)})
+                    </span>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className={cn("relative", className)} ref={dropdownRef}>
+    <div className={cn("relative", className)} ref={containerRef}>
       <div className="relative">
         <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
         <input
@@ -129,45 +209,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
         )}
       </div>
 
-      {isOpen && (
-        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-sm border border-border bg-popover shadow-lg">
-          {loading ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-3 w-3 animate-spin" /> Searching ports...
-            </div>
-          ) : results.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground">No ports found</div>
-          ) : (
-            <div>
-              {search.length < 2 && (
-                <div className="px-2 py-1 text-[10px] text-muted-foreground bg-muted/50 border-b border-border">
-                  Popular Ports
-                </div>
-              )}
-              {results.map((port) => (
-                <button
-                  key={`${port.id}-${port.unloc}`}
-                  onClick={() => handleSelect(port)}
-                  className="w-full flex items-start gap-2 px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-xs"
-                >
-                  <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{port.name}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">
-                      {port.country} • {port.unloc}
-                      {port.coordinates && (
-                        <span className="ml-1 opacity-60">
-                          ({port.coordinates[1].toFixed(2)}, {port.coordinates[0].toFixed(2)})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {isOpen && createPortal(dropdownContent, document.body)}
     </div>
   );
 }

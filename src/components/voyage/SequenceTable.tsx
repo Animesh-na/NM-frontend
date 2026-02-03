@@ -1,8 +1,9 @@
 import { ChevronDown, Plus, Trash2, Ship, Clock } from "lucide-react";
 import { useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
-import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season } from "@/context/VoyageContext";
+import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext } from "@/context/VoyageContext";
 import { SequenceSummary } from "./SequenceSummary";
+import { InfoTooltip } from "./InfoTooltip";
 
 const operationOptions: { value: PortOperation; label: string }[] = [
   { value: "loading", label: "Load" },
@@ -16,6 +17,13 @@ const seasonOptions: { value: Season; label: string }[] = [
   { value: "winter", label: "Winter" },
   { value: "tropical", label: "Tropical" },
   { value: "eca", label: "ECA" },
+];
+
+const speedContextOptions: { value: SpeedContext; label: string; tooltip: string }[] = [
+  { value: "EV", label: "EV", tooltip: "ECA Voyage - Eco speed in ECA zones" },
+  { value: "EL", label: "EL", tooltip: "ECA Operational - Eco speed for operations" },
+  { value: "FV", label: "FV", tooltip: "Full Voyage - Full speed in open sea" },
+  { value: "FL", label: "FL", tooltip: "Full Operational - Full speed for operations" },
 ];
 
 const termsOptions = [
@@ -35,7 +43,8 @@ export function SequenceTable() {
     removeSequence,
     recalculateDistances, 
     autoDistanceEnabled, 
-    setAutoDistanceEnabled 
+    setAutoDistanceEnabled,
+    vessel,
   } = useVoyageContext();
   
   const [isExpanded, setIsExpanded] = useState(true);
@@ -78,6 +87,11 @@ export function SequenceTable() {
   const showBunkeringFields = (row: SequenceRowUI) =>
     row.type === "port" && row.operation === "bunkering";
 
+  const formatTime = (days: number): string => {
+    if (days === 0) return "—";
+    return `${days.toFixed(2)}d`;
+  };
+
   return (
     <div className="calc-card">
       <button
@@ -95,6 +109,17 @@ export function SequenceTable() {
 
       {isExpanded && (
         <div className="p-3">
+          {/* Speed context legend */}
+          <div className="flex items-center gap-4 mb-2 text-[10px] text-muted-foreground">
+            <span className="font-medium">Speed Context:</span>
+            {speedContextOptions.map(opt => (
+              <span key={opt.value} className="flex items-center gap-1">
+                <span className="font-mono font-medium text-foreground">{opt.value}</span>
+                <span>= {opt.tooltip.split(' - ')[0]}</span>
+              </span>
+            ))}
+          </div>
+
           <div className="overflow-x-auto">
             <table className="data-table min-w-full">
               <thead>
@@ -102,14 +127,41 @@ export function SequenceTable() {
                   <th className="w-16">Type</th>
                   <th className="w-32">Port</th>
                   <th className="w-20">Season/Op</th>
-                  <th className="w-16 text-right">Dist (nm)</th>
-                  <th className="w-16 text-right">ECA</th>
+                  <th className="w-16 text-right">
+                    <span className="flex items-center justify-end gap-1">
+                      Dist
+                      <InfoTooltip formula="nm" description="Total distance in nautical miles" />
+                    </span>
+                  </th>
+                  <th className="w-16 text-right">
+                    <span className="flex items-center justify-end gap-1">
+                      ECA
+                      <InfoTooltip formula="nm" description="Distance within ECA zones" />
+                    </span>
+                  </th>
+                  <th className="w-14">
+                    <span className="flex items-center gap-1">
+                      Spd
+                      <InfoTooltip formula="EV/EL/FV/FL" description="EV/EL=Eco, FV/FL=Full speed context" />
+                    </span>
+                  </th>
+                  <th className="w-16 text-right">
+                    <span className="flex items-center justify-end gap-1">
+                      Sea
+                      <InfoTooltip formula="ECA/(spd×24) + NonECA/(spd×24)" description="Sailing time in days" />
+                    </span>
+                  </th>
                   <th className="w-20 text-right">Qty (mt)</th>
-                  <th className="w-20 text-right">Rate (mt/d)</th>
-                  <th className="w-16">Terms</th>
-                  <th className="w-14 text-right">Tt (h)</th>
-                  <th className="w-14 text-right">Et (h)</th>
-                  <th className="w-16 text-right">Days</th>
+                  <th className="w-20 text-right">Rate</th>
+                  <th className="w-14">Terms</th>
+                  <th className="w-14 text-right">Tt</th>
+                  <th className="w-14 text-right">Et</th>
+                  <th className="w-16 text-right">
+                    <span className="flex items-center justify-end gap-1">
+                      Days
+                      <InfoTooltip formula="Qty/Rate × Terms + Tt + Et" description="Port days" />
+                    </span>
+                  </th>
                   <th className="w-20 text-right">Exp/DA</th>
                   <th className="w-8"></th>
                 </tr>
@@ -160,7 +212,7 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Distance (editable) */}
+                    {/* Total Distance (editable) */}
                     <td className="text-right">
                       {row.type !== "open" ? (
                         <input
@@ -175,11 +227,47 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* ECA Distance (read-only) */}
+                    {/* ECA Distance (editable) */}
                     <td className="text-right">
                       {row.type !== "open" ? (
-                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                          {row.ecaDistance > 0 ? row.ecaDistance.toFixed(0) : "0"}
+                        <input
+                          type="number"
+                          className="form-input-sm w-full font-mono text-xs text-right tabular-nums"
+                          value={row.ecaDistance || ""}
+                          onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)}
+                          placeholder="0"
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* Speed Context Selector */}
+                    <td>
+                      {row.type !== "open" ? (
+                        <select
+                          className="form-select w-full text-xs font-mono"
+                          value={row.speedContext}
+                          onChange={(e) => updateSequenceRow(row.id, "speedContext", e.target.value as SpeedContext)}
+                          title={speedContextOptions.find(o => o.value === row.speedContext)?.tooltip}
+                        >
+                          {speedContextOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.value}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* Calculated Sea Time (read-only) */}
+                    <td className="text-right">
+                      {row.type !== "open" ? (
+                        <span 
+                          className="font-mono text-xs tabular-nums text-primary font-medium"
+                          title={`ECA: ${row.ecaTime.toFixed(2)}d, Sea: ${row.seaTime.toFixed(2)}d`}
+                        >
+                          {formatTime(row.totalLegTime)}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
