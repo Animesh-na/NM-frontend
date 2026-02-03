@@ -154,13 +154,15 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
   const dropdownContent = isOpen ? (
     <div 
       ref={dropdownRef}
-      className="max-h-72 overflow-auto rounded border border-border bg-popover text-popover-foreground shadow-xl"
+      className="max-h-72 overflow-auto rounded border border-border bg-popover text-popover-foreground shadow-2xl"
       style={{ 
         position: 'fixed',
         top: `${dropdownPosition.top}px`, 
         left: `${dropdownPosition.left}px`, 
         width: `${dropdownPosition.width}px`,
-        zIndex: 999999,
+        zIndex: 2147483647, // Max z-index value
+        isolation: 'isolate',
+        pointerEvents: 'auto',
       }}
     >
       {loading ? (

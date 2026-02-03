@@ -11,8 +11,12 @@ export type Season = "summer" | "winter" | "tropical" | "eca";
 export type PortOperation = "loading" | "discharging" | "waiting" | "bunkering";
 
 // Speed context types for voyage legs
-// EV = ECA Voyage, EL = ECA Operational, FV = Open Sea Voyage, FL = Open Sea Operational
+// EV = Eco Voyage (Outside ECA), EL = Eco Local (Inside ECA)
+// FV = Full Voyage (Outside ECA), FL = Full Local (Inside ECA)
 export type SpeedContext = "EV" | "EL" | "FV" | "FL";
+
+// Wdays unit types
+export type WdaysUnit = "VL" | "%";
 
 // Sequence row for UI state
 export interface SequenceRowUI {
@@ -25,17 +29,21 @@ export interface SequenceRowUI {
   coordinates?: [number, number]; // [longitude, latitude] for distance calculation
   season?: Season; // only for open type
   
-  // Distance (auto-calculated, can be overridden)
+  // Distance (V = Outside ECA) with speed context selector
   distance: number;
+  distanceSpeedContext: SpeedContext; // EV or FV for non-ECA distance
+  
+  // ECA Distance (L = Inside ECA) with speed context selector
   ecaDistance: number;
+  ecaDistanceSpeedContext: SpeedContext; // EL or FL for ECA distance
   
-  // Speed context for ECA vs non-ECA zones
-  speedContext: SpeedContext;
-  
-  // Calculated sea times (read-only)
+  // Calculated sea times (can be overridden)
   ecaTime: number; // days sailing in ECA
-  seaTime: number; // days sailing in open sea
+  seaTime: number; // days sailing in open sea (non-ECA)
   totalLegTime: number; // ecaTime + seaTime
+  
+  // Time override (if user wants to manually set time)
+  timeOverride?: number;
   
   // Cargo quantity & productivity (for loading/discharging)
   quantity: number; // MT
@@ -43,7 +51,7 @@ export interface SequenceRowUI {
   
   // Terms and time calculations
   terms: "shinc" | "sshex" | "fhex" | "";
-  turnTime: number; // hours
+  turnTime: number; // hours (stored as hours, displayed as days)
   extraTime: number; // hours
   
   // Calculated port days (read-only, derived from quantity/productivity/terms/extra time)
@@ -51,6 +59,9 @@ export interface SequenceRowUI {
   
   // Editable port days override (if user wants to manually set)
   wdaysPortOverride?: number;
+  
+  // Wdays unit (VL = Voyage Laytime Days, % = Percentage)
+  wdaysUnit: WdaysUnit;
   
   // Draft in meters (manual input)
   draft: number;
@@ -176,7 +187,7 @@ function getSpeedForContext(
   };
 }
 
-// Helper to calculate sea time for a leg
+// Helper to calculate sea time for a leg using dual speed contexts
 function calculateSeaTime(
   row: SequenceRowUI, 
   isLaden: boolean, 
@@ -186,12 +197,20 @@ function calculateSeaTime(
     return { ecaTime: 0, seaTime: 0, totalLegTime: 0 };
   }
   
-  const { ecaSpeed, seaSpeed } = getSpeedForContext(row.speedContext, isLaden, vessel);
-  const nonEcaDistance = Math.max(0, row.distance - row.ecaDistance);
+  // If user has overridden time, use that
+  if (row.timeOverride !== undefined && row.timeOverride > 0) {
+    return { ecaTime: 0, seaTime: 0, totalLegTime: row.timeOverride };
+  }
   
-  // Time = Distance / (Speed * 24 hours/day)
+  // Get speeds for non-ECA distance (V context: EV or FV)
+  const { seaSpeed: nonEcaSpeed } = getSpeedForContext(row.distanceSpeedContext, isLaden, vessel);
+  
+  // Get speeds for ECA distance (L context: EL or FL)
+  const { seaSpeed: ecaSpeed } = getSpeedForContext(row.ecaDistanceSpeedContext, isLaden, vessel);
+  
+  // Calculate times: Time = Distance / (Speed * 24 hours/day)
+  const seaTime = nonEcaSpeed > 0 ? row.distance / (nonEcaSpeed * 24) : 0;
   const ecaTime = ecaSpeed > 0 ? row.ecaDistance / (ecaSpeed * 24) : 0;
-  const seaTime = seaSpeed > 0 ? nonEcaDistance / (seaSpeed * 24) : 0;
   const totalLegTime = ecaTime + seaTime;
   
   return { ecaTime, seaTime, totalLegTime };
@@ -205,11 +224,13 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   portUnloc: "",
   season: type === "open" ? "summer" : undefined,
   distance: 0,
+  distanceSpeedContext: speedProfile === "eco" ? "EV" : "FV", // Non-ECA speed context
   ecaDistance: 0,
-  speedContext: speedProfile === "eco" ? "EV" : "FV", // Default based on vessel profile
+  ecaDistanceSpeedContext: speedProfile === "eco" ? "EL" : "FL", // ECA speed context
   ecaTime: 0,
   seaTime: 0,
   totalLegTime: 0,
+  timeOverride: undefined,
   quantity: 0,
   productivity: type === "port" && (operation === "loading" || operation === "discharging") ? 8000 : 0,
   terms: type === "port" && (operation === "loading" || operation === "discharging") ? "shinc" : "",
@@ -217,6 +238,7 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   extraTime: 0,
   calculatedPortDays: 0,
   wdaysPortOverride: undefined,
+  wdaysUnit: "VL",
   draft: 0,
   cranes: type === "port" && (operation === "loading" || operation === "discharging") ? defaultCranes : 0,
   constantPercent: 5,
@@ -234,8 +256,9 @@ const initialSequence: SequenceRowUI[] = [
     portUnloc: "BDCGP",
     season: "summer",
     distance: 0,
+    distanceSpeedContext: "EV",
     ecaDistance: 0,
-    speedContext: "EV",
+    ecaDistanceSpeedContext: "EL",
     ecaTime: 0,
     seaTime: 0,
     totalLegTime: 0,
@@ -245,6 +268,7 @@ const initialSequence: SequenceRowUI[] = [
     turnTime: 0,
     extraTime: 0,
     calculatedPortDays: 0,
+    wdaysUnit: "VL",
     draft: 0,
     cranes: 0,
     constantPercent: 0,
@@ -260,8 +284,9 @@ const initialSequence: SequenceRowUI[] = [
     port: "Paradip",
     portUnloc: "INPAV",
     distance: 370,
+    distanceSpeedContext: "EV",
     ecaDistance: 0,
-    speedContext: "EV",
+    ecaDistanceSpeedContext: "EL",
     ecaTime: 0,
     seaTime: 0,
     totalLegTime: 0,
@@ -271,6 +296,7 @@ const initialSequence: SequenceRowUI[] = [
     turnTime: 18,
     extraTime: 0,
     calculatedPortDays: 0,
+    wdaysUnit: "VL",
     draft: 12.5,
     cranes: 4,
     constantPercent: 5,
@@ -286,8 +312,9 @@ const initialSequence: SequenceRowUI[] = [
     port: "Singapore",
     portUnloc: "SGSIN",
     distance: 1555,
+    distanceSpeedContext: "EV",
     ecaDistance: 0,
-    speedContext: "EV",
+    ecaDistanceSpeedContext: "EL",
     ecaTime: 0,
     seaTime: 0,
     totalLegTime: 0,
@@ -297,6 +324,7 @@ const initialSequence: SequenceRowUI[] = [
     turnTime: 12,
     extraTime: 0,
     calculatedPortDays: 0,
+    wdaysUnit: "VL",
     draft: 0,
     cranes: 0,
     constantPercent: 0,
@@ -312,8 +340,9 @@ const initialSequence: SequenceRowUI[] = [
     port: "Ho Chi Minh City",
     portUnloc: "VNSGN",
     distance: 660,
+    distanceSpeedContext: "EV",
     ecaDistance: 0,
-    speedContext: "EV",
+    ecaDistanceSpeedContext: "EL",
     ecaTime: 0,
     seaTime: 0,
     totalLegTime: 0,
@@ -323,6 +352,7 @@ const initialSequence: SequenceRowUI[] = [
     turnTime: 18,
     extraTime: 0,
     calculatedPortDays: 0,
+    wdaysUnit: "VL",
     draft: 10.2,
     cranes: 4,
     constantPercent: 5,
@@ -414,8 +444,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
           updatedRow.calculatedPortDays = calculatePortDays(updatedRow);
         }
         
-        // Recalculate sea times when distance or speed context changes
-        if (['distance', 'ecaDistance', 'speedContext'].includes(field)) {
+        // Recalculate sea times when distance, eca distance, or speed context changes
+        if (['distance', 'ecaDistance', 'distanceSpeedContext', 'ecaDistanceSpeedContext', 'timeOverride'].includes(field)) {
           const seaTimeData = calculateSeaTime(updatedRow, isLaden, vessel);
           Object.assign(updatedRow, seaTimeData);
         }
