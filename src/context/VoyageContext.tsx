@@ -130,6 +130,10 @@ interface VoyageContextValue {
   bunker: BunkerState;
   setBunker: React.Dispatch<React.SetStateAction<BunkerState>>;
   updateBunker: (fuelType: string, field: string, value: number) => void;
+  updateBunkerField: (field: keyof BunkerState, value: number | boolean | string) => void;
+  addPortBunkering: (portUnloc: string, portName: string) => void;
+  removePortBunkering: (id: number) => void;
+  updatePortBunkering: (id: number, fuelType: string, field: string, value: number) => void;
   
   // Hire rate
   hireRate: number;
@@ -139,11 +143,44 @@ interface VoyageContextValue {
   results: VoyageResults;
 }
 
+// Fuel accounting mode type
+export type FuelAccountingMode = "average" | "fifo";
+
+// Port bunkering entry
+export interface PortBunkeringEntry {
+  id: number;
+  portUnloc: string;
+  portName: string;
+  hsfo: { quantity: number; price: number };
+  vlsfo: { quantity: number; price: number };
+  lsmgo: { quantity: number; price: number };
+}
+
 interface BunkerState {
+  // BOB (Bunker On Board) at voyage start
   hsfo: { price: number; robStart: number };
   vlsfo: { price: number; robStart: number };
   lsmgo: { price: number; robStart: number };
+  
+  // CO2 price for emission compliance
   co2Price: number;
+  
+  // Fuel accounting mode
+  fuelMode: FuelAccountingMode;
+  
+  // Ignore BOB in calculations
+  ignoreBOB: boolean;
+  
+  // Reward factor for wind-assisted propulsion (default 1.0)
+  rewardFactor: number;
+  
+  // Port bunkering events during voyage
+  portBunkering: PortBunkeringEntry[];
+  
+  // EU ETS tracking (derived from ECA zones)
+  euEtsHsfo: number;
+  euEtsVlsfo: number;
+  euEtsLsmgo: number;
 }
 
 // Helper to calculate port days
@@ -400,6 +437,13 @@ const initialBunker: BunkerState = {
   vlsfo: { price: 450, robStart: 1234 },
   lsmgo: { price: 750, robStart: 0 },
   co2Price: 0,
+  fuelMode: "average",
+  ignoreBOB: false,
+  rewardFactor: 1.0,
+  portBunkering: [],
+  euEtsHsfo: 0,
+  euEtsVlsfo: 0,
+  euEtsLsmgo: 0,
 };
 
 const VoyageContext = createContext<VoyageContextValue | null>(null);
@@ -598,6 +642,50 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const updateBunkerField = useCallback((field: keyof BunkerState, value: number | boolean | string) => {
+    setBunker(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const addPortBunkering = useCallback((portUnloc: string, portName: string) => {
+    setBunker(prev => {
+      const nextId = prev.portBunkering.length > 0 
+        ? Math.max(...prev.portBunkering.map(p => p.id)) + 1 
+        : 1;
+      return {
+        ...prev,
+        portBunkering: [
+          ...prev.portBunkering,
+          {
+            id: nextId,
+            portUnloc,
+            portName,
+            hsfo: { quantity: 0, price: 0 },
+            vlsfo: { quantity: 0, price: 0 },
+            lsmgo: { quantity: 0, price: 0 },
+          },
+        ],
+      };
+    });
+  }, []);
+
+  const removePortBunkering = useCallback((id: number) => {
+    setBunker(prev => ({
+      ...prev,
+      portBunkering: prev.portBunkering.filter(p => p.id !== id),
+    }));
+  }, []);
+
+  const updatePortBunkering = useCallback((id: number, fuelType: string, field: string, value: number) => {
+    setBunker(prev => ({
+      ...prev,
+      portBunkering: prev.portBunkering.map(p => 
+        p.id === id 
+          ? { ...p, [fuelType]: { ...(p[fuelType as keyof typeof p] as { quantity: number; price: number }), [field]: value } }
+          : p
+      ),
+    }));
+  }, []);
+
   // Aggregate cargo data for calculation hook
   const aggregatedCargo = useMemo(() => {
     const totalQuantity = cargos.reduce((sum, c) => sum + c.quantity, 0);
@@ -675,6 +763,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         bunker,
         setBunker,
         updateBunker,
+        updateBunkerField,
+        addPortBunkering,
+        removePortBunkering,
+        updatePortBunkering,
         hireRate,
         setHireRate,
         results,
@@ -710,9 +802,25 @@ export function useVoyageContext() {
       updateCargoEntry: () => {},
       vesselCost: 0,
       setVesselCost: () => {},
-      bunker: { hsfo: { price: 0, robStart: 0 }, vlsfo: { price: 0, robStart: 0 }, lsmgo: { price: 0, robStart: 0 }, co2Price: 0 },
+      bunker: { 
+        hsfo: { price: 0, robStart: 0 }, 
+        vlsfo: { price: 0, robStart: 0 }, 
+        lsmgo: { price: 0, robStart: 0 }, 
+        co2Price: 0,
+        fuelMode: "average" as const,
+        ignoreBOB: false,
+        rewardFactor: 1.0,
+        portBunkering: [],
+        euEtsHsfo: 0,
+        euEtsVlsfo: 0,
+        euEtsLsmgo: 0,
+      },
       setBunker: () => {},
       updateBunker: () => {},
+      updateBunkerField: () => {},
+      addPortBunkering: () => {},
+      removePortBunkering: () => {},
+      updatePortBunkering: () => {},
       hireRate: 0,
       setHireRate: () => {},
       results: {
