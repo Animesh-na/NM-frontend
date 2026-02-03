@@ -1,56 +1,161 @@
-import { ChevronDown, Ship } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, Ship, RefreshCw, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { VesselSelect } from "./VesselSelect";
-import { vesselTypes, defaultVessel, type VesselData } from "@/data/vessels";
+import { ConsumptionMatrix } from "./ConsumptionMatrix";
+import { 
+  defaultVessel, 
+  type VesselData, 
+  type SpeedProfile,
+  estimateExtendedConsumption,
+  estimateTpc,
+  syncLegacyConsumption,
+} from "@/data/vessels";
 import { useVoyageContext } from "@/context/VoyageContext";
-
-interface ConsumptionRow {
-  key: keyof VesselData["consumption"];
-  label: string;
-}
-
-const consumptionRows: ConsumptionRow[] = [
-  { key: "speed", label: "Spd (kts)" },
-  { key: "hsfo", label: "HSFO cons." },
-  { key: "vlsfo", label: "VLSFO cons." },
-  { key: "lsmgo", label: "LSMGO cons." },
-  { key: "ae", label: "AE cons." },
-  { key: "aeScrubber", label: "AE + scrubber cons." },
-];
+import { getVesselTypes, type VesselType } from "@/services/marineApi";
 
 export function VesselPanel() {
   const { vessel, setVessel } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [vesselTypes, setVesselTypes] = useState<VesselType[]>([]);
+  const [typesLoading, setTypesLoading] = useState(false);
+  const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleVesselSelect = (selectedVessel: VesselData | null) => {
-    if (selectedVessel) {
-      setVessel(selectedVessel);
-    } else {
-      setVessel({ ...defaultVessel });
-    }
+  // Load vessel types on mount
+  useEffect(() => {
+    const loadTypes = async () => {
+      setTypesLoading(true);
+      try {
+        const types = await getVesselTypes();
+        setVesselTypes(types);
+      } catch (error) {
+        console.error("Failed to load vessel types:", error);
+      } finally {
+        setTypesLoading(false);
+      }
+    };
+    loadTypes();
+  }, []);
+
+  const handleVesselTypeChange = (typeId: number | null, typeName: string) => {
+    setSelectedTypeId(typeId);
+    // Reset vessel when type changes
+    setVessel({
+      ...defaultVessel,
+      type: typeName,
+    });
   };
 
-  const handleFieldChange = (field: keyof VesselData, value: string | number) => {
+  const handleVesselSelect = useCallback((selectedVessel: VesselData | null) => {
+    if (selectedVessel) {
+      // Preserve the selected type
+      const vesselWithType = {
+        ...selectedVessel,
+        type: vessel.type || selectedVessel.type,
+      };
+      setVessel(vesselWithType);
+    } else {
+      setVessel({ ...defaultVessel, type: vessel.type });
+    }
+  }, [vessel.type, setVessel]);
+
+  const handleFieldChange = (field: keyof VesselData, value: string | number | boolean) => {
     setVessel({ ...vessel, [field]: value });
   };
 
-  const handleConsumptionChange = (
-    row: keyof VesselData["consumption"],
-    col: "ecoBallast" | "ecoLaden" | "canal",
-    value: string
-  ) => {
-    const numValue = parseFloat(value) || 0;
+  const handleSpeedProfileChange = (profile: SpeedProfile) => {
+    const currentMatrix = profile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
     setVessel({
       ...vessel,
-      consumption: {
-        ...vessel.consumption,
-        [row]: {
-          ...vessel.consumption[row],
-          [col]: numValue,
-        },
-      },
+      speedProfile: profile,
+      consumption: syncLegacyConsumption(currentMatrix),
     });
   };
+
+  const handleConsumptionChange = (
+    row: keyof typeof vessel.ecoConsumption,
+    col: keyof typeof vessel.ecoConsumption.speed,
+    value: number
+  ) => {
+    const currentProfile = vessel.speedProfile;
+    const matrixKey = currentProfile === "eco" ? "ecoConsumption" : "fullConsumption";
+    
+    let updatedMatrix = {
+      ...vessel[matrixKey],
+      [row]: {
+        ...vessel[matrixKey][row],
+        [col]: value,
+      },
+    };
+    
+    // Handle Load = Disch = Idle synchronization
+    if (vessel.loadDischIdleSame && (col === "load" || col === "discharge" || col === "idle")) {
+      updatedMatrix = {
+        ...updatedMatrix,
+        [row]: {
+          ...updatedMatrix[row],
+          load: value,
+          discharge: value,
+          idle: value,
+        },
+      };
+    }
+    
+    setVessel({
+      ...vessel,
+      [matrixKey]: updatedMatrix,
+      consumption: syncLegacyConsumption(updatedMatrix),
+    });
+  };
+
+  const handleLoadDischIdleChange = (checked: boolean) => {
+    if (checked) {
+      // Copy Load values to Discharge and Idle
+      const currentProfile = vessel.speedProfile;
+      const matrixKey = currentProfile === "eco" ? "ecoConsumption" : "fullConsumption";
+      const currentMatrix = vessel[matrixKey];
+      
+      const updatedMatrix = {
+        ...currentMatrix,
+        speed: { ...currentMatrix.speed, discharge: currentMatrix.speed.load, idle: currentMatrix.speed.load },
+        hsfo: { ...currentMatrix.hsfo, discharge: currentMatrix.hsfo.load, idle: currentMatrix.hsfo.load },
+        vlsfo: { ...currentMatrix.vlsfo, discharge: currentMatrix.vlsfo.load, idle: currentMatrix.vlsfo.load },
+        lsmgo: { ...currentMatrix.lsmgo, discharge: currentMatrix.lsmgo.load, idle: currentMatrix.lsmgo.load },
+        ae: { ...currentMatrix.ae, discharge: currentMatrix.ae.load, idle: currentMatrix.ae.load },
+        aeScrubber: { ...currentMatrix.aeScrubber, discharge: currentMatrix.aeScrubber.load, idle: currentMatrix.aeScrubber.load },
+      };
+      
+      setVessel({
+        ...vessel,
+        loadDischIdleSame: true,
+        [matrixKey]: updatedMatrix,
+        consumption: syncLegacyConsumption(updatedMatrix),
+      });
+    } else {
+      setVessel({ ...vessel, loadDischIdleSame: false });
+    }
+  };
+
+  const handleRefresh = useCallback(async () => {
+    if (!vessel.name) return;
+    setRefreshing(true);
+    // Reset consumption to estimated values based on DWT
+    const dwt = vessel.dwt || 50000;
+    const ecoMatrix = estimateExtendedConsumption(dwt, false);
+    const fullMatrix = estimateExtendedConsumption(dwt, true);
+    
+    setVessel({
+      ...vessel,
+      tpcTpi: estimateTpc(dwt),
+      ecoConsumption: ecoMatrix,
+      fullConsumption: fullMatrix,
+      consumption: syncLegacyConsumption(vessel.speedProfile === "eco" ? ecoMatrix : fullMatrix),
+    });
+    
+    setTimeout(() => setRefreshing(false), 500);
+  }, [vessel, setVessel]);
+
+  const currentMatrix = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
 
   return (
     <div className="calc-card">
@@ -69,40 +174,57 @@ export function VesselPanel() {
 
       {isExpanded && (
         <div className="p-3 space-y-3">
-          {/* Vessel Selection */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="col-span-2">
-              <label className="text-xs text-muted-foreground mb-1 block">
-                Type
-              </label>
-              <select 
-                className="form-select w-full"
-                value={vessel.type}
-                onChange={(e) => handleFieldChange("type", e.target.value)}
+          {/* Layer 1: Vessel Type → Vessel Name Selection */}
+          <div className="grid grid-cols-12 gap-2 items-end">
+            <div className="col-span-3">
+              <label className="text-[10px] text-muted-foreground mb-0.5 block">Type</label>
+              <select
+                className="form-select w-full text-xs"
+                value={selectedTypeId ?? ""}
+                onChange={(e) => {
+                  const typeId = e.target.value ? Number(e.target.value) : null;
+                  const typeName = vesselTypes.find(t => t.id === typeId)?.name || "";
+                  handleVesselTypeChange(typeId, typeName);
+                }}
+                disabled={typesLoading}
               >
                 <option value="">--- SELECT ---</option>
                 {vesselTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
+                  <option key={type.id} value={type.id}>{type.name}</option>
                 ))}
               </select>
             </div>
-            <div className="col-span-2">
-              <label className="text-xs text-muted-foreground mb-1 block">
-                Or name
-              </label>
+            
+            <div className="col-span-1 flex items-center justify-center text-xs text-muted-foreground">
+              Or name
+            </div>
+            
+            <div className="col-span-7">
               <VesselSelect
                 value={vessel.name}
                 onChange={handleVesselSelect}
-                placeholder="Search or enter vessel..."
+                selectedTypeId={selectedTypeId}
+                placeholder="Search vessel..."
               />
+            </div>
+            
+            <div className="col-span-1 flex items-center justify-center">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing || !vessel.name}
+                className="p-1.5 text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors"
+                title="Refresh vessel data"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              </button>
             </div>
           </div>
 
-          {/* Vessel Specs - Now Editable */}
-          <div className="grid grid-cols-6 gap-2 text-xs">
+          {/* Layer 2: Vessel Particulars Auto-Fill */}
+          <div className="grid grid-cols-8 gap-2 text-xs border-t border-border pt-2">
             <div>
-              <label className="text-muted-foreground block mb-1">Dwt</label>
-              <div className="flex items-center">
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Dwt</label>
+              <div className="flex items-center gap-0.5">
                 <input
                   type="number"
                   className="form-input-sm w-full font-mono tabular-nums text-right"
@@ -110,11 +232,12 @@ export function VesselPanel() {
                   onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
-                <span className="text-[10px] text-muted-foreground ml-1">mt</span>
+                <span className="text-[9px] text-muted-foreground">mt</span>
               </div>
             </div>
+            
             <div>
-              <label className="text-muted-foreground block mb-1">Gt</label>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Gt</label>
               <input
                 type="number"
                 className="form-input-sm w-full font-mono tabular-nums text-right"
@@ -123,9 +246,10 @@ export function VesselPanel() {
                 placeholder="0"
               />
             </div>
+            
             <div>
-              <label className="text-muted-foreground block mb-1">Cubic</label>
-              <div className="flex items-center">
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Cubic</label>
+              <div className="flex items-center gap-0.5">
                 <input
                   type="number"
                   className="form-input-sm w-full font-mono tabular-nums text-right"
@@ -133,26 +257,35 @@ export function VesselPanel() {
                   onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
-                <span className="text-[10px] text-muted-foreground ml-1">cbm</span>
+                <select
+                  className="form-select text-[9px] w-12 px-0.5"
+                  value={vessel.cubicUnit}
+                  onChange={(e) => handleFieldChange("cubicUnit", e.target.value)}
+                >
+                  <option value="cbm">m³</option>
+                  <option value="cuft">cft</option>
+                </select>
               </div>
             </div>
+            
             <div>
-              <label className="text-muted-foreground block mb-1">Draft</label>
-              <div className="flex items-center">
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Draft</label>
+              <div className="flex items-center gap-0.5">
                 <input
                   type="number"
-                  step="0.1"
+                  step="0.01"
                   className="form-input-sm w-full font-mono tabular-nums text-right"
                   value={vessel.draft || ""}
                   onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
-                <span className="text-[10px] text-muted-foreground ml-1">m</span>
+                <span className="text-[9px] text-muted-foreground">m</span>
               </div>
             </div>
+            
             <div>
-              <label className="text-muted-foreground block mb-1">TPC/TPI</label>
-              <div className="flex items-center">
+              <label className="text-[10px] text-muted-foreground block mb-0.5">TPC/TPI</label>
+              <div className="flex items-center gap-0.5">
                 <input
                   type="number"
                   step="0.1"
@@ -161,73 +294,59 @@ export function VesselPanel() {
                   onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
-                <span className="text-[10px] text-muted-foreground ml-1">tpc</span>
+                <span className="text-[9px] text-muted-foreground">tpc</span>
               </div>
             </div>
+            
             <div>
-              <label className="text-muted-foreground block mb-1">
-                HSFO Scrubbers
-              </label>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">HSFO</label>
               <select
                 className="form-select w-full text-xs"
-                value={vessel.hsfoScrubbers}
-                onChange={(e) => handleFieldChange("hsfoScrubbers", e.target.value)}
+                value={vessel.hsfoCapability ? "Y" : "N"}
+                onChange={(e) => handleFieldChange("hsfoCapability", e.target.value === "Y")}
               >
                 <option value="N">N</option>
                 <option value="Y">Y</option>
               </select>
             </div>
+            
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Scrubbers</label>
+              <select
+                className="form-select w-full text-xs"
+                value={vessel.hasScrubber ? "Y" : "N"}
+                onChange={(e) => handleFieldChange("hasScrubber", e.target.value === "Y")}
+              >
+                <option value="N">N</option>
+                <option value="Y">Y</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">#</label>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono tabular-nums text-center"
+                value={vessel.scrubberCount || ""}
+                onChange={(e) => handleFieldChange("scrubberCount", parseInt(e.target.value) || 0)}
+                placeholder="0"
+                disabled={!vessel.hasScrubber}
+              />
+            </div>
           </div>
 
-          {/* Consumption Table - Now Editable */}
-          <div className="mt-3">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="w-32">Eco Speed&Cons</th>
-                  <th className="w-20">Eco Ballast</th>
-                  <th className="w-20">Eco Laden</th>
-                  <th className="w-20">Canal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {consumptionRows.map((row) => (
-                  <tr key={row.key}>
-                    <td className="font-medium">{row.label}</td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.1"
-                        className="w-full bg-transparent font-mono tabular-nums text-right focus:outline-none focus:bg-background focus:ring-1 focus:ring-ring px-1"
-                        value={vessel.consumption[row.key].ecoBallast || ""}
-                        onChange={(e) => handleConsumptionChange(row.key, "ecoBallast", e.target.value)}
-                        placeholder="0"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.1"
-                        className="w-full bg-transparent font-mono tabular-nums text-right focus:outline-none focus:bg-background focus:ring-1 focus:ring-ring px-1"
-                        value={vessel.consumption[row.key].ecoLaden || ""}
-                        onChange={(e) => handleConsumptionChange(row.key, "ecoLaden", e.target.value)}
-                        placeholder="0"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.1"
-                        className="w-full bg-transparent font-mono tabular-nums text-right focus:outline-none focus:bg-background focus:ring-1 focus:ring-ring px-1"
-                        value={vessel.consumption[row.key].canal || ""}
-                        onChange={(e) => handleConsumptionChange(row.key, "canal", e.target.value)}
-                        placeholder="0"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Layer 3: Speed & Consumption Matrix */}
+          <div className="border-t border-border pt-2">
+            <ConsumptionMatrix
+              speedProfile={vessel.speedProfile}
+              consumptionMatrix={currentMatrix}
+              loadDischIdleSame={vessel.loadDischIdleSame}
+              miscMultiplier={vessel.miscMultiplier}
+              onSpeedProfileChange={handleSpeedProfileChange}
+              onConsumptionChange={handleConsumptionChange}
+              onLoadDischIdleChange={handleLoadDischIdleChange}
+              onMiscMultiplierChange={(value) => handleFieldChange("miscMultiplier", value)}
+            />
           </div>
         </div>
       )}
