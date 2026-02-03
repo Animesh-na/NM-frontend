@@ -27,9 +27,6 @@ export function BunkerSection() {
   } = useVoyageContext();
   
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isBOBExpanded, setIsBOBExpanded] = useState(true);
-  const [isPortBunkeringExpanded, setIsPortBunkeringExpanded] = useState(true);
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
 
   // Get bunkering ports from sequence for dropdown
   const bunkeringPorts = sequence.filter(row => row.operation === "bunkering" && row.port);
@@ -46,7 +43,7 @@ export function BunkerSection() {
 
   // Calculate average bunker prices (weighted)
   const getAveragePrice = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
-    const bobQty = bunker[fuelType].robStart;
+    const bobQty = bunker.ignoreBOB ? 0 : bunker[fuelType].robStart;
     const bobPrice = bunker[fuelType].price;
     const bunkeredQty = bunker.portBunkering.reduce((sum, p) => sum + p[fuelType].quantity, 0);
     const bunkeredValue = bunker.portBunkering.reduce((sum, p) => 
@@ -56,25 +53,6 @@ export function BunkerSection() {
     const totalValue = (bobQty * bobPrice) + bunkeredValue;
     
     return totalQty > 0 ? totalValue / totalQty : bobPrice;
-  };
-
-  // Calculate total bunker cost including port bunkering
-  const calculateTotalBunkerCost = () => {
-    const bobCost = 
-      (bunker.hsfo.robStart * bunker.hsfo.price) +
-      (bunker.vlsfo.robStart * bunker.vlsfo.price) +
-      (bunker.lsmgo.robStart * bunker.lsmgo.price);
-    
-    const portCost = bunker.portBunkering.reduce((sum, p) => 
-      sum + 
-      (p.hsfo.quantity * p.hsfo.price) +
-      (p.vlsfo.quantity * p.vlsfo.price) +
-      (p.lsmgo.quantity * p.lsmgo.price)
-    , 0);
-    
-    const co2Cost = results.totalCo2 * bunker.co2Price;
-    
-    return bobCost + portCost + co2Cost;
   };
 
   // Add bunkering port from sequence
@@ -102,7 +80,7 @@ export function BunkerSection() {
 
       {isExpanded && (
         <div className="p-3 space-y-4">
-          {/* Global Controls Row */}
+          {/* Global Controls Row - CO2 Price, Pricing Mode, Ignore BOB, Reward Factor */}
           <div className="grid grid-cols-4 gap-4 items-end">
             {/* CO2 Price */}
             <div>
@@ -121,10 +99,10 @@ export function BunkerSection() {
               </div>
             </div>
 
-            {/* Fuel Accounting Mode */}
+            {/* Fuel Accounting Mode (Average / FIFO) */}
             <div>
               <label className="text-xs text-muted-foreground block mb-1">
-                Fuel Accounting
+                Fuel Pricing
               </label>
               <RadioGroup
                 value={bunker.fuelMode}
@@ -153,8 +131,8 @@ export function BunkerSection() {
                 Ignore BOB
               </Label>
               <InfoTooltip 
-                formula="If enabled, voyage bunker calculation ignores starting onboard fuel" 
-                description="Use when BOB fuel should not be included in cost modeling"
+                formula="Excludes starting onboard fuel from pricing calculations" 
+                description="When enabled, voyage bunker cost ignores BOB fuel inventory"
               />
             </div>
 
@@ -164,7 +142,7 @@ export function BunkerSection() {
                 Reward Factor
                 <InfoTooltip 
                   formula="Consumption × Reward Factor" 
-                  description="Multiplier for wind-assisted propulsion efficiency (1.0 = normal)"
+                  description="Multiplier for wind-assisted propulsion (1.0 = normal)"
                 />
               </label>
               <input
@@ -178,370 +156,291 @@ export function BunkerSection() {
           </div>
 
           {/* BOB (Bunker On Board) Table */}
-          <div className="border border-border rounded-md">
-            <button
-              onClick={() => setIsBOBExpanded(!isBOBExpanded)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors"
-            >
+          <div className="border border-border rounded-md overflow-hidden">
+            <div className="px-3 py-2 bg-muted/30 border-b border-border">
               <span className="text-xs font-medium">BOB (Bunker On Board)</span>
-              <ChevronDown className={`h-3 w-3 transition-transform ${isBOBExpanded ? "" : "-rotate-90"}`} />
-            </button>
-            
-            {isBOBExpanded && (
-              <div className="p-3">
-                <div className="grid grid-cols-5 gap-3 text-xs mb-2">
-                  <div className="font-medium text-muted-foreground">Fuel Type</div>
-                  <div className="font-medium text-muted-foreground text-center">Qty (t)</div>
-                  <div className="font-medium text-muted-foreground text-center">Price ($/t)</div>
-                  <div className="font-medium text-muted-foreground text-center">Value ($)</div>
-                  <div className="font-medium text-muted-foreground text-center">Currency</div>
-                </div>
-
-                {/* HSFO Row */}
-                <div className="grid grid-cols-5 gap-3 text-xs items-center mb-2">
-                  <div className="font-medium">HSFO</div>
-                  <div>
-                    <input
-                      type="number"
-                      className="form-input-sm w-full font-mono text-right"
-                      value={bunker.hsfo.robStart || ""}
-                      onChange={(e) => updateBunker("hsfo", "robStart", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      className="form-input-sm w-full font-mono text-right"
-                      value={bunker.hsfo.price || ""}
-                      onChange={(e) => updateBunker("hsfo", "price", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="font-mono text-right bg-muted px-2 py-1 rounded">
-                    {(bunker.hsfo.robStart * bunker.hsfo.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </div>
-                  <div className="text-center text-muted-foreground">USD/t</div>
-                </div>
-
-                {/* VLSFO Row */}
-                <div className="grid grid-cols-5 gap-3 text-xs items-center mb-2">
-                  <div className="font-medium">VLSFO</div>
-                  <div>
-                    <input
-                      type="number"
-                      className="form-input-sm w-full font-mono text-right"
-                      value={bunker.vlsfo.robStart || ""}
-                      onChange={(e) => updateBunker("vlsfo", "robStart", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      className="form-input-sm w-full font-mono text-right"
-                      value={bunker.vlsfo.price || ""}
-                      onChange={(e) => updateBunker("vlsfo", "price", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="font-mono text-right bg-muted px-2 py-1 rounded">
-                    {(bunker.vlsfo.robStart * bunker.vlsfo.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </div>
-                  <div className="text-center text-muted-foreground">USD/t</div>
-                </div>
-
-                {/* LSMGO Row */}
-                <div className="grid grid-cols-5 gap-3 text-xs items-center">
-                  <div className="font-medium">LSMGO</div>
-                  <div>
-                    <input
-                      type="number"
-                      className="form-input-sm w-full font-mono text-right"
-                      value={bunker.lsmgo.robStart || ""}
-                      onChange={(e) => updateBunker("lsmgo", "robStart", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      className="form-input-sm w-full font-mono text-right"
-                      value={bunker.lsmgo.price || ""}
-                      onChange={(e) => updateBunker("lsmgo", "price", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="font-mono text-right bg-muted px-2 py-1 rounded">
-                    {(bunker.lsmgo.robStart * bunker.lsmgo.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </div>
-                  <div className="text-center text-muted-foreground">USD/t</div>
-                </div>
+            </div>
+            <div className="p-3">
+              {/* Header Row */}
+              <div className="grid grid-cols-4 gap-3 text-xs mb-2 pb-2 border-b border-border">
+                <div className="font-medium text-muted-foreground">Fuel Type</div>
+                <div className="font-medium text-muted-foreground text-right">Quantity (t)</div>
+                <div className="font-medium text-muted-foreground text-center">@</div>
+                <div className="font-medium text-muted-foreground text-right">Price (USD/t)</div>
               </div>
-            )}
+
+              {/* HSFO Row */}
+              <div className="grid grid-cols-4 gap-3 text-xs items-center mb-2">
+                <div className="font-medium">HSFO</div>
+                <input
+                  type="number"
+                  className="form-input-sm font-mono text-right"
+                  value={bunker.hsfo.robStart || ""}
+                  onChange={(e) => updateBunker("hsfo", "robStart", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+                <div className="text-center text-muted-foreground">@</div>
+                <input
+                  type="number"
+                  className="form-input-sm font-mono text-right"
+                  value={bunker.hsfo.price || ""}
+                  onChange={(e) => updateBunker("hsfo", "price", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+
+              {/* VLSFO Row */}
+              <div className="grid grid-cols-4 gap-3 text-xs items-center mb-2">
+                <div className="font-medium">VLSFO</div>
+                <input
+                  type="number"
+                  className="form-input-sm font-mono text-right"
+                  value={bunker.vlsfo.robStart || ""}
+                  onChange={(e) => updateBunker("vlsfo", "robStart", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+                <div className="text-center text-muted-foreground">@</div>
+                <input
+                  type="number"
+                  className="form-input-sm font-mono text-right"
+                  value={bunker.vlsfo.price || ""}
+                  onChange={(e) => updateBunker("vlsfo", "price", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+
+              {/* LSMGO Row */}
+              <div className="grid grid-cols-4 gap-3 text-xs items-center">
+                <div className="font-medium">LSMGO</div>
+                <input
+                  type="number"
+                  className="form-input-sm font-mono text-right"
+                  value={bunker.lsmgo.robStart || ""}
+                  onChange={(e) => updateBunker("lsmgo", "robStart", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+                <div className="text-center text-muted-foreground">@</div>
+                <input
+                  type="number"
+                  className="form-input-sm font-mono text-right"
+                  value={bunker.lsmgo.price || ""}
+                  onChange={(e) => updateBunker("lsmgo", "price", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Port Bunkering Table */}
-          <div className="border border-border rounded-md">
-            <button
-              onClick={() => setIsPortBunkeringExpanded(!isPortBunkeringExpanded)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors"
-            >
-              <span className="text-xs font-medium">Port Bunkering</span>
-              <ChevronDown className={`h-3 w-3 transition-transform ${isPortBunkeringExpanded ? "" : "-rotate-90"}`} />
-            </button>
+          {/* Port Fuel Price Table */}
+          <div className="border border-border rounded-md overflow-hidden">
+            <div className="px-3 py-2 bg-muted/30 border-b border-border flex items-center justify-between">
+              <span className="text-xs font-medium">Port Fuel Prices</span>
+              {bunkeringPorts.length > 0 && (
+                <Select onValueChange={handleAddBunkeringPort}>
+                  <SelectTrigger className="w-36 h-7 text-xs">
+                    <SelectValue placeholder="Add port..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bunkeringPorts
+                      .filter(p => !bunker.portBunkering.find(pb => pb.portUnloc === p.portUnloc))
+                      .map(port => (
+                        <SelectItem key={port.id} value={port.portUnloc} className="text-xs">
+                          {port.port}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
             
-            {isPortBunkeringExpanded && (
-              <div className="p-3 space-y-3">
-                {/* Add bunkering port selector */}
-                {bunkeringPorts.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Select onValueChange={handleAddBunkeringPort}>
-                      <SelectTrigger className="w-48 h-8 text-xs">
-                        <SelectValue placeholder="Add bunkering port..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bunkeringPorts.map(port => (
-                          <SelectItem key={port.id} value={port.portUnloc} className="text-xs">
-                            {port.port}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span className="text-xs text-muted-foreground">
-                      or add bunkering operation in sequence
-                    </span>
-                  </div>
-                )}
-
-                {bunker.portBunkering.length === 0 ? (
-                  <div className="text-xs text-muted-foreground text-center py-4">
-                    No port bunkering events. Add a bunkering operation in the sequence first.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {bunker.portBunkering.map((port) => (
-                      <div key={port.id} className="border border-border rounded p-2 bg-muted/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium">{port.portName}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removePortBunkering(port.id)}
-                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        
-                        <div className="grid grid-cols-7 gap-2 text-xs">
-                          <div></div>
-                          <div className="text-center text-muted-foreground col-span-2">HSFO</div>
-                          <div className="text-center text-muted-foreground col-span-2">VLSFO</div>
-                          <div className="text-center text-muted-foreground col-span-2">LSMGO</div>
-                        </div>
-                        <div className="grid grid-cols-7 gap-2 text-xs mt-1">
-                          <div className="text-muted-foreground">Qty (t)</div>
+            <div className="p-3">
+              {bunker.portBunkering.length === 0 ? (
+                <div className="text-xs text-muted-foreground text-center py-3">
+                  No port bunkering. Add a bunkering operation in the sequence first.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {bunker.portBunkering.map((port) => (
+                    <div key={port.id} className="border border-border rounded p-2 bg-muted/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold">{port.portName}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePortBunkering(port.id)}
+                          className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      
+                      {/* Fuel Grid: Type | Qty @ Price */}
+                      <div className="space-y-1.5">
+                        {/* HSFO */}
+                        <div className="grid grid-cols-5 gap-2 text-xs items-center">
+                          <span className="text-muted-foreground">HSFO</span>
                           <input
                             type="number"
-                            className="form-input-sm font-mono text-right col-span-2"
+                            className="form-input-sm font-mono text-right"
                             value={port.hsfo.quantity || ""}
                             onChange={(e) => updatePortBunkering(port.id, "hsfo", "quantity", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                           />
+                          <span className="text-center text-muted-foreground">@</span>
                           <input
                             type="number"
-                            className="form-input-sm font-mono text-right col-span-2"
-                            value={port.vlsfo.quantity || ""}
-                            onChange={(e) => updatePortBunkering(port.id, "vlsfo", "quantity", parseFloat(e.target.value) || 0)}
-                            placeholder="0"
-                          />
-                          <input
-                            type="number"
-                            className="form-input-sm font-mono text-right col-span-2"
-                            value={port.lsmgo.quantity || ""}
-                            onChange={(e) => updatePortBunkering(port.id, "lsmgo", "quantity", parseFloat(e.target.value) || 0)}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div className="grid grid-cols-7 gap-2 text-xs mt-1">
-                          <div className="text-muted-foreground">$/t</div>
-                          <input
-                            type="number"
-                            className="form-input-sm font-mono text-right col-span-2"
+                            className="form-input-sm font-mono text-right"
                             value={port.hsfo.price || ""}
                             onChange={(e) => updatePortBunkering(port.id, "hsfo", "price", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                           />
+                          <span className="text-muted-foreground text-xs">USD/t</span>
+                        </div>
+                        
+                        {/* VLSFO */}
+                        <div className="grid grid-cols-5 gap-2 text-xs items-center">
+                          <span className="text-muted-foreground">VLSFO</span>
                           <input
                             type="number"
-                            className="form-input-sm font-mono text-right col-span-2"
+                            className="form-input-sm font-mono text-right"
+                            value={port.vlsfo.quantity || ""}
+                            onChange={(e) => updatePortBunkering(port.id, "vlsfo", "quantity", parseFloat(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                          <span className="text-center text-muted-foreground">@</span>
+                          <input
+                            type="number"
+                            className="form-input-sm font-mono text-right"
                             value={port.vlsfo.price || ""}
                             onChange={(e) => updatePortBunkering(port.id, "vlsfo", "price", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                           />
+                          <span className="text-muted-foreground text-xs">USD/t</span>
+                        </div>
+                        
+                        {/* LSMGO */}
+                        <div className="grid grid-cols-5 gap-2 text-xs items-center">
+                          <span className="text-muted-foreground">LSMGO</span>
                           <input
                             type="number"
-                            className="form-input-sm font-mono text-right col-span-2"
+                            className="form-input-sm font-mono text-right"
+                            value={port.lsmgo.quantity || ""}
+                            onChange={(e) => updatePortBunkering(port.id, "lsmgo", "quantity", parseFloat(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                          <span className="text-center text-muted-foreground">@</span>
+                          <input
+                            type="number"
+                            className="form-input-sm font-mono text-right"
                             value={port.lsmgo.price || ""}
                             onChange={(e) => updatePortBunkering(port.id, "lsmgo", "price", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                           />
+                          <span className="text-muted-foreground text-xs">USD/t</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Consumption Summary Panel */}
-          <div className="border border-border rounded-md">
-            <button
-              onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors"
-            >
-              <span className="text-xs font-medium">Consumption & Cost Summary</span>
-              <ChevronDown className={`h-3 w-3 transition-transform ${isSummaryExpanded ? "" : "-rotate-90"}`} />
-            </button>
+          {/* Bunker Summary Panel (Read Only) */}
+          <div className="border border-border rounded-md overflow-hidden bg-muted/20">
+            <div className="px-3 py-2 bg-muted/30 border-b border-border">
+              <span className="text-xs font-medium flex items-center gap-1">
+                Bunker Summary
+                <InfoTooltip 
+                  formula="Consumption = Vessel Daily Rate × Voyage Time" 
+                  description="All values auto-calculated from vessel specs and voyage sequence"
+                />
+              </span>
+            </div>
             
-            {isSummaryExpanded && (
-              <div className="p-3 space-y-3">
-                {/* Consumption Table */}
-                <div className="grid grid-cols-6 gap-2 text-xs">
-                  <div className="font-medium text-muted-foreground">Fuel</div>
-                  <div className="font-medium text-muted-foreground text-center">BOB (t)</div>
-                  <div className="font-medium text-muted-foreground text-center">Bunkered (t)</div>
-                  <div className="font-medium text-muted-foreground text-center">
-                    <span className="flex items-center justify-center gap-1">
-                      Consumed (t)
-                      <InfoTooltip 
-                        formula="(Sea Days × Sea Rate) + (Port Days × Port Rate)" 
-                        description="Fuel burned based on voyage profile and vessel consumption rates"
-                      />
-                    </span>
-                  </div>
-                  <div className="font-medium text-muted-foreground text-center">ROB End (t)</div>
-                  <div className="font-medium text-muted-foreground text-center">Avg $/t</div>
-                </div>
+            <div className="p-3">
+              {/* Summary Grid */}
+              <div className="grid grid-cols-5 gap-2 text-xs mb-2 pb-1 border-b border-border">
+                <div className="font-medium text-muted-foreground">Fuel</div>
+                <div className="font-medium text-muted-foreground text-right">Consumed (t)</div>
+                <div className="font-medium text-muted-foreground text-right">Avg Price</div>
+                <div className="font-medium text-muted-foreground text-right">Cost ($)</div>
+                <div className="font-medium text-muted-foreground text-right">ROB End</div>
+              </div>
 
-                {/* HSFO */}
-                <div className="grid grid-cols-6 gap-2 text-xs items-center">
-                  <div className="font-medium">HSFO</div>
-                  <div className="font-mono text-center">{bunker.hsfo.robStart.toFixed(1)}</div>
-                  <div className="font-mono text-center">{totalBunkeredHsfo.toFixed(1)}</div>
-                  <div className="font-mono text-center bg-muted/50 rounded py-1">{results.hsfoConsumption.toFixed(2)}</div>
-                  <div className={`font-mono text-center ${robEndHsfo < 0 ? 'text-destructive' : ''}`}>
-                    {robEndHsfo.toFixed(1)}
-                  </div>
-                  <div className="font-mono text-center">{getAveragePrice('hsfo').toFixed(0)}</div>
-                </div>
-
-                {/* VLSFO */}
-                <div className="grid grid-cols-6 gap-2 text-xs items-center">
-                  <div className="font-medium">VLSFO</div>
-                  <div className="font-mono text-center">{bunker.vlsfo.robStart.toFixed(1)}</div>
-                  <div className="font-mono text-center">{totalBunkeredVlsfo.toFixed(1)}</div>
-                  <div className="font-mono text-center bg-muted/50 rounded py-1">{results.vlsfoConsumption.toFixed(2)}</div>
-                  <div className={`font-mono text-center ${robEndVlsfo < 0 ? 'text-destructive' : ''}`}>
-                    {robEndVlsfo.toFixed(1)}
-                  </div>
-                  <div className="font-mono text-center">{getAveragePrice('vlsfo').toFixed(0)}</div>
-                </div>
-
-                {/* LSMGO */}
-                <div className="grid grid-cols-6 gap-2 text-xs items-center">
-                  <div className="font-medium">LSMGO</div>
-                  <div className="font-mono text-center">{bunker.lsmgo.robStart.toFixed(1)}</div>
-                  <div className="font-mono text-center">{totalBunkeredLsmgo.toFixed(1)}</div>
-                  <div className="font-mono text-center bg-muted/50 rounded py-1">{results.lsmgoConsumption.toFixed(2)}</div>
-                  <div className={`font-mono text-center ${robEndLsmgo < 0 ? 'text-destructive' : ''}`}>
-                    {robEndLsmgo.toFixed(1)}
-                  </div>
-                  <div className="font-mono text-center">{getAveragePrice('lsmgo').toFixed(0)}</div>
-                </div>
-
-                {/* Totals */}
-                <div className="border-t border-border pt-2 mt-2">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-xs">
-                      <span className="text-muted-foreground">Total Consumption:</span>
-                      <span className="font-mono font-semibold ml-2">
-                        {(results.hsfoConsumption + results.vlsfoConsumption + results.lsmgoConsumption).toFixed(1)} t
-                      </span>
-                    </div>
-                    <div className="text-xs flex items-center">
-                      <span className="text-muted-foreground">Total Bunker Cost:</span>
-                      <InfoTooltip 
-                        formula="(HSFO t × $/t) + (VLSFO t × $/t) + (LSMGO t × $/t) + (CO₂ t × $/t)" 
-                        description="Sum of all fuel costs plus carbon emissions cost"
-                      />
-                      <span className="font-mono font-semibold text-primary ml-2">
-                        ${calculateTotalBunkerCost().toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </span>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-muted-foreground">CO₂ Cost:</span>
-                      <span className="font-mono font-semibold ml-2">
-                        ${(results.totalCo2 * bunker.co2Price).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* CO2 / EU ETS Summary */}
-                <div className="border-t border-border pt-2 mt-2">
-                  <div className="text-xs font-medium mb-2 flex items-center gap-1">
-                    CO₂ / EU ETS Tracking
-                    <InfoTooltip 
-                      formula="IMO emission factors: HSFO=3.114, VLSFO=3.151, LSMGO=3.206" 
-                      description="Carbon emissions calculated per fuel type using IMO standards"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 gap-3 text-xs">
-                    <div className="flex items-center">
-                      <span className="text-muted-foreground">Total CO₂:</span>
-                      <span className="font-mono ml-2">{results.totalCo2.toFixed(2)} t</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-muted-foreground">Laden:</span>
-                      <span className="font-mono ml-2">{results.co2Laden.toFixed(2)} t</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-muted-foreground">Ballast:</span>
-                      <span className="font-mono ml-2">{results.co2Ballast.toFixed(2)} t</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-muted-foreground">CII Rating:</span>
-                      <span className={`font-mono ml-2 font-semibold ${
-                        results.ciiRating === 'A' ? 'text-green-600' :
-                        results.ciiRating === 'B' ? 'text-lime-600' :
-                        results.ciiRating === 'C' ? 'text-yellow-600' :
-                        results.ciiRating === 'D' ? 'text-orange-600' :
-                        'text-red-600'
-                      }`}>{results.ciiRating}</span>
-                    </div>
-                  </div>
-
-                  {/* EU ETS Fuel Allocation (derived from ECA zones) */}
-                  <div className="grid grid-cols-3 gap-3 text-xs mt-2">
-                    <div className="flex items-center">
-                      <span className="text-muted-foreground">HSFO EU ETS:</span>
-                      <span className="font-mono ml-2">{bunker.euEtsHsfo.toFixed(2)} t</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-muted-foreground">VLSFO EU ETS:</span>
-                      <span className="font-mono ml-2">{bunker.euEtsVlsfo.toFixed(2)} t</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-muted-foreground">LSMGO EU ETS:</span>
-                      <span className="font-mono ml-2">{bunker.euEtsLsmgo.toFixed(2)} t</span>
-                    </div>
-                  </div>
+              {/* HSFO */}
+              <div className="grid grid-cols-5 gap-2 text-xs items-center mb-1">
+                <div className="font-medium">HSFO</div>
+                <div className="font-mono text-right">{results.hsfoConsumption.toFixed(2)}</div>
+                <div className="font-mono text-right">{getAveragePrice('hsfo').toFixed(0)}</div>
+                <div className="font-mono text-right">{(results.hsfoConsumption * getAveragePrice('hsfo')).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                <div className={`font-mono text-right ${robEndHsfo < 0 ? 'text-destructive font-semibold' : ''}`}>
+                  {robEndHsfo.toFixed(1)}
                 </div>
               </div>
-            )}
+
+              {/* VLSFO */}
+              <div className="grid grid-cols-5 gap-2 text-xs items-center mb-1">
+                <div className="font-medium">VLSFO</div>
+                <div className="font-mono text-right">{results.vlsfoConsumption.toFixed(2)}</div>
+                <div className="font-mono text-right">{getAveragePrice('vlsfo').toFixed(0)}</div>
+                <div className="font-mono text-right">{(results.vlsfoConsumption * getAveragePrice('vlsfo')).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                <div className={`font-mono text-right ${robEndVlsfo < 0 ? 'text-destructive font-semibold' : ''}`}>
+                  {robEndVlsfo.toFixed(1)}
+                </div>
+              </div>
+
+              {/* LSMGO */}
+              <div className="grid grid-cols-5 gap-2 text-xs items-center">
+                <div className="font-medium">LSMGO</div>
+                <div className="font-mono text-right">{results.lsmgoConsumption.toFixed(2)}</div>
+                <div className="font-mono text-right">{getAveragePrice('lsmgo').toFixed(0)}</div>
+                <div className="font-mono text-right">{(results.lsmgoConsumption * getAveragePrice('lsmgo')).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                <div className={`font-mono text-right ${robEndLsmgo < 0 ? 'text-destructive font-semibold' : ''}`}>
+                  {robEndLsmgo.toFixed(1)}
+                </div>
+              </div>
+
+              {/* Totals Row */}
+              <div className="border-t border-border pt-2 mt-2 grid grid-cols-2 gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Total Consumption:</span>
+                  <span className="font-mono font-semibold">
+                    {(results.hsfoConsumption + results.vlsfoConsumption + results.lsmgoConsumption).toFixed(1)} t
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Total Bunker Cost:</span>
+                  <span className="font-mono font-semibold text-primary">
+                    ${results.totalBunkerCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* CO2 Row */}
+              {bunker.co2Price > 0 && (
+                <div className="border-t border-border pt-2 mt-2 flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">CO₂ Emissions:</span>
+                    <span className="font-mono">{results.totalCo2.toFixed(2)} t</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">CO₂ Cost:</span>
+                    <span className="font-mono">${(results.totalCo2 * bunker.co2Price).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">CII Rating:</span>
+                    <span className={`font-mono font-semibold ${
+                      results.ciiRating === 'A' ? 'text-green-600' :
+                      results.ciiRating === 'B' ? 'text-lime-600' :
+                      results.ciiRating === 'C' ? 'text-yellow-600' :
+                      results.ciiRating === 'D' ? 'text-orange-600' :
+                      'text-red-600'
+                    }`}>{results.ciiRating}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
