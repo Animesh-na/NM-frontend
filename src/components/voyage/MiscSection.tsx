@@ -146,14 +146,14 @@ export function MiscSection() {
                       Trade type
                     </label>
                     <Select 
-                      value={misc?.tradeType || ""} 
-                      onValueChange={(value) => updateMisc("tradeType", value)}
+                      value={misc?.tradeType || "none"} 
+                      onValueChange={(value) => updateMisc("tradeType", value === "none" ? "" : value)}
                     >
                       <SelectTrigger className="h-7 text-xs">
                         <SelectValue placeholder="---" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="" className="text-xs">---</SelectItem>
+                        <SelectItem value="none" className="text-xs">---</SelectItem>
                         <SelectItem value="voyage" className="text-xs">Voyage</SelectItem>
                         <SelectItem value="time_charter" className="text-xs">Time Charter</SelectItem>
                         <SelectItem value="coa" className="text-xs">COA</SelectItem>
