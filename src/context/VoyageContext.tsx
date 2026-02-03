@@ -135,6 +135,12 @@ interface VoyageContextValue {
   removePortBunkering: (id: number) => void;
   updatePortBunkering: (id: number, fuelType: string, field: string, value: number) => void;
   
+  // Miscellaneous costs and extra time
+  misc: MiscState;
+  setMisc: React.Dispatch<React.SetStateAction<MiscState>>;
+  updateMisc: (field: keyof MiscState, value: number | string) => void;
+  updateExtraTime: (field: keyof ExtraTimeState, subField: string, value: number | string) => void;
+  
   // Hire rate
   hireRate: number;
   setHireRate: (rate: number) => void;
@@ -154,6 +160,35 @@ export interface PortBunkeringEntry {
   hsfo: { quantity: number; price: number };
   vlsfo: { quantity: number; price: number };
   lsmgo: { quantity: number; price: number };
+}
+
+// Extra time entry structure
+export interface ExtraTimeEntry {
+  mode: string; // VL, EV, FV
+  value: number;
+  unit: "days" | "hours";
+}
+
+// Extra time state
+export interface ExtraTimeState {
+  canal1: ExtraTimeEntry;
+  canal2: ExtraTimeEntry;
+  idlePort: ExtraTimeEntry;
+  atSea: ExtraTimeEntry;
+}
+
+// Miscellaneous state
+export interface MiscState {
+  // Costs
+  miscCost: number;
+  extraFees: number;
+  extraInsurance: number;
+  canalCost1: number;
+  canalCost2: number;
+  tradeType: string;
+  
+  // Extra time
+  extraTime: ExtraTimeState;
 }
 
 interface BunkerState {
@@ -446,6 +481,21 @@ const initialBunker: BunkerState = {
   euEtsLsmgo: 0,
 };
 
+const initialMisc: MiscState = {
+  miscCost: 12000,
+  extraFees: 0,
+  extraInsurance: 0,
+  canalCost1: 0,
+  canalCost2: 0,
+  tradeType: "",
+  extraTime: {
+    canal1: { mode: "VL", value: 0, unit: "days" },
+    canal2: { mode: "VL", value: 0, unit: "days" },
+    idlePort: { mode: "VL", value: 0, unit: "hours" },
+    atSea: { mode: "EV", value: 0, unit: "hours" },
+  },
+};
+
 const VoyageContext = createContext<VoyageContextValue | null>(null);
 
 export function VoyageProvider({ children }: { children: ReactNode }) {
@@ -467,6 +517,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [sequence, setSequence] = useState<SequenceRowUI[]>(initialSequence);
   const [cargos, setCargos] = useState<CargoEntry[]>(initialCargos);
   const [bunker, setBunker] = useState<BunkerState>(initialBunker);
+  const [misc, setMisc] = useState<MiscState>(initialMisc);
   const [hireRate, setHireRate] = useState(8542);
   const [vesselCost, setVesselCost] = useState(6500);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
@@ -686,6 +737,24 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  // Miscellaneous update functions
+  const updateMisc = useCallback((field: keyof MiscState, value: number | string) => {
+    setMisc(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const updateExtraTime = useCallback((field: keyof ExtraTimeState, subField: string, value: number | string) => {
+    setMisc(prev => ({
+      ...prev,
+      extraTime: {
+        ...prev.extraTime,
+        [field]: {
+          ...prev.extraTime[field],
+          [subField]: value,
+        },
+      },
+    }));
+  }, []);
+
   // Aggregate cargo data for calculation hook
   const aggregatedCargo = useMemo(() => {
     const totalQuantity = cargos.reduce((sum, c) => sum + c.quantity, 0);
@@ -735,6 +804,28 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       co2Price: bunker.co2Price,
     },
     hireRate,
+    misc: {
+      miscCost: misc.miscCost,
+      extraFees: misc.extraFees,
+      extraInsurance: misc.extraInsurance,
+      canalCost1: misc.canalCost1,
+      canalCost2: misc.canalCost2,
+    },
+    extraTime: {
+      canal1Days: misc.extraTime.canal1.unit === "days" 
+        ? misc.extraTime.canal1.value 
+        : misc.extraTime.canal1.value / 24,
+      canal2Days: misc.extraTime.canal2.unit === "days" 
+        ? misc.extraTime.canal2.value 
+        : misc.extraTime.canal2.value / 24,
+      idlePortDays: misc.extraTime.idlePort.unit === "days" 
+        ? misc.extraTime.idlePort.value 
+        : misc.extraTime.idlePort.value / 24,
+      atSeaDays: misc.extraTime.atSea.unit === "days" 
+        ? misc.extraTime.atSea.value 
+        : misc.extraTime.atSea.value / 24,
+      atSeaSpeedContext: misc.extraTime.atSea.mode,
+    },
   };
 
   const results = useVoyageCalculation(voyageInputs);
@@ -767,6 +858,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         addPortBunkering,
         removePortBunkering,
         updatePortBunkering,
+        misc,
+        setMisc,
+        updateMisc,
+        updateExtraTime,
         hireRate,
         setHireRate,
         results,
@@ -821,13 +916,31 @@ export function useVoyageContext() {
       addPortBunkering: () => {},
       removePortBunkering: () => {},
       updatePortBunkering: () => {},
+      misc: {
+        miscCost: 0,
+        extraFees: 0,
+        extraInsurance: 0,
+        canalCost1: 0,
+        canalCost2: 0,
+        tradeType: "",
+        extraTime: {
+          canal1: { mode: "VL", value: 0, unit: "days" as const },
+          canal2: { mode: "VL", value: 0, unit: "days" as const },
+          idlePort: { mode: "VL", value: 0, unit: "hours" as const },
+          atSea: { mode: "EV", value: 0, unit: "hours" as const },
+        },
+      },
+      setMisc: () => {},
+      updateMisc: () => {},
+      updateExtraTime: () => {},
       hireRate: 0,
       setHireRate: () => {},
       results: {
         totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
-        totalSeaDays: 0, totalPortDays: 0, totalVoyageDays: 0, hsfoConsumption: 0,
-        vlsfoConsumption: 0, lsmgoConsumption: 0, totalBunkerCost: 0, grossFreight: 0,
-        voyageCommission: 0, netFreight: 0, portCosts: 0, totalVoyageCosts: 0,
+        totalSeaDays: 0, totalPortDays: 0, extraSeaDays: 0, extraPortDays: 0, extraCanalDays: 0,
+        totalVoyageDays: 0, hsfoConsumption: 0, vlsfoConsumption: 0, lsmgoConsumption: 0, 
+        totalBunkerCost: 0, grossFreight: 0, voyageCommission: 0, netFreight: 0, 
+        portCosts: 0, miscCosts: 0, canalCosts: 0, totalVoyageCosts: 0,
         hireCost: 0, voyageCostInclHire: 0, voyageCostExclHire: 0, grossProfit: 0,
         netProfit: 0, tce: 0, ntce: 0, gtce: 0, pAndL: 0, totalCo2: 0,
         co2Laden: 0, co2Ballast: 0, efoi: 0, afrCii: 0, ciiRating: "A",
