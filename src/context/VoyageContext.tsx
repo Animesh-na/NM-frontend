@@ -10,6 +10,10 @@ export type Season = "summer" | "winter" | "tropical" | "eca";
 // Operation types for port sequences
 export type PortOperation = "loading" | "discharging" | "waiting" | "bunkering";
 
+// Speed context types for voyage legs
+// EV = ECA Voyage, EL = ECA Operational, FV = Open Sea Voyage, FL = Open Sea Operational
+export type SpeedContext = "EV" | "EL" | "FV" | "FL";
+
 // Sequence row for UI state
 export interface SequenceRowUI {
   id: number;
@@ -21,9 +25,17 @@ export interface SequenceRowUI {
   coordinates?: [number, number]; // [longitude, latitude] for distance calculation
   season?: Season; // only for open type
   
-  // Distance (auto-calculated, read-only)
+  // Distance (auto-calculated, can be overridden)
   distance: number;
   ecaDistance: number;
+  
+  // Speed context for ECA vs non-ECA zones
+  speedContext: SpeedContext;
+  
+  // Calculated sea times (read-only)
+  ecaTime: number; // days sailing in ECA
+  seaTime: number; // days sailing in open sea
+  totalLegTime: number; // ecaTime + seaTime
   
   // Cargo quantity & productivity (for loading/discharging)
   quantity: number; // MT
@@ -131,7 +143,49 @@ function calculatePortDays(row: SequenceRowUI): number {
   return 0;
 }
 
-const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation): SequenceRowUI => ({
+// Helper to get speed based on speed context and vessel matrix
+function getSpeedForContext(
+  speedContext: SpeedContext, 
+  isLaden: boolean, 
+  vessel: VesselData
+): { ecaSpeed: number; seaSpeed: number } {
+  // Select the appropriate consumption matrix based on eco/full indicator in context
+  const isEcoContext = speedContext === "EV" || speedContext === "EL";
+  const matrix = isEcoContext ? vessel.ecoConsumption : vessel.fullConsumption;
+  
+  // Get speed based on laden/ballast state
+  const speed = isLaden ? matrix.speed.laden : matrix.speed.ballast;
+  
+  // ECA speeds are typically the same as sea speeds (context determines fuel, not speed)
+  // But we provide both for future flexibility
+  return {
+    ecaSpeed: speed || 12, // Default 12 knots if not set
+    seaSpeed: speed || 12,
+  };
+}
+
+// Helper to calculate sea time for a leg
+function calculateSeaTime(
+  row: SequenceRowUI, 
+  isLaden: boolean, 
+  vessel: VesselData
+): { ecaTime: number; seaTime: number; totalLegTime: number } {
+  if (row.type === "open") {
+    return { ecaTime: 0, seaTime: 0, totalLegTime: 0 };
+  }
+  
+  const { ecaSpeed, seaSpeed } = getSpeedForContext(row.speedContext, isLaden, vessel);
+  const nonEcaDistance = Math.max(0, row.distance - row.ecaDistance);
+  
+  // Time = Distance / (Speed * 24 hours/day)
+  const ecaTime = ecaSpeed > 0 ? row.ecaDistance / (ecaSpeed * 24) : 0;
+  const seaTime = seaSpeed > 0 ? nonEcaDistance / (seaSpeed * 24) : 0;
+  const totalLegTime = ecaTime + seaTime;
+  
+  return { ecaTime, seaTime, totalLegTime };
+}
+
+const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco"): SequenceRowUI => ({
   id: nextId,
   type,
   operation,
@@ -140,6 +194,10 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   season: type === "open" ? "summer" : undefined,
   distance: 0,
   ecaDistance: 0,
+  speedContext: speedProfile === "eco" ? "EV" : "FV", // Default based on vessel profile
+  ecaTime: 0,
+  seaTime: 0,
+  totalLegTime: 0,
   quantity: 0,
   productivity: type === "port" && (operation === "loading" || operation === "discharging") ? 8000 : 0,
   terms: type === "port" && (operation === "loading" || operation === "discharging") ? "shinc" : "",
@@ -161,6 +219,10 @@ const initialSequence: SequenceRowUI[] = [
     season: "summer",
     distance: 0,
     ecaDistance: 0,
+    speedContext: "EV",
+    ecaTime: 0,
+    seaTime: 0,
+    totalLegTime: 0,
     quantity: 0,
     productivity: 0,
     terms: "",
@@ -180,6 +242,10 @@ const initialSequence: SequenceRowUI[] = [
     portUnloc: "INPAV",
     distance: 370,
     ecaDistance: 0,
+    speedContext: "EV",
+    ecaTime: 0,
+    seaTime: 0,
+    totalLegTime: 0,
     quantity: 56550,
     productivity: 8000,
     terms: "shinc",
@@ -199,6 +265,10 @@ const initialSequence: SequenceRowUI[] = [
     portUnloc: "SGSIN",
     distance: 1555,
     ecaDistance: 0,
+    speedContext: "EV",
+    ecaTime: 0,
+    seaTime: 0,
+    totalLegTime: 0,
     quantity: 0,
     productivity: 0,
     terms: "",
@@ -218,6 +288,10 @@ const initialSequence: SequenceRowUI[] = [
     portUnloc: "VNSGN",
     distance: 660,
     ecaDistance: 0,
+    speedContext: "EV",
+    ecaTime: 0,
+    seaTime: 0,
+    totalLegTime: 0,
     quantity: 56550,
     productivity: 5000,
     terms: "shinc",
@@ -272,46 +346,77 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [hireRate, setHireRate] = useState(8542);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
 
-  // Recalculate port days whenever relevant fields change
+  // Recalculate port days and sea times whenever relevant fields change
   useEffect(() => {
-    setSequence(prev => prev.map(row => ({
-      ...row,
-      calculatedPortDays: calculatePortDays(row),
-    })));
-  }, []);
+    setSequence(prev => {
+      let isLaden = false;
+      return prev.map(row => {
+        // Track laden state based on operations
+        if (row.operation === "loading") isLaden = true;
+        
+        const seaTimeData = calculateSeaTime(row, isLaden, vessel);
+        
+        if (row.operation === "discharging") isLaden = false;
+        
+        return {
+          ...row,
+          calculatedPortDays: calculatePortDays(row),
+          ...seaTimeData,
+        };
+      });
+    });
+  }, [vessel]);
 
   const updateSequenceRow = useCallback((id: number, field: keyof SequenceRowUI, value: string | number) => {
-    setSequence(prev => prev.map(row => {
-      if (row.id !== id) return row;
-      
-      const updatedRow = { ...row, [field]: value };
-      // Recalculate port days when relevant fields change
-      if (['quantity', 'productivity', 'terms', 'turnTime', 'extraTime', 'operation'].includes(field)) {
-        updatedRow.calculatedPortDays = calculatePortDays(updatedRow);
-      }
-      return updatedRow;
-    }));
-  }, []);
+    setSequence(prev => {
+      let isLaden = false;
+      return prev.map(row => {
+        // Track laden state based on operations
+        if (row.operation === "loading") isLaden = true;
+        
+        if (row.id !== id) {
+          if (row.operation === "discharging") isLaden = false;
+          return row;
+        }
+        
+        const updatedRow = { ...row, [field]: value };
+        
+        // Recalculate port days when relevant fields change
+        if (['quantity', 'productivity', 'terms', 'turnTime', 'extraTime', 'operation'].includes(field)) {
+          updatedRow.calculatedPortDays = calculatePortDays(updatedRow);
+        }
+        
+        // Recalculate sea times when distance or speed context changes
+        if (['distance', 'ecaDistance', 'speedContext'].includes(field)) {
+          const seaTimeData = calculateSeaTime(updatedRow, isLaden, vessel);
+          Object.assign(updatedRow, seaTimeData);
+        }
+        
+        if (row.operation === "discharging") isLaden = false;
+        return updatedRow;
+      });
+    });
+  }, [vessel]);
 
   const addPort = useCallback((operation: PortOperation) => {
     setSequence(prev => {
       const nextId = Math.max(...prev.map(s => s.id), 0) + 1;
-      const newRow = createNewRow("port", nextId, operation);
+      const newRow = createNewRow("port", nextId, operation, vessel.speedProfile);
       
       // Insert before repos (if any exist at the end)
       const reposRows = prev.filter(r => r.type === "repos");
       const nonReposRows = prev.filter(r => r.type !== "repos");
       return [...nonReposRows, newRow, ...reposRows];
     });
-  }, []);
+  }, [vessel.speedProfile]);
 
   const addRepositioning = useCallback(() => {
     setSequence(prev => {
       const nextId = Math.max(...prev.map(s => s.id), 0) + 1;
-      const newRow = createNewRow("repos", nextId);
+      const newRow = createNewRow("repos", nextId, undefined, vessel.speedProfile);
       return [...prev, newRow];
     });
-  }, []);
+  }, [vessel.speedProfile]);
 
   const removeSequence = useCallback((id: number) => {
     setSequence(prev => {
