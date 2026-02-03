@@ -50,29 +50,37 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSearch(value);
   }, [value]);
 
-  // Update dropdown position when open
+  // Update dropdown position when open - use viewport-relative positioning
   const updatePosition = useCallback(() => {
     if (containerRef.current && isOpen) {
       const rect = containerRef.current.getBoundingClientRect();
+      // Use fixed positioning relative to viewport, not document
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: rect.width,
+        top: rect.bottom + 2,
+        left: rect.left,
+        width: Math.max(rect.width, 250), // Minimum width of 250px
       });
     }
   }, [isOpen]);
 
   useEffect(() => {
-    updatePosition();
     if (isOpen) {
+      // Immediate update
+      updatePosition();
+      // Delayed update to catch any layout shifts
+      const timer = setTimeout(updatePosition, 50);
+      
       window.addEventListener('scroll', updatePosition, true);
       window.addEventListener('resize', updatePosition);
+      
       return () => {
+        clearTimeout(timer);
         window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
       };
@@ -82,18 +90,20 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      // Check if click is outside both container and portal dropdown
+      // Check if click is outside both container and dropdown
       if (containerRef.current && !containerRef.current.contains(target)) {
-        const portalDropdown = document.getElementById('port-select-dropdown');
-        if (!portalDropdown || !portalDropdown.contains(target)) {
+        if (dropdownRef.current && !dropdownRef.current.contains(target)) {
           setIsOpen(false);
         }
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    if (isOpen) {
+      // Use capture phase to catch events before they bubble
+      document.addEventListener("mousedown", handleClickOutside, true);
+      return () => document.removeEventListener("mousedown", handleClickOutside, true);
+    }
+  }, [isOpen]);
 
   // Search ports when query changes
   useEffect(() => {
@@ -134,46 +144,54 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
     setResults(popularPorts);
   };
 
-  const dropdownContent = (
+  const handleInputFocus = () => {
+    setIsOpen(true);
+    // Multiple position updates to handle layout timing
+    requestAnimationFrame(updatePosition);
+    setTimeout(updatePosition, 100);
+  };
+
+  const dropdownContent = isOpen ? (
     <div 
-      id="port-select-dropdown"
-      className="fixed max-h-60 overflow-auto rounded-sm border border-border bg-popover shadow-lg"
+      ref={dropdownRef}
+      className="max-h-72 overflow-auto rounded border border-border bg-popover text-popover-foreground shadow-xl"
       style={{ 
-        top: dropdownPosition.top, 
-        left: dropdownPosition.left, 
-        width: dropdownPosition.width,
-        zIndex: 99999,
+        position: 'fixed',
+        top: `${dropdownPosition.top}px`, 
+        left: `${dropdownPosition.left}px`, 
+        width: `${dropdownPosition.width}px`,
+        zIndex: 999999,
       }}
     >
       {loading ? (
-        <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+        <div className="px-3 py-3 text-xs text-muted-foreground flex items-center gap-2">
           <Loader2 className="h-3 w-3 animate-spin" /> Searching ports...
         </div>
       ) : results.length === 0 ? (
-        <div className="px-3 py-2 text-xs text-muted-foreground">No ports found</div>
+        <div className="px-3 py-3 text-xs text-muted-foreground">No ports found</div>
       ) : (
-        <div>
+        <div className="py-1">
           {search.length < 2 && (
-            <div className="px-2 py-1 text-[10px] text-muted-foreground bg-muted/50 border-b border-border">
+            <div className="px-2 py-1.5 text-[10px] text-muted-foreground bg-muted/50 border-b border-border font-medium">
               Popular Ports
             </div>
           )}
           {results.map((port) => (
             <button
               key={`${port.id}-${port.unloc}`}
-              onClick={() => handleSelect(port)}
-              className="w-full flex items-start gap-2 px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground text-xs"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSelect(port);
+              }}
+              className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-xs cursor-pointer transition-colors"
             >
               <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{port.name}</div>
                 <div className="text-[10px] text-muted-foreground truncate">
                   {port.country} • {port.unloc}
-                  {port.coordinates && (
-                    <span className="ml-1 opacity-60">
-                      ({port.coordinates[1].toFixed(2)}, {port.coordinates[0].toFixed(2)})
-                    </span>
-                  )}
                 </div>
               </div>
             </button>
@@ -181,43 +199,45 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
         </div>
       )}
     </div>
-  );
+  ) : null;
 
   return (
-    <div className={cn("relative", className)} ref={containerRef} style={{ overflow: 'visible' }}>
-      <div className="relative" style={{ overflow: 'visible' }}>
+    <div className={cn("relative", className)} ref={containerRef}>
+      <div className="relative">
         <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
         <input
           ref={inputRef}
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onFocus={() => {
-            setIsOpen(true);
-            // Force position update after focus
-            setTimeout(updatePosition, 10);
+          onChange={(e) => {
+            setSearch(e.target.value);
+            if (!isOpen) setIsOpen(true);
           }}
-          onClick={() => {
-            setIsOpen(true);
-            setTimeout(updatePosition, 10);
-          }}
+          onFocus={handleInputFocus}
+          onClick={handleInputFocus}
           placeholder={placeholder}
           className="form-input-sm w-full pl-6 pr-6"
+          autoComplete="off"
         />
         {loading && (
           <Loader2 className="absolute right-6 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground pointer-events-none" />
         )}
         {search && (
           <button
-            onClick={handleClear}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleClear();
+            }}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm font-medium"
           >
             ×
           </button>
         )}
       </div>
 
-      {isOpen && createPortal(dropdownContent, document.body)}
+      {createPortal(dropdownContent, document.body)}
     </div>
   );
 }
