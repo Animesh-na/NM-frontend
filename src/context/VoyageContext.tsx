@@ -81,6 +81,24 @@ export interface SequenceRowUI {
   expDa: number;
 }
 
+// Multi-cargo entry structure
+export interface CargoEntry {
+  id: number;
+  rate: number;
+  rateType: "mt" | "lumpsum";
+  quantity: number;
+  voyageCommission: number;
+  tcCommission: number;
+  demurrageRate: number; // $/day
+  despatchRate: number; // $/day
+  demurrageAmount: number; // Total $ (can be calculated or manual)
+  despatchAmount: number; // Total $ (can be calculated or manual)
+  averageMode: "average" | "per_port" | "per_voyage";
+  ntcBase: number; // Benchmark NTC $/day
+  gtcTarget: number; // Target GTC $/day
+  netBBOverride?: number; // Manual override for Net BB
+}
+
 interface VoyageContextValue {
   // Vessel state
   vessel: VesselData;
@@ -97,10 +115,16 @@ interface VoyageContextValue {
   autoDistanceEnabled: boolean;
   setAutoDistanceEnabled: (enabled: boolean) => void;
   
-  // Cargo state
-  cargo: CargoState;
-  setCargo: React.Dispatch<React.SetStateAction<CargoState>>;
-  updateCargo: (field: keyof CargoState, value: number | string) => void;
+  // Multi-cargo state
+  cargos: CargoEntry[];
+  setCargos: React.Dispatch<React.SetStateAction<CargoEntry[]>>;
+  addCargo: () => void;
+  removeCargo: (id: number) => void;
+  updateCargoEntry: (id: number, field: string, value: number | string) => void;
+  
+  // Vessel cost (global)
+  vesselCost: number;
+  setVesselCost: (cost: number) => void;
   
   // Bunker state
   bunker: BunkerState;
@@ -113,16 +137,6 @@ interface VoyageContextValue {
   
   // Calculated results
   results: VoyageResults;
-}
-
-interface CargoState {
-  rate: number;
-  rateType: "mt" | "lumpsum";
-  quantity: number;
-  voyageCommission: number;
-  tcCommission: number;
-  demurrage: number;
-  despatch: number;
 }
 
 interface BunkerState {
@@ -363,15 +377,23 @@ const initialSequence: SequenceRowUI[] = [
   },
 ];
 
-const initialCargo: CargoState = {
-  rate: 13.7,
-  rateType: "mt",
-  quantity: 56550,
-  voyageCommission: 1.25,
-  tcCommission: 3.75,
-  demurrage: 0,
-  despatch: 0,
-};
+const initialCargos: CargoEntry[] = [
+  {
+    id: 1,
+    rate: 13.7,
+    rateType: "mt",
+    quantity: 56550,
+    voyageCommission: 1.25,
+    tcCommission: 3.75,
+    demurrageRate: 25000,
+    despatchRate: 12500,
+    demurrageAmount: 0,
+    despatchAmount: 0,
+    averageMode: "average",
+    ntcBase: 8000,
+    gtcTarget: 12000,
+  },
+];
 
 const initialBunker: BunkerState = {
   hsfo: { price: 0, robStart: 0 },
@@ -399,9 +421,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   });
 
   const [sequence, setSequence] = useState<SequenceRowUI[]>(initialSequence);
-  const [cargo, setCargo] = useState<CargoState>(initialCargo);
+  const [cargos, setCargos] = useState<CargoEntry[]>(initialCargos);
   const [bunker, setBunker] = useState<BunkerState>(initialBunker);
   const [hireRate, setHireRate] = useState(8542);
+  const [vesselCost, setVesselCost] = useState(6500);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
 
   // Recalculate port days and sea times whenever relevant fields change
@@ -536,8 +559,36 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     }
   }, [portUnlocsKey, autoDistanceEnabled, recalculateDistances]);
 
-  const updateCargo = useCallback((field: keyof CargoState, value: number | string) => {
-    setCargo(prev => ({ ...prev, [field]: value }));
+  // Multi-cargo management functions
+  const addCargo = useCallback(() => {
+    setCargos(prev => {
+      const nextId = Math.max(...prev.map(c => c.id), 0) + 1;
+      return [...prev, {
+        id: nextId,
+        rate: 0,
+        rateType: "mt" as const,
+        quantity: 0,
+        voyageCommission: 1.25,
+        tcCommission: 3.75,
+        demurrageRate: 25000,
+        despatchRate: 12500,
+        demurrageAmount: 0,
+        despatchAmount: 0,
+        averageMode: "average" as const,
+        ntcBase: 8000,
+        gtcTarget: 12000,
+      }];
+    });
+  }, []);
+
+  const removeCargo = useCallback((id: number) => {
+    setCargos(prev => prev.filter(c => c.id !== id));
+  }, []);
+
+  const updateCargoEntry = useCallback((id: number, field: string, value: number | string) => {
+    setCargos(prev => prev.map(c => 
+      c.id === id ? { ...c, [field]: value } : c
+    ));
   }, []);
 
   const updateBunker = useCallback((fuelType: string, field: string, value: number) => {
@@ -546,6 +597,32 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       [fuelType]: { ...prev[fuelType as keyof BunkerState] as object, [field]: value },
     }));
   }, []);
+
+  // Aggregate cargo data for calculation hook
+  const aggregatedCargo = useMemo(() => {
+    const totalQuantity = cargos.reduce((sum, c) => sum + c.quantity, 0);
+    const totalGrossFreight = cargos.reduce((sum, c) => {
+      return sum + (c.rateType === "lumpsum" ? c.rate : c.rate * c.quantity);
+    }, 0);
+    const avgVoyComm = cargos.length > 0 
+      ? cargos.reduce((sum, c) => sum + c.voyageCommission, 0) / cargos.length 
+      : 0;
+    const avgTcComm = cargos.length > 0 
+      ? cargos.reduce((sum, c) => sum + c.tcCommission, 0) / cargos.length 
+      : 0;
+    const totalDemurrage = cargos.reduce((sum, c) => sum + c.demurrageAmount, 0);
+    const totalDespatch = cargos.reduce((sum, c) => sum + c.despatchAmount, 0);
+
+    return {
+      rate: totalGrossFreight / (totalQuantity || 1),
+      rateType: "mt" as const,
+      quantity: totalQuantity,
+      voyageCommission: avgVoyComm,
+      tcCommission: avgTcComm,
+      demurrage: totalDemurrage,
+      despatch: totalDespatch,
+    };
+  }, [cargos]);
 
   // Transform UI state to calculation inputs
   const voyageInputs: VoyageInputs = {
@@ -562,15 +639,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       quantity: row.quantity,
       expDa: row.expDa,
     })),
-    cargo: {
-      rate: cargo.rate,
-      rateType: cargo.rateType,
-      quantity: cargo.quantity,
-      voyageCommission: cargo.voyageCommission,
-      tcCommission: cargo.tcCommission,
-      demurrage: cargo.demurrage,
-      despatch: cargo.despatch,
-    },
+    cargo: aggregatedCargo,
     bunker: {
       hsfo: { price: bunker.hsfo.price, robStart: bunker.hsfo.robStart },
       vlsfo: { price: bunker.vlsfo.price, robStart: bunker.vlsfo.robStart },
@@ -596,9 +665,13 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         recalculateDistances,
         autoDistanceEnabled,
         setAutoDistanceEnabled,
-        cargo,
-        setCargo,
-        updateCargo,
+        cargos,
+        setCargos,
+        addCargo,
+        removeCargo,
+        updateCargoEntry,
+        vesselCost,
+        setVesselCost,
         bunker,
         setBunker,
         updateBunker,
@@ -630,9 +703,13 @@ export function useVoyageContext() {
       recalculateDistances: () => {},
       autoDistanceEnabled: true,
       setAutoDistanceEnabled: () => {},
-      cargo: { rate: 0, rateType: "mt" as const, quantity: 0, voyageCommission: 0, tcCommission: 0, demurrage: 0, despatch: 0 },
-      setCargo: () => {},
-      updateCargo: () => {},
+      cargos: [],
+      setCargos: () => {},
+      addCargo: () => {},
+      removeCargo: () => {},
+      updateCargoEntry: () => {},
+      vesselCost: 0,
+      setVesselCost: () => {},
       bunker: { hsfo: { price: 0, robStart: 0 }, vlsfo: { price: 0, robStart: 0 }, lsmgo: { price: 0, robStart: 0 }, co2Price: 0 },
       setBunker: () => {},
       updateBunker: () => {},

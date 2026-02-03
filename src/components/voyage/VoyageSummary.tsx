@@ -3,7 +3,10 @@ import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 
 export function VoyageSummary() {
-  const { results, cargo, hireRate } = useVoyageContext();
+  const { results, cargos, hireRate } = useVoyageContext();
+
+  // Get first cargo for display (or default values)
+  const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -166,7 +169,7 @@ export function VoyageSummary() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Gross Rate :</span>
               <span className="font-mono tabular-nums">
-                ${cargo.rate} /{cargo.rateType}
+                ${primaryCargo.rate} /{primaryCargo.rateType}
               </span>
             </div>
             <div className="flex justify-between">
