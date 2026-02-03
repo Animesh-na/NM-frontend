@@ -32,12 +32,32 @@ export interface BunkerData {
   co2Price: number;
 }
 
+// Extra time data for calculation
+export interface ExtraTimeData {
+  canal1Days: number; // Extra canal 1 time in days
+  canal2Days: number; // Extra canal 2 time in days
+  idlePortDays: number; // Extra idle port time in days
+  atSeaDays: number; // Extra at sea time in days
+  atSeaSpeedContext: string; // EV or FV for fuel consumption
+}
+
+// Misc costs data
+export interface MiscCostsData {
+  miscCost: number;
+  extraFees: number;
+  extraInsurance: number;
+  canalCost1: number;
+  canalCost2: number;
+}
+
 export interface VoyageInputs {
   vessel: VesselData;
   sequence: SequenceRow[];
   cargo: CargoData;
   bunker: BunkerData;
   hireRate: number; // $/day for TC equivalent comparison
+  misc?: MiscCostsData;
+  extraTime?: ExtraTimeData;
 }
 
 export interface VoyageResults {
@@ -48,6 +68,9 @@ export interface VoyageResults {
   seaDaysLaden: number;
   totalSeaDays: number;
   totalPortDays: number;
+  extraSeaDays: number;
+  extraPortDays: number;
+  extraCanalDays: number;
   totalVoyageDays: number;
 
   // Bunker consumption
@@ -61,6 +84,8 @@ export interface VoyageResults {
   voyageCommission: number;
   netFreight: number;
   portCosts: number;
+  miscCosts: number;
+  canalCosts: number;
   totalVoyageCosts: number;
   hireCost: number;
   voyageCostInclHire: number;
@@ -101,7 +126,7 @@ const getCiiRating = (cii: number): string => {
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
   return useMemo(() => {
-    const { vessel, sequence, cargo, bunker, hireRate } = inputs;
+    const { vessel, sequence, cargo, bunker, hireRate, misc, extraTime } = inputs;
 
     // 1. Calculate distances and identify leg types
     let totalDistance = 0;
@@ -135,14 +160,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       }
     });
 
-    // 2. Calculate sea time based on vessel speed
+    // 2. Calculate extra time (from misc section)
+    const extraSeaDays = extraTime?.atSeaDays || 0;
+    const extraPortDays = extraTime?.idlePortDays || 0;
+    const extraCanalDays = (extraTime?.canal1Days || 0) + (extraTime?.canal2Days || 0);
+
+    // 3. Calculate sea time based on vessel speed
     const ballastSpeed = vessel.consumption.speed.ecoBallast || 12;
     const ladenSpeed = vessel.consumption.speed.ecoLaden || 12;
 
     const seaDaysBallast = ballastSpeed > 0 ? ballastDistance / (ballastSpeed * 24) : 0;
     const seaDaysLaden = ladenSpeed > 0 ? ladenDistance / (ladenSpeed * 24) : 0;
-    const totalSeaDays = seaDaysBallast + seaDaysLaden;
-    const totalVoyageDays = totalSeaDays + totalPortDays;
+    const totalSeaDays = seaDaysBallast + seaDaysLaden + extraSeaDays;
+    
+    // Total voyage days includes all extra time
+    const totalVoyageDays = totalSeaDays + totalPortDays + extraPortDays + extraCanalDays;
 
     // 3. Calculate bunker consumption
     // At sea consumption (per day)
@@ -155,14 +187,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
     // Port consumption (AE)
     const portAeConsumption = vessel.consumption.ae.ecoLaden || 0.5;
+    
+    // Canal consumption (using idle/canal rate)
+    const canalConsumption = vessel.consumption.ae.ecoLaden || 0.5;
 
-    // Total consumption
-    const hsfoConsumption = (seaDaysBallast * ballastHsfo) + (seaDaysLaden * ladenHsfo);
-    const vlsfoConsumption = (seaDaysBallast * ballastVlsfo) + (seaDaysLaden * ladenVlsfo);
+    // Total consumption (including extra time)
+    const hsfoConsumption = (seaDaysBallast * ballastHsfo) + (seaDaysLaden * ladenHsfo) + (extraSeaDays * ladenHsfo);
+    const vlsfoConsumption = (seaDaysBallast * ballastVlsfo) + (seaDaysLaden * ladenVlsfo) + (extraSeaDays * ladenVlsfo);
     const lsmgoConsumption = 
       (seaDaysBallast * ballastLsmgo) + 
       (seaDaysLaden * ladenLsmgo) + 
-      (totalPortDays * portAeConsumption);
+      ((totalPortDays + extraPortDays) * portAeConsumption) +
+      (extraCanalDays * canalConsumption) +
+      (extraSeaDays * ladenLsmgo);
 
     // Bunker costs
     const hsfoCost = hsfoConsumption * bunker.hsfo.price;
@@ -170,7 +207,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const lsmgoCost = lsmgoConsumption * bunker.lsmgo.price;
     const totalBunkerCost = hsfoCost + vlsfoCost + lsmgoCost;
 
-    // 4. Calculate freight and revenue
+    // 5. Calculate freight and revenue
     let grossFreight = 0;
     if (cargo.rateType === "lumpsum") {
       grossFreight = cargo.rate;
@@ -181,13 +218,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageCommission = grossFreight * (cargo.voyageCommission / 100);
     const netFreight = grossFreight - voyageCommission;
 
-    // 5. Total voyage costs
-    const totalVoyageCosts = totalBunkerCost + portCosts;
+    // 6. Calculate misc costs
+    const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
+    const canalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
+
+    // 7. Total voyage costs (including misc and canal costs)
+    const totalVoyageCosts = totalBunkerCost + portCosts + miscCosts + canalCosts;
     const hireCost = hireRate * totalVoyageDays;
     const voyageCostInclHire = totalVoyageCosts + hireCost;
     const voyageCostExclHire = totalVoyageCosts;
 
-    // 6. Profitability calculations
+    // 8. Profitability calculations
     const grossProfit = netFreight - voyageCostExclHire + cargo.demurrage - cargo.despatch;
     const netProfit = grossProfit;
     const pAndL = grossProfit - hireCost;
@@ -204,7 +245,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       ? (grossFreight - voyageCostExclHire) / totalVoyageDays 
       : 0;
 
-    // 7. Environmental calculations
+    // 9. Environmental calculations
     const co2Hsfo = hsfoConsumption * CO2_FACTORS.hsfo;
     const co2Vlsfo = vlsfoConsumption * CO2_FACTORS.vlsfo;
     const co2Lsmgo = lsmgoConsumption * CO2_FACTORS.lsmgo;
@@ -233,6 +274,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       seaDaysLaden,
       totalSeaDays,
       totalPortDays,
+      extraSeaDays,
+      extraPortDays,
+      extraCanalDays,
       totalVoyageDays,
       hsfoConsumption,
       vlsfoConsumption,
@@ -242,6 +286,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       voyageCommission,
       netFreight,
       portCosts,
+      miscCosts,
+      canalCosts,
       totalVoyageCosts,
       hireCost,
       voyageCostInclHire,
