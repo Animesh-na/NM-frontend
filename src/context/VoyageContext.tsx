@@ -49,6 +49,18 @@ export interface SequenceRowUI {
   // Calculated port days (read-only, derived from quantity/productivity/terms/extra time)
   calculatedPortDays: number;
   
+  // Editable port days override (if user wants to manually set)
+  wdaysPortOverride?: number;
+  
+  // Draft in meters (manual input)
+  draft: number;
+  
+  // Number of cranes (from vessel default, editable per leg)
+  cranes: number;
+  
+  // Constant percentage margin for Wdays calculation
+  constantPercent: number;
+  
   // Bunkering data (for bunkering operation)
   bunkeringHsfo: number;
   bunkeringVlsfo: number;
@@ -185,7 +197,7 @@ function calculateSeaTime(
   return { ecaTime, seaTime, totalLegTime };
 }
 
-const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco"): SequenceRowUI => ({
+const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco", defaultCranes: number = 4): SequenceRowUI => ({
   id: nextId,
   type,
   operation,
@@ -204,6 +216,10 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   turnTime: type === "port" ? 18 : 0,
   extraTime: 0,
   calculatedPortDays: 0,
+  wdaysPortOverride: undefined,
+  draft: 0,
+  cranes: type === "port" && (operation === "loading" || operation === "discharging") ? defaultCranes : 0,
+  constantPercent: 5,
   bunkeringHsfo: 0,
   bunkeringVlsfo: 0,
   bunkeringLsmgo: 0,
@@ -229,6 +245,9 @@ const initialSequence: SequenceRowUI[] = [
     turnTime: 0,
     extraTime: 0,
     calculatedPortDays: 0,
+    draft: 0,
+    cranes: 0,
+    constantPercent: 0,
     bunkeringHsfo: 0,
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
@@ -252,6 +271,9 @@ const initialSequence: SequenceRowUI[] = [
     turnTime: 18,
     extraTime: 0,
     calculatedPortDays: 0,
+    draft: 12.5,
+    cranes: 4,
+    constantPercent: 5,
     bunkeringHsfo: 0,
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
@@ -275,6 +297,9 @@ const initialSequence: SequenceRowUI[] = [
     turnTime: 12,
     extraTime: 0,
     calculatedPortDays: 0,
+    draft: 0,
+    cranes: 0,
+    constantPercent: 0,
     bunkeringHsfo: 0,
     bunkeringVlsfo: 1234,
     bunkeringLsmgo: 1234,
@@ -298,6 +323,9 @@ const initialSequence: SequenceRowUI[] = [
     turnTime: 18,
     extraTime: 0,
     calculatedPortDays: 0,
+    draft: 10.2,
+    cranes: 4,
+    constantPercent: 5,
     bunkeringHsfo: 0,
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,

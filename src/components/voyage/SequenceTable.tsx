@@ -74,9 +74,9 @@ export function SequenceTable() {
     return `${days.toFixed(1)}d`;
   };
 
-  // Get speed context label from vessel profile
-  const getSpeedContext = (): string => {
-    return vessel.speedProfile === "eco" ? "EV" : "FV";
+  // Get speed context labels - V = Outside ECA (Voyage), L = Inside ECA (Local/Operational)
+  const getSpeedContextPrefix = (): string => {
+    return vessel.speedProfile === "eco" ? "E" : "F";
   };
 
   return (
@@ -96,6 +96,21 @@ export function SequenceTable() {
 
       {isExpanded && (
         <div className="p-2">
+          {/* Speed Profile Indicator */}
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <span className="text-[10px] text-muted-foreground">Speed Profile:</span>
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+              vessel.speedProfile === "eco" 
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+            }`}>
+              {vessel.speedProfile === "eco" ? "Eco Speed & Cons" : "Full Speed & Cons"}
+            </span>
+            <span className="text-[9px] text-muted-foreground ml-2">
+              V = Outside ECA • L = Inside ECA
+            </span>
+          </div>
+
           {/* AXS Marine style table */}
           <div className="overflow-x-auto">
             <table className="w-full text-[11px] border-collapse">
@@ -104,11 +119,14 @@ export function SequenceTable() {
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-16">Type</th>
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-28">Port</th>
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-16">Cgo</th>
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-24">Distance & ECA</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-32">
+                    Distance (V / L)
+                  </th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12">Time</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Wdays Port</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-14">Draft</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10">C</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Wdays</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-14">Draft (m)</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10" title="Constant Percentage">C%</th>
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-24">Quantity</th>
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-28">Terms</th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-14">Tt</th>
@@ -173,25 +191,30 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Distance & ECA - combined AXS style */}
+                    {/* Distance (V / L) - Outside ECA / Inside ECA */}
                     <td className="px-1 py-0.5 border border-border">
                       {row.type !== "open" ? (
                         <div className="flex items-center gap-0.5">
-                          <span className="text-[10px] text-muted-foreground">{getSpeedContext()}</span>
+                          {/* V = Outside ECA (Voyage distance) */}
+                          <span className="text-[9px] font-medium text-primary">{getSpeedContextPrefix()}V</span>
                           <input
                             type="number"
                             className="w-12 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
                             value={row.distance || ""}
                             onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)}
                             placeholder="0"
+                            title="Outside ECA Distance (nm)"
                           />
-                          <span className="text-[10px] text-muted-foreground">&</span>
+                          <span className="text-[10px] text-muted-foreground">/</span>
+                          {/* L = Inside ECA (Local/Operational distance) */}
+                          <span className="text-[9px] font-medium text-accent-foreground">{getSpeedContextPrefix()}L</span>
                           <input
                             type="number"
-                            className="w-8 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
                             value={row.ecaDistance || ""}
                             onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)}
                             placeholder="0"
+                            title="Inside ECA Distance (nm)"
                           />
                         </div>
                       ) : (
@@ -210,32 +233,70 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Wdays Port - port days */}
+                    {/* Wdays Port - editable port days */}
                     <td className="px-1 py-0.5 border border-border text-center">
                       {row.type === "port" ? (
-                        <span className="font-mono text-[11px] tabular-nums font-medium text-primary">
-                          {row.calculatedPortDays.toFixed(2)}
-                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="w-14 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5 font-medium text-primary"
+                          value={row.wdaysPortOverride !== undefined ? row.wdaysPortOverride : row.calculatedPortDays.toFixed(2)}
+                          onChange={(e) => updateSequenceRow(row.id, "wdaysPortOverride", parseFloat(e.target.value) || 0)}
+                          title="Port Days = (Quantity / Productivity) × Terms + Extra Time"
+                        />
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
 
-                    {/* Draft */}
+                    {/* Draft in meters - editable */}
                     <td className="px-1 py-0.5 border border-border text-center">
                       {row.type !== "open" ? (
-                        <span className="text-[10px] text-muted-foreground">
-                          {row.operation === "loading" ? "VL" : row.operation === "discharging" ? "VL" : "—"}
-                        </span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          className="w-12 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          value={row.draft || ""}
+                          onChange={(e) => updateSequenceRow(row.id, "draft", parseFloat(e.target.value) || 0)}
+                          placeholder="0.0"
+                          title="Draft in meters"
+                        />
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
 
-                    {/* C% - constant percentage */}
+                    {/* Cranes - editable, defaults from vessel */}
                     <td className="px-1 py-0.5 border border-border text-center">
                       {showQuantityFields(row) ? (
-                        <span className="text-[10px] text-muted-foreground">5%</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="10"
+                          className="w-8 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          value={row.cranes || ""}
+                          onChange={(e) => updateSequenceRow(row.id, "cranes", parseInt(e.target.value) || 0)}
+                          placeholder="0"
+                          title="Number of cranes available at berth"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* C% - constant percentage margin */}
+                    <td className="px-1 py-0.5 border border-border text-center">
+                      {showQuantityFields(row) ? (
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          className="w-8 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          value={row.constantPercent || ""}
+                          onChange={(e) => updateSequenceRow(row.id, "constantPercent", parseFloat(e.target.value) || 0)}
+                          placeholder="0"
+                          title="Constant percentage margin for Wdays calculation"
+                        />
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
@@ -302,9 +363,10 @@ export function SequenceTable() {
                             type="number"
                             step="0.1"
                             className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
-                            value={row.turnTime ? (row.turnTime / 24).toFixed(4) : ""}
+                            value={row.turnTime ? (row.turnTime / 24).toFixed(2) : ""}
                             onChange={(e) => updateSequenceRow(row.id, "turnTime", (parseFloat(e.target.value) || 0) * 24)}
                             placeholder="0"
+                            title="Turn time in days"
                           />
                         </div>
                       ) : (
@@ -366,33 +428,40 @@ export function SequenceTable() {
           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
             <button 
               onClick={() => addPort("loading")} 
-              className="flex items-center gap-1 px-2 py-1 text-[11px] bg-success/10 text-success border border-success/30 rounded hover:bg-success/20"
+              className="px-2 py-1 text-[10px] font-medium border border-border rounded hover:bg-muted flex items-center gap-1"
             >
               <Plus className="h-3 w-3" />
               Add sequence
             </button>
             <button 
-              onClick={() => removeSequence(sequence[sequence.length - 1]?.id)} 
-              className="flex items-center gap-1 px-2 py-1 text-[11px] bg-muted text-muted-foreground border border-border rounded hover:bg-muted/80"
-              disabled={sequence.length <= 1}
+              onClick={addRepositioning} 
+              className="px-2 py-1 text-[10px] font-medium border border-border rounded hover:bg-muted"
             >
-              Rem sequence
+              Repos
             </button>
-            <button 
-              onClick={recalculateDistances} 
-              className="flex items-center gap-1 px-2 py-1 text-[11px] bg-primary/10 text-primary border border-primary/30 rounded hover:bg-primary/20"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Get distances
-            </button>
-            <label className="flex items-center gap-1.5 ml-2">
-              <Checkbox
+            <div className="flex-1" />
+            
+            <div className="flex items-center gap-1.5">
+              <Checkbox 
+                id="auto-dist"
                 checked={autoDistanceEnabled}
                 onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)}
                 className="h-3 w-3"
               />
-              <span className="text-[11px] text-muted-foreground">Auto dist.</span>
-            </label>
+              <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">
+                Auto dist.
+              </label>
+            </div>
+            
+            <button 
+              onClick={recalculateDistances}
+              className="px-2 py-1 text-[10px] font-medium border border-border rounded hover:bg-muted flex items-center gap-1"
+              disabled={autoDistanceEnabled}
+              title="Recalculate distances between ports"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Get distances
+            </button>
           </div>
 
           {/* Sequence Summary */}
