@@ -1,6 +1,8 @@
-import { DollarSign, Clock, TrendingUp, Leaf } from "lucide-react";
+import { DollarSign, Clock, TrendingUp, Leaf, FileText } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
+import { Button } from "@/components/ui/button";
 
 export function VoyageSummary() {
   const { results, cargos, hireRate } = useVoyageContext();
@@ -335,6 +337,16 @@ export function VoyageSummary() {
               {results.totalCo2.toFixed(2)} t (L {results.co2Laden.toFixed(2)} / B {results.co2Ballast.toFixed(2)})
             </span>
           </div>
+        </div>
+
+        {/* View Calculation Details Link */}
+        <div className="pt-3 border-t border-border">
+          <Link to="/calculation-breakdown">
+            <Button variant="outline" size="sm" className="w-full gap-2">
+              <FileText className="h-3.5 w-3.5" />
+              View Calculation Details
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

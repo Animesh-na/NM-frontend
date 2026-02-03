@@ -6,8 +6,10 @@ import {
   Anchor,
   Fuel,
   Truck,
-  Settings
+  Settings,
+  FileText
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const navItems = [
   { icon: Settings, label: "Apps", active: false },
@@ -81,6 +83,14 @@ export function AppHeader() {
         <button className="text-muted-foreground hover:text-foreground">Sheet Export</button>
         <button className="text-muted-foreground hover:text-foreground">Compare & Export</button>
         <button className="text-muted-foreground hover:text-foreground">Print</button>
+        
+        <Link 
+          to="/calculation-breakdown"
+          className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary border border-primary/30 rounded-sm hover:bg-primary/20 transition-colors font-medium"
+        >
+          <FileText className="h-3 w-3" />
+          Calc Details
+        </Link>
         
         <div className="ml-auto flex items-center gap-2">
           <span className="text-primary font-semibold">Voyage Calculator 5.0</span>
