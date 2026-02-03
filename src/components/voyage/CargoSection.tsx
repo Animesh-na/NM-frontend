@@ -5,11 +5,11 @@ import { InfoTooltip } from "./InfoTooltip";
 
 export function CargoSection() {
   const { 
-    cargos, 
+    cargos = [], 
     addCargo, 
     removeCargo, 
     updateCargoEntry,
-    vesselCost,
+    vesselCost = 0,
     setVesselCost,
     results 
   } = useVoyageContext();
