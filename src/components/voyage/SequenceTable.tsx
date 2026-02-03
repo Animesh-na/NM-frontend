@@ -1,7 +1,7 @@
-import { ChevronDown, Plus, Trash2, Ship, Clock } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Ship } from "lucide-react";
 import { useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
-import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext } from "@/context/VoyageContext";
+import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season } from "@/context/VoyageContext";
 import { SequenceSummary } from "./SequenceSummary";
 import { InfoTooltip } from "./InfoTooltip";
 
@@ -17,13 +17,6 @@ const seasonOptions: { value: Season; label: string }[] = [
   { value: "winter", label: "Winter" },
   { value: "tropical", label: "Tropical" },
   { value: "eca", label: "ECA" },
-];
-
-const speedContextOptions: { value: SpeedContext; label: string; tooltip: string }[] = [
-  { value: "EV", label: "EV", tooltip: "ECA Voyage - Eco speed in ECA zones" },
-  { value: "EL", label: "EL", tooltip: "ECA Operational - Eco speed for operations" },
-  { value: "FV", label: "FV", tooltip: "Full Voyage - Full speed in open sea" },
-  { value: "FL", label: "FL", tooltip: "Full Operational - Full speed for operations" },
 ];
 
 const termsOptions = [
@@ -109,23 +102,21 @@ export function SequenceTable() {
 
       {isExpanded && (
         <div className="p-3">
-          {/* Speed context legend */}
-          <div className="flex items-center gap-4 mb-2 text-[10px] text-muted-foreground">
-            <span className="font-medium">Speed Context:</span>
-            {speedContextOptions.map(opt => (
-              <span key={opt.value} className="flex items-center gap-1">
-                <span className="font-mono font-medium text-foreground">{opt.value}</span>
-                <span>= {opt.tooltip.split(' - ')[0]}</span>
-              </span>
-            ))}
+          {/* Speed profile indicator */}
+          <div className="flex items-center gap-2 mb-2 text-[10px] text-muted-foreground">
+            <span className="font-medium">Speed Profile:</span>
+            <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+              {vessel.speedProfile === "eco" ? "Eco Speed & Cons" : "Full Speed & Cons"}
+            </span>
+            <span className="text-muted-foreground/60">— affects sea time calculations</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="data-table min-w-full">
+          <div className="overflow-x-auto" style={{ overflow: 'visible' }}>
+            <table className="data-table min-w-full" style={{ overflow: 'visible' }}>
               <thead>
                 <tr>
                   <th className="w-16">Type</th>
-                  <th className="w-32">Port</th>
+                  <th className="w-40">Port</th>
                   <th className="w-20">Season/Op</th>
                   <th className="w-16 text-right">
                     <span className="flex items-center justify-end gap-1">
@@ -139,16 +130,10 @@ export function SequenceTable() {
                       <InfoTooltip formula="nm" description="Distance within ECA zones" />
                     </span>
                   </th>
-                  <th className="w-14">
-                    <span className="flex items-center gap-1">
-                      Spd
-                      <InfoTooltip formula="EV/EL/FV/FL" description="EV/EL=Eco, FV/FL=Full speed context" />
-                    </span>
-                  </th>
                   <th className="w-16 text-right">
                     <span className="flex items-center justify-end gap-1">
                       Sea
-                      <InfoTooltip formula="ECA/(spd×24) + NonECA/(spd×24)" description="Sailing time in days" />
+                      <InfoTooltip formula="Dist/(spd×24)" description="Sailing time using vessel speed profile" />
                     </span>
                   </th>
                   <th className="w-20 text-right">Qty (mt)</th>
@@ -237,24 +222,6 @@ export function SequenceTable() {
                           onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)}
                           placeholder="0"
                         />
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </td>
-
-                    {/* Speed Context Selector */}
-                    <td>
-                      {row.type !== "open" ? (
-                        <select
-                          className="form-select w-full text-xs font-mono"
-                          value={row.speedContext}
-                          onChange={(e) => updateSequenceRow(row.id, "speedContext", e.target.value as SpeedContext)}
-                          title={speedContextOptions.find(o => o.value === row.speedContext)?.tooltip}
-                        >
-                          {speedContextOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.value}</option>
-                          ))}
-                        </select>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
@@ -415,7 +382,7 @@ export function SequenceTable() {
               Add Bkrg
             </button>
             <button onClick={() => addPort("waiting")} className="btn-secondary flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+              <Plus className="h-3 w-3" />
               Add Wait
             </button>
             <button onClick={addRepositioning} className="btn-secondary flex items-center gap-1">
