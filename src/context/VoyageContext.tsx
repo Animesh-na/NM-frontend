@@ -253,20 +253,17 @@ const VoyageContext = createContext<VoyageContextValue | null>(null);
 export function VoyageProvider({ children }: { children: ReactNode }) {
   const [vessel, setVessel] = useState<VesselData>({
     ...defaultVessel,
-    name: "Ap Dubrava",
-    dwt: 38703,
-    gt: 25494,
-    cubic: 50905,
-    draft: 10.5,
-    tpcTpi: 53.9,
-    consumption: {
-      speed: { ecoBallast: 12.5, ecoLaden: 12, canal: 0 },
-      hsfo: { ecoBallast: 16, ecoLaden: 16, canal: 2.5 },
-      vlsfo: { ecoBallast: 21, ecoLaden: 22, canal: 2.5 },
-      lsmgo: { ecoBallast: 0.5, ecoLaden: 0.5, canal: 0.5 },
-      ae: { ecoBallast: 0.1, ecoLaden: 0.1, canal: 0.2 },
-      aeScrubber: { ecoBallast: 0.2, ecoLaden: 0.2, canal: 0.2 },
-    },
+    name: "",
+    type: "",
+    dwt: 0,
+    gt: 0,
+    cubic: 0,
+    cubicUnit: "cbm",
+    draft: 0,
+    tpcTpi: 0,
+    hsfoCapability: false,
+    hasScrubber: false,
+    scrubberCount: 0,
   });
 
   const [sequence, setSequence] = useState<SequenceRowUI[]>(initialSequence);
