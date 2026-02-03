@@ -383,10 +383,40 @@ export function SequenceTable() {
                           <span className="text-[9px] text-muted-foreground">mt</span>
                         </div>
                       ) : showBunkeringFields(row) ? (
-                        <div className="text-[9px] text-muted-foreground leading-tight">
-                          <div>HSFO: {row.bunkeringHsfo || 0}t</div>
-                          <div>VLSFO: {row.bunkeringVlsfo || 0}t</div>
-                          <div>LSMGO: {row.bunkeringLsmgo || 0}t</div>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-[8px] text-muted-foreground w-8">HSFO:</span>
+                            <input
+                              type="number"
+                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              value={row.bunkeringHsfo || ""}
+                              onChange={(e) => updateSequenceRow(row.id, "bunkeringHsfo", parseFloat(e.target.value) || 0)}
+                              placeholder="0"
+                            />
+                            <span className="text-[8px] text-muted-foreground">t</span>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-[8px] text-muted-foreground w-8">VLSFO:</span>
+                            <input
+                              type="number"
+                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              value={row.bunkeringVlsfo || ""}
+                              onChange={(e) => updateSequenceRow(row.id, "bunkeringVlsfo", parseFloat(e.target.value) || 0)}
+                              placeholder="0"
+                            />
+                            <span className="text-[8px] text-muted-foreground">t</span>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-[8px] text-muted-foreground w-8">LSMGO:</span>
+                            <input
+                              type="number"
+                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              value={row.bunkeringLsmgo || ""}
+                              onChange={(e) => updateSequenceRow(row.id, "bunkeringLsmgo", parseFloat(e.target.value) || 0)}
+                              placeholder="0"
+                            />
+                            <span className="text-[8px] text-muted-foreground">t</span>
+                          </div>
                         </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
