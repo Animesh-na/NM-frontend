@@ -30,6 +30,7 @@ export interface BunkerData {
   vlsfo: { price: number; robStart: number };
   lsmgo: { price: number; robStart: number };
   co2Price: number;
+  rewardFactor?: number; // Multiplier for wind-assisted propulsion (default 1.0)
 }
 
 // Extra time data for calculation
@@ -136,6 +137,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let totalPortDays = 0;
     let portCosts = 0;
     let isLaden = false;
+    
+    // Track operation-specific time for detailed consumption
+    let loadingDays = 0;
+    let dischargingDays = 0;
+    let idleDays = 0;
+    let bunkeringDays = 0;
+    let canalDays = 0;
 
     sequence.forEach((leg) => {
       totalDistance += leg.distance || 0;
@@ -143,9 +151,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       totalPortDays += leg.portDays || 0;
       portCosts += leg.expDa || 0;
 
-      // Check for loading operations (handles both old "load" and new "loading")
+      // Track operation types for port consumption
       if (leg.operation === "load" || leg.operation === "loading") {
+        loadingDays += leg.portDays || 0;
         isLaden = true;
+      } else if (leg.operation === "disch" || leg.operation === "discharging") {
+        dischargingDays += leg.portDays || 0;
+        isLaden = false;
+      } else if (leg.operation === "waiting" || leg.operation === "idle") {
+        idleDays += leg.portDays || 0;
+      } else if (leg.operation === "bunkering") {
+        bunkeringDays += leg.portDays || 0;
       }
 
       if (isLaden) {
@@ -153,14 +169,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       } else {
         ballastDistance += leg.distance || 0;
       }
-
-      // Check for discharge operations (handles both old "disch" and new "discharging")
-      if (leg.operation === "disch" || leg.operation === "discharging") {
-        isLaden = false;
-      }
     });
 
-    // 2. Calculate extra time (from misc section)
+    // 2. Calculate extra time (from misc section) - convert to days
     const extraSeaDays = extraTime?.atSeaDays || 0;
     const extraPortDays = extraTime?.idlePortDays || 0;
     const extraCanalDays = (extraTime?.canal1Days || 0) + (extraTime?.canal2Days || 0);
@@ -176,38 +187,92 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // Total voyage days includes all extra time
     const totalVoyageDays = totalSeaDays + totalPortDays + extraPortDays + extraCanalDays;
 
-    // 3. Calculate bunker consumption
-    // At sea consumption (per day)
-    const ballastVlsfo = vessel.consumption.vlsfo.ecoBallast || 0;
-    const ladenVlsfo = vessel.consumption.vlsfo.ecoLaden || 0;
-    const ballastLsmgo = vessel.consumption.lsmgo.ecoBallast || 0;
-    const ladenLsmgo = vessel.consumption.lsmgo.ecoLaden || 0;
-    const ballastHsfo = vessel.consumption.hsfo.ecoBallast || 0;
-    const ladenHsfo = vessel.consumption.hsfo.ecoLaden || 0;
-
-    // Port consumption (AE)
-    const portAeConsumption = vessel.consumption.ae.ecoLaden || 0.5;
+    // ============================================
+    // 4. BUNKER CONSUMPTION CALCULATION (AXS Marine Model)
+    // Consumption = Daily Rate × Time × Reward Factor
+    // ============================================
     
-    // Canal consumption (using idle/canal rate)
-    const canalConsumption = vessel.consumption.ae.ecoLaden || 0.5;
+    // Get the appropriate consumption profile based on vessel speed profile
+    const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
+    
+    // Reward factor adjusts consumption (wind-assisted propulsion, etc.)
+    const rewardFactor = bunker?.rewardFactor ?? 1.0;
+    
+    // --- Sea Consumption (Ballast + Laden) ---
+    // HSFO: Sea consumption using ballast/laden rates from vessel matrix
+    const hsfoSeaBallast = seaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0);
+    const hsfoSeaLaden = seaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
+    const hsfoSeaExtra = extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0); // Extra sea uses laden rate
+    const hsfoSeaTotal = (hsfoSeaBallast + hsfoSeaLaden + hsfoSeaExtra) * rewardFactor;
+    
+    // VLSFO: Sea consumption
+    const vlsfoSeaBallast = seaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0);
+    const vlsfoSeaLaden = seaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
+    const vlsfoSeaExtra = extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
+    const vlsfoSeaTotal = (vlsfoSeaBallast + vlsfoSeaLaden + vlsfoSeaExtra) * rewardFactor;
+    
+    // LSMGO: Sea consumption
+    const lsmgoSeaBallast = seaDaysBallast * (profile.lsmgo.ballast || vessel.consumption.lsmgo.ecoBallast || 0);
+    const lsmgoSeaLaden = seaDaysLaden * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
+    const lsmgoSeaExtra = extraSeaDays * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
+    const lsmgoSeaTotal = (lsmgoSeaBallast + lsmgoSeaLaden + lsmgoSeaExtra) * rewardFactor;
+    
+    // --- Port Consumption (by operation type) ---
+    // Loading consumption
+    const hsfoLoading = loadingDays * (profile.hsfo.load || 0);
+    const vlsfoLoading = loadingDays * (profile.vlsfo.load || 0);
+    const lsmgoLoading = loadingDays * (profile.lsmgo.load || profile.ae.load || 0);
+    
+    // Discharging consumption  
+    const hsfoDischarging = dischargingDays * (profile.hsfo.discharge || 0);
+    const vlsfoDischarging = dischargingDays * (profile.vlsfo.discharge || 0);
+    const lsmgoDischarging = dischargingDays * (profile.lsmgo.discharge || profile.ae.discharge || 0);
+    
+    // Idle/Waiting consumption (including bunkering operations)
+    const idleAndBunkeringDays = idleDays + bunkeringDays + extraPortDays;
+    const hsfoIdle = idleAndBunkeringDays * (profile.hsfo.idle || 0);
+    const vlsfoIdle = idleAndBunkeringDays * (profile.vlsfo.idle || 0);
+    const lsmgoIdle = idleAndBunkeringDays * (profile.lsmgo.idle || profile.ae.idle || 0);
+    
+    // Canal consumption
+    const totalCanalDays = canalDays + extraCanalDays;
+    const hsfoCanal = totalCanalDays * (profile.hsfo.canal || 0);
+    const vlsfoCanal = totalCanalDays * (profile.vlsfo.canal || 0);
+    const lsmgoCanal = totalCanalDays * (profile.lsmgo.canal || profile.ae.canal || 0);
+    
+    // --- AE (Auxiliary Engine) Consumption for port/idle ---
+    // AE runs during port operations for electricity
+    const aePortConsumption = (
+      loadingDays * (profile.ae.load || 0) +
+      dischargingDays * (profile.ae.discharge || 0) +
+      idleAndBunkeringDays * (profile.ae.idle || 0) +
+      totalCanalDays * (profile.ae.canal || 0)
+    );
+    
+    // Add AE consumption to LSMGO (AE typically runs on MGO)
+    const lsmgoAeTotal = aePortConsumption;
+    
+    // --- Total Fuel Consumption ---
+    const hsfoConsumption = hsfoSeaTotal + hsfoLoading + hsfoDischarging + hsfoIdle + hsfoCanal;
+    const vlsfoConsumption = vlsfoSeaTotal + vlsfoLoading + vlsfoDischarging + vlsfoIdle + vlsfoCanal;
+    const lsmgoConsumption = lsmgoSeaTotal + lsmgoLoading + lsmgoDischarging + lsmgoIdle + lsmgoCanal + lsmgoAeTotal;
 
-    // Total consumption (including extra time)
-    const hsfoConsumption = (seaDaysBallast * ballastHsfo) + (seaDaysLaden * ladenHsfo) + (extraSeaDays * ladenHsfo);
-    const vlsfoConsumption = (seaDaysBallast * ballastVlsfo) + (seaDaysLaden * ladenVlsfo) + (extraSeaDays * ladenVlsfo);
-    const lsmgoConsumption = 
-      (seaDaysBallast * ballastLsmgo) + 
-      (seaDaysLaden * ladenLsmgo) + 
-      ((totalPortDays + extraPortDays) * portAeConsumption) +
-      (extraCanalDays * canalConsumption) +
-      (extraSeaDays * ladenLsmgo);
-
-    // Bunker costs
-    const hsfoCost = hsfoConsumption * bunker.hsfo.price;
-    const vlsfoCost = vlsfoConsumption * bunker.vlsfo.price;
-    const lsmgoCost = lsmgoConsumption * bunker.lsmgo.price;
+    // ============================================
+    // 5. BUNKER COST CALCULATION (Price × Consumption)
+    // ============================================
+    
+    // Get fuel prices from bunker section
+    const hsfoPrice = bunker.hsfo.price || 0;
+    const vlsfoPrice = bunker.vlsfo.price || 0;
+    const lsmgoPrice = bunker.lsmgo.price || 0;
+    
+    // Calculate costs: Consumption × Price
+    const hsfoCost = hsfoConsumption * hsfoPrice;
+    const vlsfoCost = vlsfoConsumption * vlsfoPrice;
+    const lsmgoCost = lsmgoConsumption * lsmgoPrice;
     const totalBunkerCost = hsfoCost + vlsfoCost + lsmgoCost;
 
-    // 5. Calculate freight and revenue
+    // 6. Calculate freight and revenue
     let grossFreight = 0;
     if (cargo.rateType === "lumpsum") {
       grossFreight = cargo.rate;
@@ -218,17 +283,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageCommission = grossFreight * (cargo.voyageCommission / 100);
     const netFreight = grossFreight - voyageCommission;
 
-    // 6. Calculate misc costs
+    // 7. Calculate misc costs
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
     const canalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
 
-    // 7. Total voyage costs (including misc and canal costs)
+    // 8. Total voyage costs (including misc and canal costs)
     const totalVoyageCosts = totalBunkerCost + portCosts + miscCosts + canalCosts;
     const hireCost = hireRate * totalVoyageDays;
     const voyageCostInclHire = totalVoyageCosts + hireCost;
     const voyageCostExclHire = totalVoyageCosts;
 
-    // 8. Profitability calculations
+    // 9. Profitability calculations
     const grossProfit = netFreight - voyageCostExclHire + cargo.demurrage - cargo.despatch;
     const netProfit = grossProfit;
     const pAndL = grossProfit - hireCost;
@@ -245,7 +310,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       ? (grossFreight - voyageCostExclHire) / totalVoyageDays 
       : 0;
 
-    // 9. Environmental calculations
+    // 10. Environmental calculations
     const co2Hsfo = hsfoConsumption * CO2_FACTORS.hsfo;
     const co2Vlsfo = vlsfoConsumption * CO2_FACTORS.vlsfo;
     const co2Lsmgo = lsmgoConsumption * CO2_FACTORS.lsmgo;
