@@ -1,7 +1,7 @@
 import { ChevronDown, Plus, Trash2, Ship, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
-import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season } from "@/context/VoyageContext";
+import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
 import { SequenceSummary } from "./SequenceSummary";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -16,6 +16,23 @@ const termsOptions = [
   { value: "shinc", label: "shinc" },
   { value: "sshex", label: "sshex" },
   { value: "fhex", label: "fhex" },
+];
+
+const wdaysUnitOptions: { value: WdaysUnit; label: string }[] = [
+  { value: "VL", label: "VL" },
+  { value: "%", label: "%" },
+];
+
+// Speed context options for distance (V = Outside ECA)
+const distanceSpeedContextOptions: { value: SpeedContext; label: string }[] = [
+  { value: "EV", label: "EV" },
+  { value: "FV", label: "FV" },
+];
+
+// Speed context options for ECA distance (L = Inside ECA)
+const ecaDistanceSpeedContextOptions: { value: SpeedContext; label: string }[] = [
+  { value: "EL", label: "EL" },
+  { value: "FL", label: "FL" },
 ];
 
 export function SequenceTable() {
@@ -70,12 +87,20 @@ export function SequenceTable() {
     row.type === "port" && row.operation === "bunkering";
 
   const formatTime = (days: number): string => {
-    if (days === 0) return "0d";
-    return `${days.toFixed(1)}d`;
+    if (days === 0) return "0.00";
+    return days.toFixed(2);
   };
 
-  // Get speed context labels - V = Outside ECA (Voyage), L = Inside ECA (Local/Operational)
-  const getSpeedContextPrefix = (): string => {
+  // Get the time display value (either override or calculated)
+  const getTimeValue = (row: SequenceRowUI): number => {
+    if (row.timeOverride !== undefined && row.timeOverride > 0) {
+      return row.timeOverride;
+    }
+    return row.totalLegTime;
+  };
+
+  // Determine speed context label prefix based on vessel profile
+  const getSpeedPrefix = (): string => {
     return vessel.speedProfile === "eco" ? "E" : "F";
   };
 
@@ -107,7 +132,7 @@ export function SequenceTable() {
               {vessel.speedProfile === "eco" ? "Eco Speed & Cons" : "Full Speed & Cons"}
             </span>
             <span className="text-[9px] text-muted-foreground ml-2">
-              V = Outside ECA • L = Inside ECA
+              V = Outside ECA (Non-ECA) • L = Inside ECA
             </span>
           </div>
 
@@ -116,21 +141,21 @@ export function SequenceTable() {
             <table className="w-full text-[11px] border-collapse">
               <thead>
                 <tr className="bg-muted/50">
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-16">Type</th>
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-28">Port</th>
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-16">Cgo</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-32">
-                    Distance (V / L)
+                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-14">Type</th>
+                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-32">Port</th>
+                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-12">Cgo</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-44">
+                    Distance (V) & ECA (L)
                   </th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12">Time</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Wdays</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-14">Draft (m)</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Time (d)</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-24">Wdays Port</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Draft (m)</th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10" title="Constant Percentage">C%</th>
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-24">Quantity</th>
+                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-20">Quantity</th>
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-28">Terms</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-14">Tt</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12">Et</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12">Tt (d)</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12">Et (h)</th>
                   <th className="px-1 py-1 text-right font-medium text-muted-foreground border border-border w-16">Exp/DA</th>
                   <th className="px-1 py-1 border border-border w-6"></th>
                 </tr>
@@ -191,26 +216,44 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Distance (V / L) - Outside ECA / Inside ECA */}
+                    {/* Distance (V) & ECA (L) - Dual distance inputs with unit selectors */}
                     <td className="px-1 py-0.5 border border-border">
                       {row.type !== "open" ? (
                         <div className="flex items-center gap-0.5">
-                          {/* V = Outside ECA (Voyage distance) */}
-                          <span className="text-[9px] font-medium text-primary">{getSpeedContextPrefix()}V</span>
+                          {/* V = Outside ECA (Non-ECA distance) with speed context selector */}
+                          <select
+                            className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                            value={row.distanceSpeedContext}
+                            onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value as SpeedContext)}
+                            title="Speed context for Outside ECA distance"
+                          >
+                            {distanceSpeedContextOptions.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
                           <input
                             type="number"
-                            className="w-12 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
                             value={row.distance || ""}
                             onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                             title="Outside ECA Distance (nm)"
                           />
-                          <span className="text-[10px] text-muted-foreground">/</span>
-                          {/* L = Inside ECA (Local/Operational distance) */}
-                          <span className="text-[9px] font-medium text-accent-foreground">{getSpeedContextPrefix()}L</span>
+                          <span className="text-[10px] text-muted-foreground">&</span>
+                          {/* L = Inside ECA with speed context selector */}
+                          <select
+                            className="h-5 w-8 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                            value={row.ecaDistanceSpeedContext}
+                            onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value as SpeedContext)}
+                            title="Speed context for Inside ECA distance"
+                          >
+                            {ecaDistanceSpeedContextOptions.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
                           <input
                             type="number"
-                            className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-12 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
                             value={row.ecaDistance || ""}
                             onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)}
                             placeholder="0"
@@ -222,28 +265,49 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Time - calculated */}
+                    {/* Time - editable, auto-calculated unless overridden */}
                     <td className="px-1 py-0.5 border border-border text-center">
                       {row.type !== "open" ? (
-                        <span className="font-mono text-[11px] tabular-nums">
-                          {formatTime(row.totalLegTime)}
-                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="w-14 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          value={row.timeOverride !== undefined ? row.timeOverride : (row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "")}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            updateSequenceRow(row.id, "timeOverride", val > 0 ? val : undefined as unknown as number);
+                          }}
+                          placeholder={row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "0"}
+                          title="Sailing time in days (editable, auto-calculated from distance/speed)"
+                        />
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
 
-                    {/* Wdays Port - editable port days */}
+                    {/* Wdays Port - editable value + unit selector (VL / %) */}
                     <td className="px-1 py-0.5 border border-border text-center">
                       {row.type === "port" ? (
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="w-14 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5 font-medium text-primary"
-                          value={row.wdaysPortOverride !== undefined ? row.wdaysPortOverride : row.calculatedPortDays.toFixed(2)}
-                          onChange={(e) => updateSequenceRow(row.id, "wdaysPortOverride", parseFloat(e.target.value) || 0)}
-                          title="Port Days = (Quantity / Productivity) × Terms + Extra Time"
-                        />
+                        <div className="flex items-center gap-0.5 justify-center">
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="w-12 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5 font-medium text-primary"
+                            value={row.wdaysPortOverride !== undefined ? row.wdaysPortOverride : row.calculatedPortDays.toFixed(2)}
+                            onChange={(e) => updateSequenceRow(row.id, "wdaysPortOverride", parseFloat(e.target.value) || 0)}
+                            title="Port Days = (Quantity / Productivity) × Terms + Extra Time"
+                          />
+                          <select
+                            className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                            value={row.wdaysUnit || "VL"}
+                            onChange={(e) => updateSequenceRow(row.id, "wdaysUnit", e.target.value as WdaysUnit)}
+                            title="VL = Voyage Laytime Days, % = Percentage adjustment"
+                          >
+                            {wdaysUnitOptions.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
@@ -252,15 +316,18 @@ export function SequenceTable() {
                     {/* Draft in meters - editable */}
                     <td className="px-1 py-0.5 border border-border text-center">
                       {row.type !== "open" ? (
-                        <input
-                          type="number"
-                          step="0.1"
-                          className="w-12 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
-                          value={row.draft || ""}
-                          onChange={(e) => updateSequenceRow(row.id, "draft", parseFloat(e.target.value) || 0)}
-                          placeholder="0.0"
-                          title="Draft in meters"
-                        />
+                        <div className="flex items-center gap-0.5 justify-center">
+                          <input
+                            type="number"
+                            step="0.1"
+                            className="w-10 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                            value={row.draft || ""}
+                            onChange={(e) => updateSequenceRow(row.id, "draft", parseFloat(e.target.value) || 0)}
+                            placeholder="0.0"
+                            title="Draft in meters"
+                          />
+                          <span className="text-[9px] text-muted-foreground">m</span>
+                        </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
@@ -313,7 +380,7 @@ export function SequenceTable() {
                             onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                           />
-                          <span className="text-[10px] text-muted-foreground">mt</span>
+                          <span className="text-[9px] text-muted-foreground">mt</span>
                         </div>
                       ) : showBunkeringFields(row) ? (
                         <div className="text-[9px] text-muted-foreground leading-tight">
@@ -332,12 +399,12 @@ export function SequenceTable() {
                         <div className="flex items-center gap-0.5">
                           <input
                             type="number"
-                            className="w-12 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-11 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
                             value={row.productivity || ""}
                             onChange={(e) => updateSequenceRow(row.id, "productivity", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                           />
-                          <span className="text-[10px] text-muted-foreground">mt/d</span>
+                          <span className="text-[9px] text-muted-foreground">mt/d</span>
                           <select
                             className="h-5 text-[10px] border border-border rounded bg-background px-0.5"
                             value={row.terms || "shinc"}
@@ -355,13 +422,13 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Turn Time */}
+                    {/* Turn Time (displayed in days) */}
                     <td className="px-1 py-0.5 border border-border">
                       {row.type === "port" ? (
                         <div className="flex items-center justify-center">
                           <input
                             type="number"
-                            step="0.1"
+                            step="0.01"
                             className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
                             value={row.turnTime ? (row.turnTime / 24).toFixed(2) : ""}
                             onChange={(e) => updateSequenceRow(row.id, "turnTime", (parseFloat(e.target.value) || 0) * 24)}
@@ -374,10 +441,10 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Extra Time */}
+                    {/* Extra Time (in hours) */}
                     <td className="px-1 py-0.5 border border-border">
                       {row.type === "port" ? (
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-0.5 justify-center">
                           <input
                             type="number"
                             className="w-8 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
@@ -385,7 +452,6 @@ export function SequenceTable() {
                             onChange={(e) => updateSequenceRow(row.id, "extraTime", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                           />
-                          <span className="text-[9px] text-muted-foreground">h</span>
                         </div>
                       ) : (
                         <span className="text-muted-foreground text-center block">—</span>
