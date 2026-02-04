@@ -12,7 +12,7 @@ import {
 
 export function MiscSection() {
   const { misc, updateMisc, updateExtraTime, results } = useVoyageContext();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false); // Start collapsed
   const [isCostExpanded, setIsCostExpanded] = useState(true);
   const [isTimeExpanded, setIsTimeExpanded] = useState(true);
 
@@ -33,22 +33,25 @@ export function MiscSection() {
   ) : 0;
 
   return (
-    <div className="calc-card">
+    <div className="calc-card-compact">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header w-full justify-between"
+        className="section-header-compact w-full justify-between"
       >
-        <div className="flex items-center gap-2">
-          <Settings className="h-4 w-4" />
-          <span>Miscellaneous & Extra Time</span>
+        <div className="flex items-center gap-1.5">
+          <Settings className="h-3.5 w-3.5" />
+          <span>Misc & Extra Time</span>
+          <span className="text-[9px] font-normal text-section-header-foreground/70 ml-2">
+            ${(totalMiscCosts + totalCanalCosts).toLocaleString()} | {totalExtraTime.toFixed(1)}d
+          </span>
         </div>
         <ChevronDown
-          className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
+          className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
         />
       </button>
 
       {isExpanded && (
-        <div className="p-3 space-y-4">
+        <div className="p-2 space-y-3">
           {/* Miscellaneous Costs Section */}
           <div className="border border-border rounded-md">
             <button

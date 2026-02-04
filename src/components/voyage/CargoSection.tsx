@@ -27,30 +27,26 @@ export function CargoSection() {
   const netBB = results.netFreight + cargos.reduce((sum, c) => sum + c.demurrageAmount - c.despatchAmount, 0);
 
   return (
-    <div className="calc-card">
+    <div className="calc-card-compact">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header w-full justify-between"
+        className="section-header-compact w-full justify-between"
       >
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4" />
+        <div className="flex items-center gap-1.5">
+          <Package className="h-3.5 w-3.5" />
           <span>Cargo</span>
-          <InfoTooltip 
-            formula="Revenue and commission settings" 
-            description="Manage cargo rates, commissions, and financial metrics"
-          />
         </div>
         <ChevronDown
-          className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
+          className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
         />
       </button>
 
       {isExpanded && (
-        <div className="p-3 space-y-3">
+        <div className="p-2 space-y-2">
           {/* Top row: NTC, TC Comm, GTC, Net BB, Gross BB, Vessel cost */}
-          <div className="grid grid-cols-12 gap-2 items-end text-xs border-b border-border pb-3">
+          <div className="grid grid-cols-12 gap-1.5 items-end text-[10px] border-b border-border pb-2">
             <div className="col-span-2">
-              <label className="text-muted-foreground mb-1 flex items-center">
+              <label className="compact-label flex items-center">
                 NTC
                 <InfoTooltip 
                   formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" 

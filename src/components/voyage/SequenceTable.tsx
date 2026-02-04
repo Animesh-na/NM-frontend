@@ -105,40 +105,32 @@ export function SequenceTable() {
   };
 
   return (
-    <div className="calc-card">
+    <div className="calc-card-compact">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header w-full justify-between"
+        className="section-header-compact w-full justify-between"
       >
-        <div className="flex items-center gap-2">
-          <Ship className="h-4 w-4" />
+        <div className="flex items-center gap-1.5">
+          <Ship className="h-3.5 w-3.5" />
           <span>Sequence</span>
+          <span className={`text-[9px] font-normal px-1.5 py-0.5 rounded ${
+            vessel.speedProfile === "eco" 
+              ? "bg-green-100/50 text-green-700 dark:bg-green-900/20 dark:text-green-400" 
+              : "bg-orange-100/50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
+          }`}>
+            {vessel.speedProfile === "eco" ? "Eco" : "Full"}
+          </span>
         </div>
         <ChevronDown
-          className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
+          className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
         />
       </button>
 
       {isExpanded && (
-        <div className="p-2">
-          {/* Speed Profile Indicator */}
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <span className="text-[10px] text-muted-foreground">Speed Profile:</span>
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-              vessel.speedProfile === "eco" 
-                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-            }`}>
-              {vessel.speedProfile === "eco" ? "Eco Speed & Cons" : "Full Speed & Cons"}
-            </span>
-            <span className="text-[9px] text-muted-foreground ml-2">
-              V = Outside ECA (Non-ECA) • L = Inside ECA
-            </span>
-          </div>
-
-          {/* AXS Marine style table */}
+        <div className="p-1.5">
+          {/* AXS Marine style table - compact */}
           <div className="overflow-x-auto">
-            <table className="w-full text-[11px] border-collapse">
+            <table className="w-full text-[10px] border-collapse">
               <thead>
                 <tr className="bg-muted/50">
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-14">Type</th>

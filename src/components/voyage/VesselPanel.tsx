@@ -158,26 +158,26 @@ export function VesselPanel() {
   const currentMatrix = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
 
   return (
-    <div className="calc-card">
+    <div className="calc-card-compact">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header w-full justify-between"
+        className="section-header-compact w-full justify-between"
       >
-        <div className="flex items-center gap-2">
-          <Ship className="h-4 w-4" />
+        <div className="flex items-center gap-1.5">
+          <Ship className="h-3.5 w-3.5" />
           <span>Vessel</span>
         </div>
         <ChevronDown
-          className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
+          className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
         />
       </button>
 
       {isExpanded && (
-        <div className="p-3 space-y-3">
+        <div className="p-2 space-y-2">
           {/* Layer 1: Vessel Type → Vessel Name Selection */}
-          <div className="grid grid-cols-12 gap-2 items-end">
-            <div className="col-span-3">
-              <label className="text-[10px] text-muted-foreground mb-0.5 block">Type</label>
+          <div className="grid grid-cols-12 gap-1.5 items-end">
+            <div className="col-span-2">
+              <label className="compact-label">Type</label>
               <select
                 className="form-select w-full text-xs"
                 value={selectedTypeId ?? ""}
@@ -195,11 +195,11 @@ export function VesselPanel() {
               </select>
             </div>
             
-            <div className="col-span-1 flex items-center justify-center text-xs text-muted-foreground">
-              Or name
+            <div className="col-span-1 flex items-center justify-center text-[10px] text-muted-foreground">
+              Or
             </div>
             
-            <div className="col-span-7">
+            <div className="col-span-8">
               <VesselSelect
                 value={vessel.name}
                 onChange={handleVesselSelect}
@@ -207,23 +207,22 @@ export function VesselPanel() {
                 placeholder="Search vessel..."
               />
             </div>
-            
             <div className="col-span-1 flex items-center justify-center">
               <button
                 onClick={handleRefresh}
                 disabled={refreshing || !vessel.name}
-                className="p-1.5 text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors"
+                className="p-1 text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors"
                 title="Refresh vessel data"
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
               </button>
             </div>
           </div>
 
-          {/* Layer 2: Vessel Particulars Auto-Fill */}
-          <div className="grid grid-cols-8 gap-2 text-xs border-t border-border pt-2">
+          {/* Layer 2: Vessel Particulars - More compact */}
+          <div className="grid grid-cols-8 gap-1.5 text-[10px] border-t border-border pt-2">
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5">Dwt</label>
+              <label className="compact-label">Dwt</label>
               <div className="flex items-center gap-0.5">
                 <input
                   type="number"
@@ -232,12 +231,12 @@ export function VesselPanel() {
                   onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
-                <span className="text-[9px] text-muted-foreground">mt</span>
+                <span className="text-[8px] text-muted-foreground">mt</span>
               </div>
             </div>
             
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5">Gt</label>
+              <label className="compact-label">Gt</label>
               <input
                 type="number"
                 className="form-input-sm w-full font-mono tabular-nums text-right"
@@ -248,7 +247,7 @@ export function VesselPanel() {
             </div>
             
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5">Cubic</label>
+              <label className="compact-label">Cubic</label>
               <div className="flex items-center gap-0.5">
                 <input
                   type="number"
@@ -258,7 +257,7 @@ export function VesselPanel() {
                   placeholder="0"
                 />
                 <select
-                  className="form-select text-[9px] w-12 px-0.5"
+                  className="form-select-sm text-[8px] w-10 px-0.5"
                   value={vessel.cubicUnit}
                   onChange={(e) => handleFieldChange("cubicUnit", e.target.value)}
                 >
@@ -269,7 +268,7 @@ export function VesselPanel() {
             </div>
             
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5">Draft</label>
+              <label className="compact-label">Draft</label>
               <div className="flex items-center gap-0.5">
                 <input
                   type="number"
@@ -279,29 +278,26 @@ export function VesselPanel() {
                   onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
-                <span className="text-[9px] text-muted-foreground">m</span>
+                <span className="text-[8px] text-muted-foreground">m</span>
               </div>
             </div>
             
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5">TPC/TPI</label>
-              <div className="flex items-center gap-0.5">
-                <input
-                  type="number"
-                  step="0.1"
-                  className="form-input-sm w-full font-mono tabular-nums text-right"
-                  value={vessel.tpcTpi || ""}
-                  onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                />
-                <span className="text-[9px] text-muted-foreground">tpc</span>
-              </div>
+              <label className="compact-label">TPC</label>
+              <input
+                type="number"
+                step="0.1"
+                className="form-input-sm w-full font-mono tabular-nums text-right"
+                value={vessel.tpcTpi || ""}
+                onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
             </div>
             
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5">HSFO</label>
+              <label className="compact-label">HSFO</label>
               <select
-                className="form-select w-full text-xs"
+                className="form-select-sm w-full"
                 value={vessel.hsfoCapability ? "Y" : "N"}
                 onChange={(e) => handleFieldChange("hsfoCapability", e.target.value === "Y")}
               >
@@ -311,9 +307,9 @@ export function VesselPanel() {
             </div>
             
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5">Scrubbers</label>
+              <label className="compact-label">Scrub</label>
               <select
-                className="form-select w-full text-xs"
+                className="form-select-sm w-full"
                 value={vessel.hasScrubber ? "Y" : "N"}
                 onChange={(e) => handleFieldChange("hasScrubber", e.target.value === "Y")}
               >
@@ -323,7 +319,7 @@ export function VesselPanel() {
             </div>
             
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5">#</label>
+              <label className="compact-label">#</label>
               <input
                 type="number"
                 className="form-input-sm w-full font-mono tabular-nums text-center"
@@ -335,8 +331,8 @@ export function VesselPanel() {
             </div>
           </div>
 
-          {/* Layer 3: Speed & Consumption Matrix */}
-          <div className="border-t border-border pt-2">
+          {/* Layer 3: Speed & Consumption Matrix - compact */}
+          <div className="border-t border-border pt-1.5">
             <ConsumptionMatrix
               speedProfile={vessel.speedProfile}
               consumptionMatrix={currentMatrix}
