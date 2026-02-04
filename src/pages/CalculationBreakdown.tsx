@@ -104,7 +104,7 @@ export default function CalculationBreakdown() {
         <div className="space-y-4">
           <VesselCalculationPanel vessel={vessel} />
           <SequenceCalculationPanel sequence={sequence} vessel={vessel} />
-          <CargoCalculationPanel cargos={cargos} results={results} />
+          <CargoCalculationPanel cargos={cargos} results={results} sequence={sequence} />
           <BunkerCalculationPanel bunker={bunker} results={results} vessel={vessel} sequence={sequence} />
           <PortTimeCalculationPanel sequence={sequence} misc={misc} results={results} />
           <MiscCalculationPanel misc={misc} results={results} />

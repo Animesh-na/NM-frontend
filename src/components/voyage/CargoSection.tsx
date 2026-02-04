@@ -11,15 +11,24 @@ export function CargoSection() {
     updateCargoEntry,
     hireRate,
     setHireRate,
-    results 
+    results,
+    sequence
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Calculate Gross BB (Net Freight + Demurrage - Despatch for all cargos)
+  // Calculate cargo quantity from sequence load/discharge operations
+  const sequenceCargoQuantity = sequence
+    .filter(row => row.operation === "loading")
+    .reduce((sum, row) => sum + (row.quantity || 0), 0);
+
+  // Calculate Gross BB using sequence-derived quantity
   const grossBB = cargos.reduce((sum, cargo) => {
+    const cargoQuantityShare = cargos.length > 1 
+      ? sequenceCargoQuantity / cargos.length 
+      : sequenceCargoQuantity;
     const cargoGrossFreight = cargo.rateType === "lumpsum" 
       ? cargo.rate 
-      : cargo.rate * cargo.quantity;
+      : cargo.rate * cargoQuantityShare;
     return sum + cargoGrossFreight + cargo.demurrageAmount - cargo.despatchAmount;
   }, 0);
 
@@ -169,6 +178,7 @@ export function CargoSection() {
               onUpdate={(field, value) => updateCargoEntry(cargo.id, field, value)}
               onRemove={() => removeCargo(cargo.id)}
               canRemove={cargos.length > 1}
+              sequenceQuantity={cargos.length > 1 ? sequenceCargoQuantity / cargos.length : sequenceCargoQuantity}
             />
           ))}
 
@@ -233,7 +243,10 @@ interface CargoEntryRowProps {
   canRemove: boolean;
 }
 
-function CargoEntryRow({ cargo, index, onUpdate }: CargoEntryRowProps) {
+function CargoEntryRow({ cargo, index, onUpdate, sequenceQuantity }: CargoEntryRowProps & { sequenceQuantity: number }) {
+  // Calculate this cargo's share of the sequence quantity
+  const cargoQuantity = sequenceQuantity;
+  
   return (
     <div className="grid grid-cols-12 gap-2 items-end text-xs">
       {/* Cargo number indicator */}
@@ -265,19 +278,37 @@ function CargoEntryRow({ cargo, index, onUpdate }: CargoEntryRowProps) {
         </div>
       </div>
 
-      {/* Lumpsum value (if lumpsum mode, otherwise shows rate × qty) */}
+      {/* Quantity from Sequence (read-only) */}
       <div className="col-span-2">
-        <label className="text-muted-foreground mb-1 block">Lumpsum</label>
+        <label className="text-muted-foreground mb-1 flex items-center">
+          Qty (Seq)
+          <InfoTooltip 
+            formula="Sum of loading quantities from Sequence" 
+            description="Auto-calculated from sequence load operations"
+          />
+        </label>
         <input
-          type="number"
-          className="form-input-sm w-full font-mono text-right"
-          value={cargo.rateType === "lumpsum" ? cargo.rate : 0}
-          onChange={(e) => {
-            if (cargo.rateType === "lumpsum") {
-              onUpdate("rate", parseFloat(e.target.value) || 0);
-            }
-          }}
-          disabled={cargo.rateType !== "lumpsum"}
+          type="text"
+          className="form-input-sm w-full font-mono text-right bg-muted"
+          value={cargoQuantity.toLocaleString()}
+          readOnly
+        />
+      </div>
+
+      {/* Gross Freight (calculated) */}
+      <div className="col-span-2">
+        <label className="text-muted-foreground mb-1 flex items-center">
+          Gross Frt
+          <InfoTooltip 
+            formula="Rate × Qty (or Lumpsum)" 
+            description="Calculated from rate and sequence quantity"
+          />
+        </label>
+        <input
+          type="text"
+          className="form-input-sm w-full font-mono text-right bg-muted"
+          value={(cargo.rateType === "lumpsum" ? cargo.rate : cargo.rate * cargoQuantity).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          readOnly
         />
       </div>
 

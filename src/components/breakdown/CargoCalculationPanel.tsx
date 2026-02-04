@@ -1,15 +1,21 @@
 import { Package } from "lucide-react";
 import { BreakdownCard, FormulaBlock, ValueRow } from "./BreakdownCard";
-import type { CargoEntry } from "@/context/VoyageContext";
+import type { CargoEntry, SequenceRowUI } from "@/context/VoyageContext";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 
 interface CargoCalculationPanelProps {
   cargos: CargoEntry[];
   results: VoyageResults;
+  sequence: SequenceRowUI[];
 }
 
-export function CargoCalculationPanel({ cargos, results }: CargoCalculationPanelProps) {
+export function CargoCalculationPanel({ cargos, results, sequence }: CargoCalculationPanelProps) {
   const formatCurrency = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  
+  // Calculate cargo quantity from sequence load operations
+  const sequenceCargoQuantity = sequence
+    .filter(row => row.operation === "loading")
+    .reduce((sum, row) => sum + (row.quantity || 0), 0);
 
   return (
     <BreakdownCard 
@@ -27,7 +33,7 @@ export function CargoCalculationPanel({ cargos, results }: CargoCalculationPanel
               <div className="font-medium text-sm">Cargo #{index + 1}</div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <ValueRow label="Rate" value={`$${cargo.rate} / ${cargo.rateType}`} source="Cargo" />
-                <ValueRow label="Quantity" value={`${cargo.quantity.toLocaleString()} MT`} source="Cargo" />
+                <ValueRow label="Quantity (from Seq)" value={`${(cargos.length > 1 ? sequenceCargoQuantity / cargos.length : sequenceCargoQuantity).toLocaleString()} MT`} source="Sequence" />
                 <ValueRow label="Voy Commission" value={`${cargo.voyageCommission}%`} source="Cargo" />
                 <ValueRow label="TC Commission" value={`${cargo.tcCommission}%`} source="Cargo" />
                 <ValueRow label="Demurrage" value={formatCurrency(cargo.demurrageAmount)} source="Cargo" />
@@ -43,14 +49,17 @@ export function CargoCalculationPanel({ cargos, results }: CargoCalculationPanel
           
           <FormulaBlock
             name="Gross Freight"
-            formula="Rate × Quantity (or Lumpsum)"
-            inputs={cargos.map((c, i) => ({
-              label: `Cargo #${i + 1}`,
-              value: c.rateType === "lumpsum" 
-                ? formatCurrency(c.rate)
-                : formatCurrency(c.rate * c.quantity),
-              source: "Calculated",
-            }))}
+            formula="Rate × Quantity from Sequence (or Lumpsum)"
+            inputs={cargos.map((c, i) => {
+              const cargoQty = cargos.length > 1 ? sequenceCargoQuantity / cargos.length : sequenceCargoQuantity;
+              return {
+                label: `Cargo #${i + 1}`,
+                value: c.rateType === "lumpsum" 
+                  ? formatCurrency(c.rate)
+                  : formatCurrency(c.rate * cargoQty),
+                source: "Calculated",
+              };
+            })}
             result={{ label: "Total Gross Freight", value: formatCurrency(results.grossFreight) }}
           />
 
