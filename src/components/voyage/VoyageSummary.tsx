@@ -19,13 +19,13 @@ export function VoyageSummary() {
   };
 
   return (
-    <div className="calc-card h-full">
-      <div className="section-header">
-        <TrendingUp className="h-4 w-4" />
+    <div className="calc-card-compact h-full">
+      <div className="section-header-compact">
+        <TrendingUp className="h-3.5 w-3.5" />
         <span>Voyage Summary</span>
       </div>
 
-      <div className="p-3 space-y-4 text-xs">
+      <div className="p-2 space-y-3 text-[10px]">
         {/* Financial Summary */}
         <div className="space-y-1">
           <div className="flex justify-between items-center border-b border-border pb-1">
@@ -340,11 +340,11 @@ export function VoyageSummary() {
         </div>
 
         {/* View Calculation Details Link */}
-        <div className="pt-3 border-t border-border">
+        <div className="pt-2 border-t border-border">
           <Link to="/calculation-breakdown">
-            <Button variant="outline" size="sm" className="w-full gap-2">
-              <FileText className="h-3.5 w-3.5" />
-              View Calculation Details
+            <Button variant="outline" size="sm" className="w-full gap-1.5 h-6 text-[10px]">
+              <FileText className="h-3 w-3" />
+              View Details
             </Button>
           </Link>
         </div>

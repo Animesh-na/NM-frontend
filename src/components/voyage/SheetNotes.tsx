@@ -2,28 +2,29 @@ import { FileText, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 export function SheetNotes() {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false); // Start collapsed
   const [notes, setNotes] = useState("");
 
   return (
-    <div className="calc-card">
+    <div className="calc-card-compact">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header w-full justify-between"
+        className="section-header-compact w-full justify-between"
       >
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          <span>Sheet Notes</span>
+        <div className="flex items-center gap-1.5">
+          <FileText className="h-3.5 w-3.5" />
+          <span>Notes</span>
+          {notes && <span className="text-[9px] font-normal text-section-header-foreground/70 ml-1">•</span>}
         </div>
         <ChevronDown
-          className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
+          className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
         />
       </button>
 
       {isExpanded && (
-        <div className="p-3">
+        <div className="p-2">
           <textarea
-            className="w-full h-20 form-input text-sm resize-none"
+            className="w-full h-16 form-input text-[11px] resize-none"
             placeholder="Add notes for this voyage calculation..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}

@@ -1,4 +1,4 @@
-import { AppHeader } from "@/components/voyage/AppHeader";
+import { CompactHeader } from "@/components/voyage/CompactHeader";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
 import { SequenceTable } from "@/components/voyage/SequenceTable";
 import { CargoSection } from "@/components/voyage/CargoSection";
@@ -9,13 +9,16 @@ import { VoyageSummary } from "@/components/voyage/VoyageSummary";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppHeader />
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
+      {/* Minimal Header */}
+      <CompactHeader />
       
-      <div className="flex-1 p-4">
-        <div className="grid grid-cols-12 gap-4 h-full">
-          {/* Main Content - Left Side */}
-          <div className="col-span-9 space-y-4">
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Main Sections */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Priority Sections - Always Visible */}
+          <div className="flex-shrink-0 p-2 space-y-2">
             {/* Vessel Panel */}
             <VesselPanel />
             
@@ -24,7 +27,10 @@ const Index = () => {
             
             {/* Cargo Section */}
             <CargoSection />
-            
+          </div>
+          
+          {/* Scrollable Lower Sections */}
+          <div className="flex-1 overflow-y-auto p-2 pt-0 space-y-2">
             {/* Bunker Section */}
             <BunkerSection />
             
@@ -34,24 +40,24 @@ const Index = () => {
             {/* Sheet Notes */}
             <SheetNotes />
           </div>
-          
-          {/* Summary Panel - Right Side */}
-          <div className="col-span-3">
-            <div className="sticky top-4">
-              <VoyageSummary />
-            </div>
+        </div>
+        
+        {/* Right Panel - Sticky Summary */}
+        <div className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-muted/30">
+          <div className="p-2 h-full">
+            <VoyageSummary />
           </div>
         </div>
       </div>
       
-      {/* Footer */}
-      <footer className="bg-card border-t border-border px-4 py-2 text-xs text-muted-foreground flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Compact Footer with Actions */}
+      <footer className="bg-card border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-3">
           <span>© 2026 VoyageCalc</span>
-          <span>•</span>
-          <span>Maritime Voyage Calculator</span>
+          <span className="text-muted-foreground/50">|</span>
+          <span>Session: {new Date().toLocaleTimeString()}</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button className="btn-primary">Apply</button>
           <button className="btn-success">Calculate</button>
           <button className="btn-secondary">Back</button>
