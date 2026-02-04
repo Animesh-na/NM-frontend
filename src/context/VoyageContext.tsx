@@ -755,12 +755,40 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  // Calculate cargo quantity from sequence load/discharge operations
+  const sequenceCargoQuantity = useMemo(() => {
+    // Sum all loading quantities from sequence (discharge should match load)
+    const loadingQuantity = sequence
+      .filter(row => row.operation === "loading")
+      .reduce((sum, row) => sum + (row.quantity || 0), 0);
+    
+    // Alternative: use discharge quantity if that's preferred
+    const dischargingQuantity = sequence
+      .filter(row => row.operation === "discharging")
+      .reduce((sum, row) => sum + (row.quantity || 0), 0);
+    
+    // Use the higher of loading or discharging (in case of partial loads/discharges)
+    return Math.max(loadingQuantity, dischargingQuantity);
+  }, [sequence]);
+
   // Aggregate cargo data for calculation hook
   const aggregatedCargo = useMemo(() => {
-    const totalQuantity = cargos.reduce((sum, c) => sum + c.quantity, 0);
+    // Use sequence-derived quantity for gross freight calculation
+    const totalQuantity = sequenceCargoQuantity;
+    
+    // Calculate gross freight using cargo rates with sequence-derived quantity
     const totalGrossFreight = cargos.reduce((sum, c) => {
-      return sum + (c.rateType === "lumpsum" ? c.rate : c.rate * c.quantity);
+      if (c.rateType === "lumpsum") {
+        return sum + c.rate;
+      }
+      // For per-MT rate, use sequence quantity proportionally
+      // If multiple cargos, divide sequence quantity proportionally
+      const cargoQuantityShare = cargos.length > 1 
+        ? totalQuantity / cargos.length 
+        : totalQuantity;
+      return sum + (c.rate * cargoQuantityShare);
     }, 0);
+    
     const avgVoyComm = cargos.length > 0 
       ? cargos.reduce((sum, c) => sum + c.voyageCommission, 0) / cargos.length 
       : 0;
@@ -771,7 +799,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     const totalDespatch = cargos.reduce((sum, c) => sum + c.despatchAmount, 0);
 
     return {
-      rate: totalGrossFreight / (totalQuantity || 1),
+      rate: totalQuantity > 0 ? totalGrossFreight / totalQuantity : 0,
       rateType: "mt" as const,
       quantity: totalQuantity,
       voyageCommission: avgVoyComm,
@@ -779,7 +807,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       demurrage: totalDemurrage,
       despatch: totalDespatch,
     };
-  }, [cargos]);
+  }, [cargos, sequenceCargoQuantity]);
 
   // Transform UI state to calculation inputs
   const voyageInputs: VoyageInputs = {
