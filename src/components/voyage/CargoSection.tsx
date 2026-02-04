@@ -9,8 +9,8 @@ export function CargoSection() {
     addCargo, 
     removeCargo, 
     updateCargoEntry,
-    vesselCost = 0,
-    setVesselCost,
+    hireRate,
+    setHireRate,
     results 
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -147,16 +147,16 @@ export function CargoSection() {
               <label className="text-muted-foreground mb-1 flex items-center">
                 Vessel cost
                 <InfoTooltip 
-                  formula="Daily vessel operating cost" 
+                  formula="Daily vessel hire rate" 
                   description="Used in P&L calculation"
                 />
               </label>
               <div className="input-with-unit">
                 <input
-                  type="text"
-                  className="form-input-sm w-full font-mono text-right bg-muted"
-                  value={results.ntce.toLocaleString(undefined, { maximumFractionDigits: 1 })}
-                  readOnly
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={hireRate}
+                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
                 />
                 <span className="unit">($/d)</span>
               </div>
