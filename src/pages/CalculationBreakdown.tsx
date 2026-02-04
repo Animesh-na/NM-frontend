@@ -78,7 +78,7 @@ function CalculationBreakdownContent() {
           <VesselCalculationPanel vessel={vessel} />
           <SequenceCalculationPanel sequence={sequence} vessel={vessel} />
           <CargoCalculationPanel cargos={cargos} results={results} />
-          <BunkerCalculationPanel bunker={bunker} results={results} vessel={vessel} />
+          <BunkerCalculationPanel bunker={bunker} results={results} vessel={vessel} sequence={sequence} />
           <PortTimeCalculationPanel sequence={sequence} misc={misc} results={results} />
           <MiscCalculationPanel misc={misc} results={results} />
           <EmissionCalculationPanel results={results} bunker={bunker} vessel={vessel} />
