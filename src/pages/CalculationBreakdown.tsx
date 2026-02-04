@@ -1,6 +1,6 @@
 import { useVoyageContext } from "@/context/VoyageContext";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calculator, Ship, Anchor, Package, Fuel, Clock, DollarSign, Leaf, FileText } from "lucide-react";
+import { ArrowLeft, Calculator, Clock, DollarSign, Fuel, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VesselCalculationPanel } from "@/components/breakdown/VesselCalculationPanel";
 import { SequenceCalculationPanel } from "@/components/breakdown/SequenceCalculationPanel";
@@ -10,9 +10,36 @@ import { PortTimeCalculationPanel } from "@/components/breakdown/PortTimeCalcula
 import { MiscCalculationPanel } from "@/components/breakdown/MiscCalculationPanel";
 import { EmissionCalculationPanel } from "@/components/breakdown/EmissionCalculationPanel";
 import { FinancialSummaryPanel } from "@/components/breakdown/FinancialSummaryPanel";
-import { VoyageProvider } from "@/context/VoyageContext";
 
-function CalculationBreakdownContent() {
+interface SummaryCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  variant?: "default" | "success" | "destructive" | "warning";
+}
+
+function SummaryCard({ icon, label, value, variant = "default" }: SummaryCardProps) {
+  const variantClasses = {
+    default: "text-foreground",
+    success: "text-success",
+    destructive: "text-destructive",
+    warning: "text-warning",
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-3">
+      <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className={`font-mono font-semibold text-lg ${variantClasses[variant]}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export default function CalculationBreakdown() {
   const { vessel, sequence, results, cargos, bunker, misc, hireRate } = useVoyageContext();
 
   return (
@@ -86,42 +113,5 @@ function CalculationBreakdownContent() {
         </div>
       </main>
     </div>
-  );
-}
-
-interface SummaryCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  variant?: "default" | "success" | "destructive" | "warning";
-}
-
-function SummaryCard({ icon, label, value, variant = "default" }: SummaryCardProps) {
-  const variantClasses = {
-    default: "text-foreground",
-    success: "text-success",
-    destructive: "text-destructive",
-    warning: "text-warning",
-  };
-
-  return (
-    <div className="bg-card border border-border rounded-lg p-3">
-      <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <div className={`font-mono font-semibold text-lg ${variantClasses[variant]}`}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-// Wrapper component that provides context
-export default function CalculationBreakdown() {
-  return (
-    <VoyageProvider>
-      <CalculationBreakdownContent />
-    </VoyageProvider>
   );
 }
