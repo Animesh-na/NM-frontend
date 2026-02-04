@@ -15,31 +15,14 @@ const Index = () => {
       
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Main Sections */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Priority Sections - Always Visible */}
-          <div className="flex-shrink-0 p-2 space-y-2">
-            {/* Vessel Panel */}
-            <VesselPanel />
-            
-            {/* Sequence Table */}
-            <SequenceTable />
-            
-            {/* Cargo Section */}
-            <CargoSection />
-          </div>
-          
-          {/* Scrollable Lower Sections */}
-          <div className="flex-1 overflow-y-auto p-2 pt-0 space-y-2">
-            {/* Bunker Section */}
-            <BunkerSection />
-            
-            {/* Miscellaneous Section */}
-            <MiscSection />
-            
-            {/* Sheet Notes */}
-            <SheetNotes />
-          </div>
+        {/* Left Panel - Fully Scrollable */}
+        <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
+          <VesselPanel />
+          <SequenceTable />
+          <CargoSection />
+          <BunkerSection />
+          <MiscSection />
+          <SheetNotes />
         </div>
         
         {/* Right Panel - Sticky Summary */}
