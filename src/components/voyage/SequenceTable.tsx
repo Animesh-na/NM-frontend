@@ -139,7 +139,9 @@ export function SequenceTable() {
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-44">
                     Distance (V) & ECA (L)
                   </th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Time (d)</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-36" title="Sea Time: Base / +Margin / Total">
+                    Sea Time (d)
+                  </th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-24">Wdays Port</th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Draft (m)</th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
@@ -257,21 +259,35 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Time - editable, auto-calculated unless overridden */}
+                    {/* Sea Time - shows Base / +Margin / Total breakdown */}
                     <td className="px-1 py-0.5 border border-border text-center">
                       {row.type !== "open" ? (
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="w-14 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
-                          value={row.timeOverride !== undefined ? row.timeOverride : (row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "")}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            updateSequenceRow(row.id, "timeOverride", val > 0 ? val : undefined as unknown as number);
-                          }}
-                          placeholder={row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "0"}
-                          title="Sailing time in days (editable, auto-calculated from distance/speed)"
-                        />
+                        <div className="flex flex-col gap-0.5">
+                          {/* Row 1: Base and +SM% */}
+                          <div className="flex items-center justify-center gap-1 text-[9px]">
+                            <span className="text-muted-foreground" title="Base Sea Time = Distance ÷ Speed">
+                              {row.baseSeaTime > 0 ? row.baseSeaTime.toFixed(2) : "0.00"}
+                            </span>
+                            {row.seaMarginTime > 0 && (
+                              <span className="text-amber-600 dark:text-amber-400" title={`+${row.seaMargin}% Sea Margin`}>
+                                +{row.seaMarginTime.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          {/* Row 2: Total (editable) */}
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="w-full h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5 font-medium"
+                            value={row.timeOverride !== undefined ? row.timeOverride : (row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "")}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              updateSequenceRow(row.id, "timeOverride", val > 0 ? val : undefined as unknown as number);
+                            }}
+                            placeholder={row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "0"}
+                            title="Total Sea Time (Base + Sea Margin) - editable override"
+                          />
+                        </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}

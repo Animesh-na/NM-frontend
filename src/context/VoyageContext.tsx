@@ -38,9 +38,11 @@ export interface SequenceRowUI {
   ecaDistanceSpeedContext: SpeedContext; // EL or FL for ECA distance
   
   // Calculated sea times (can be overridden)
-  ecaTime: number; // days sailing in ECA
-  seaTime: number; // days sailing in open sea (non-ECA)
-  totalLegTime: number; // ecaTime + seaTime
+  baseSeaTime: number; // Base sea time before sea margin (Distance / Speed)
+  seaMarginTime: number; // Sea margin time added (baseSeaTime × seaMargin%)
+  ecaTime: number; // days sailing in ECA (after margin)
+  seaTime: number; // days sailing in open sea (after margin)
+  totalLegTime: number; // ecaTime + seaTime (total sailing with margin)
   
   // Time override (if user wants to manually set time)
   timeOverride?: number;
@@ -279,14 +281,14 @@ function calculateSeaTime(
   row: SequenceRowUI, 
   isLaden: boolean, 
   vessel: VesselData
-): { ecaTime: number; seaTime: number; totalLegTime: number } {
+): { baseSeaTime: number; seaMarginTime: number; ecaTime: number; seaTime: number; totalLegTime: number } {
   if (row.type === "open") {
-    return { ecaTime: 0, seaTime: 0, totalLegTime: 0 };
+    return { baseSeaTime: 0, seaMarginTime: 0, ecaTime: 0, seaTime: 0, totalLegTime: 0 };
   }
   
   // If user has overridden time, use that
   if (row.timeOverride !== undefined && row.timeOverride > 0) {
-    return { ecaTime: 0, seaTime: 0, totalLegTime: row.timeOverride };
+    return { baseSeaTime: 0, seaMarginTime: 0, ecaTime: 0, seaTime: 0, totalLegTime: row.timeOverride };
   }
   
   // Get speeds for non-ECA distance (V context: EV or FV)
@@ -296,16 +298,25 @@ function calculateSeaTime(
   const { seaSpeed: ecaSpeed } = getSpeedForContext(row.ecaDistanceSpeedContext, isLaden, vessel);
   
   // Calculate base times: Time = Distance / (Speed * 24 hours/day)
-  const baseSeaTime = nonEcaSpeed > 0 ? row.distance / (nonEcaSpeed * 24) : 0;
+  const baseNonEcaTime = nonEcaSpeed > 0 ? row.distance / (nonEcaSpeed * 24) : 0;
   const baseEcaTime = ecaSpeed > 0 ? row.ecaDistance / (ecaSpeed * 24) : 0;
   
-  // Apply Sea Margin to sailing time: Adjusted Time = Base Time × (1 + Sea Margin / 100)
-  const seaMarginMultiplier = 1 + (row.seaMargin || 0) / 100;
-  const seaTime = baseSeaTime * seaMarginMultiplier;
-  const ecaTime = baseEcaTime * seaMarginMultiplier;
-  const totalLegTime = ecaTime + seaTime;
+  // Total base sea time (before margin)
+  const baseSeaTime = baseNonEcaTime + baseEcaTime;
   
-  return { ecaTime, seaTime, totalLegTime };
+  // Calculate sea margin time: Sea Margin Time = Base Time × (Sea Margin / 100)
+  const seaMarginPercent = row.seaMargin || 0;
+  const seaMarginTime = baseSeaTime * (seaMarginPercent / 100);
+  
+  // Apply Sea Margin to individual components for downstream use
+  const seaMarginMultiplier = 1 + seaMarginPercent / 100;
+  const seaTime = baseNonEcaTime * seaMarginMultiplier;
+  const ecaTime = baseEcaTime * seaMarginMultiplier;
+  
+  // Total leg time = Base Sea Time + Sea Margin Time
+  const totalLegTime = baseSeaTime + seaMarginTime;
+  
+  return { baseSeaTime, seaMarginTime, ecaTime, seaTime, totalLegTime };
 }
 
 const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco", defaultCranes: number = 4): SequenceRowUI => ({
@@ -319,6 +330,8 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   distanceSpeedContext: speedProfile === "eco" ? "EV" : "FV", // Non-ECA speed context
   ecaDistance: 0,
   ecaDistanceSpeedContext: speedProfile === "eco" ? "EL" : "FL", // ECA speed context
+  baseSeaTime: 0,
+  seaMarginTime: 0,
   ecaTime: 0,
   seaTime: 0,
   totalLegTime: 0,
@@ -351,6 +364,8 @@ const initialSequence: SequenceRowUI[] = [
     distanceSpeedContext: "EV",
     ecaDistance: 0,
     ecaDistanceSpeedContext: "EL",
+    baseSeaTime: 0,
+    seaMarginTime: 0,
     ecaTime: 0,
     seaTime: 0,
     totalLegTime: 0,
@@ -379,6 +394,8 @@ const initialSequence: SequenceRowUI[] = [
     distanceSpeedContext: "EV",
     ecaDistance: 0,
     ecaDistanceSpeedContext: "EL",
+    baseSeaTime: 0,
+    seaMarginTime: 0,
     ecaTime: 0,
     seaTime: 0,
     totalLegTime: 0,
@@ -407,6 +424,8 @@ const initialSequence: SequenceRowUI[] = [
     distanceSpeedContext: "EV",
     ecaDistance: 0,
     ecaDistanceSpeedContext: "EL",
+    baseSeaTime: 0,
+    seaMarginTime: 0,
     ecaTime: 0,
     seaTime: 0,
     totalLegTime: 0,
@@ -435,6 +454,8 @@ const initialSequence: SequenceRowUI[] = [
     distanceSpeedContext: "EV",
     ecaDistance: 0,
     ecaDistanceSpeedContext: "EL",
+    baseSeaTime: 0,
+    seaMarginTime: 0,
     ecaTime: 0,
     seaTime: 0,
     totalLegTime: 0,
