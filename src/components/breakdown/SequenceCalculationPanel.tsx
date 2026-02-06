@@ -57,10 +57,9 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
                 <th className="text-right py-2 px-2 font-medium">V (nm)</th>
                 <th className="text-right py-2 px-2 font-medium">L (nm)</th>
                 <th className="text-right py-2 px-2 font-medium">Speed</th>
+                <th className="text-right py-2 px-2 font-medium">SM%</th>
+                <th className="text-right py-2 px-2 font-medium">Base Time</th>
                 <th className="text-right py-2 px-2 font-medium">Sea Time</th>
-                <th className="text-right py-2 px-2 font-medium">Qty (MT)</th>
-                <th className="text-right py-2 px-2 font-medium">Prod</th>
-                <th className="text-right py-2 px-2 font-medium">Terms</th>
                 <th className="text-right py-2 px-2 font-medium">Port Days</th>
               </tr>
             </thead>
@@ -71,6 +70,11 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
                                  i > sequence.findIndex(s => s.operation === "loading") && r.operation === "discharging"
                                );
                 const speed = isLaden ? profile.speed.laden : profile.speed.ballast;
+                
+                // Calculate base time without sea margin
+                const baseSeaTime = speed > 0 ? (row.distance / (speed * 24)) + (row.ecaDistance / (speed * 24)) : 0;
+                const seaMarginMultiplier = 1 + (row.seaMargin || 0) / 100;
+                const adjustedTime = baseSeaTime * seaMarginMultiplier;
                 
                 return (
                   <tr key={row.id} className="border-b border-border/50 hover:bg-muted/20">
@@ -91,16 +95,13 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
                       {row.type !== "open" ? `${speed.toFixed(1)} kn` : "-"}
                     </td>
                     <td className="py-2 px-2 text-right font-mono">
+                      {row.type !== "open" ? `${row.seaMargin || 0}%` : "-"}
+                    </td>
+                    <td className="py-2 px-2 text-right font-mono text-muted-foreground">
+                      {baseSeaTime > 0 ? `${baseSeaTime.toFixed(2)} d` : "-"}
+                    </td>
+                    <td className="py-2 px-2 text-right font-mono">
                       {row.totalLegTime > 0 ? `${row.totalLegTime.toFixed(2)} d` : "-"}
-                    </td>
-                    <td className="py-2 px-2 text-right font-mono">
-                      {row.quantity > 0 ? row.quantity.toLocaleString() : "-"}
-                    </td>
-                    <td className="py-2 px-2 text-right font-mono">
-                      {row.productivity > 0 ? row.productivity.toLocaleString() : "-"}
-                    </td>
-                    <td className="py-2 px-2 text-right">
-                      {row.terms ? row.terms.toUpperCase() : "-"}
                     </td>
                     <td className="py-2 px-2 text-right font-mono">
                       {row.calculatedPortDays > 0 ? `${row.calculatedPortDays.toFixed(2)} d` : "-"}
@@ -114,9 +115,8 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
                 <td colSpan={3} className="py-2 px-2">TOTALS</td>
                 <td className="py-2 px-2 text-right font-mono">{totalDistance}</td>
                 <td className="py-2 px-2 text-right font-mono">{totalEcaDistance}</td>
-                <td className="py-2 px-2"></td>
-                <td className="py-2 px-2 text-right font-mono text-primary">{totalSeaTime.toFixed(2)} d</td>
                 <td colSpan={3} className="py-2 px-2"></td>
+                <td className="py-2 px-2 text-right font-mono text-primary">{totalSeaTime.toFixed(2)} d</td>
                 <td className="py-2 px-2 text-right font-mono text-primary">{totalPortDays.toFixed(2)} d</td>
               </tr>
             </tfoot>
@@ -127,14 +127,18 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
       {/* Formulas */}
       <div className="mt-6 pt-4 border-t border-border">
         <h3 className="text-sm font-medium mb-3">Calculation Formulas</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <FormulaBlock
-            name="Non-ECA Distance"
-            formula="V Distance = Total Leg Distance - ECA Distance"
+            name="Base Sailing Time"
+            formula="Base Time = (V Distance / Speed × 24) + (L Distance / ECA Speed × 24)"
           />
           <FormulaBlock
-            name="Sea Time per Leg"
-            formula="Sea Time = (V / Speed × 24) + (L / ECA Speed × 24)"
+            name="Sea Margin Application"
+            formula="Adjusted Sea Time = Base Time × (1 + SM% / 100)"
+          />
+          <FormulaBlock
+            name="Bunker Impact"
+            formula="Sea Fuel = Adjusted Sea Time × Daily Rate"
           />
           <FormulaBlock
             name="Port Days"

@@ -69,8 +69,8 @@ export interface SequenceRowUI {
   // Number of cranes (from vessel default, editable per leg)
   cranes: number;
   
-  // Constant percentage margin for Wdays calculation
-  constantPercent: number;
+  // Sea Margin percentage (increases sailing time for weather/routing buffer)
+  seaMargin: number;
   
   // Bunkering data (for bunkering operation)
   bunkeringHsfo: number;
@@ -274,6 +274,7 @@ function getSpeedForContext(
 }
 
 // Helper to calculate sea time for a leg using dual speed contexts
+// Sea Margin is applied to sailing time only (not port time)
 function calculateSeaTime(
   row: SequenceRowUI, 
   isLaden: boolean, 
@@ -294,9 +295,14 @@ function calculateSeaTime(
   // Get speeds for ECA distance (L context: EL or FL)
   const { seaSpeed: ecaSpeed } = getSpeedForContext(row.ecaDistanceSpeedContext, isLaden, vessel);
   
-  // Calculate times: Time = Distance / (Speed * 24 hours/day)
-  const seaTime = nonEcaSpeed > 0 ? row.distance / (nonEcaSpeed * 24) : 0;
-  const ecaTime = ecaSpeed > 0 ? row.ecaDistance / (ecaSpeed * 24) : 0;
+  // Calculate base times: Time = Distance / (Speed * 24 hours/day)
+  const baseSeaTime = nonEcaSpeed > 0 ? row.distance / (nonEcaSpeed * 24) : 0;
+  const baseEcaTime = ecaSpeed > 0 ? row.ecaDistance / (ecaSpeed * 24) : 0;
+  
+  // Apply Sea Margin to sailing time: Adjusted Time = Base Time × (1 + Sea Margin / 100)
+  const seaMarginMultiplier = 1 + (row.seaMargin || 0) / 100;
+  const seaTime = baseSeaTime * seaMarginMultiplier;
+  const ecaTime = baseEcaTime * seaMarginMultiplier;
   const totalLegTime = ecaTime + seaTime;
   
   return { ecaTime, seaTime, totalLegTime };
@@ -327,7 +333,7 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   wdaysUnit: "VL",
   draft: 0,
   cranes: type === "port" && (operation === "loading" || operation === "discharging") ? defaultCranes : 0,
-  constantPercent: 5,
+  seaMargin: 0, // Default 0% sea margin
   bunkeringHsfo: 0,
   bunkeringVlsfo: 0,
   bunkeringLsmgo: 0,
@@ -357,7 +363,7 @@ const initialSequence: SequenceRowUI[] = [
     wdaysUnit: "VL",
     draft: 0,
     cranes: 0,
-    constantPercent: 0,
+    seaMargin: 0,
     bunkeringHsfo: 0,
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
@@ -385,7 +391,7 @@ const initialSequence: SequenceRowUI[] = [
     wdaysUnit: "VL",
     draft: 12.5,
     cranes: 4,
-    constantPercent: 5,
+    seaMargin: 5, // 5% sea margin default for sailing legs
     bunkeringHsfo: 0,
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
@@ -413,7 +419,7 @@ const initialSequence: SequenceRowUI[] = [
     wdaysUnit: "VL",
     draft: 0,
     cranes: 0,
-    constantPercent: 0,
+    seaMargin: 5, // 5% sea margin for sailing legs
     bunkeringHsfo: 0,
     bunkeringVlsfo: 1234,
     bunkeringLsmgo: 1234,
@@ -441,7 +447,7 @@ const initialSequence: SequenceRowUI[] = [
     wdaysUnit: "VL",
     draft: 10.2,
     cranes: 4,
-    constantPercent: 5,
+    seaMargin: 5, // 5% sea margin for sailing legs
     bunkeringHsfo: 0,
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
@@ -562,8 +568,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
           updatedRow.calculatedPortDays = calculatePortDays(updatedRow);
         }
         
-        // Recalculate sea times when distance, eca distance, or speed context changes
-        if (['distance', 'ecaDistance', 'distanceSpeedContext', 'ecaDistanceSpeedContext', 'timeOverride'].includes(field)) {
+        // Recalculate sea times when distance, eca distance, speed context, or sea margin changes
+        if (['distance', 'ecaDistance', 'distanceSpeedContext', 'ecaDistanceSpeedContext', 'timeOverride', 'seaMargin'].includes(field)) {
           const seaTimeData = calculateSeaTime(updatedRow, isLaden, vessel);
           Object.assign(updatedRow, seaTimeData);
         }

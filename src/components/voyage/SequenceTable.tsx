@@ -143,7 +143,7 @@ export function SequenceTable() {
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-24">Wdays Port</th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Draft (m)</th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10" title="Constant Percentage">C%</th>
+                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12" title="Sea Margin % - Increases sailing time for weather/routing buffer">SM%</th>
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-20">Quantity</th>
                   <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-28">Terms</th>
                   <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12">Tt (d)</th>
@@ -343,18 +343,19 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* C% - constant percentage margin */}
+                    {/* SM% - Sea Margin percentage (applies to sailing time only) */}
                     <td className="px-1 py-0.5 border border-border text-center">
-                      {showQuantityFields(row) ? (
+                      {row.type !== "open" ? (
                         <input
                           type="number"
                           min="0"
                           max="100"
-                          className="w-8 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
-                          value={row.constantPercent || ""}
-                          onChange={(e) => updateSequenceRow(row.id, "constantPercent", parseFloat(e.target.value) || 0)}
+                          step="0.5"
+                          className="w-10 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          value={row.seaMargin || ""}
+                          onChange={(e) => updateSequenceRow(row.id, "seaMargin", parseFloat(e.target.value) || 0)}
                           placeholder="0"
-                          title="Constant percentage margin for Wdays calculation"
+                          title="Sea Margin % - Increases sailing time for weather/routing buffer"
                         />
                       ) : (
                         <span className="text-muted-foreground">—</span>
