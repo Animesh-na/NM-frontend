@@ -850,6 +850,11 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       portDays: row.calculatedPortDays,
       quantity: row.quantity,
       expDa: row.expDa,
+      // Pass sea margin adjusted times for accurate downstream calculations
+      seaTime: row.totalLegTime, // Total sea time WITH sea margin applied
+      baseSeaTime: row.baseSeaTime, // Base time without margin (for reference)
+      seaMarginTime: row.seaMarginTime, // Extra time from sea margin
+      seaMargin: row.seaMargin, // Sea margin percentage
     })),
     cargo: aggregatedCargo,
     bunker: {
@@ -993,7 +998,8 @@ export function useVoyageContext() {
       results: {
         totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
         totalSeaDays: 0, totalPortDays: 0, extraSeaDays: 0, extraPortDays: 0, extraCanalDays: 0,
-        totalVoyageDays: 0, hsfoConsumption: 0, vlsfoConsumption: 0, lsmgoConsumption: 0, 
+        totalVoyageDays: 0, baseSeaTime: 0, seaMarginTime: 0,
+        hsfoConsumption: 0, vlsfoConsumption: 0, lsmgoConsumption: 0, 
         totalBunkerCost: 0, grossFreight: 0, voyageCommission: 0, netFreight: 0, 
         portCosts: 0, miscCosts: 0, canalCosts: 0, totalVoyageCosts: 0,
         hireCost: 0, voyageCostInclHire: 0, voyageCostExclHire: 0, grossProfit: 0,

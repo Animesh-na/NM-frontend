@@ -13,6 +13,11 @@ export interface SequenceRow {
   portDays: number; // days in port
   quantity: number; // mt or cbm
   expDa: number; // port costs in USD
+  // Sea margin adjusted times (calculated in VoyageContext)
+  seaTime?: number; // Total sea time WITH sea margin applied
+  baseSeaTime?: number; // Base time without margin
+  seaMarginTime?: number; // Extra time from sea margin
+  seaMargin?: number; // Sea margin percentage
 }
 
 export interface CargoData {
@@ -73,6 +78,9 @@ export interface VoyageResults {
   extraPortDays: number;
   extraCanalDays: number;
   totalVoyageDays: number;
+  // Sea margin breakdown for transparency
+  baseSeaTime: number; // Total base sea time before margin
+  seaMarginTime: number; // Total extra time from sea margin
 
   // Bunker consumption
   hsfoConsumption: number;
@@ -129,7 +137,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
   return useMemo(() => {
     const { vessel, sequence, cargo, bunker, hireRate, misc, extraTime } = inputs;
 
-    // 1. Calculate distances and identify leg types
+    // 1. Calculate distances, times, and identify leg types
+    // IMPORTANT: Use pre-calculated seaTime from sequence which includes sea margin
     let totalDistance = 0;
     let totalEcaDistance = 0;
     let ballastDistance = 0;
@@ -137,6 +146,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let totalPortDays = 0;
     let portCosts = 0;
     let isLaden = false;
+    
+    // Sea time tracking - use pre-calculated values with sea margin
+    let seaDaysBallast = 0;
+    let seaDaysLaden = 0;
+    let totalBaseSeaTime = 0;
+    let totalSeaMarginTime = 0;
     
     // Track operation-specific time for detailed consumption
     let loadingDays = 0;
@@ -150,6 +165,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       totalEcaDistance += leg.ecaDistance || 0;
       totalPortDays += leg.portDays || 0;
       portCosts += leg.expDa || 0;
+      
+      // Track base sea time and margin time for transparency
+      totalBaseSeaTime += leg.baseSeaTime || 0;
+      totalSeaMarginTime += leg.seaMarginTime || 0;
 
       // Track operation types for port consumption
       if (leg.operation === "load" || leg.operation === "loading") {
@@ -164,10 +183,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         bunkeringDays += leg.portDays || 0;
       }
 
+      // Use pre-calculated seaTime (includes sea margin) for ballast/laden split
+      const legSeaTime = leg.seaTime || 0;
       if (isLaden) {
         ladenDistance += leg.distance || 0;
+        seaDaysLaden += legSeaTime;
       } else {
         ballastDistance += leg.distance || 0;
+        seaDaysBallast += legSeaTime;
       }
     });
 
@@ -176,12 +199,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const extraPortDays = extraTime?.idlePortDays || 0;
     const extraCanalDays = (extraTime?.canal1Days || 0) + (extraTime?.canal2Days || 0);
 
-    // 3. Calculate sea time based on vessel speed
-    const ballastSpeed = vessel.consumption.speed.ecoBallast || 12;
-    const ladenSpeed = vessel.consumption.speed.ecoLaden || 12;
-
-    const seaDaysBallast = ballastSpeed > 0 ? ballastDistance / (ballastSpeed * 24) : 0;
-    const seaDaysLaden = ladenSpeed > 0 ? ladenDistance / (ladenSpeed * 24) : 0;
+    // 3. Total sea days = sum of all leg sea times (already includes sea margin) + extra sea days
     const totalSeaDays = seaDaysBallast + seaDaysLaden + extraSeaDays;
     
     // Total voyage days includes all extra time
@@ -343,6 +361,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       extraPortDays,
       extraCanalDays,
       totalVoyageDays,
+      baseSeaTime: totalBaseSeaTime,
+      seaMarginTime: totalSeaMarginTime,
       hsfoConsumption,
       vlsfoConsumption,
       lsmgoConsumption,
