@@ -108,7 +108,18 @@ export default function CalculationBreakdown() {
           <BunkerCalculationPanel bunker={bunker} results={results} vessel={vessel} sequence={sequence} />
           <PortTimeCalculationPanel sequence={sequence} misc={misc} results={results} />
           <MiscCalculationPanel misc={misc} results={results} />
-          <EmissionCalculationPanel results={results} bunker={bunker} vessel={vessel} />
+          <EmissionCalculationPanel 
+            results={results} 
+            bunker={bunker} 
+            vessel={vessel} 
+            sequence={sequence.map(s => ({
+              id: s.id,
+              port: s.port,
+              portUnloc: s.portUnloc,
+              operation: s.operation,
+              distance: s.distance,
+            }))}
+          />
           <FinancialSummaryPanel results={results} hireRate={hireRate} cargos={cargos} />
         </div>
       </main>
