@@ -1,5 +1,19 @@
 import { useMemo } from "react";
 import type { VesselData } from "@/data/vessels";
+import {
+  CO2_EMISSION_FACTORS,
+  calculateCo2Emissions,
+  calculateEtsCost,
+  calculateCiiRating,
+  calculateEfoi,
+  getEtsVoyageCoverage,
+  getEtsPhaseInPercentage,
+  isEuPort,
+  validateEmissionInputs,
+  type EtsResult,
+  type CiiResult,
+  type Co2BreakdownByFuel,
+} from "@/utils/emissionCalculations";
 
 // Types for voyage calculation inputs
 export interface SequenceRow {
@@ -108,30 +122,30 @@ export interface VoyageResults {
   gtce: number; // Gross TCE
   pAndL: number; // Profit & Loss
 
-  // Environmental metrics
+  // Environmental metrics - Enhanced
   totalCo2: number;
   co2Laden: number;
   co2Ballast: number;
+  co2ByFuel: Co2BreakdownByFuel;
   efoi: number; // gCO2/tnm
-  afrCii: number; // gCO2/dwt-nm
+  afrCii: number; // gCO2/dwt-nm (Actual CII)
   ciiRating: string;
+  ciiResult: CiiResult;
+  
+  // EU ETS metrics
+  etsResult: EtsResult;
+  etsCost: number;
+  chargeableCo2: number;
+  etsVoyageCoverage: number;
+  etsPhaseIn: number;
+  
+  // Validation
+  emissionWarnings: string[];
+  emissionErrors: string[];
+  
+  // Laden distance (for EFOI)
+  ladenDistance: number;
 }
-
-// CO2 emission factors (tonnes CO2 per tonne fuel)
-const CO2_FACTORS = {
-  hsfo: 3.114,
-  vlsfo: 3.151,
-  lsmgo: 3.206,
-};
-
-// CII rating thresholds (simplified for bulk/tanker)
-const getCiiRating = (cii: number): string => {
-  if (cii <= 5.5) return "A";
-  if (cii <= 6.5) return "B";
-  if (cii <= 7.5) return "C";
-  if (cii <= 8.5) return "D";
-  return "E";
-};
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
   return useMemo(() => {
@@ -328,27 +342,74 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       ? (grossFreight - voyageCostExclHire) / totalVoyageDays 
       : 0;
 
-    // 10. Environmental calculations
-    const co2Hsfo = hsfoConsumption * CO2_FACTORS.hsfo;
-    const co2Vlsfo = vlsfoConsumption * CO2_FACTORS.vlsfo;
-    const co2Lsmgo = lsmgoConsumption * CO2_FACTORS.lsmgo;
-    const totalCo2 = co2Hsfo + co2Vlsfo + co2Lsmgo;
+    // 10. Environmental calculations using emission module
+    const fuelConsumption = {
+      hsfo: hsfoConsumption,
+      vlsfo: vlsfoConsumption,
+      lsmgo: lsmgoConsumption,
+    };
+    
+    // Calculate CO2 emissions by fuel type
+    const co2ByFuel = calculateCo2Emissions(fuelConsumption);
+    const totalCo2 = co2ByFuel.total;
 
-    // Split CO2 proportionally
+    // Split CO2 proportionally between ballast and laden
     const co2Ballast = totalSeaDays > 0 ? totalCo2 * (seaDaysBallast / totalSeaDays) : 0;
     const co2Laden = totalSeaDays > 0 ? totalCo2 * (seaDaysLaden / totalSeaDays) : 0;
 
-    // EFOI = gCO2 / (cargo quantity * laden distance) - grams CO2 per tonne-nautical mile
-    const efoi = cargo.quantity > 0 && ladenDistance > 0
-      ? (totalCo2 * 1000000) / (cargo.quantity * ladenDistance)
-      : 0;
+    // Calculate EFOI using the module
+    const efoiResult = calculateEfoi(totalCo2, cargo.quantity, ladenDistance);
+    const efoi = efoiResult.efoi;
 
-    // AFR/CII = gCO2 / (DWT * total distance)
-    const afrCii = vessel.dwt > 0 && totalDistance > 0
-      ? (totalCo2 * 1000000) / (vessel.dwt * totalDistance)
-      : 0;
+    // Build voyage legs for ETS calculation
+    const voyageLegs: Array<{ originUnloc: string; destinationUnloc: string; co2: number }> = [];
+    let previousPort = '';
+    let legIndex = 0;
+    
+    sequence.forEach((leg) => {
+      if (leg.portUnloc && previousPort) {
+        // Calculate CO2 proportion for this leg based on sea time
+        const legSeaTime = leg.seaTime || 0;
+        const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
+        
+        voyageLegs.push({
+          originUnloc: previousPort,
+          destinationUnloc: leg.portUnloc,
+          co2: legCo2,
+        });
+        legIndex++;
+      }
+      if (leg.portUnloc) {
+        previousPort = leg.portUnloc;
+      }
+    });
 
-    const ciiRating = getCiiRating(afrCii);
+    // Calculate EU ETS cost
+    const etsResult = calculateEtsCost({
+      totalCo2,
+      voyageLegs,
+      co2Price: bunker.co2Price || 0,
+    });
+
+    // Calculate CII rating using IMO methodology
+    const ciiResult = calculateCiiRating({
+      totalCo2,
+      dwt: vessel.dwt,
+      distanceTravelled: totalDistance,
+      shipType: vessel.type || 'bulk_carrier',
+    });
+    
+    const afrCii = ciiResult.actualCii;
+    const ciiRating = ciiResult.rating;
+
+    // Validate emission inputs
+    const validation = validateEmissionInputs(
+      fuelConsumption,
+      vessel.dwt,
+      totalDistance,
+      cargo.quantity,
+      bunker.co2Price
+    );
 
     return {
       totalDistance,
@@ -383,12 +444,26 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       ntce,
       gtce,
       pAndL,
+      // Enhanced environmental metrics
       totalCo2,
       co2Laden,
       co2Ballast,
+      co2ByFuel,
       efoi,
       afrCii,
       ciiRating,
+      ciiResult,
+      // EU ETS metrics
+      etsResult,
+      etsCost: etsResult.etsCost,
+      chargeableCo2: etsResult.chargeableCo2,
+      etsVoyageCoverage: etsResult.etsVoyageCoverage,
+      etsPhaseIn: etsResult.phaseInPercentage,
+      // Validation
+      emissionWarnings: validation.warnings,
+      emissionErrors: validation.errors,
+      // Additional
+      ladenDistance,
     };
   }, [inputs]);
 }

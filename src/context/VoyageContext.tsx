@@ -1005,6 +1005,18 @@ export function useVoyageContext() {
         hireCost: 0, voyageCostInclHire: 0, voyageCostExclHire: 0, grossProfit: 0,
         netProfit: 0, tce: 0, ntce: 0, gtce: 0, pAndL: 0, totalCo2: 0,
         co2Laden: 0, co2Ballast: 0, efoi: 0, afrCii: 0, ciiRating: "A",
+        // Enhanced emission fields
+        co2ByFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
+        ciiResult: {
+          actualCii: 0, requiredCii: 0, ciiRatio: 0, rating: 'A' as const,
+          ratingDescription: '', boundaries: { A: 0, B: 0, C: 0, D: 0 }
+        },
+        etsResult: {
+          totalCo2: 0, etsVoyageCoverage: 0, phaseInPercentage: 0,
+          chargeableCo2: 0, etsCost: 0, legBreakdown: []
+        },
+        etsCost: 0, chargeableCo2: 0, etsVoyageCoverage: 0, etsPhaseIn: 0,
+        emissionWarnings: [], emissionErrors: [], ladenDistance: 0,
       },
     } as VoyageContextValue;
   }
