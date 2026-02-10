@@ -629,44 +629,61 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Recalculate all distances using sea route algorithm
+  // Recalculate all distances using sea route algorithm, then update sea times
   const recalculateDistances = useCallback(() => {
     setSequence(prev => {
+      let isLaden = false;
       const newSequence = [...prev];
+      
       for (let i = 0; i < newSequence.length; i++) {
-        if (i === 0) continue; // First port has no distance
+        // Track laden state
+        if (newSequence[i].operation === "loading") isLaden = true;
         
-        const prevRow = newSequence[i - 1];
-        const currRow = newSequence[i];
-        
-        // Use coordinates from sequence rows if available
-        if (prevRow.coordinates && currRow.coordinates) {
-          const prevPort: Port = {
-            id: prevRow.portId || 0,
-            unloc: prevRow.portUnloc,
-            name: prevRow.port,
-            city: prevRow.port,
-            country: "",
-            coordinates: prevRow.coordinates,
-          };
-          const currPort: Port = {
-            id: currRow.portId || 0,
-            unloc: currRow.portUnloc,
-            name: currRow.port,
-            city: currRow.port,
-            country: "",
-            coordinates: currRow.coordinates,
-          };
+        if (i > 0) {
+          const prevRow = newSequence[i - 1];
+          const currRow = newSequence[i];
           
-          const result = calculateSeaRouteDistance(prevPort, currPort);
-          if (result.success) {
-            newSequence[i] = { ...currRow, distance: result.distance };
+          // Check coordinates validity (not missing and not zero)
+          const prevHasCoords = prevRow.coordinates && 
+            (prevRow.coordinates[0] !== 0 || prevRow.coordinates[1] !== 0);
+          const currHasCoords = currRow.coordinates && 
+            (currRow.coordinates[0] !== 0 || currRow.coordinates[1] !== 0);
+          
+          if (prevHasCoords && currHasCoords) {
+            const prevPort: Port = {
+              id: prevRow.portId || 0,
+              unloc: prevRow.portUnloc,
+              name: prevRow.port,
+              city: prevRow.port,
+              country: "",
+              coordinates: prevRow.coordinates,
+            };
+            const currPort: Port = {
+              id: currRow.portId || 0,
+              unloc: currRow.portUnloc,
+              name: currRow.port,
+              city: currRow.port,
+              country: "",
+              coordinates: currRow.coordinates,
+            };
+            
+            const result = calculateSeaRouteDistance(prevPort, currPort);
+            if (result.success) {
+              newSequence[i] = { ...currRow, distance: result.distance };
+            }
           }
         }
+        
+        // Recalculate sea times for every row after distance update
+        const seaTimeData = calculateSeaTime(newSequence[i], isLaden, vessel);
+        newSequence[i] = { ...newSequence[i], ...seaTimeData };
+        
+        if (newSequence[i].operation === "discharging") isLaden = false;
       }
+      
       return newSequence;
     });
-  }, []);
+  }, [vessel]);
 
   // Memoize port unlocs string for dependency tracking
   const portUnlocsKey = useMemo(() => sequence.map(s => s.portUnloc).join(','), [sequence]);

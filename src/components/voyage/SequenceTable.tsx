@@ -213,46 +213,56 @@ export function SequenceTable() {
                     {/* Distance (V) & ECA (L) - Dual distance inputs with unit selectors */}
                     <td className="px-1 py-0.5 border border-border">
                       {row.type !== "open" ? (
-                        <div className="flex items-center gap-0.5">
-                          {/* V = Outside ECA (Non-ECA distance) with speed context selector */}
-                          <select
-                            className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-background px-0.5"
-                            value={row.distanceSpeedContext}
-                            onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value as SpeedContext)}
-                            title="Speed context for Outside ECA distance"
-                          >
-                            {distanceSpeedContextOptions.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                          <input
-                            type="number"
-                            className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
-                            value={row.distance || ""}
-                            onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)}
-                            placeholder="0"
-                            title="Outside ECA Distance (nm)"
-                          />
-                          <span className="text-[10px] text-muted-foreground">&</span>
-                          {/* L = Inside ECA with speed context selector */}
-                          <select
-                            className="h-5 w-8 text-[9px] font-medium border border-border rounded bg-background px-0.5"
-                            value={row.ecaDistanceSpeedContext}
-                            onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value as SpeedContext)}
-                            title="Speed context for Inside ECA distance"
-                          >
-                            {ecaDistanceSpeedContextOptions.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                          <input
-                            type="number"
-                            className="w-12 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
-                            value={row.ecaDistance || ""}
-                            onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)}
-                            placeholder="0"
-                            title="Inside ECA Distance (nm)"
-                          />
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-0.5">
+                            {/* V = Outside ECA (Non-ECA distance) with speed context selector */}
+                            <select
+                              className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                              value={row.distanceSpeedContext}
+                              onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value as SpeedContext)}
+                              title="Speed context for Outside ECA distance"
+                            >
+                              {distanceSpeedContextOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="number"
+                              className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              value={row.distance || ""}
+                              onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)}
+                              placeholder="0"
+                              title="Outside ECA Distance (nm)"
+                            />
+                            <span className="text-[10px] text-muted-foreground">&</span>
+                            {/* L = Inside ECA with speed context selector */}
+                            <select
+                              className="h-5 w-8 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                              value={row.ecaDistanceSpeedContext}
+                              onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value as SpeedContext)}
+                              title="Speed context for Inside ECA distance"
+                            >
+                              {ecaDistanceSpeedContextOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="number"
+                              className="w-12 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              value={row.ecaDistance || ""}
+                              onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)}
+                              placeholder="0"
+                              title="Inside ECA Distance (nm)"
+                            />
+                          </div>
+                          {/* Warning if coordinates missing for this leg */}
+                          {index > 0 && autoDistanceEnabled && row.port && (
+                            !row.coordinates || (row.coordinates[0] === 0 && row.coordinates[1] === 0)
+                          ) && (
+                            <span className="text-[8px] text-destructive leading-tight" title="Port coordinates not available. Distance cannot be auto-calculated.">
+                              ⚠ No coords
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
