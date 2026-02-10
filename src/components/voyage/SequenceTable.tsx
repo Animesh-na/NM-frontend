@@ -61,6 +61,7 @@ export function SequenceTable() {
         coordinates: port?.coordinates,
       } : row
     ));
+    // Distance recalculation is triggered automatically via the portUnlocsKey effect in VoyageContext
   };
 
   const getTypeLabel = (row: SequenceRowUI): string => {
