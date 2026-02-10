@@ -357,8 +357,8 @@ const initialSequence: SequenceRowUI[] = [
   {
     id: 1,
     type: "open",
-    port: "Chittagong",
-    portUnloc: "BDCGP",
+    port: "Paradip",
+    portUnloc: "INPAV",
     season: "summer",
     distance: 0,
     distanceSpeedContext: "EV",
