@@ -311,8 +311,8 @@ export function VoyageSummary() {
             <span className="font-medium flex items-center">
               Estimated Voyage CII Rating
               <InfoTooltip 
-                formula="Rating based on AFR/CII value: A (<3), B (3-5), C (5-8), D (8-12), E (>12)" 
-                description="IMO Carbon Intensity Indicator rating scale"
+                formula="Rating = Actual CII / Required CII. A (≤82%), B (82-93%), C (93-108%), D (108-120%), E (>120%)" 
+                description="IMO CII rating based on ratio of actual to required CII for the vessel type and year"
               />
             </span>
             <span className={`px-2 py-0.5 rounded font-bold ${
