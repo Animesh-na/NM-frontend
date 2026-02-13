@@ -19,13 +19,13 @@ export function VoyageSummary() {
   };
 
   return (
-    <div className="calc-card-compact h-full">
+    <div className="calc-card-compact">
       <div className="section-header-compact">
         <TrendingUp className="h-3.5 w-3.5" />
         <span>Voyage Summary</span>
       </div>
 
-      <div className="p-2 space-y-3 text-[10px]">
+      <div className="p-2 space-y-2 text-[10px]">
         {/* Financial Summary */}
         <div className="space-y-1">
           <div className="flex justify-between items-center border-b border-border pb-1">
