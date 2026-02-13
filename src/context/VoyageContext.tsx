@@ -638,60 +638,71 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Recalculate all distances using searoute API, then update sea times
+  // Uses a ref to current vessel to avoid stale closures
+  const vesselRef = useRef(vessel);
+  vesselRef.current = vessel;
+
   const recalculateDistances = useCallback(async () => {
-    // Build the current sequence snapshot
-    const currentSequence = [...sequence];
-    
-    let isLaden = false;
-    const updatedSequence = [...currentSequence];
-    
-    for (let i = 0; i < updatedSequence.length; i++) {
-      if (updatedSequence[i].operation === "loading") isLaden = true;
-      
-      if (i > 0) {
-        const prevRow = updatedSequence[i - 1];
-        const currRow = updatedSequence[i];
-        
-        // Validate coordinates: not missing and not zero
-        const prevHasCoords = prevRow.coordinates && 
-          (prevRow.coordinates[0] !== 0 || prevRow.coordinates[1] !== 0);
-        const currHasCoords = currRow.coordinates && 
-          (currRow.coordinates[0] !== 0 || currRow.coordinates[1] !== 0);
-        
-        if (prevHasCoords && currHasCoords) {
-          try {
-            // API expects [longitude, latitude] in coordinates
-            // But searoute API params are origin_lat, origin_lon
-            const [prevLon, prevLat] = prevRow.coordinates!;
-            const [currLon, currLat] = currRow.coordinates!;
-            
-            const result = await getSeaRouteDistance(prevLat, prevLon, currLat, currLon);
-            
-            updatedSequence[i] = { 
-              ...updatedSequence[i], 
-              distance: Math.round(result.non_eca_distance_nm || result.total_distance_nm || 0),
-              ecaDistance: Math.round(result.eca_distance_nm || 0),
-            };
-          } catch (error) {
-            console.error(`Searoute API error for leg ${i}:`, error);
-          }
-        } else {
-          // Missing coordinates - clear distance
-          if (!prevHasCoords || !currHasCoords) {
-            console.warn(`Port coordinates not available for leg ${i}. Distance cannot be calculated.`);
-          }
+    // Take a snapshot of current sequence for API calls
+    let snapshot: SequenceRowUI[] = [];
+    setSequence(prev => { snapshot = [...prev]; return prev; });
+    // Allow state to flush
+    await new Promise(r => setTimeout(r, 0));
+
+    if (snapshot.length === 0) return;
+
+    // Collect distance results for legs that have valid coordinates
+    const distanceResults: Map<number, { distance: number; ecaDistance: number }> = new Map();
+
+    for (let i = 1; i < snapshot.length; i++) {
+      const prevRow = snapshot[i - 1];
+      const currRow = snapshot[i];
+
+      // Skip legs where either port has no valid coordinates
+      const prevHasCoords = prevRow.coordinates &&
+        (prevRow.coordinates[0] !== 0 || prevRow.coordinates[1] !== 0);
+      const currHasCoords = currRow.coordinates &&
+        (currRow.coordinates[0] !== 0 || currRow.coordinates[1] !== 0);
+
+      if (prevHasCoords && currHasCoords) {
+        try {
+          const [prevLon, prevLat] = prevRow.coordinates!;
+          const [currLon, currLat] = currRow.coordinates!;
+          const result = await getSeaRouteDistance(prevLat, prevLon, currLat, currLon);
+          distanceResults.set(currRow.id, {
+            distance: Math.round(result.non_eca_distance_nm || result.total_distance_nm || 0),
+            ecaDistance: Math.round(result.eca_distance_nm || 0),
+          });
+        } catch (error) {
+          console.error(`Searoute API error for leg ${i}:`, error);
+        }
+      } else {
+        if (!currHasCoords && currRow.port) {
+          console.warn(`Port coordinates not available for leg ${i}. Distance cannot be calculated.`);
         }
       }
-      
-      // Recalculate sea times for every row after distance update
-      const seaTimeData = calculateSeaTime(updatedSequence[i], isLaden, vessel);
-      updatedSequence[i] = { ...updatedSequence[i], ...seaTimeData };
-      
-      if (updatedSequence[i].operation === "discharging") isLaden = false;
     }
-    
-    setSequence(updatedSequence);
-  }, [sequence, vessel]);
+
+    // Apply results using functional update so we never overwrite concurrent changes
+    setSequence(prev => {
+      const currentVessel = vesselRef.current;
+      let isLaden = false;
+      return prev.map(row => {
+        if (row.operation === "loading") isLaden = true;
+
+        const dist = distanceResults.get(row.id);
+        const updatedRow = dist
+          ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance }
+          : row;
+
+        const seaTimeData = calculateSeaTime(updatedRow, isLaden, currentVessel);
+        const finalRow = { ...updatedRow, ...seaTimeData };
+
+        if (row.operation === "discharging") isLaden = false;
+        return finalRow;
+      });
+    });
+  }, []);
 
   // Track port identity + coordinates to only trigger API on actual port changes
   const portCoordsKey = useMemo(() => 
