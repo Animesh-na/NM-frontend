@@ -191,9 +191,9 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
             >
               <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{port.name}</div>
+                <div className="font-medium truncate">{port.name} ({port.country})</div>
                 <div className="text-[10px] text-muted-foreground truncate">
-                  {port.country} • {port.unloc}
+                  {port.unloc}
                 </div>
               </div>
             </button>

@@ -260,8 +260,8 @@ export function SequenceTable() {
                           {index > 0 && autoDistanceEnabled && row.port && (
                             !row.coordinates || (row.coordinates[0] === 0 && row.coordinates[1] === 0)
                           ) && (
-                            <span className="text-[8px] text-destructive leading-tight" title="Port coordinates not available. Distance cannot be auto-calculated.">
-                              ⚠ No coords
+                            <span className="text-[8px] text-destructive leading-tight" title="Port coordinates not available. Distance cannot be calculated.">
+                              ⚠ No coords – distance unavailable
                             </span>
                           )}
                         </div>
