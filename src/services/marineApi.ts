@@ -107,3 +107,27 @@ export async function searchPorts(query: string, limit: number = 10): Promise<Ma
     return [];
   }
 }
+
+// 4. Sea Route Distance Calculation
+export interface SeaRouteResponse {
+  total_distance_nm: number;
+  eca_distance_nm: number;
+  non_eca_distance_nm: number;
+  eca_percentage: number;
+  route_geojson?: unknown;
+}
+
+export async function getSeaRouteDistance(
+  originLat: number,
+  originLon: number,
+  destLat: number,
+  destLon: number
+): Promise<SeaRouteResponse> {
+  const data = await apiRequest<SeaRouteResponse>("/searoute", {
+    origin_lat: originLat,
+    origin_lon: originLon,
+    dest_lat: destLat,
+    dest_lon: destLon,
+  });
+  return data;
+}

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from "react";
 import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/hooks/useVoyageCalculation";
 import { defaultVessel, type VesselData } from "@/data/vessels";
-import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
+import { getSeaRouteDistance } from "@/services/marineApi";
 import { type Port } from "@/components/voyage/PortSelect";
 
 // Season options for Open Port
@@ -359,6 +359,8 @@ const initialSequence: SequenceRowUI[] = [
     type: "open",
     port: "Paradip",
     portUnloc: "INPAV",
+    portId: 987,
+    coordinates: [86.68333333333334, 20.266666666666666], // [lon, lat]
     season: "summer",
     distance: 0,
     distanceSpeedContext: "EV",
@@ -388,8 +390,10 @@ const initialSequence: SequenceRowUI[] = [
     id: 2,
     type: "port",
     operation: "loading",
-    port: "Adelaide",
+    port: "Port Adelaide",
     portUnloc: "AUADL",
+    portId: 677,
+    coordinates: [138.5, -34.85], // [lon, lat]
     distance: 0,
     distanceSpeedContext: "EV",
     ecaDistance: 0,
@@ -408,7 +412,7 @@ const initialSequence: SequenceRowUI[] = [
     wdaysUnit: "VL",
     draft: 12.5,
     cranes: 4,
-    seaMargin: 5, // 5% sea margin default for sailing legs
+    seaMargin: 5,
     bunkeringHsfo: 0,
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
@@ -418,9 +422,11 @@ const initialSequence: SequenceRowUI[] = [
     id: 3,
     type: "port",
     operation: "bunkering",
-    port: "Singapore",
+    port: "Keppel - (East Singapore)",
     portUnloc: "SGSIN",
-    distance: 1555,
+    portId: 3176,
+    coordinates: [103.85, 1.2833333333333332], // [lon, lat]
+    distance: 0,
     distanceSpeedContext: "EV",
     ecaDistance: 0,
     ecaDistanceSpeedContext: "EL",
@@ -438,7 +444,7 @@ const initialSequence: SequenceRowUI[] = [
     wdaysUnit: "VL",
     draft: 0,
     cranes: 0,
-    seaMargin: 5, // 5% sea margin for sailing legs
+    seaMargin: 5,
     bunkeringHsfo: 0,
     bunkeringVlsfo: 1234,
     bunkeringLsmgo: 1234,
@@ -448,9 +454,11 @@ const initialSequence: SequenceRowUI[] = [
     id: 4,
     type: "port",
     operation: "discharging",
-    port: "Ho Chi Minh City",
+    port: "Thanh Ho Chi Minh",
     portUnloc: "VNSGN",
-    distance: 660,
+    portId: 358,
+    coordinates: [106.71666666666667, 10.766666666666667], // [lon, lat]
+    distance: 0,
     distanceSpeedContext: "EV",
     ecaDistance: 0,
     ecaDistanceSpeedContext: "EL",
@@ -468,7 +476,7 @@ const initialSequence: SequenceRowUI[] = [
     wdaysUnit: "VL",
     draft: 10.2,
     cranes: 4,
-    seaMargin: 5, // 5% sea margin for sailing legs
+    seaMargin: 5,
     bunkeringHsfo: 0,
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
@@ -629,61 +637,61 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Recalculate all distances using sea route algorithm, then update sea times
-  const recalculateDistances = useCallback(() => {
-    setSequence(prev => {
-      let isLaden = false;
-      const newSequence = [...prev];
+  // Recalculate all distances using searoute API, then update sea times
+  const recalculateDistances = useCallback(async () => {
+    // Build the current sequence snapshot
+    const currentSequence = [...sequence];
+    
+    let isLaden = false;
+    const updatedSequence = [...currentSequence];
+    
+    for (let i = 0; i < updatedSequence.length; i++) {
+      if (updatedSequence[i].operation === "loading") isLaden = true;
       
-      for (let i = 0; i < newSequence.length; i++) {
-        // Track laden state
-        if (newSequence[i].operation === "loading") isLaden = true;
+      if (i > 0) {
+        const prevRow = updatedSequence[i - 1];
+        const currRow = updatedSequence[i];
         
-        if (i > 0) {
-          const prevRow = newSequence[i - 1];
-          const currRow = newSequence[i];
-          
-          // Check coordinates validity (not missing and not zero)
-          const prevHasCoords = prevRow.coordinates && 
-            (prevRow.coordinates[0] !== 0 || prevRow.coordinates[1] !== 0);
-          const currHasCoords = currRow.coordinates && 
-            (currRow.coordinates[0] !== 0 || currRow.coordinates[1] !== 0);
-          
-          if (prevHasCoords && currHasCoords) {
-            const prevPort: Port = {
-              id: prevRow.portId || 0,
-              unloc: prevRow.portUnloc,
-              name: prevRow.port,
-              city: prevRow.port,
-              country: "",
-              coordinates: prevRow.coordinates,
-            };
-            const currPort: Port = {
-              id: currRow.portId || 0,
-              unloc: currRow.portUnloc,
-              name: currRow.port,
-              city: currRow.port,
-              country: "",
-              coordinates: currRow.coordinates,
-            };
+        // Validate coordinates: not missing and not zero
+        const prevHasCoords = prevRow.coordinates && 
+          (prevRow.coordinates[0] !== 0 || prevRow.coordinates[1] !== 0);
+        const currHasCoords = currRow.coordinates && 
+          (currRow.coordinates[0] !== 0 || currRow.coordinates[1] !== 0);
+        
+        if (prevHasCoords && currHasCoords) {
+          try {
+            // API expects [longitude, latitude] in coordinates
+            // But searoute API params are origin_lat, origin_lon
+            const [prevLon, prevLat] = prevRow.coordinates!;
+            const [currLon, currLat] = currRow.coordinates!;
             
-            const result = calculateSeaRouteDistance(prevPort, currPort);
-            if (result.success) {
-              newSequence[i] = { ...currRow, distance: result.distance };
-            }
+            const result = await getSeaRouteDistance(prevLat, prevLon, currLat, currLon);
+            
+            updatedSequence[i] = { 
+              ...updatedSequence[i], 
+              distance: Math.round(result.non_eca_distance_nm || result.total_distance_nm || 0),
+              ecaDistance: Math.round(result.eca_distance_nm || 0),
+            };
+          } catch (error) {
+            console.error(`Searoute API error for leg ${i}:`, error);
+          }
+        } else {
+          // Missing coordinates - clear distance
+          if (!prevHasCoords || !currHasCoords) {
+            console.warn(`Port coordinates not available for leg ${i}. Distance cannot be calculated.`);
           }
         }
-        
-        // Recalculate sea times for every row after distance update
-        const seaTimeData = calculateSeaTime(newSequence[i], isLaden, vessel);
-        newSequence[i] = { ...newSequence[i], ...seaTimeData };
-        
-        if (newSequence[i].operation === "discharging") isLaden = false;
       }
       
-      return newSequence;
-    });
-  }, [vessel]);
+      // Recalculate sea times for every row after distance update
+      const seaTimeData = calculateSeaTime(updatedSequence[i], isLaden, vessel);
+      updatedSequence[i] = { ...updatedSequence[i], ...seaTimeData };
+      
+      if (updatedSequence[i].operation === "discharging") isLaden = false;
+    }
+    
+    setSequence(updatedSequence);
+  }, [sequence, vessel]);
 
   // Memoize port unlocs string for dependency tracking
   const portUnlocsKey = useMemo(() => sequence.map(s => s.portUnloc).join(','), [sequence]);
