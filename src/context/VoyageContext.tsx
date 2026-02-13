@@ -651,6 +651,25 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
 
     if (snapshot.length === 0) return;
 
+    // Check: Open port must be selected
+    const openRow = snapshot.find(r => r.type === "open");
+    if (!openRow || !openRow.port || !openRow.portUnloc) {
+      // No open port — zero out all distances
+      setSequence(prev => {
+        const currentVessel = vesselRef.current;
+        let isLaden = false;
+        return prev.map(row => {
+          if (row.operation === "loading") isLaden = true;
+          const zeroed = { ...row, distance: 0, ecaDistance: 0 };
+          const seaTimeData = calculateSeaTime(zeroed, isLaden, currentVessel);
+          const finalRow = { ...zeroed, ...seaTimeData };
+          if (row.operation === "discharging") isLaden = false;
+          return finalRow;
+        });
+      });
+      return;
+    }
+
     // Collect distance results for legs that have valid coordinates
     const distanceResults: Map<number, { distance: number; ecaDistance: number }> = new Map();
 
@@ -658,28 +677,50 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       const prevRow = snapshot[i - 1];
       const currRow = snapshot[i];
 
-      // Skip legs where either port has no valid coordinates
+      // Rule: Skip if current port is not selected
+      if (!currRow.port || !currRow.portUnloc) {
+        distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+        continue;
+      }
+
+      // Rule: Skip if previous port is not selected
+      if (!prevRow.port || !prevRow.portUnloc) {
+        distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+        continue;
+      }
+
+      // Rule: Skip if previous and current port are the same
+      if (prevRow.portUnloc === currRow.portUnloc) {
+        distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+        continue;
+      }
+
+      // Rule: Skip if either port has no valid coordinates
       const prevHasCoords = prevRow.coordinates &&
         (prevRow.coordinates[0] !== 0 || prevRow.coordinates[1] !== 0);
       const currHasCoords = currRow.coordinates &&
         (currRow.coordinates[0] !== 0 || currRow.coordinates[1] !== 0);
 
-      if (prevHasCoords && currHasCoords) {
-        try {
-          const [prevLon, prevLat] = prevRow.coordinates!;
-          const [currLon, currLat] = currRow.coordinates!;
-          const result = await getSeaRouteDistance(prevLat, prevLon, currLat, currLon);
-          distanceResults.set(currRow.id, {
-            distance: Math.round(result.non_eca_distance_nm || result.total_distance_nm || 0),
-            ecaDistance: Math.round(result.eca_distance_nm || 0),
-          });
-        } catch (error) {
-          console.error(`Searoute API error for leg ${i}:`, error);
-        }
-      } else {
+      if (!prevHasCoords || !currHasCoords) {
+        distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
         if (!currHasCoords && currRow.port) {
-          console.warn(`Port coordinates not available for leg ${i}. Distance cannot be calculated.`);
+          console.warn(`Port coordinates not available for leg ${i}. Distance set to 0.`);
         }
+        continue;
+      }
+
+      // All checks passed — call the API
+      try {
+        const [prevLon, prevLat] = prevRow.coordinates!;
+        const [currLon, currLat] = currRow.coordinates!;
+        const result = await getSeaRouteDistance(prevLat, prevLon, currLat, currLon);
+        distanceResults.set(currRow.id, {
+          distance: Math.round(result.non_eca_distance_nm || result.total_distance_nm || 0),
+          ecaDistance: Math.round(result.eca_distance_nm || 0),
+        });
+      } catch (error) {
+        console.error(`Searoute API error for leg ${i}:`, error);
+        distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
       }
     }
 
