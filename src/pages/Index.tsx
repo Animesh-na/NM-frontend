@@ -27,7 +27,7 @@ const Index = () => {
         
         {/* Right Panel - Sticky Summary */}
         <div className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-muted/30">
-          <div className="p-2 h-full">
+          <div className="p-2">
             <VoyageSummary />
           </div>
         </div>
