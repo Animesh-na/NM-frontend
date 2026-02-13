@@ -1,7 +1,10 @@
-import { Ship, Calculator, FileText, Settings } from "lucide-react";
+import { Ship, Calculator, FileText, Settings, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 export function CompactHeader() {
+  const { logout } = useAuth();
+
   return (
     <header className="bg-section-header text-section-header-foreground h-8 flex items-center justify-between px-3 text-xs">
       {/* Logo & Title */}
@@ -30,6 +33,14 @@ export function CompactHeader() {
         </Link>
         <button className="flex items-center gap-1 hover:text-white/80 transition-colors">
           <Settings className="h-3 w-3" />
+        </button>
+        <span className="text-section-header-foreground/30">|</span>
+        <button
+          onClick={logout}
+          className="flex items-center gap-1 hover:text-white/80 transition-colors"
+        >
+          <LogOut className="h-3 w-3" />
+          <span>Logout</span>
         </button>
       </div>
     </header>
