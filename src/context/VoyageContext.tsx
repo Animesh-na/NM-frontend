@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo, useRef } from "react";
 import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/hooks/useVoyageCalculation";
 import { defaultVessel, type VesselData } from "@/data/vessels";
 import { getSeaRouteDistance } from "@/services/marineApi";
@@ -693,18 +693,25 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     setSequence(updatedSequence);
   }, [sequence, vessel]);
 
-  // Memoize port unlocs string for dependency tracking
-  const portUnlocsKey = useMemo(() => sequence.map(s => s.portUnloc).join(','), [sequence]);
+  // Track port identity + coordinates to only trigger API on actual port changes
+  const portCoordsKey = useMemo(() => 
+    sequence.map(s => `${s.portUnloc}:${s.coordinates?.[0] || 0},${s.coordinates?.[1] || 0}`).join('|'), 
+    [sequence]
+  );
 
-  // Auto-recalculate distances when ports change
+  // Use a ref for recalculateDistances to avoid re-triggering on every sequence field change
+  const recalcRef = useRef(recalculateDistances);
+  recalcRef.current = recalculateDistances;
+
+  // Auto-recalculate distances ONLY when ports or coordinates change
   useEffect(() => {
-    if (autoDistanceEnabled && portUnlocsKey) {
+    if (autoDistanceEnabled && portCoordsKey) {
       const timer = setTimeout(() => {
-        recalculateDistances();
+        recalcRef.current();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [portUnlocsKey, autoDistanceEnabled, recalculateDistances]);
+  }, [portCoordsKey, autoDistanceEnabled]);
 
   // Multi-cargo management functions
   const addCargo = useCallback(() => {
