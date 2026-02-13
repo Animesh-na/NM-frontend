@@ -33,19 +33,11 @@ function marinePortToPort(port: MarinePort): Port {
   };
 }
 
-// Popular ports for initial display (hardcoded fallback)
-const popularPorts: Port[] = [
-  { id: 1, unloc: 'SGSIN', name: 'Singapore', city: 'Singapore', country: 'Singapore' },
-  { id: 2, unloc: 'CNSHA', name: 'Shanghai', city: 'Shanghai', country: 'China' },
-  { id: 3, unloc: 'AEDXB', name: 'Dubai', city: 'Dubai', country: 'United Arab Emirates' },
-  { id: 4, unloc: 'NLRTM', name: 'Rotterdam', city: 'Rotterdam', country: 'Netherlands' },
-  { id: 5, unloc: 'USHOU', name: 'Houston', city: 'Houston', country: 'United States' },
-];
 
 export function PortSelect({ value, onChange, placeholder = "Search port...", className }: PortSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState(value);
-  const [results, setResults] = useState<Port[]>(popularPorts);
+  const [results, setResults] = useState<Port[]>([]);
   const [loading, setLoading] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +100,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
   // Search ports when query changes
   useEffect(() => {
     if (search.length < 2) {
-      setResults(popularPorts);
+      setResults([]);
       return;
     }
 
@@ -141,7 +133,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
   const handleClear = () => {
     setSearch("");
     onChange(null);
-    setResults(popularPorts);
+    setResults([]);
   };
 
   const handleInputFocus = () => {
@@ -170,14 +162,11 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
           <Loader2 className="h-3 w-3 animate-spin" /> Searching ports...
         </div>
       ) : results.length === 0 ? (
-        <div className="px-3 py-3 text-xs text-muted-foreground">No ports found</div>
+        <div className="px-3 py-3 text-xs text-muted-foreground">
+          {search.length < 2 ? "Type at least 2 characters to search" : "No ports found"}
+        </div>
       ) : (
         <div className="py-1">
-          {search.length < 2 && (
-            <div className="px-2 py-1.5 text-[10px] text-muted-foreground bg-muted/50 border-b border-border font-medium">
-              Popular Ports
-            </div>
-          )}
           {results.map((port) => (
             <button
               key={`${port.id}-${port.unloc}`}
