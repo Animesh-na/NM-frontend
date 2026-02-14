@@ -319,25 +319,38 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
     const canalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
 
-    // 8. Total voyage costs (including misc and canal costs)
+    // 8. Total voyage costs (Bunker + Port + Canal + Misc — NO commissions mixed in)
     const totalVoyageCosts = totalBunkerCost + portCosts + miscCosts + canalCosts;
-    const hireCost = hireRate * totalVoyageDays;
+    
+    // 9. Hire calculations — TC Commission reduces hire ONLY, never freight
+    const grossHireRate = hireRate;
+    const tcCommissionPct = cargo.tcCommission / 100;
+    const netHireRate = grossHireRate * (1 - tcCommissionPct);
+    const hireCost = grossHireRate * totalVoyageDays;
+    const netHireCost = netHireRate * totalVoyageDays;
+    const tcCommissionAmount = hireCost * tcCommissionPct;
     const voyageCostInclHire = totalVoyageCosts + hireCost;
     const voyageCostExclHire = totalVoyageCosts;
 
-    // 9. Profitability calculations
-    const grossProfit = netFreight - voyageCostExclHire + cargo.demurrage - cargo.despatch;
+    // 10. Profitability calculations
+    // Voyage Result = Net Freight − Voyage Costs (commissions NOT in voyage costs)
+    const voyageResult = netFreight - totalVoyageCosts + cargo.demurrage - cargo.despatch;
+    const grossProfit = voyageResult;
     const netProfit = grossProfit;
-    const pAndL = grossProfit - hireCost;
+    
+    // P&L = Voyage Result − Hire Cost
+    const pAndL = voyageResult - hireCost;
 
-    // TCE = (Net Freight - Voyage Costs) / Voyage Days
-    const tce = totalVoyageDays > 0 ? grossProfit / totalVoyageDays : 0;
+    // TCE (Daily Result) = Voyage Result / Total Voyage Days
+    const tce = totalVoyageDays > 0 ? voyageResult / totalVoyageDays : 0;
     
-    // NTCE = TCE after TC commission
-    const tcCommissionAmount = tce * (cargo.tcCommission / 100);
-    const ntce = tce - tcCommissionAmount;
+    // NTCE = (Net Freight − Voyage Costs − Net Hire Cost) / Days
+    // Reflects daily P&L after TC commission on hire
+    const ntce = totalVoyageDays > 0 
+      ? (netFreight - totalVoyageCosts + cargo.demurrage - cargo.despatch - netHireCost) / totalVoyageDays 
+      : 0;
     
-    // GTCE = (Gross Freight - Voyage Costs) / Voyage Days
+    // GTCE = (Gross Freight − Voyage Costs) / Voyage Days
     const gtce = totalVoyageDays > 0 
       ? (grossFreight - voyageCostExclHire) / totalVoyageDays 
       : 0;
