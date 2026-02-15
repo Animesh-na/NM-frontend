@@ -134,25 +134,25 @@ export function SequenceTable() {
             <table className="w-full text-[10px] border-collapse">
               <thead>
                 <tr className="bg-muted/50">
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-14">Type</th>
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-32">Port</th>
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-12">Cgo</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-44">
+                  <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-14">Type</th>
+                  <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-32">Port</th>
+                  <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-12">Cgo</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-44">
                     Distance (V) & ECA (L)
                   </th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-36" title="Sea Time: Base / +Margin / Total">
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-36" title="Sea Time: Base / +Margin / Total">
                     Sea Time (d)
                   </th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-24">Wdays Port</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-16">Draft (m)</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12" title="Sea Margin % - Increases sailing time for weather/routing buffer">SM%</th>
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-20">Quantity</th>
-                  <th className="px-1 py-1 text-left font-medium text-muted-foreground border border-border w-28">Terms</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12">Tt (d)</th>
-                  <th className="px-1 py-1 text-center font-medium text-muted-foreground border border-border w-12">Et (h)</th>
-                  <th className="px-1 py-1 text-right font-medium text-muted-foreground border border-border w-16">Exp/DA</th>
-                  <th className="px-1 py-1 border border-border w-6"></th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-24">Wdays Port</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-16">Draft (m)</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12" title="Sea Margin % - Increases sailing time for weather/routing buffer">SM%</th>
+                  <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-20">Quantity</th>
+                  <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-28">Terms</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12">Tt (d)</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12">Et (h)</th>
+                  <th className="px-1 py-0.5 text-right font-medium text-muted-foreground border border-border w-16">Exp/DA</th>
+                  <th className="px-1 py-0.5 border border-border w-6"></th>
                 </tr>
               </thead>
               <tbody>
