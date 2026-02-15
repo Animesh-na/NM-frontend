@@ -51,9 +51,9 @@ export function CargoSection() {
       </button>
 
       {isExpanded && (
-        <div className="p-2 space-y-2">
+        <div className="p-1.5 space-y-1.5">
           {/* Top row: NTC, TC Comm, GTC, Net BB, Gross BB, Vessel cost */}
-          <div className="grid grid-cols-12 gap-1.5 items-end text-[10px] border-b border-border pb-2">
+          <div className="grid grid-cols-12 gap-1.5 items-end text-[10px] border-b border-border pb-1.5">
             <div className="col-span-2">
               <label className="compact-label flex items-center">
                 NTC
@@ -183,7 +183,7 @@ export function CargoSection() {
           ))}
 
           {/* Link to Charterer + buttons */}
-          <div className="flex items-center gap-4 pt-2 border-t border-border">
+          <div className="flex items-center gap-4 pt-1.5 border-t border-border">
             <div className="flex items-center gap-2 flex-1">
               <label className="text-xs text-muted-foreground whitespace-nowrap">
                 Link to Charterer
