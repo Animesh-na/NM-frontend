@@ -22,13 +22,15 @@ export interface SequenceRow {
   port: string;
   portUnloc: string;
   cgo: string;
-  distance: number; // nm
+  distance: number; // nm (non-ECA)
   ecaDistance: number; // nm in ECA zones
   portDays: number; // days in port
   quantity: number; // mt or cbm
   expDa: number; // port costs in USD
   // Sea margin adjusted times (calculated in VoyageContext)
   seaTime?: number; // Total sea time WITH sea margin applied
+  ecaTime?: number; // ECA sea time WITH sea margin applied
+  nonEcaTime?: number; // Non-ECA sea time WITH sea margin applied
   baseSeaTime?: number; // Base time without margin
   seaMarginTime?: number; // Extra time from sea margin
   seaMargin?: number; // Sea margin percentage
@@ -101,6 +103,13 @@ export interface VoyageResults {
   vlsfoConsumption: number;
   lsmgoConsumption: number;
   totalBunkerCost: number;
+  
+  // ECA-based fuel breakdown
+  nonEcaFuel: { hsfo: number; vlsfo: number; lsmgo: number; total: number };
+  ecaFuel: { hsfo: number; vlsfo: number; lsmgo: number; total: number };
+  nonEcaCo2: number;
+  ecaCo2: number;
+  nonEcaDistance: number;
 
   // Revenue & costs
   grossFreight: number;
@@ -167,6 +176,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let totalBaseSeaTime = 0;
     let totalSeaMarginTime = 0;
     
+    // ECA vs Non-ECA sea time tracking
+    let ecaSeaDaysBallast = 0;
+    let ecaSeaDaysLaden = 0;
+    let nonEcaSeaDaysBallast = 0;
+    let nonEcaSeaDaysLaden = 0;
+    
     // Track operation-specific time for detailed consumption
     let loadingDays = 0;
     let dischargingDays = 0;
@@ -199,12 +214,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
       // Use pre-calculated seaTime (includes sea margin) for ballast/laden split
       const legSeaTime = leg.seaTime || 0;
+      const legEcaTime = leg.ecaTime || 0;
+      const legNonEcaTime = leg.nonEcaTime || (legSeaTime - legEcaTime);
+      
       if (isLaden) {
         ladenDistance += leg.distance || 0;
         seaDaysLaden += legSeaTime;
+        ecaSeaDaysLaden += legEcaTime;
+        nonEcaSeaDaysLaden += legNonEcaTime;
       } else {
         ballastDistance += leg.distance || 0;
         seaDaysBallast += legSeaTime;
+        ecaSeaDaysBallast += legEcaTime;
+        nonEcaSeaDaysBallast += legNonEcaTime;
       }
     });
 
@@ -230,24 +252,47 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // Reward factor adjusts consumption (wind-assisted propulsion, etc.)
     const rewardFactor = bunker?.rewardFactor ?? 1.0;
     
-    // --- Sea Consumption (Ballast + Laden) ---
-    // HSFO: Sea consumption using ballast/laden rates from vessel matrix
-    const hsfoSeaBallast = seaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0);
-    const hsfoSeaLaden = seaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
-    const hsfoSeaExtra = extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0); // Extra sea uses laden rate
-    const hsfoSeaTotal = (hsfoSeaBallast + hsfoSeaLaden + hsfoSeaExtra) * rewardFactor;
+    // --- Sea Consumption (Ballast + Laden) split by ECA / Non-ECA ---
+    // Non-ECA: uses HSFO/VLSFO at normal rates
+    // ECA: fuel switches to LSMGO (MGO) for compliance; HSFO/VLSFO = 0 in ECA
     
-    // VLSFO: Sea consumption
-    const vlsfoSeaBallast = seaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0);
-    const vlsfoSeaLaden = seaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
-    const vlsfoSeaExtra = extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
-    const vlsfoSeaTotal = (vlsfoSeaBallast + vlsfoSeaLaden + vlsfoSeaExtra) * rewardFactor;
+    const totalEcaSeaDays = ecaSeaDaysBallast + ecaSeaDaysLaden;
+    const totalNonEcaSeaDays = nonEcaSeaDaysBallast + nonEcaSeaDaysLaden;
     
-    // LSMGO: Sea consumption
-    const lsmgoSeaBallast = seaDaysBallast * (profile.lsmgo.ballast || vessel.consumption.lsmgo.ecoBallast || 0);
-    const lsmgoSeaLaden = seaDaysLaden * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
-    const lsmgoSeaExtra = extraSeaDays * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
-    const lsmgoSeaTotal = (lsmgoSeaBallast + lsmgoSeaLaden + lsmgoSeaExtra) * rewardFactor;
+    // --- Non-ECA Sea Consumption (HSFO/VLSFO used normally) ---
+    const hsfoSeaBallastNonEca = nonEcaSeaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0);
+    const hsfoSeaLadenNonEca = nonEcaSeaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
+    const hsfoSeaExtraNonEca = extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
+    const hsfoSeaTotal = (hsfoSeaBallastNonEca + hsfoSeaLadenNonEca + hsfoSeaExtraNonEca) * rewardFactor;
+    
+    const vlsfoSeaBallastNonEca = nonEcaSeaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0);
+    const vlsfoSeaLadenNonEca = nonEcaSeaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
+    const vlsfoSeaExtraNonEca = extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
+    const vlsfoSeaTotal = (vlsfoSeaBallastNonEca + vlsfoSeaLadenNonEca + vlsfoSeaExtraNonEca) * rewardFactor;
+    
+    // Non-ECA LSMGO (normal sea consumption outside ECA)
+    const lsmgoSeaBallastNonEca = nonEcaSeaDaysBallast * (profile.lsmgo.ballast || vessel.consumption.lsmgo.ecoBallast || 0);
+    const lsmgoSeaLadenNonEca = nonEcaSeaDaysLaden * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
+    const lsmgoSeaExtraNonEca = extraSeaDays * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
+    const lsmgoSeaNonEcaTotal = (lsmgoSeaBallastNonEca + lsmgoSeaLadenNonEca + lsmgoSeaExtraNonEca) * rewardFactor;
+    
+    // --- ECA Sea Consumption (switches to LSMGO/MGO only) ---
+    // In ECA zones, HSFO/VLSFO = 0, all consumption shifts to LSMGO
+    const lsmgoSeaBallastEca = ecaSeaDaysBallast * (profile.lsmgo.ballast || vessel.consumption.lsmgo.ecoBallast || 0);
+    const lsmgoSeaLadenEca = ecaSeaDaysLaden * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
+    const lsmgoSeaEcaTotal = (lsmgoSeaBallastEca + lsmgoSeaLadenEca) * rewardFactor;
+    
+    // Also add the HSFO/VLSFO equivalent rates converted to LSMGO for ECA zones
+    // (vessel burns MGO at approximately combined HFO+VLSFO+LSMGO rate in ECA)
+    const ecaFuelBallastRate = (profile.hsfo.ballast || 0) + (profile.vlsfo.ballast || 0) + (profile.lsmgo.ballast || 0);
+    const ecaFuelLadenRate = (profile.hsfo.laden || 0) + (profile.vlsfo.laden || 0) + (profile.lsmgo.laden || 0);
+    const lsmgoEcaFromHsfoVlsfo = (
+      ecaSeaDaysBallast * ecaFuelBallastRate + 
+      ecaSeaDaysLaden * ecaFuelLadenRate
+    ) * rewardFactor;
+    
+    // Total LSMGO sea consumption = Non-ECA LSMGO + ECA total (replaces all fuels)
+    const lsmgoSeaTotal = lsmgoSeaNonEcaTotal + lsmgoEcaFromHsfoVlsfo;
     
     // --- Port Consumption (by operation type) ---
     // Loading consumption
@@ -288,6 +333,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const hsfoConsumption = hsfoSeaTotal + hsfoLoading + hsfoDischarging + hsfoIdle + hsfoCanal;
     const vlsfoConsumption = vlsfoSeaTotal + vlsfoLoading + vlsfoDischarging + vlsfoIdle + vlsfoCanal;
     const lsmgoConsumption = lsmgoSeaTotal + lsmgoLoading + lsmgoDischarging + lsmgoIdle + lsmgoCanal + lsmgoAeTotal;
+
+    // --- ECA vs Non-ECA Fuel Breakdown ---
+    const nonEcaFuel = {
+      hsfo: hsfoSeaTotal,
+      vlsfo: vlsfoSeaTotal,
+      lsmgo: lsmgoSeaNonEcaTotal,
+      total: hsfoSeaTotal + vlsfoSeaTotal + lsmgoSeaNonEcaTotal,
+    };
+    const ecaFuel = {
+      hsfo: 0, // No HSFO in ECA
+      vlsfo: 0, // No VLSFO in ECA
+      lsmgo: lsmgoEcaFromHsfoVlsfo,
+      total: lsmgoEcaFromHsfoVlsfo,
+    };
+    const nonEcaDistance = totalDistance - totalEcaDistance;
 
     // ============================================
     // 5. BUNKER COST CALCULATION (Price × Consumption)
@@ -366,6 +426,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const co2ByFuel = calculateCo2Emissions(fuelConsumption);
     const totalCo2 = co2ByFuel.total;
 
+    // Calculate ECA vs Non-ECA CO2 separately
+    const nonEcaCo2Calc = calculateCo2Emissions(nonEcaFuel);
+    const ecaCo2Calc = calculateCo2Emissions(ecaFuel);
+    const nonEcaCo2 = nonEcaCo2Calc.total;
+    const ecaCo2 = ecaCo2Calc.total;
+
     // Split CO2 proportionally between ballast and laden
     const co2Ballast = totalSeaDays > 0 ? totalCo2 * (seaDaysBallast / totalSeaDays) : 0;
     const co2Laden = totalSeaDays > 0 ? totalCo2 * (seaDaysLaden / totalSeaDays) : 0;
@@ -441,6 +507,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       vlsfoConsumption,
       lsmgoConsumption,
       totalBunkerCost,
+      // ECA-based breakdown
+      nonEcaFuel,
+      ecaFuel,
+      nonEcaCo2,
+      ecaCo2,
+      nonEcaDistance,
       grossFreight,
       voyageCommission,
       netFreight,
