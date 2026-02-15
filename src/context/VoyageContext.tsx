@@ -116,6 +116,7 @@ interface VoyageContextValue {
   recalculateDistances: () => void;
   autoDistanceEnabled: boolean;
   setAutoDistanceEnabled: (enabled: boolean) => void;
+  distanceLoading: boolean;
   
   // Multi-cargo state
   cargos: CargoEntry[];
@@ -556,6 +557,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [hireRate, setHireRate] = useState(8542);
   const [vesselCost, setVesselCost] = useState(6500);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
+  const [distanceLoading, setDistanceLoading] = useState(false);
 
   // Recalculate port days and sea times whenever relevant fields change
   useEffect(() => {
@@ -643,13 +645,14 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   vesselRef.current = vessel;
 
   const recalculateDistances = useCallback(async () => {
+    setDistanceLoading(true);
     // Take a snapshot of current sequence for API calls
     let snapshot: SequenceRowUI[] = [];
     setSequence(prev => { snapshot = [...prev]; return prev; });
     // Allow state to flush
     await new Promise(r => setTimeout(r, 0));
 
-    if (snapshot.length === 0) return;
+    if (snapshot.length === 0) { setDistanceLoading(false); return; }
 
     // Check: Open port must be selected
     const openRow = snapshot.find(r => r.type === "open");
@@ -667,6 +670,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
           return finalRow;
         });
       });
+      setDistanceLoading(false);
       return;
     }
 
@@ -743,6 +747,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         return finalRow;
       });
     });
+    setDistanceLoading(false);
   }, []);
 
   // Track port identity + coordinates to only trigger API on actual port changes
@@ -988,6 +993,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         recalculateDistances,
         autoDistanceEnabled,
         setAutoDistanceEnabled,
+        distanceLoading,
         cargos,
         setCargos,
         addCargo,
@@ -1034,6 +1040,7 @@ export function useVoyageContext() {
       recalculateDistances: () => {},
       autoDistanceEnabled: true,
       setAutoDistanceEnabled: () => {},
+      distanceLoading: false,
       cargos: [],
       setCargos: () => {},
       addCargo: () => {},

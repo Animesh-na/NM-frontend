@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2, Ship, RefreshCw } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
@@ -46,6 +46,7 @@ export function SequenceTable() {
     recalculateDistances, 
     autoDistanceEnabled, 
     setAutoDistanceEnabled,
+    distanceLoading,
     vessel,
   } = useVoyageContext();
   
@@ -214,6 +215,12 @@ export function SequenceTable() {
                     {/* Distance (V) & ECA (L) - Dual distance inputs with unit selectors */}
                     <td className="px-1 py-0.5 border border-border">
                       {row.type !== "open" ? (
+                        distanceLoading ? (
+                          <div className="flex items-center justify-center gap-1 py-1">
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            <span className="text-[9px] text-muted-foreground">Calculating...</span>
+                          </div>
+                        ) : (
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-0.5">
                             {/* V = Outside ECA (Non-ECA distance) with speed context selector */}
@@ -265,6 +272,7 @@ export function SequenceTable() {
                             </span>
                           )}
                         </div>
+                        )
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
