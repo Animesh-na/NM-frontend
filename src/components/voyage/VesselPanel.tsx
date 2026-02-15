@@ -173,7 +173,7 @@ export function VesselPanel() {
       </button>
 
       {isExpanded && (
-        <div className="p-2 space-y-2">
+        <div className="p-1.5 space-y-1">
           {/* Layer 1: Vessel Type → Vessel Name Selection */}
           <div className="grid grid-cols-12 gap-1.5 items-end">
             <div className="col-span-2">
@@ -220,7 +220,7 @@ export function VesselPanel() {
           </div>
 
           {/* Layer 2: Vessel Particulars - More compact */}
-          <div className="grid grid-cols-8 gap-1.5 text-[10px] border-t border-border pt-2">
+          <div className="grid grid-cols-8 gap-1.5 text-[10px] border-t border-border pt-1">
             <div>
               <label className="compact-label">Dwt</label>
               <div className="flex items-center gap-0.5">
@@ -332,7 +332,7 @@ export function VesselPanel() {
           </div>
 
           {/* Layer 3: Speed & Consumption Matrix - compact */}
-          <div className="border-t border-border pt-1.5">
+          <div className="border-t border-border pt-1">
             <ConsumptionMatrix
               speedProfile={vessel.speedProfile}
               consumptionMatrix={currentMatrix}

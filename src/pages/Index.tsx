@@ -16,7 +16,7 @@ const Index = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Fully Scrollable */}
-        <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
+        <div className="flex-1 overflow-y-auto p-1 space-y-1">
           <VesselPanel />
           <SequenceTable />
           <CargoSection />
