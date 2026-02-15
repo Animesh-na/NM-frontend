@@ -151,11 +151,11 @@
   }
 
   .data-table th {
-    @apply bg-table-header px-1.5 py-1 text-left font-medium text-muted-foreground border border-border text-[10px];
+    @apply bg-table-header px-1 py-0.5 text-left font-medium text-muted-foreground border border-border text-[10px];
   }
 
   .data-table td {
-    @apply px-1.5 py-0.5 border border-border;
+    @apply px-1 py-0 border border-border;
   }
 
   .data-table tr:nth-child(even) td {

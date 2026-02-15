@@ -62,7 +62,7 @@ export function ConsumptionMatrix({
   const isEco = speedProfile === "eco";
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {/* Header row with profile selector and checkbox */}
       <div className="flex items-center gap-4">
         <select
@@ -124,7 +124,7 @@ export function ConsumptionMatrix({
                       <input
                         type="number"
                         step={row.key === "speed" ? "0.1" : "0.01"}
-                        className={`w-full bg-transparent font-mono tabular-nums text-right text-[10px] px-1 py-0.5 
+                        className={`w-full bg-transparent font-mono tabular-nums text-right text-[10px] px-1 py-0 h-5
                           focus:outline-none focus:bg-background focus:ring-1 focus:ring-ring
                           ${isDisabled ? "bg-muted/50 text-muted-foreground" : ""}`}
                         value={value || ""}
