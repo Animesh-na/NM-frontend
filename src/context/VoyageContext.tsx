@@ -941,6 +941,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       expDa: row.expDa,
       // Pass sea margin adjusted times for accurate downstream calculations
       seaTime: row.totalLegTime, // Total sea time WITH sea margin applied
+      ecaTime: row.ecaTime, // ECA sea time WITH margin
+      nonEcaTime: row.seaTime, // Non-ECA sea time WITH margin (named seaTime in UI)
       baseSeaTime: row.baseSeaTime, // Base time without margin (for reference)
       seaMarginTime: row.seaMarginTime, // Extra time from sea margin
       seaMargin: row.seaMargin, // Sea margin percentage
@@ -1108,6 +1110,9 @@ export function useVoyageContext() {
         },
         etsCost: 0, chargeableCo2: 0, etsVoyageCoverage: 0, etsPhaseIn: 0,
         emissionWarnings: [], emissionErrors: [], ladenDistance: 0,
+        nonEcaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
+        ecaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
+        nonEcaCo2: 0, ecaCo2: 0, nonEcaDistance: 0,
       },
     } as VoyageContextValue;
   }

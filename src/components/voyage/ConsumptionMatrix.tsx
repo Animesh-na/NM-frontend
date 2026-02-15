@@ -1,5 +1,6 @@
 import { type SpeedProfile, type ConsumptionMatrix as ConsumptionMatrixType } from "@/data/vessels";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InfoTooltip } from "./InfoTooltip";
 
 interface ConsumptionMatrixProps {
   speedProfile: SpeedProfile;
@@ -19,15 +20,16 @@ interface ConsumptionMatrixProps {
 type MatrixRow = {
   key: keyof ConsumptionMatrixType;
   label: string;
+  tooltip?: { formula: string; description?: string };
 };
 
 const matrixRows: MatrixRow[] = [
-  { key: "speed", label: "Spd (kts)" },
-  { key: "hsfo", label: "HSFO cons." },
-  { key: "vlsfo", label: "VLSFO cons." },
-  { key: "lsmgo", label: "LSMGO cons." },
-  { key: "ae", label: "AE cons." },
-  { key: "aeScrubber", label: "AE + scrubber cons." },
+  { key: "speed", label: "Spd (kts)", tooltip: { formula: "Speed (knots) = Nautical Miles / Hour", description: "Speed is measured in knots (nautical miles per hour)." } },
+  { key: "hsfo", label: "HSFO cons.", tooltip: { formula: "Consumption (MT/day) at selected speed", description: "Fuel consumption values are calculated per day (MT/day) at the selected speed." } },
+  { key: "vlsfo", label: "VLSFO cons.", tooltip: { formula: "Consumption (MT/day) at selected speed", description: "Fuel consumption values are calculated per day (MT/day) at the selected speed." } },
+  { key: "lsmgo", label: "LSMGO cons.", tooltip: { formula: "Consumption (MT/day) at selected speed", description: "Fuel consumption values are calculated per day (MT/day) at the selected speed." } },
+  { key: "ae", label: "AE cons.", tooltip: { formula: "AE Consumption (MT/day)", description: "Auxiliary engine fuel consumption per day (MT/day)." } },
+  { key: "aeScrubber", label: "AE + scrubber cons.", tooltip: { formula: "AE + Scrubber Consumption (MT/day)", description: "Auxiliary engine with scrubber fuel consumption per day (MT/day)." } },
 ];
 
 type ColumnKey = keyof ConsumptionMatrixType["speed"];
@@ -114,7 +116,12 @@ export function ConsumptionMatrix({
           <tbody>
             {matrixRows.map((row) => (
               <tr key={row.key}>
-                <td className="font-medium text-left">{row.label}</td>
+                <td className="font-medium text-left whitespace-nowrap">
+                  <span className="inline-flex items-center">
+                    {row.label}
+                    {row.tooltip && <InfoTooltip formula={row.tooltip.formula} description={row.tooltip.description} />}
+                  </span>
+                </td>
                 {columns.map(col => {
                   const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
                   const value = consumptionMatrix[row.key][col.key];
