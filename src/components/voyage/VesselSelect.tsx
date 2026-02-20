@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { Search, Ship, Loader2 } from "lucide-react";
 import { 
   type VesselData, 
+  type ConsumptionMatrix,
   defaultVessel,
   estimateExtendedConsumption,
   estimateTpc,
   syncLegacyConsumption,
 } from "@/data/vessels";
 import { cn } from "@/lib/utils";
-import { searchVesselsWithFuel, type VesselWithFuel } from "@/services/vesselFuelApi";
+import { searchVesselsWithFuel, type VesselWithFuel, type FuelConsumptionResult } from "@/services/vesselFuelApi";
 
 interface VesselSelectProps {
   value: string;
@@ -19,11 +20,87 @@ interface VesselSelectProps {
   className?: string;
 }
 
-// Convert API vessel to VesselData
-function vesselWithFuelToVesselData(v: VesselWithFuel): VesselData {
+// Build a ConsumptionMatrix from API fuel_consumption result
+function buildMatrixFromFuel(fc: FuelConsumptionResult, hasScrubber: boolean): ConsumptionMatrix {
+  const meTpd = fc.outside_eca.me_tpd;
+  const aeSeaTpd = fc.outside_eca.ae_tpd;
+  const aePortTpd = fc.in_port.ae_tpd;
+  const scrubberPenalty = hasScrubber ? fc.outside_eca.scrubber_penalty_tpd : 0;
+
+  // HSFO: only if scrubber equipped, used outside ECA (ballast/laden at sea)
+  const hsfo = {
+    ballast: hasScrubber ? meTpd : 0,
+    laden: hasScrubber ? meTpd : 0,
+    canal: hasScrubber ? meTpd : 0,
+    load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0,
+  };
+
+  // VLSFO: only if NO scrubber, used outside ECA (ballast/laden at sea)
+  const vlsfo = {
+    ballast: !hasScrubber ? meTpd : 0,
+    laden: !hasScrubber ? meTpd : 0,
+    canal: !hasScrubber ? meTpd : 0,
+    load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0,
+  };
+
+  // LSMGO: used inside ECA (sea) and in port (AE only, no ME)
+  const ecaMeTpd = fc.inside_eca.me_tpd;
+  const lsmgo = {
+    ballast: ecaMeTpd,
+    laden: ecaMeTpd,
+    canal: ecaMeTpd,
+    load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0,
+  };
+
+  // AE consumption (separate row)
+  const ae = {
+    ballast: aeSeaTpd,
+    laden: aeSeaTpd,
+    canal: aeSeaTpd,
+    load: aePortTpd,
+    discharge: aePortTpd,
+    idle: aePortTpd,
+    misc1: 0, misc2: 0,
+  };
+
+  // AE + Scrubber penalty (additional consumption when scrubber runs)
+  const aeScrubber = {
+    ballast: scrubberPenalty,
+    laden: scrubberPenalty,
+    canal: scrubberPenalty,
+    load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0,
+  };
+
+  return {
+    speed: { ballast: 0, laden: 0, canal: 0, load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0 },
+    hsfo, vlsfo, lsmgo, ae, aeScrubber,
+  };
+}
+
+// Convert API vessel to VesselData, using actual fuel data when available
+function vesselWithFuelToVesselData(
+  v: VesselWithFuel,
+  fullSpeedData?: FuelConsumptionResult | null,
+): VesselData {
   const dwt = v.dwt || 0;
-  const ecoMatrix = estimateExtendedConsumption(dwt, false);
-  const fullMatrix = estimateExtendedConsumption(dwt, true);
+  const hasScrubber = !!v.scrubber_indicator;
+
+  // Use API fuel data if available, otherwise fall back to DWT estimates
+  let ecoMatrix: ConsumptionMatrix;
+  let fullMatrix: ConsumptionMatrix;
+
+  if (v.fuel_consumption && v.calculation_status === 'ok') {
+    // v is searched with eco mode → use for eco matrix
+    ecoMatrix = buildMatrixFromFuel(v.fuel_consumption, hasScrubber);
+  } else {
+    ecoMatrix = estimateExtendedConsumption(dwt, false);
+  }
+
+  if (fullSpeedData) {
+    fullMatrix = buildMatrixFromFuel(fullSpeedData, hasScrubber);
+  } else {
+    fullMatrix = estimateExtendedConsumption(dwt, true);
+  }
 
   return {
     name: v.name,
@@ -35,9 +112,9 @@ function vesselWithFuelToVesselData(v: VesselWithFuel): VesselData {
     cubicUnit: "cuft",
     draft: v.draught || 0,
     tpcTpi: estimateTpc(dwt),
-    hsfoCapability: !v.scrubber_indicator, // non-scrubber defaults to VLSFO capability
-    hasScrubber: v.scrubber_indicator,
-    scrubberCount: v.scrubber_indicator ? 1 : 0,
+    hsfoCapability: hasScrubber,
+    hasScrubber,
+    scrubberCount: hasScrubber ? 1 : 0,
     builtYear: v.builtyear,
     builder: v.builder,
     owner: v.owner,
@@ -74,6 +151,7 @@ export function VesselSelect({
       setLoading(true);
       try {
         const results = await searchVesselsWithFuel(search, {
+          mode: 'eco',
           limit: 10,
         });
         setVessels(results);
@@ -94,10 +172,23 @@ export function VesselSelect({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleSelect = (v: VesselWithFuel) => {
+  const handleSelect = async (v: VesselWithFuel) => {
     setSearch(v.name);
-    onChange(vesselWithFuelToVesselData(v), v);
     setIsOpen(false);
+
+    // The search was done in eco mode (default). Now fetch full_speed data for the same vessel.
+    let fullSpeedFuel: FuelConsumptionResult | null = null;
+    try {
+      const fullResults = await searchVesselsWithFuel(v.imo || v.name, { mode: 'full_speed', limit: 5 });
+      const match = fullResults.find(fv => fv.id === v.id || fv.imo === v.imo);
+      if (match?.fuel_consumption && match.calculation_status === 'ok') {
+        fullSpeedFuel = match.fuel_consumption;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch full_speed fuel data:', e);
+    }
+
+    onChange(vesselWithFuelToVesselData(v, fullSpeedFuel), v);
   };
 
   const handleClear = () => { setSearch(""); onChange(null); setVessels([]); };
