@@ -2,68 +2,98 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const MARINE_API_BASE = "https://development.effimove.in/marine/api/v1";
 const MARINE_API_KEY = "effimove@2026";
 
-// ─── Fuel Consumption Rule Engine ───
+// ─── Constants ───
+const AE_SFOC = 181; // g/kWh standard for auxiliary engines
 
-interface FuelConsumptionResult {
-  outside_eca: { fuel_type: string; me_tpd: number; ae_tpd: number; tpd: number };
+interface ModeParams {
+  me_load: number;      // fraction
+  ae_sea_load: number;  // fraction of MCR
+  ae_port_load: number; // fraction of MCR
+  scrubber_penalty: number; // fraction (additional % of total outside ECA)
+}
+
+const MODES: Record<string, ModeParams> = {
+  full_speed: {
+    me_load: 0.85,
+    ae_sea_load: 0.04,
+    ae_port_load: 0.06,
+    scrubber_penalty: 0.015,
+  },
+  eco: {
+    me_load: 0.70,
+    ae_sea_load: 0.035,
+    ae_port_load: 0.06,
+    scrubber_penalty: 0.012,
+  },
+};
+
+// ─── Calculation Engine ───
+
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+function calculateFuelTPD(mcr: number, sfoc: number, loadFraction: number): number {
+  // Fuel (TPD) = (MCR × Load% × SFOC × 24) / 1,000,000
+  return (mcr * loadFraction * sfoc * 24) / 1_000_000;
+}
+
+function calculateAeFuelTPD(mcr: number, aeLoadFraction: number): number {
+  // AE_kW = MCR × AE_Load%, then AE Fuel = (AE_kW × AE_SFOC × 24) / 1,000,000
+  const aeKw = mcr * aeLoadFraction;
+  return (aeKw * AE_SFOC * 24) / 1_000_000;
+}
+
+interface FuelResult {
+  outside_eca: { fuel_type: string; me_tpd: number; ae_tpd: number; scrubber_penalty_tpd: number; tpd: number };
   inside_eca:  { fuel_type: string; me_tpd: number; ae_tpd: number; tpd: number };
   in_port:     { fuel_type: string; me_tpd: number; ae_tpd: number; tpd: number };
 }
 
-function calculateFuelConsumption(
+function computeConsumption(
+  mcr: number,
+  sfoc: number,
   scrubberIndicator: boolean,
-  meConsumption: number,
-  aeNonScrubber: number,
-  aeScrubber: number,
-): FuelConsumptionResult {
-  // OUTSIDE ECA
-  const outsideEca = scrubberIndicator
-    ? { fuel_type: "HSFO",  me_tpd: meConsumption, ae_tpd: aeScrubber,    tpd: round(meConsumption + aeScrubber) }
-    : { fuel_type: "VLSFO", me_tpd: meConsumption, ae_tpd: aeNonScrubber, tpd: round(meConsumption + aeNonScrubber) };
+  mode: ModeParams,
+): FuelResult {
+  const meFuel = calculateFuelTPD(mcr, sfoc, mode.me_load);
+  const aeSeaFuel = calculateAeFuelTPD(mcr, mode.ae_sea_load);
+  const aePortFuel = calculateAeFuelTPD(mcr, mode.ae_port_load);
 
-  // INSIDE ECA — always LSMGO, scrubber does NOT affect
-  const insideEca = {
-    fuel_type: "LSMGO",
-    me_tpd: meConsumption,
-    ae_tpd: aeNonScrubber,
-    tpd: round(meConsumption + aeNonScrubber),
+  // OUTSIDE ECA
+  const baseTotalOutside = meFuel + aeSeaFuel;
+  const scrubberPenaltyTpd = scrubberIndicator ? round2(baseTotalOutside * mode.scrubber_penalty) : 0;
+  const outsideEca = {
+    fuel_type: scrubberIndicator ? "HSFO" : "VLSFO",
+    me_tpd: round2(meFuel),
+    ae_tpd: round2(aeSeaFuel),
+    scrubber_penalty_tpd: scrubberPenaltyTpd,
+    tpd: round2(baseTotalOutside + scrubberPenaltyTpd),
   };
 
-  // IN PORT — LSMGO, ME = 0
+  // INSIDE ECA — always LSMGO, no scrubber penalty
+  const insideEca = {
+    fuel_type: "LSMGO",
+    me_tpd: round2(meFuel),
+    ae_tpd: round2(aeSeaFuel),
+    tpd: round2(meFuel + aeSeaFuel),
+  };
+
+  // IN PORT — LSMGO, AE only, no ME
   const inPort = {
     fuel_type: "LSMGO",
     me_tpd: 0,
-    ae_tpd: aeNonScrubber,
-    tpd: round(aeNonScrubber),
+    ae_tpd: round2(aePortFuel),
+    tpd: round2(aePortFuel),
   };
 
   return { outside_eca: outsideEca, inside_eca: insideEca, in_port: inPort };
-}
-
-function round(v: number): number {
-  return Math.round(v * 100) / 100;
-}
-
-// ─── Estimate consumption from engine specs ───
-
-function estimateConsumptionFromEngine(mcr: number, sfoc: number) {
-  // ME consumption (TPD) = MCR (kW) × SFOC (g/kWh) × 24h / 1_000_000
-  const meConsumption = (mcr * sfoc * 24) / 1_000_000;
-  // AE non-scrubber ≈ 24.5% of ME
-  const aeNonScrubber = meConsumption * 0.245;
-  // AE scrubber ≈ 39.2% of ME (scrubber adds ~60% to AE load)
-  const aeScrubber = meConsumption * 0.392;
-  return {
-    expected_me_consumption: round(meConsumption),
-    expected_ae_consumption_non_scrubber: round(aeNonScrubber),
-    expected_ae_consumption_scrubber: round(aeScrubber),
-  };
 }
 
 // ─── Marine API proxy helper ───
@@ -101,7 +131,7 @@ serve(async (req) => {
       return json(data);
     }
 
-    // GET ?action=sectors (derived from known vessel sectors)
+    // GET ?action=sectors
     if (action === 'sectors') {
       const sectors = [
         { id: 1, name: "Dry Bulk" },
@@ -119,39 +149,45 @@ serve(async (req) => {
       return json({ sectors });
     }
 
-    // GET ?action=search&q=<name_or_imo>
+    // GET ?action=search&q=<name_or_imo>&mode=full_speed|eco
     if (action === 'search') {
       const q = url.searchParams.get('q') || '';
       const limit = url.searchParams.get('limit') || '10';
-      const typeId = url.searchParams.get('type_id') || '';
-      const sectorId = url.searchParams.get('sector_id') || '';
+      const modeParam = url.searchParams.get('mode') || 'full_speed';
 
       if (!q || q.length < 2) {
         return json({ vessels: [], message: 'Query must be at least 2 characters' });
       }
 
-      const params: Record<string, string> = { q, limit };
-      if (typeId) params.type_id = typeId;
-      if (sectorId) params.sector_id = sectorId;
+      const mode = MODES[modeParam] || MODES.full_speed;
 
-      const data = await marineApiFetch('/vessels/search', params);
+      // Search by q only — type/sector are NOT mixed into search
+      const data = await marineApiFetch('/vessels/search', { q, limit });
       const vessels = (data.vessels || []).map((v: any) => {
-        const mcr = v.main_engine1_mcr || 0;
-        const sfoc = v.main_engine1_sfoc || 0;
+        const mcr = v.main_engine1_mcr;
+        const sfoc = v.main_engine1_sfoc;
         const scrubber = !!v.scrubber_indicator;
 
-        const estimates = estimateConsumptionFromEngine(mcr, sfoc);
-        const fuelConsumption = calculateFuelConsumption(
-          scrubber,
-          estimates.expected_me_consumption,
-          estimates.expected_ae_consumption_non_scrubber,
-          estimates.expected_ae_consumption_scrubber,
-        );
+        // Null handling — if MCR or SFOC missing, return insufficient status
+        if (mcr == null || sfoc == null || mcr === 0 || sfoc === 0) {
+          return {
+            ...v,
+            scrubber_indicator: scrubber,
+            hsfo_allowed: scrubber,
+            mode: modeParam,
+            calculation_status: "insufficient_engine_data",
+            fuel_consumption: null,
+          };
+        }
+
+        const fuelConsumption = computeConsumption(mcr, sfoc, scrubber, mode);
 
         return {
           ...v,
           scrubber_indicator: scrubber,
-          engine_estimates: estimates,
+          hsfo_allowed: scrubber,
+          mode: modeParam,
+          calculation_status: "ok",
           fuel_consumption: fuelConsumption,
         };
       });
