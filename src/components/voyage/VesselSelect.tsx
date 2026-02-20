@@ -43,13 +43,17 @@ function buildMatrixFromFuel(fc: FuelConsumptionResult, hasScrubber: boolean): C
     load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0,
   };
 
-  // LSMGO: used inside ECA (sea) and in port (AE only, no ME)
+  // LSMGO: used inside ECA (sea ME) and in port (AE runs on LSMGO)
+  // Port load/discharge/idle use AE TPD since ME is off in port
   const ecaMeTpd = fc.inside_eca.me_tpd;
   const lsmgo = {
     ballast: ecaMeTpd,
     laden: ecaMeTpd,
     canal: ecaMeTpd,
-    load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0,
+    load: aePortTpd, // AE consumption during loading (ME off)
+    discharge: aePortTpd, // AE consumption during discharging (ME off)
+    idle: aePortTpd, // AE consumption during idle (ME off)
+    misc1: 0, misc2: 0,
   };
 
   // AE consumption (separate row)
