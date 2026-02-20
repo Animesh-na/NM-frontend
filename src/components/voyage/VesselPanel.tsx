@@ -11,30 +11,33 @@ import {
   syncLegacyConsumption,
 } from "@/data/vessels";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { getVesselTypes, type VesselType } from "@/services/marineApi";
+import { getVesselTypes, getVesselSectors, type VesselType, type VesselSector } from "@/services/vesselFuelApi";
 
 export function VesselPanel() {
   const { vessel, setVessel } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
   const [vesselTypes, setVesselTypes] = useState<VesselType[]>([]);
+  const [vesselSectors, setVesselSectors] = useState<VesselSector[]>([]);
   const [typesLoading, setTypesLoading] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
+  const [selectedSectorId, setSelectedSectorId] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Load vessel types on mount
   useEffect(() => {
-    const loadTypes = async () => {
+    const load = async () => {
       setTypesLoading(true);
       try {
-        const types = await getVesselTypes();
+        const [types, sectors] = await Promise.all([getVesselTypes(), getVesselSectors()]);
         setVesselTypes(types);
+        setVesselSectors(sectors);
       } catch (error) {
-        console.error("Failed to load vessel types:", error);
+        console.error("Failed to load vessel filters:", error);
       } finally {
         setTypesLoading(false);
       }
     };
-    loadTypes();
+    load();
   }, []);
 
   const handleVesselTypeChange = (typeId: number | null, typeName: string) => {
@@ -188,23 +191,35 @@ export function VesselPanel() {
                 }}
                 disabled={typesLoading}
               >
-                <option value="">--- SELECT ---</option>
+                <option value="">--- ALL ---</option>
                 {vesselTypes.map(type => (
                   <option key={type.id} value={type.id}>{type.name}</option>
                 ))}
               </select>
             </div>
-            
-            <div className="col-span-1 flex items-center justify-center text-[10px] text-muted-foreground">
-              Or
+
+            <div className="col-span-2">
+              <label className="compact-label">Sector</label>
+              <select
+                className="form-select w-full text-xs"
+                value={selectedSectorId ?? ""}
+                onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)}
+                disabled={typesLoading}
+              >
+                <option value="">--- ALL ---</option>
+                {vesselSectors.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
             </div>
             
-            <div className="col-span-8">
+            <div className="col-span-7">
               <VesselSelect
                 value={vessel.name}
                 onChange={handleVesselSelect}
                 selectedTypeId={selectedTypeId}
-                placeholder="Search vessel..."
+                selectedSectorId={selectedSectorId}
+                placeholder="Search vessel by name or IMO..."
               />
             </div>
             <div className="col-span-1 flex items-center justify-center">
