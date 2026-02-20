@@ -210,6 +210,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         idleDays += leg.portDays || 0;
       } else if (leg.operation === "bunkering") {
         bunkeringDays += leg.portDays || 0;
+      } else if (leg.portDays > 0) {
+        // Any other port operation (repos, open, generic port) counts as idle
+        idleDays += leg.portDays || 0;
       }
 
       // Use pre-calculated seaTime (includes sea margin) for ballast/laden split
