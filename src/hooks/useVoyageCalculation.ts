@@ -373,7 +373,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     }
 
     const voyageCommission = grossFreight * (cargo.voyageCommission / 100);
-    const netFreight = grossFreight - voyageCommission;
+    const tcCommissionOnFreight = grossFreight * (cargo.tcCommission / 100);
+    const netFreight = grossFreight - voyageCommission - tcCommissionOnFreight;
 
     // 7. Calculate misc costs
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);

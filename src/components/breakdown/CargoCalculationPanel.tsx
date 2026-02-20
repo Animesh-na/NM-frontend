@@ -65,20 +65,31 @@ export function CargoCalculationPanel({ cargos, results, sequence }: CargoCalcul
 
           <FormulaBlock
             name="Voyage Commission Deduction"
-            formula="Gross Freight × Commission %"
+            formula="Gross Freight × Voy Commission %"
             inputs={[
               { label: "Gross Freight", value: formatCurrency(results.grossFreight), source: "Calculated" },
-              { label: "Commission %", value: `${cargos[0]?.voyageCommission || 0}%`, source: "Cargo" },
+              { label: "Voy Commission %", value: `${cargos[0]?.voyageCommission || 0}%`, source: "Cargo" },
             ]}
-            result={{ label: "Commission", value: formatCurrency(results.voyageCommission) }}
+            result={{ label: "Voy Commission", value: formatCurrency(results.voyageCommission) }}
+          />
+
+          <FormulaBlock
+            name="TC Commission Deduction"
+            formula="Gross Freight × TC Commission %"
+            inputs={[
+              { label: "Gross Freight", value: formatCurrency(results.grossFreight), source: "Calculated" },
+              { label: "TC Commission %", value: `${cargos[0]?.tcCommission || 0}%`, source: "Cargo" },
+            ]}
+            result={{ label: "TC Commission", value: formatCurrency(results.grossFreight * (cargos[0]?.tcCommission || 0) / 100) }}
           />
 
           <FormulaBlock
             name="Net Freight"
-            formula="Gross Freight - Commission"
+            formula="Gross Freight - Voy Commission - TC Commission"
             inputs={[
               { label: "Gross Freight", value: formatCurrency(results.grossFreight), source: "Calculated" },
-              { label: "Commission", value: formatCurrency(results.voyageCommission), source: "Calculated" },
+              { label: "Voy Commission", value: formatCurrency(results.voyageCommission), source: "Calculated" },
+              { label: "TC Commission", value: formatCurrency(results.grossFreight * (cargos[0]?.tcCommission || 0) / 100), source: "Calculated" },
             ]}
             result={{ label: "Net Freight", value: formatCurrency(results.netFreight) }}
           />
