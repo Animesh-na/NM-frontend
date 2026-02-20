@@ -199,23 +199,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       totalBaseSeaTime += leg.baseSeaTime || 0;
       totalSeaMarginTime += leg.seaMarginTime || 0;
 
-      // Track operation types for port consumption
-      if (leg.operation === "load" || leg.operation === "loading") {
-        loadingDays += leg.portDays || 0;
-        isLaden = true;
-      } else if (leg.operation === "disch" || leg.operation === "discharging") {
-        dischargingDays += leg.portDays || 0;
-        isLaden = false;
-      } else if (leg.operation === "waiting" || leg.operation === "idle") {
-        idleDays += leg.portDays || 0;
-      } else if (leg.operation === "bunkering") {
-        bunkeringDays += leg.portDays || 0;
-      } else if (leg.portDays > 0) {
-        // Any other port operation (repos, open, generic port) counts as idle
-        idleDays += leg.portDays || 0;
-      }
-
       // Use pre-calculated seaTime (includes sea margin) for ballast/laden split
+      // IMPORTANT: Assign sea time BEFORE updating isLaden flag
+      // The ship sails to a loading port in BALLAST, and sails from loading to discharge in LADEN
       const legSeaTime = leg.seaTime || 0;
       const legEcaTime = leg.ecaTime || 0;
       const legNonEcaTime = leg.nonEcaTime || (legSeaTime - legEcaTime);
@@ -230,6 +216,22 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         seaDaysBallast += legSeaTime;
         ecaSeaDaysBallast += legEcaTime;
         nonEcaSeaDaysBallast += legNonEcaTime;
+      }
+
+      // Track operation types for port consumption
+      // Update isLaden AFTER sea time assignment so the leg TO loading is ballast, leg FROM loading is laden
+      if (leg.operation === "load" || leg.operation === "loading") {
+        loadingDays += leg.portDays || 0;
+        isLaden = true;
+      } else if (leg.operation === "disch" || leg.operation === "discharging") {
+        dischargingDays += leg.portDays || 0;
+        isLaden = false;
+      } else if (leg.operation === "waiting" || leg.operation === "idle") {
+        idleDays += leg.portDays || 0;
+      } else if (leg.operation === "bunkering") {
+        bunkeringDays += leg.portDays || 0;
+      } else if (leg.portDays > 0) {
+        idleDays += leg.portDays || 0;
       }
     });
 
