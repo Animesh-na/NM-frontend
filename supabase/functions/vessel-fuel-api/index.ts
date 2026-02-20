@@ -162,8 +162,11 @@ serve(async (req) => {
       const mode = MODES[modeParam] || MODES.full_speed;
 
       // Search by q only — type/sector are NOT mixed into search
-      const data = await marineApiFetch('/vessels/search', { q, limit });
-      const vessels = (data.vessels || []).map((v: any) => {
+      // Upstream endpoint is /vessels?q=... (not /vessels/search)
+      const data = await marineApiFetch('/vessels', { q, limit });
+      // Upstream returns { results: [...], search_type, source }
+      const rawVessels = Array.isArray(data) ? data : (data.results || data.vessels || []);
+      const vessels = rawVessels.map((v: any) => {
         const mcr = v.main_engine1_mcr;
         const sfoc = v.main_engine1_sfoc;
         const scrubber = !!v.scrubber_indicator;
