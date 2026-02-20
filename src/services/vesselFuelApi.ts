@@ -35,17 +35,17 @@ export interface FuelZone {
   tpd: number;
 }
 
+export interface FuelZoneOutsideEca extends FuelZone {
+  scrubber_penalty_tpd: number;
+}
+
 export interface FuelConsumptionResult {
-  outside_eca: FuelZone;
+  outside_eca: FuelZoneOutsideEca;
   inside_eca: FuelZone;
   in_port: FuelZone;
 }
 
-export interface EngineEstimates {
-  expected_me_consumption: number;
-  expected_ae_consumption_non_scrubber: number;
-  expected_ae_consumption_scrubber: number;
-}
+export type OperatingMode = 'full_speed' | 'eco';
 
 export interface VesselWithFuel {
   id: number;
@@ -62,10 +62,12 @@ export interface VesselWithFuel {
   owner: string;
   capacitycuft: number;
   scrubber_indicator: boolean;
+  hsfo_allowed: boolean;
   main_engine1_mcr: number;
   main_engine1_sfoc: number;
-  engine_estimates: EngineEstimates;
-  fuel_consumption: FuelConsumptionResult;
+  mode: OperatingMode;
+  calculation_status: 'ok' | 'insufficient_engine_data';
+  fuel_consumption: FuelConsumptionResult | null;
 }
 
 // ── API Calls ──
@@ -92,12 +94,15 @@ export async function getVesselSectors(): Promise<VesselSector[]> {
 
 export async function searchVesselsWithFuel(
   query: string,
-  options?: { typeId?: number; sectorId?: number; limit?: number },
+  options?: { mode?: OperatingMode; limit?: number },
 ): Promise<VesselWithFuel[]> {
   try {
-    const params: Record<string, string | number> = { action: 'search', q: query, limit: options?.limit ?? 10 };
-    if (options?.typeId) params.type_id = options.typeId;
-    if (options?.sectorId) params.sector_id = options.sectorId;
+    const params: Record<string, string | number> = {
+      action: 'search',
+      q: query,
+      limit: options?.limit ?? 10,
+      mode: options?.mode ?? 'full_speed',
+    };
     const data = await apiFetch<{ vessels: VesselWithFuel[] }>(params);
     return data.vessels || [];
   } catch (e) {

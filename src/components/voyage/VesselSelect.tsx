@@ -74,8 +74,6 @@ export function VesselSelect({
       setLoading(true);
       try {
         const results = await searchVesselsWithFuel(search, {
-          typeId: selectedTypeId || undefined,
-          sectorId: selectedSectorId || undefined,
           limit: 10,
         });
         setVessels(results);
