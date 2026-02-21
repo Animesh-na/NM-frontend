@@ -24,7 +24,7 @@ export interface SequenceRow {
   cgo: string;
   distance: number; // nm (non-ECA)
   ecaDistance: number; // nm in ECA zones
-  portDays: number; // days in port
+  portDays: number; // days in port (total including working + turn + extra)
   quantity: number; // mt or cbm
   expDa: number; // port costs in USD
   // Sea margin adjusted times (calculated in VoyageContext)
@@ -34,6 +34,9 @@ export interface SequenceRow {
   baseSeaTime?: number; // Base time without margin
   seaMarginTime?: number; // Extra time from sea margin
   seaMargin?: number; // Sea margin percentage
+  // Port time breakdown
+  turnTimeHours?: number; // Turn time in hours
+  extraTimeHours?: number; // Extra time in hours
 }
 
 export interface CargoData {
@@ -220,11 +223,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
       // Track operation types for port consumption
       // Update isLaden AFTER sea time assignment so the leg TO loading is ballast, leg FROM loading is laden
+      // For load/discharge: split into working days (load/discharge rates) and idle days (turn+extra time at idle rates)
+      const turnExtraDays = ((leg.turnTimeHours || 0) + (leg.extraTimeHours || 0)) / 24;
+      const workingDays = Math.max(0, (leg.portDays || 0) - turnExtraDays);
+      
       if (leg.operation === "load" || leg.operation === "loading") {
-        loadingDays += leg.portDays || 0;
+        loadingDays += workingDays;
+        idleDays += turnExtraDays; // Turn time + extra time at idle consumption
         isLaden = true;
       } else if (leg.operation === "disch" || leg.operation === "discharging") {
-        dischargingDays += leg.portDays || 0;
+        dischargingDays += workingDays;
+        idleDays += turnExtraDays; // Turn time + extra time at idle consumption
         isLaden = false;
       } else if (leg.operation === "waiting" || leg.operation === "idle") {
         idleDays += leg.portDays || 0;
@@ -383,8 +392,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     }
 
     const voyageCommission = grossFreight * (cargo.voyageCommission / 100);
-    const tcCommissionOnFreight = grossFreight * (cargo.tcCommission / 100);
-    const netFreight = grossFreight - voyageCommission - tcCommissionOnFreight;
+    const netFreight = grossFreight - voyageCommission;
 
     // 7. Calculate misc costs
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
