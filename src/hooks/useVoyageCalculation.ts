@@ -422,18 +422,22 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // P&L = Voyage Result − Hire Cost
     const pAndL = voyageResult - hireCost;
 
-    // TCE (Daily Result) = Voyage Result / Total Voyage Days
-    const tce = totalVoyageDays > 0 ? voyageResult / totalVoyageDays : 0;
-    
-    // NTCE = (Net Freight − Voyage Costs − Net Hire Cost) / Days
-    // Reflects daily P&L after TC commission on hire
-    const ntce = totalVoyageDays > 0 
-      ? (netFreight - totalVoyageCosts + cargo.demurrage - cargo.despatch - netHireCost) / totalVoyageDays 
+    // TCE = (Voyage Revenues - Voyage Expenses) / Days
+    // Voyage Revenues = Gross Freight + Demurrage - Despatch (before commissions)
+    // Voyage Expenses = Bunkers + Port + Canal + Misc (no hire)
+    const tce = totalVoyageDays > 0 
+      ? (grossFreight + cargo.demurrage - cargo.despatch - totalVoyageCosts) / totalVoyageDays 
       : 0;
     
-    // GTCE = (Gross Freight − Voyage Costs) / Voyage Days
+    // GTCE = (Gross Revenue - Voyage Expenses) / Days — before commissions
     const gtce = totalVoyageDays > 0 
-      ? (grossFreight - voyageCostExclHire) / totalVoyageDays 
+      ? (grossFreight + cargo.demurrage - cargo.despatch - totalVoyageCosts) / totalVoyageDays 
+      : 0;
+    
+    // NTCE = (Gross Revenue - All Commissions - Voyage Expenses) / Days — after commissions
+    const totalCommissions = voyageCommission + (grossFreight * tcCommissionPct);
+    const ntce = totalVoyageDays > 0 
+      ? (grossFreight - totalCommissions + cargo.demurrage - cargo.despatch - totalVoyageCosts) / totalVoyageDays 
       : 0;
 
     // 10. Environmental calculations using emission module
