@@ -240,9 +240,9 @@ export function estimateExtendedConsumption(dwt: number, isFull: boolean = false
       ballast: legacyCons.lsmgo.ecoBallast * consFactor,
       laden: legacyCons.lsmgo.ecoLaden * consFactor,
       canal: legacyCons.lsmgo.canal,
-      load: legacyCons.lsmgo.canal * 1.2 + legacyCons.ae.canal * 1.5, // ME LSMGO + AE port
-      discharge: legacyCons.lsmgo.canal * 1.2 + legacyCons.ae.canal * 1.5, // ME LSMGO + AE port
-      idle: legacyCons.lsmgo.canal * 0.8 + legacyCons.ae.canal * 0.6, // ME LSMGO + AE port
+      load: 0, // ME off in port — AE port consumption is in AE row
+      discharge: 0,
+      idle: 0,
       misc1: 0,
       misc2: 0,
     },

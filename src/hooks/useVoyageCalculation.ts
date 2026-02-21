@@ -333,20 +333,22 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const lsmgoCanal = totalCanalDays * (profile.lsmgo.canal || 0);
     
     // --- AE (Auxiliary Engine) Consumption ---
-    // AE runs during port operations for electricity (on LSMGO/MGO)
-    // Port AE consumption is already included in LSMGO load/discharge/idle values
-    // so we only add AE sea consumption (auxiliary engine at sea) here
+    // AE runs on LSMGO/MGO — all AE consumption contributes to LSMGO total
     const aeSeaConsumption = (
       seaDaysBallast * (profile.ae.ballast || 0) +
       seaDaysLaden * (profile.ae.laden || 0)
     ) * rewardFactor;
     
-    // AE canal consumption (not included in LSMGO canal row)
     const aeCanalConsumption = totalCanalDays * (profile.ae.canal || 0);
     
-    // Total AE contribution to LSMGO = sea AE + canal AE
-    // (port AE is already in LSMGO load/discharge/idle rows)
-    const lsmgoAeTotal = aeSeaConsumption + aeCanalConsumption;
+    // AE port consumption (load/discharge/idle)
+    const aePortConsumption = 
+      loadingDays * (profile.ae.load || 0) +
+      dischargingDays * (profile.ae.discharge || 0) +
+      idleAndBunkeringDays * (profile.ae.idle || 0);
+    
+    // Total AE contribution to LSMGO = sea + canal + port
+    const lsmgoAeTotal = aeSeaConsumption + aeCanalConsumption + aePortConsumption;
     
     // --- Total Fuel Consumption ---
     const hsfoConsumption = hsfoSeaTotal + hsfoLoading + hsfoDischarging + hsfoIdle + hsfoCanal;
