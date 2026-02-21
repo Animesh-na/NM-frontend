@@ -946,6 +946,9 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       baseSeaTime: row.baseSeaTime, // Base time without margin (for reference)
       seaMarginTime: row.seaMarginTime, // Extra time from sea margin
       seaMargin: row.seaMargin, // Sea margin percentage
+      // Port time breakdown for fuel consumption split
+      turnTimeHours: row.turnTime || 0, // Turn time in hours
+      extraTimeHours: row.extraTime || 0, // Extra time in hours
     })),
     cargo: aggregatedCargo,
     bunker: {
