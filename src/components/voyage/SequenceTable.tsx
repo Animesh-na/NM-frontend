@@ -72,7 +72,7 @@ export function SequenceTable() {
     if (row.operation === "loading") return "load";
     if (row.operation === "discharging") return "disch";
     if (row.operation === "bunkering") return "bkrg";
-    if (row.operation === "waiting") return "wait";
+    if (row.operation === "pssg") return "pssg";
     return "port";
   };
 
@@ -80,7 +80,7 @@ export function SequenceTable() {
     if (value === "load") updateSequenceRow(id, "operation", "loading");
     else if (value === "disch") updateSequenceRow(id, "operation", "discharging");
     else if (value === "bkrg") updateSequenceRow(id, "operation", "bunkering");
-    else if (value === "wait") updateSequenceRow(id, "operation", "waiting");
+    else if (value === "pssg") updateSequenceRow(id, "operation", "pssg");
   };
 
   const showQuantityFields = (row: SequenceRowUI) => 
@@ -150,7 +150,7 @@ export function SequenceTable() {
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12" title="Sea Margin % - Increases sailing time for weather/routing buffer">SM%</th>
                   <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-20">Quantity</th>
                   <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-28">Terms</th>
-                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12">Tt (d)</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12">Tt (h)</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12">Et (h)</th>
                   <th className="px-1 py-0.5 text-right font-medium text-muted-foreground border border-border w-16">Exp/DA</th>
                   <th className="px-1 py-0.5 border border-border w-6"></th>
@@ -174,7 +174,7 @@ export function SequenceTable() {
                           <option value="load">load</option>
                           <option value="disch">disch</option>
                           <option value="bkrg">bkrg</option>
-                          <option value="wait">wait</option>
+                          <option value="pssg">pssg</option>
                         </select>
                       )}
                     </td>
@@ -460,10 +460,10 @@ export function SequenceTable() {
                             type="number"
                             step="0.01"
                             className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
-                            value={row.turnTime ? (row.turnTime / 24).toFixed(2) : ""}
-                            onChange={(e) => updateSequenceRow(row.id, "turnTime", (parseFloat(e.target.value) || 0) * 24)}
+                            value={row.turnTime || ""}
+                            onChange={(e) => updateSequenceRow(row.id, "turnTime", parseFloat(e.target.value) || 0)}
                             placeholder="0"
-                            title="Turn time in days"
+                            title="Turn time in hours"
                           />
                         </div>
                       ) : (
