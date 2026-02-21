@@ -20,7 +20,7 @@ export function PortTimeCalculationPanel({ sequence, misc, results }: PortTimeCa
     .reduce((sum, r) => sum + r.calculatedPortDays, 0);
   
   const waitingTime = sequence
-    .filter(r => r.operation === "waiting")
+    .filter(r => r.operation === "pssg")
     .reduce((sum, r) => sum + r.calculatedPortDays, 0);
   
   const bunkeringTime = sequence

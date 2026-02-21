@@ -8,7 +8,7 @@ import { type Port } from "@/components/voyage/PortSelect";
 export type Season = "summer" | "winter" | "tropical" | "eca";
 
 // Operation types for port sequences
-export type PortOperation = "loading" | "discharging" | "waiting" | "bunkering";
+export type PortOperation = "loading" | "discharging" | "pssg" | "bunkering";
 
 // Speed context types for voyage legs
 // EV = Eco Voyage (Outside ECA), EL = Eco Local (Inside ECA)
@@ -227,8 +227,8 @@ function calculatePortDays(row: SequenceRowUI): number {
     return 0;
   }
   
-  if (row.operation === "waiting" || row.operation === "bunkering") {
-    // For waiting/bunkering, use turn time + extra time only
+  if (row.operation === "pssg" || row.operation === "bunkering") {
+    // For pssg/bunkering, use turn time + extra time only
     return (row.turnTime + row.extraTime) / 24;
   }
   
