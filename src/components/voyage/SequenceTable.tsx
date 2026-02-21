@@ -16,6 +16,7 @@ const termsOptions = [
   { value: "shinc", label: "shinc" },
   { value: "sshex", label: "sshex" },
   { value: "fhex", label: "fhex" },
+  { value: "satpn", label: "satpn" },
 ];
 
 const wdaysUnitOptions: { value: WdaysUnit; label: string }[] = [
@@ -144,7 +145,6 @@ export function SequenceTable() {
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-36" title="Sea Time: Base / +Margin / Total">
                     Sea Time (d)
                   </th>
-                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-24">Wdays Port</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-16">Draft (m)</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12" title="Sea Margin % - Increases sailing time for weather/routing buffer">SM%</th>
@@ -306,34 +306,6 @@ export function SequenceTable() {
                             placeholder={row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "0"}
                             title="Total Sea Time (Base + Sea Margin) - editable override"
                           />
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-
-                    {/* Wdays Port - editable value + unit selector (VL / %) */}
-                    <td className="px-1 py-0.5 border border-border text-center">
-                      {row.type === "port" ? (
-                        <div className="flex items-center gap-0.5 justify-center">
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="w-12 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5 font-medium text-primary"
-                            value={row.wdaysPortOverride !== undefined ? row.wdaysPortOverride : row.calculatedPortDays.toFixed(2)}
-                            onChange={(e) => updateSequenceRow(row.id, "wdaysPortOverride", parseFloat(e.target.value) || 0)}
-                            title="Port Days = (Quantity / Productivity) × Terms + Extra Time"
-                          />
-                          <select
-                            className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-background px-0.5"
-                            value={row.wdaysUnit || "VL"}
-                            onChange={(e) => updateSequenceRow(row.id, "wdaysUnit", e.target.value as WdaysUnit)}
-                            title="VL = Voyage Laytime Days, % = Percentage adjustment"
-                          >
-                            {wdaysUnitOptions.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
                         </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
