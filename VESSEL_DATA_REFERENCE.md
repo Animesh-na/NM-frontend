@@ -75,28 +75,157 @@ The API returns fuel consumption per zone. Mapping to the consumption matrix:
 
 ### 4b. When API Fuel Data IS NOT Available (DWT Estimation)
 
-The function `estimateExtendedConsumption(dwt, isFull)` generates consumption based on vessel size category:
+The function `estimateExtendedConsumption(dwt, isFull)` generates consumption based on vessel size category.
 
-| DWT Range | Category | Eco Speed (kn) | HSFO Ballast/Laden (TPD) | VLSFO Ballast/Laden (TPD) | LSMGO Ballast/Laden (TPD) | AE Sea (TPD) | AE Scrubber Ballast/Laden (TPD) | AE Scrubber Canal (TPD) |
-|-----------|----------|----------------|--------------------------|---------------------------|---------------------------|--------------|--------------------------------|------------------------|
-| ≥ 200,000 | Capesize/Ore | 11.5 / 11.0 | 35 / 38 | 42 / 45 | 35 / 35 | 0.25 | 0.40 / 0.40 | 0.40 |
-| ≥ 100,000 | Large Cape | 12.0 / 11.5 | 32 / 35 | 38 / 42 | 32 / 32 | 0.22 | 0.35 / 0.35 | 0.35 |
-| ≥ 60,000 | Panamax | 12.5 / 12.0 | 28 / 30 | 34 / 36 | 28 / 28 | 0.20 | 0.32 / 0.32 | 0.32 |
-| ≥ 40,000 | Supramax | 13.0 / 12.5 | 22 / 24 | 28 / 30 | 22 / 22 | 0.18 | 0.28 / 0.28 | 0.28 |
-| ≥ 25,000 | Handysize | 13.5 / 13.0 | 18 / 20 | 22 / 24 | 18 / 18 | 0.15 | 0.25 / 0.25 | 0.25 |
-| < 25,000 | Small | 14.0 / 13.5 | 14 / 16 | 18 / 20 | 14 / 14 | 0.12 | 0.20 / 0.20 | 0.20 |
+**Key rules:**
+- Full Speed: Ballast/Laden speed × 1.15, Ballast/Laden ME fuel × 1.30
+- Canal, Load, Discharge, Idle values are **identical** for both Eco and Full Speed (no multiplier applied)
+- Port derivation from canal: Load/Discharge = canal × 1.2, Idle = canal × 0.8
+- AE port derivation: Load/Discharge = AE canal × 1.5, Idle = AE canal × 0.6
+- AE Scrubber port derivation: Load/Discharge = AE Scrubber canal × 1.5, Idle = AE Scrubber canal × 0.6
+- LSMGO port values = 0 (ME off in port; AE handles port consumption)
 
-**Full Speed adjustments:**
-- Speed: × 1.15 (~15% faster)
-- Fuel consumption: × 1.30 (~30% more)
+---
 
-**Port consumption estimates (from canal values):**
-- Load / Discharge: canal × 1.2
-- Idle: canal × 0.8
-- AE Load/Discharge: AE canal × 1.5
-- AE Idle: AE canal × 0.6
-- **AE Scrubber Load/Discharge: AE Scrubber canal × 1.5**
-- **AE Scrubber Idle: AE Scrubber canal × 0.6**
+### Eco Speed — Complete Matrix
+
+#### ≥ 200,000 DWT (Capesize / Ore Carrier)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 11.5 | 11.0 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 35 | 38 | 6 | 7.2 | 7.2 | 4.8 |
+| **VLSFO (TPD)** | 42 | 45 | 6 | 7.2 | 7.2 | 4.8 |
+| **LSMGO (TPD)** | 35 | 35 | 6 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.25 | 0.25 | 0.40 | 0.60 | 0.60 | 0.24 |
+| **AE Scrubber (TPD)** | 0.40 | 0.40 | 0.40 | 0.60 | 0.60 | 0.24 |
+
+#### ≥ 100,000 DWT (Large Capesize)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 12.0 | 11.5 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 32 | 35 | 5 | 6.0 | 6.0 | 4.0 |
+| **VLSFO (TPD)** | 38 | 42 | 5 | 6.0 | 6.0 | 4.0 |
+| **LSMGO (TPD)** | 32 | 32 | 5 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.22 | 0.22 | 0.35 | 0.525 | 0.525 | 0.21 |
+| **AE Scrubber (TPD)** | 0.35 | 0.35 | 0.35 | 0.525 | 0.525 | 0.21 |
+
+#### ≥ 60,000 DWT (Panamax)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 12.5 | 12.0 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 28 | 30 | 4.5 | 5.4 | 5.4 | 3.6 |
+| **VLSFO (TPD)** | 34 | 36 | 4.5 | 5.4 | 5.4 | 3.6 |
+| **LSMGO (TPD)** | 28 | 28 | 4.5 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.20 | 0.20 | 0.32 | 0.48 | 0.48 | 0.192 |
+| **AE Scrubber (TPD)** | 0.32 | 0.32 | 0.32 | 0.48 | 0.48 | 0.192 |
+
+#### ≥ 40,000 DWT (Supramax)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 13.0 | 12.5 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 22 | 24 | 3.5 | 4.2 | 4.2 | 2.8 |
+| **VLSFO (TPD)** | 28 | 30 | 3.5 | 4.2 | 4.2 | 2.8 |
+| **LSMGO (TPD)** | 22 | 22 | 3.5 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.18 | 0.18 | 0.28 | 0.42 | 0.42 | 0.168 |
+| **AE Scrubber (TPD)** | 0.28 | 0.28 | 0.28 | 0.42 | 0.42 | 0.168 |
+
+#### ≥ 25,000 DWT (Handysize)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 13.5 | 13.0 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 18 | 20 | 3 | 3.6 | 3.6 | 2.4 |
+| **VLSFO (TPD)** | 22 | 24 | 3 | 3.6 | 3.6 | 2.4 |
+| **LSMGO (TPD)** | 18 | 18 | 3 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.15 | 0.15 | 0.25 | 0.375 | 0.375 | 0.15 |
+| **AE Scrubber (TPD)** | 0.25 | 0.25 | 0.25 | 0.375 | 0.375 | 0.15 |
+
+#### < 25,000 DWT (Small)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 14.0 | 13.5 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 14 | 16 | 2.5 | 3.0 | 3.0 | 2.0 |
+| **VLSFO (TPD)** | 18 | 20 | 2.5 | 3.0 | 3.0 | 2.0 |
+| **LSMGO (TPD)** | 14 | 14 | 2.5 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.12 | 0.12 | 0.20 | 0.30 | 0.30 | 0.12 |
+| **AE Scrubber (TPD)** | 0.20 | 0.20 | 0.20 | 0.30 | 0.30 | 0.12 |
+
+---
+
+### Full Speed — Complete Matrix
+
+> Only **Speed** (× 1.15) and **Ballast/Laden ME fuel** (× 1.30) change. Canal, Load, Discharge, Idle, AE, and AE Scrubber remain identical to Eco.
+
+#### ≥ 200,000 DWT (Capesize / Ore Carrier)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 13.225 | 12.65 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 45.5 | 49.4 | 6 | 7.2 | 7.2 | 4.8 |
+| **VLSFO (TPD)** | 54.6 | 58.5 | 6 | 7.2 | 7.2 | 4.8 |
+| **LSMGO (TPD)** | 45.5 | 45.5 | 6 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.25 | 0.25 | 0.40 | 0.60 | 0.60 | 0.24 |
+| **AE Scrubber (TPD)** | 0.40 | 0.40 | 0.40 | 0.60 | 0.60 | 0.24 |
+
+#### ≥ 100,000 DWT (Large Capesize)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 13.8 | 13.225 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 41.6 | 45.5 | 5 | 6.0 | 6.0 | 4.0 |
+| **VLSFO (TPD)** | 49.4 | 54.6 | 5 | 6.0 | 6.0 | 4.0 |
+| **LSMGO (TPD)** | 41.6 | 41.6 | 5 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.22 | 0.22 | 0.35 | 0.525 | 0.525 | 0.21 |
+| **AE Scrubber (TPD)** | 0.35 | 0.35 | 0.35 | 0.525 | 0.525 | 0.21 |
+
+#### ≥ 60,000 DWT (Panamax)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 14.375 | 13.8 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 36.4 | 39.0 | 4.5 | 5.4 | 5.4 | 3.6 |
+| **VLSFO (TPD)** | 44.2 | 46.8 | 4.5 | 5.4 | 5.4 | 3.6 |
+| **LSMGO (TPD)** | 36.4 | 36.4 | 4.5 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.20 | 0.20 | 0.32 | 0.48 | 0.48 | 0.192 |
+| **AE Scrubber (TPD)** | 0.32 | 0.32 | 0.32 | 0.48 | 0.48 | 0.192 |
+
+#### ≥ 40,000 DWT (Supramax)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 14.95 | 14.375 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 28.6 | 31.2 | 3.5 | 4.2 | 4.2 | 2.8 |
+| **VLSFO (TPD)** | 36.4 | 39.0 | 3.5 | 4.2 | 4.2 | 2.8 |
+| **LSMGO (TPD)** | 28.6 | 28.6 | 3.5 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.18 | 0.18 | 0.28 | 0.42 | 0.42 | 0.168 |
+| **AE Scrubber (TPD)** | 0.28 | 0.28 | 0.28 | 0.42 | 0.42 | 0.168 |
+
+#### ≥ 25,000 DWT (Handysize)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 15.525 | 14.95 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 23.4 | 26.0 | 3 | 3.6 | 3.6 | 2.4 |
+| **VLSFO (TPD)** | 28.6 | 31.2 | 3 | 3.6 | 3.6 | 2.4 |
+| **LSMGO (TPD)** | 23.4 | 23.4 | 3 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.15 | 0.15 | 0.25 | 0.375 | 0.375 | 0.15 |
+| **AE Scrubber (TPD)** | 0.25 | 0.25 | 0.25 | 0.375 | 0.375 | 0.15 |
+
+#### < 25,000 DWT (Small)
+
+| Row | Ballast | Laden | Canal | Load | Discharge | Idle |
+|-----|---------|-------|-------|------|-----------|------|
+| **Speed (kn)** | 16.1 | 15.525 | 0 | 0 | 0 | 0 |
+| **HSFO (TPD)** | 18.2 | 20.8 | 2.5 | 3.0 | 3.0 | 2.0 |
+| **VLSFO (TPD)** | 23.4 | 26.0 | 2.5 | 3.0 | 3.0 | 2.0 |
+| **LSMGO (TPD)** | 18.2 | 18.2 | 2.5 | 0 | 0 | 0 |
+| **AE (TPD)** | 0.12 | 0.12 | 0.20 | 0.30 | 0.30 | 0.12 |
+| **AE Scrubber (TPD)** | 0.20 | 0.20 | 0.20 | 0.30 | 0.30 | 0.12 |
 
 ---
 
