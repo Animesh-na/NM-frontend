@@ -77,14 +77,14 @@ The API returns fuel consumption per zone. Mapping to the consumption matrix:
 
 The function `estimateExtendedConsumption(dwt, isFull)` generates consumption based on vessel size category:
 
-| DWT Range | Category | Eco Speed (kn) | HSFO Ballast/Laden (TPD) | VLSFO Ballast/Laden (TPD) | LSMGO Ballast/Laden (TPD) | AE Sea (TPD) |
-|-----------|----------|----------------|--------------------------|---------------------------|---------------------------|--------------|
-| ≥ 200,000 | Capesize/Ore | 11.5 / 11.0 | 35 / 38 | 42 / 45 | 35 / 35 | 0.25 |
-| ≥ 100,000 | Large Cape | 12.0 / 11.5 | 32 / 35 | 38 / 42 | 32 / 32 | 0.22 |
-| ≥ 60,000 | Panamax | 12.5 / 12.0 | 28 / 30 | 34 / 36 | 28 / 28 | 0.20 |
-| ≥ 40,000 | Supramax | 13.0 / 12.5 | 22 / 24 | 28 / 30 | 22 / 22 | 0.18 |
-| ≥ 25,000 | Handysize | 13.5 / 13.0 | 18 / 20 | 22 / 24 | 18 / 18 | 0.15 |
-| < 25,000 | Small | 14.0 / 13.5 | 14 / 16 | 18 / 20 | 14 / 14 | 0.12 |
+| DWT Range | Category | Eco Speed (kn) | HSFO Ballast/Laden (TPD) | VLSFO Ballast/Laden (TPD) | LSMGO Ballast/Laden (TPD) | AE Sea (TPD) | AE Scrubber Ballast/Laden (TPD) | AE Scrubber Canal (TPD) |
+|-----------|----------|----------------|--------------------------|---------------------------|---------------------------|--------------|--------------------------------|------------------------|
+| ≥ 200,000 | Capesize/Ore | 11.5 / 11.0 | 35 / 38 | 42 / 45 | 35 / 35 | 0.25 | 0.40 / 0.40 | 0.40 |
+| ≥ 100,000 | Large Cape | 12.0 / 11.5 | 32 / 35 | 38 / 42 | 32 / 32 | 0.22 | 0.35 / 0.35 | 0.35 |
+| ≥ 60,000 | Panamax | 12.5 / 12.0 | 28 / 30 | 34 / 36 | 28 / 28 | 0.20 | 0.32 / 0.32 | 0.32 |
+| ≥ 40,000 | Supramax | 13.0 / 12.5 | 22 / 24 | 28 / 30 | 22 / 22 | 0.18 | 0.28 / 0.28 | 0.28 |
+| ≥ 25,000 | Handysize | 13.5 / 13.0 | 18 / 20 | 22 / 24 | 18 / 18 | 0.15 | 0.25 / 0.25 | 0.25 |
+| < 25,000 | Small | 14.0 / 13.5 | 14 / 16 | 18 / 20 | 14 / 14 | 0.12 | 0.20 / 0.20 | 0.20 |
 
 **Full Speed adjustments:**
 - Speed: × 1.15 (~15% faster)
@@ -95,6 +95,8 @@ The function `estimateExtendedConsumption(dwt, isFull)` generates consumption ba
 - Idle: canal × 0.8
 - AE Load/Discharge: AE canal × 1.5
 - AE Idle: AE canal × 0.6
+- **AE Scrubber Load/Discharge: AE Scrubber canal × 1.5**
+- **AE Scrubber Idle: AE Scrubber canal × 0.6**
 
 ---
 
