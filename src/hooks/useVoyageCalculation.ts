@@ -287,13 +287,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // Non-ECA LSMGO: ZERO — LSMGO is only used inside ECA zones
     const lsmgoSeaNonEcaTotal = 0;
     
-    // --- ECA Sea Consumption (LSMGO only — replaces all fuel types in ECA) ---
-    // In ECA zones, HSFO/VLSFO = 0, all consumption shifts to LSMGO at combined rate
-    const ecaFuelBallastRate = (profile.hsfo.ballast || 0) + (profile.vlsfo.ballast || 0) + (profile.lsmgo.ballast || 0);
-    const ecaFuelLadenRate = (profile.hsfo.laden || 0) + (profile.vlsfo.laden || 0) + (profile.lsmgo.laden || 0);
+    // --- ECA Sea Consumption (LSMGO only — uses LSMGO matrix rate directly) ---
+    // In ECA zones, HSFO/VLSFO = 0, vessel burns LSMGO at the rate defined in the matrix
+    const ecaLsmgoBallastRate = profile.lsmgo.ballast || 0;
+    const ecaLsmgoLadenRate = profile.lsmgo.laden || 0;
     const lsmgoEcaFromHsfoVlsfo = (
-      ecaSeaDaysBallast * ecaFuelBallastRate + 
-      ecaSeaDaysLaden * ecaFuelLadenRate
+      ecaSeaDaysBallast * ecaLsmgoBallastRate + 
+      ecaSeaDaysLaden * ecaLsmgoLadenRate
     ) * rewardFactor;
     
     // Total LSMGO sea consumption = ECA only (no LSMGO outside ECA)
