@@ -564,11 +564,11 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     setSequence(prev => {
       let isLaden = false;
       return prev.map(row => {
-        // Track laden state based on operations
-        if (row.operation === "loading") isLaden = true;
-        
+        // IMPORTANT: Calculate sea time BEFORE updating isLaden
+        // The leg TO a loading port is BALLAST, the leg FROM loading is LADEN
         const seaTimeData = calculateSeaTime(row, isLaden, vessel);
         
+        if (row.operation === "loading") isLaden = true;
         if (row.operation === "discharging") isLaden = false;
         
         return {
@@ -584,10 +584,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     setSequence(prev => {
       let isLaden = false;
       return prev.map(row => {
-        // Track laden state based on operations
-        if (row.operation === "loading") isLaden = true;
-        
+        // IMPORTANT: Calculate sea time BEFORE updating isLaden
+        // The leg TO a loading port is BALLAST, the leg FROM loading is LADEN
         if (row.id !== id) {
+          if (row.operation === "loading") isLaden = true;
           if (row.operation === "discharging") isLaden = false;
           return row;
         }
@@ -605,6 +605,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
           Object.assign(updatedRow, seaTimeData);
         }
         
+        if (row.operation === "loading") isLaden = true;
         if (row.operation === "discharging") isLaden = false;
         return updatedRow;
       });
@@ -662,10 +663,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         const currentVessel = vesselRef.current;
         let isLaden = false;
         return prev.map(row => {
-          if (row.operation === "loading") isLaden = true;
           const zeroed = { ...row, distance: 0, ecaDistance: 0 };
           const seaTimeData = calculateSeaTime(zeroed, isLaden, currentVessel);
           const finalRow = { ...zeroed, ...seaTimeData };
+          if (row.operation === "loading") isLaden = true;
           if (row.operation === "discharging") isLaden = false;
           return finalRow;
         });
@@ -733,8 +734,6 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       const currentVessel = vesselRef.current;
       let isLaden = false;
       return prev.map(row => {
-        if (row.operation === "loading") isLaden = true;
-
         const dist = distanceResults.get(row.id);
         const updatedRow = dist
           ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance }
@@ -743,6 +742,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         const seaTimeData = calculateSeaTime(updatedRow, isLaden, currentVessel);
         const finalRow = { ...updatedRow, ...seaTimeData };
 
+        if (row.operation === "loading") isLaden = true;
         if (row.operation === "discharging") isLaden = false;
         return finalRow;
       });
