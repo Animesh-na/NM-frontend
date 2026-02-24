@@ -1,4 +1,5 @@
-import { ChevronDown, Ship, RefreshCw, Loader2 } from "lucide-react";
+import { ChevronDown, Ship, RefreshCw } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect, useCallback } from "react";
 import { VesselSelect } from "./VesselSelect";
 import { ConsumptionMatrix } from "./ConsumptionMatrix";
@@ -177,80 +178,28 @@ export function VesselPanel() {
 
       {isExpanded && (
         <div className="p-1.5 space-y-1">
-          {/* Layer 1: Vessel Type → Vessel Name Selection */}
-          <div className="grid grid-cols-12 gap-1.5 items-end">
-            <div className="col-span-2">
-              <label className="compact-label">Type</label>
-              <select
-                className="form-select w-full text-xs"
-                value={selectedTypeId ?? ""}
-                onChange={(e) => {
-                  const typeId = e.target.value ? Number(e.target.value) : null;
-                  const typeName = vesselTypes.find(t => t.id === typeId)?.name || "";
-                  handleVesselTypeChange(typeId, typeName);
-                }}
-                disabled={typesLoading}
-              >
-                <option value="">--- ALL ---</option>
-                {vesselTypes.map(type => (
-                  <option key={type.id} value={type.id}>{type.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="col-span-2">
-              <label className="compact-label">Sector</label>
-              <select
-                className="form-select w-full text-xs"
-                value={selectedSectorId ?? ""}
-                onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)}
-                disabled={typesLoading}
-              >
-                <option value="">--- ALL ---</option>
-                {vesselSectors.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="col-span-7">
+          {/* Row 1: Vessel Name + Vessel Particulars */}
+          <div className="grid grid-cols-12 gap-1.5 items-end text-[10px]">
+            <div className="col-span-3">
               <VesselSelect
                 value={vessel.name}
                 onChange={handleVesselSelect}
                 selectedTypeId={selectedTypeId}
                 selectedSectorId={selectedSectorId}
-                placeholder="Search vessel by name or IMO..."
+                placeholder="Search vessel..."
               />
             </div>
-            <div className="col-span-1 flex items-center justify-center">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing || !vessel.name}
-                className="p-1 text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors"
-                title="Refresh vessel data"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              </button>
-            </div>
-          </div>
-
-          {/* Layer 2: Vessel Particulars - More compact */}
-          <div className="grid grid-cols-8 gap-1.5 text-[10px] border-t border-border pt-1">
-            <div>
+            <div className="col-span-1">
               <label className="compact-label">Dwt</label>
-              <div className="flex items-center gap-0.5">
-                <input
-                  type="number"
-                  className="form-input-sm w-full font-mono tabular-nums text-right"
-                  value={vessel.dwt || ""}
-                  onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                />
-                <span className="text-[8px] text-muted-foreground">mt</span>
-              </div>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono tabular-nums text-right"
+                value={vessel.dwt || ""}
+                onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
             </div>
-            
-            <div>
+            <div className="col-span-1">
               <label className="compact-label">Gt</label>
               <input
                 type="number"
@@ -260,8 +209,7 @@ export function VesselPanel() {
                 placeholder="0"
               />
             </div>
-            
-            <div>
+            <div className="col-span-2">
               <label className="compact-label">Cubic</label>
               <div className="flex items-center gap-0.5">
                 <input
@@ -281,23 +229,18 @@ export function VesselPanel() {
                 </select>
               </div>
             </div>
-            
-            <div>
+            <div className="col-span-1">
               <label className="compact-label">Draft</label>
-              <div className="flex items-center gap-0.5">
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input-sm w-full font-mono tabular-nums text-right"
-                  value={vessel.draft || ""}
-                  onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                />
-                <span className="text-[8px] text-muted-foreground">m</span>
-              </div>
+              <input
+                type="number"
+                step="0.01"
+                className="form-input-sm w-full font-mono tabular-nums text-right"
+                value={vessel.draft || ""}
+                onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
             </div>
-            
-            <div>
+            <div className="col-span-1">
               <label className="compact-label">TPC</label>
               <input
                 type="number"
@@ -308,8 +251,7 @@ export function VesselPanel() {
                 placeholder="0"
               />
             </div>
-            
-            <div>
+            <div className="col-span-1">
               <label className="compact-label">HSFO</label>
               <select
                 className="form-select-sm w-full"
@@ -320,8 +262,7 @@ export function VesselPanel() {
                 <option value="Y">Y</option>
               </select>
             </div>
-            
-            <div>
+            <div className="col-span-1">
               <label className="compact-label">Scrub</label>
               <select
                 className="form-select-sm w-full"
@@ -332,16 +273,84 @@ export function VesselPanel() {
                 <option value="Y">Y</option>
               </select>
             </div>
-            
-            <div>
-              <label className="compact-label">#</label>
+            <div className="col-span-1 flex items-center justify-center">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing || !vessel.name}
+                className="p-1 text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors"
+                title="Refresh vessel data"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Row 2: Type, Sector, Speed Profile */}
+          <div className="grid grid-cols-12 gap-1.5 items-end text-[10px] border-t border-border pt-1">
+            <div className="col-span-2">
+              <label className="compact-label">Type</label>
+              <select
+                className="form-select w-full text-xs"
+                value={selectedTypeId ?? ""}
+                onChange={(e) => {
+                  const typeId = e.target.value ? Number(e.target.value) : null;
+                  const typeName = vesselTypes.find(t => t.id === typeId)?.name || "";
+                  handleVesselTypeChange(typeId, typeName);
+                }}
+                disabled={typesLoading}
+              >
+                <option value="">--- ALL ---</option>
+                {vesselTypes.map(type => (
+                  <option key={type.id} value={type.id}>{type.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="compact-label">Sector</label>
+              <select
+                className="form-select w-full text-xs"
+                value={selectedSectorId ?? ""}
+                onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)}
+                disabled={typesLoading}
+              >
+                <option value="">--- ALL ---</option>
+                {vesselSectors.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="compact-label">Speed Profile</label>
+              <select
+                className="form-select w-full text-xs"
+                value={vessel.speedProfile}
+                onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}
+              >
+                <option value="eco">Eco Speed&Cons</option>
+                <option value="full">Full Speed&Cons</option>
+              </select>
+            </div>
+            <div className="col-span-3 flex items-end gap-2">
+              <div className="flex items-center gap-1.5">
+                <Checkbox
+                  id="loadDischIdle"
+                  checked={vessel.loadDischIdleSame}
+                  onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)}
+                  className="h-3 w-3"
+                />
+                <label htmlFor="loadDischIdle" className="text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap">
+                  Load = Disch = Idle
+                </label>
+              </div>
+            </div>
+            <div className="col-span-2 flex items-end gap-1">
+              <span className="text-[10px] text-muted-foreground">Misc x</span>
               <input
                 type="number"
-                className="form-input-sm w-full font-mono tabular-nums text-center"
-                value={vessel.scrubberCount || ""}
-                onChange={(e) => handleFieldChange("scrubberCount", parseInt(e.target.value) || 0)}
+                className="form-input-sm w-12 font-mono tabular-nums text-center text-xs"
+                value={vessel.miscMultiplier || ""}
+                onChange={(e) => handleFieldChange("miscMultiplier", parseFloat(e.target.value) || 0)}
                 placeholder="0"
-                disabled={!vessel.hasScrubber}
               />
             </div>
           </div>

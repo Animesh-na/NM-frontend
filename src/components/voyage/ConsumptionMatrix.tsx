@@ -63,44 +63,12 @@ export function ConsumptionMatrix({
 }: ConsumptionMatrixProps) {
   const isEco = speedProfile === "eco";
 
+  // Speed row only applies to ballast and laden
+  const speedOnlyColumns: ColumnKey[] = ["ballast", "laden"];
+
   return (
     <div className="space-y-1">
-      {/* Header row with profile selector and checkbox */}
-      <div className="flex items-center gap-4">
-        <select
-          className="form-select text-xs w-40"
-          value={speedProfile}
-          onChange={(e) => onSpeedProfileChange(e.target.value as SpeedProfile)}
-        >
-          <option value="eco">Eco Speed&amp;Cons</option>
-          <option value="full">Full Speed&amp;Cons</option>
-        </select>
-        
-        <div className="flex items-center gap-1.5 ml-auto">
-          <Checkbox
-            id="loadDischIdle"
-            checked={loadDischIdleSame}
-            onCheckedChange={(checked) => onLoadDischIdleChange(checked === true)}
-            className="h-3 w-3"
-          />
-          <label htmlFor="loadDischIdle" className="text-[10px] text-muted-foreground cursor-pointer">
-            Load = Disch = Idle
-          </label>
-        </div>
-        
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <span>x</span>
-          <input
-            type="number"
-            className="form-input-sm w-10 font-mono tabular-nums text-center text-xs"
-            value={miscMultiplier || ""}
-            onChange={(e) => onMiscMultiplierChange(parseFloat(e.target.value) || 0)}
-            placeholder="0"
-          />
-        </div>
-      </div>
-
-      {/* Consumption Matrix Table */}
+      {/* Consumption Matrix Table - no header controls, moved to VesselPanel row 2 */}
       <div className="overflow-x-auto">
         <table className="data-table w-full text-[10px]">
           <thead>
@@ -124,8 +92,18 @@ export function ConsumptionMatrix({
                 </td>
                 {columns.map(col => {
                   const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
+                  // Speed row: only ballast and laden are editable
+                  const isSpeedNA = row.key === "speed" && !speedOnlyColumns.includes(col.key);
                   const value = consumptionMatrix[row.key][col.key];
                   
+                  if (isSpeedNA) {
+                    return (
+                      <td key={col.key} className="p-0 text-center text-muted-foreground/40">
+                        —
+                      </td>
+                    );
+                  }
+
                   return (
                     <td key={col.key} className="p-0">
                       <input
