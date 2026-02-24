@@ -95,29 +95,27 @@ LSMGO_NonECA = 0
 ```
 
 #### 4b. ECA Sea Consumption
-In ECA zones, **HSFO = 0, VLSFO = 0**. All fuel shifts to LSMGO at combined rate:
+In ECA zones, **HSFO = 0, VLSFO = 0**. Vessel burns LSMGO at the **LSMGO matrix rate directly**:
 ```
-ECA_Ballast_Rate = HSFO_Ballast + VLSFO_Ballast + LSMGO_Ballast
-ECA_Laden_Rate = HSFO_Laden + VLSFO_Laden + LSMGO_Laden
-
-LSMGO_ECA = (ECA_Ballast_Days × ECA_Ballast_Rate + ECA_Laden_Days × ECA_Laden_Rate) × Reward_Factor
+LSMGO_ECA = (ECA_Ballast_Days × LSMGO_Ballast_Rate + ECA_Laden_Days × LSMGO_Laden_Rate) × Reward_Factor
 ```
 ECA distance is split separately into Laden and Ballast portions, then converted to ECA sailing days using the respective speeds.
 
 #### 4c. Port Consumption (by operation)
-**LSMGO is NOT used in port** (outside ECA):
+All three fuel types (HSFO, VLSFO, LSMGO) use their respective matrix rates in port:
 ```
-Loading:     [HSFO/VLSFO]_Load_Rate × loadingDays
-Discharging: [HSFO/VLSFO]_Discharge_Rate × dischargingDays
-Idle:        [HSFO/VLSFO]_Idle_Rate × (idleDays + bunkeringDays + extraPortDays)
-Canal:       [HSFO/VLSFO]_Canal_Rate × (canalDays + extraCanalDays)
+Loading:     [Fuel]_Load_Rate × loadingDays
+Discharging: [Fuel]_Discharge_Rate × dischargingDays
+Idle:        [Fuel]_Idle_Rate × (idleDays + bunkeringDays + extraPortDays)
+Canal:       [Fuel]_Canal_Rate × (canalDays + extraCanalDays)
 ```
+Where `[Fuel]` = HSFO, VLSFO, or LSMGO.
 
 #### 4d. AE (Auxiliary Engine) Consumption
 AE always runs on LSMGO across **all operations except canal**:
 ```
 AE_Sea = (Total_Ballast_Days × AE_Ballast + Total_Laden_Days × AE_Laden + Extra_Sea_Days × AE_Laden) × Reward_Factor
-AE_Port = Loading_Days × AE_Load + Discharging_Days × AE_Discharge + Idle_Days × AE_Idle
+AE_Port = Loading_Days × AE_Load + Discharging_Days × AE_Discharge + (Idle_Days + Bunkering_Days + Extra_Port_Days) × AE_Idle
 AE_Canal = 0  (AE not counted during canal transit)
 LSMGO_AE_Total = AE_Sea + AE_Port
 ```
@@ -126,7 +124,7 @@ LSMGO_AE_Total = AE_Sea + AE_Port
 ```
 HSFO_Total = HSFO_Sea + HSFO_Loading + HSFO_Discharging + HSFO_Idle + HSFO_Canal
 VLSFO_Total = VLSFO_Sea + VLSFO_Loading + VLSFO_Discharging + VLSFO_Idle + VLSFO_Canal
-LSMGO_Total = LSMGO_ECA + LSMGO_AE_Total   (ECA zones only)
+LSMGO_Total = LSMGO_ECA + LSMGO_Loading + LSMGO_Discharging + LSMGO_Idle + LSMGO_Canal + LSMGO_AE_Total
 ```
 
 ### Step 5: Bunker Cost (Lines 373–386)
