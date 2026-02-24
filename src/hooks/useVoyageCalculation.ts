@@ -185,11 +185,15 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let nonEcaSeaDaysBallast = 0;
     let nonEcaSeaDaysLaden = 0;
     
-    // Track operation-specific time for detailed consumption
-    let loadingDays = 0;
-    let dischargingDays = 0;
-    let idleDays = 0;
-    let bunkeringDays = 0;
+    // Track operation-specific time for detailed consumption, split by ECA/non-ECA
+    let loadingDaysEca = 0;
+    let loadingDaysNonEca = 0;
+    let dischargingDaysEca = 0;
+    let dischargingDaysNonEca = 0;
+    let idleDaysEca = 0;
+    let idleDaysNonEca = 0;
+    let bunkeringDaysEca = 0;
+    let bunkeringDaysNonEca = 0;
     let canalDays = 0;
 
     sequence.forEach((leg) => {
@@ -227,20 +231,26 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const turnExtraDays = ((leg.turnTimeHours || 0) + (leg.extraTimeHours || 0)) / 24;
       const workingDays = Math.max(0, (leg.portDays || 0) - turnExtraDays);
       
+      // Determine if this port is in an ECA zone (if leg has ECA distance, port is in/near ECA)
+      const portInEca = (leg.ecaDistance || 0) > 0;
+      
       if (leg.operation === "load" || leg.operation === "loading") {
-        loadingDays += workingDays;
-        idleDays += turnExtraDays; // Turn time + extra time at idle consumption
+        if (portInEca) { loadingDaysEca += workingDays; idleDaysEca += turnExtraDays; }
+        else { loadingDaysNonEca += workingDays; idleDaysNonEca += turnExtraDays; }
         isLaden = true;
       } else if (leg.operation === "disch" || leg.operation === "discharging") {
-        dischargingDays += workingDays;
-        idleDays += turnExtraDays; // Turn time + extra time at idle consumption
+        if (portInEca) { dischargingDaysEca += workingDays; idleDaysEca += turnExtraDays; }
+        else { dischargingDaysNonEca += workingDays; idleDaysNonEca += turnExtraDays; }
         isLaden = false;
       } else if (leg.operation === "waiting" || leg.operation === "idle") {
-        idleDays += leg.portDays || 0;
+        if (portInEca) idleDaysEca += leg.portDays || 0;
+        else idleDaysNonEca += leg.portDays || 0;
       } else if (leg.operation === "bunkering") {
-        bunkeringDays += leg.portDays || 0;
+        if (portInEca) bunkeringDaysEca += leg.portDays || 0;
+        else bunkeringDaysNonEca += leg.portDays || 0;
       } else if (leg.portDays > 0) {
-        idleDays += leg.portDays || 0;
+        if (portInEca) idleDaysEca += leg.portDays || 0;
+        else idleDaysNonEca += leg.portDays || 0;
       }
     });
 
@@ -300,25 +310,28 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const lsmgoSeaTotal = lsmgoEcaFromHsfoVlsfo;
     
     // --- Port Consumption (by operation type) ---
-    // Loading consumption (ME fuel only — AE is added separately below)
-    const hsfoLoading = loadingDays * (profile.hsfo.load || 0);
-    const vlsfoLoading = loadingDays * (profile.vlsfo.load || 0);
-    const lsmgoLoading = loadingDays * (profile.lsmgo.load || 0);
+    // ECA ports → LSMGO only (no HSFO/VLSFO); Non-ECA ports → VLSFO only (no HSFO/LSMGO)
     
-    // Discharging consumption (ME fuel only — AE is added separately below)
-    const hsfoDischarging = dischargingDays * (profile.hsfo.discharge || 0);
-    const vlsfoDischarging = dischargingDays * (profile.vlsfo.discharge || 0);
-    const lsmgoDischarging = dischargingDays * (profile.lsmgo.discharge || 0);
+    // Loading consumption
+    const hsfoLoading = 0; // Not used in port
+    const vlsfoLoading = loadingDaysNonEca * (profile.vlsfo.load || 0);
+    const lsmgoLoading = loadingDaysEca * (profile.lsmgo.load || 0);
+    
+    // Discharging consumption
+    const hsfoDischarging = 0; // Not used in port
+    const vlsfoDischarging = dischargingDaysNonEca * (profile.vlsfo.discharge || 0);
+    const lsmgoDischarging = dischargingDaysEca * (profile.lsmgo.discharge || 0);
     
     // Idle/Waiting consumption (including bunkering operations)
-    const idleAndBunkeringDays = idleDays + bunkeringDays + extraPortDays;
-    const hsfoIdle = idleAndBunkeringDays * (profile.hsfo.idle || 0);
-    const vlsfoIdle = idleAndBunkeringDays * (profile.vlsfo.idle || 0);
-    const lsmgoIdle = idleAndBunkeringDays * (profile.lsmgo.idle || 0);
+    const idleAndBunkeringDaysNonEca = idleDaysNonEca + bunkeringDaysNonEca + extraPortDays;
+    const idleAndBunkeringDaysEca = idleDaysEca + bunkeringDaysEca;
+    const hsfoIdle = 0; // Not used in port
+    const vlsfoIdle = idleAndBunkeringDaysNonEca * (profile.vlsfo.idle || 0);
+    const lsmgoIdle = idleAndBunkeringDaysEca * (profile.lsmgo.idle || 0);
     
-    // Canal consumption
+    // Canal consumption (uses VLSFO by default, not ECA-dependent)
     const totalCanalDays = canalDays + extraCanalDays;
-    const hsfoCanal = totalCanalDays * (profile.hsfo.canal || 0);
+    const hsfoCanal = 0; // Not used in canal
     const vlsfoCanal = totalCanalDays * (profile.vlsfo.canal || 0);
     const lsmgoCanal = totalCanalDays * (profile.lsmgo.canal || 0);
     
