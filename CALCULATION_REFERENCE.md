@@ -178,7 +178,7 @@ Consumption (MT) = Daily_Rate (MT/day) × Time (days) × Reward_Factor
 
 ### 3.2 Sea Consumption — Non-ECA Zones
 
-HSFO/VLSFO burn at their normal rates; LSMGO also has a baseline rate.
+HSFO/VLSFO burn at their normal matrix rates. **LSMGO is NOT used outside ECA zones** (ME LSMGO = 0).
 
 ```
 HSFO_Sea = (Non_ECA_Ballast_Days × HSFO_Ballast_Rate + Non_ECA_Laden_Days × HSFO_Laden_Rate + Extra_Sea_Days × HSFO_Laden_Rate) × Reward_Factor
@@ -189,24 +189,21 @@ VLSFO_Sea = (Non_ECA_Ballast_Days × VLSFO_Ballast_Rate + Non_ECA_Laden_Days × 
 ```
 
 ```
-LSMGO_Sea_NonECA = (Non_ECA_Ballast_Days × LSMGO_Ballast_Rate + Non_ECA_Laden_Days × LSMGO_Laden_Rate + Extra_Sea_Days × LSMGO_Laden_Rate) × Reward_Factor
+LSMGO_Sea_NonECA = 0
 ```
 
 ### 3.3 Sea Consumption — ECA Zones
 
-In ECA, **HSFO = 0, VLSFO = 0**. All consumption shifts to LSMGO at the combined rate:
+In ECA, **HSFO = 0, VLSFO = 0**. Vessel burns LSMGO at the **LSMGO matrix rate directly** (not a combined rate):
 
 ```
-ECA_Ballast_Rate (MT/day) = HSFO_Ballast_Rate + VLSFO_Ballast_Rate + LSMGO_Ballast_Rate
-ECA_Laden_Rate (MT/day) = HSFO_Laden_Rate + VLSFO_Laden_Rate + LSMGO_Laden_Rate
-
-LSMGO_ECA = (ECA_Ballast_Days × ECA_Ballast_Rate + ECA_Laden_Days × ECA_Laden_Rate) × Reward_Factor
+LSMGO_ECA = (ECA_Ballast_Days × LSMGO_Ballast_Rate + ECA_Laden_Days × LSMGO_Laden_Rate) × Reward_Factor
 ```
 
 ### 3.4 Total LSMGO Sea
 
 ```
-LSMGO_Sea_Total (MT) = LSMGO_Sea_NonECA + LSMGO_ECA
+LSMGO_Sea_Total (MT) = LSMGO_ECA   (Non-ECA LSMGO = 0)
 ```
 
 ### 3.5 Port Consumption (by operation)
@@ -220,23 +217,36 @@ LSMGO_Sea_Total (MT) = LSMGO_Sea_NonECA + LSMGO_ECA
 
 Where `[Fuel]` = HSFO, VLSFO, or LSMGO.
 
-### 3.6 AE Port Consumption (added to LSMGO)
+### 3.6 AE (Auxiliary Engine) Consumption (added to LSMGO)
+
+AE always runs on LSMGO across **all operations EXCEPT canal**.
+
+```
+AE_Sea (MT) = (Total_Ballast_Days × AE_Ballast_Rate + Total_Laden_Days × AE_Laden_Rate + Extra_Sea_Days × AE_Laden_Rate) × Reward_Factor
+```
+
+Where `Total_Ballast_Days = Non_ECA_Ballast + ECA_Ballast` and `Total_Laden_Days = Non_ECA_Laden + ECA_Laden`.
 
 ```
 AE_Port (MT) = Loading_Days × AE_Load_Rate
              + Discharging_Days × AE_Discharge_Rate
-             + Idle_Days × AE_Idle_Rate
-             + Canal_Days × AE_Canal_Rate
+             + (Idle_Days + Bunkering_Days + Extra_Port_Days) × AE_Idle_Rate
 ```
 
-AE consumption is added to LSMGO total (AE runs on MGO).
+```
+AE_Canal = 0   (AE is NOT counted during canal transit)
+```
+
+```
+LSMGO_AE_Total (MT) = AE_Sea + AE_Port
+```
 
 ### 3.7 Total Fuel Consumption
 
 ```
 HSFO_Total (MT) = HSFO_Sea + HSFO_Loading + HSFO_Discharging + HSFO_Idle + HSFO_Canal
 VLSFO_Total (MT) = VLSFO_Sea + VLSFO_Loading + VLSFO_Discharging + VLSFO_Idle + VLSFO_Canal
-LSMGO_Total (MT) = LSMGO_Sea_Total + LSMGO_Loading + LSMGO_Discharging + LSMGO_Idle + LSMGO_Canal + AE_Port
+LSMGO_Total (MT) = LSMGO_Sea_Total + LSMGO_Loading + LSMGO_Discharging + LSMGO_Idle + LSMGO_Canal + LSMGO_AE_Total
 ```
 
 ---
