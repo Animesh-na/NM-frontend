@@ -5,6 +5,7 @@ import { CargoSection } from "@/components/voyage/CargoSection";
 import { BunkerSection } from "@/components/voyage/BunkerSection";
 import { MiscSection } from "@/components/voyage/MiscSection";
 import { SheetNotes } from "@/components/voyage/SheetNotes";
+import { JsonImportSection } from "@/components/voyage/JsonImportSection";
 import { VoyageSummary } from "@/components/voyage/VoyageSummary";
 
 const Index = () => {
@@ -23,6 +24,7 @@ const Index = () => {
           <BunkerSection />
           <MiscSection />
           <SheetNotes />
+          <JsonImportSection />
         </div>
         
         {/* Right Panel - Sticky Summary */}
