@@ -284,20 +284,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const vlsfoSeaExtraNonEca = extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
     const vlsfoSeaTotal = (vlsfoSeaBallastNonEca + vlsfoSeaLadenNonEca + vlsfoSeaExtraNonEca) * rewardFactor;
     
-    // Non-ECA LSMGO (normal sea consumption outside ECA)
-    const lsmgoSeaBallastNonEca = nonEcaSeaDaysBallast * (profile.lsmgo.ballast || vessel.consumption.lsmgo.ecoBallast || 0);
-    const lsmgoSeaLadenNonEca = nonEcaSeaDaysLaden * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
-    const lsmgoSeaExtraNonEca = extraSeaDays * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
-    const lsmgoSeaNonEcaTotal = (lsmgoSeaBallastNonEca + lsmgoSeaLadenNonEca + lsmgoSeaExtraNonEca) * rewardFactor;
+    // Non-ECA LSMGO: ZERO — LSMGO is only used inside ECA zones
+    const lsmgoSeaNonEcaTotal = 0;
     
-    // --- ECA Sea Consumption (switches to LSMGO/MGO only) ---
-    // In ECA zones, HSFO/VLSFO = 0, all consumption shifts to LSMGO
-    const lsmgoSeaBallastEca = ecaSeaDaysBallast * (profile.lsmgo.ballast || vessel.consumption.lsmgo.ecoBallast || 0);
-    const lsmgoSeaLadenEca = ecaSeaDaysLaden * (profile.lsmgo.laden || vessel.consumption.lsmgo.ecoLaden || 0);
-    const lsmgoSeaEcaTotal = (lsmgoSeaBallastEca + lsmgoSeaLadenEca) * rewardFactor;
-    
-    // Also add the HSFO/VLSFO equivalent rates converted to LSMGO for ECA zones
-    // (vessel burns MGO at approximately combined HFO+VLSFO+LSMGO rate in ECA)
+    // --- ECA Sea Consumption (LSMGO only — replaces all fuel types in ECA) ---
+    // In ECA zones, HSFO/VLSFO = 0, all consumption shifts to LSMGO at combined rate
     const ecaFuelBallastRate = (profile.hsfo.ballast || 0) + (profile.vlsfo.ballast || 0) + (profile.lsmgo.ballast || 0);
     const ecaFuelLadenRate = (profile.hsfo.laden || 0) + (profile.vlsfo.laden || 0) + (profile.lsmgo.laden || 0);
     const lsmgoEcaFromHsfoVlsfo = (
@@ -305,50 +296,45 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       ecaSeaDaysLaden * ecaFuelLadenRate
     ) * rewardFactor;
     
-    // Total LSMGO sea consumption = Non-ECA LSMGO + ECA total (replaces all fuels)
-    const lsmgoSeaTotal = lsmgoSeaNonEcaTotal + lsmgoEcaFromHsfoVlsfo;
+    // Total LSMGO sea consumption = ECA only (no LSMGO outside ECA)
+    const lsmgoSeaTotal = lsmgoEcaFromHsfoVlsfo;
     
     // --- Port Consumption (by operation type) ---
     // Loading consumption (ME fuel only — AE is added separately below)
     const hsfoLoading = loadingDays * (profile.hsfo.load || 0);
     const vlsfoLoading = loadingDays * (profile.vlsfo.load || 0);
-    const lsmgoLoading = loadingDays * (profile.lsmgo.load || 0);
+    const lsmgoLoading = 0; // LSMGO not used in port (outside ECA)
     
     // Discharging consumption (ME fuel only — AE is added separately below)
     const hsfoDischarging = dischargingDays * (profile.hsfo.discharge || 0);
     const vlsfoDischarging = dischargingDays * (profile.vlsfo.discharge || 0);
-    const lsmgoDischarging = dischargingDays * (profile.lsmgo.discharge || 0);
+    const lsmgoDischarging = 0; // LSMGO not used in port (outside ECA)
     
     // Idle/Waiting consumption (including bunkering operations)
-    // ME fuel only — AE idle is captured in aePortConsumption below
     const idleAndBunkeringDays = idleDays + bunkeringDays + extraPortDays;
     const hsfoIdle = idleAndBunkeringDays * (profile.hsfo.idle || 0);
     const vlsfoIdle = idleAndBunkeringDays * (profile.vlsfo.idle || 0);
-    const lsmgoIdle = idleAndBunkeringDays * (profile.lsmgo.idle || 0);
+    const lsmgoIdle = 0; // LSMGO not used in port (outside ECA)
     
     // Canal consumption
     const totalCanalDays = canalDays + extraCanalDays;
     const hsfoCanal = totalCanalDays * (profile.hsfo.canal || 0);
     const vlsfoCanal = totalCanalDays * (profile.vlsfo.canal || 0);
-    const lsmgoCanal = totalCanalDays * (profile.lsmgo.canal || 0);
+    const lsmgoCanal = 0; // LSMGO not used in canal (outside ECA)
     
     // --- AE (Auxiliary Engine) Consumption ---
-    // AE runs on LSMGO/MGO — all AE consumption contributes to LSMGO total
+    // AE runs on LSMGO — only counted for ECA sea time (no LSMGO outside ECA)
     const aeSeaConsumption = (
-      seaDaysBallast * (profile.ae.ballast || 0) +
-      seaDaysLaden * (profile.ae.laden || 0)
+      ecaSeaDaysBallast * (profile.ae.ballast || 0) +
+      ecaSeaDaysLaden * (profile.ae.laden || 0)
     ) * rewardFactor;
     
-    const aeCanalConsumption = totalCanalDays * (profile.ae.canal || 0);
+    // No AE LSMGO for canal or port (outside ECA)
+    const aeCanalConsumption = 0;
+    const aePortConsumption = 0;
     
-    // AE port consumption (load/discharge/idle)
-    const aePortConsumption = 
-      loadingDays * (profile.ae.load || 0) +
-      dischargingDays * (profile.ae.discharge || 0) +
-      idleAndBunkeringDays * (profile.ae.idle || 0);
-    
-    // Total AE contribution to LSMGO = sea + canal + port
-    const lsmgoAeTotal = aeSeaConsumption + aeCanalConsumption + aePortConsumption;
+    // Total AE contribution to LSMGO = ECA sea only
+    const lsmgoAeTotal = aeSeaConsumption;
     
     // --- Total Fuel Consumption ---
     const hsfoConsumption = hsfoSeaTotal + hsfoLoading + hsfoDischarging + hsfoIdle + hsfoCanal;
