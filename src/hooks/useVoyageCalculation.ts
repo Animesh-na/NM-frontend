@@ -303,24 +303,24 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // Loading consumption (ME fuel only — AE is added separately below)
     const hsfoLoading = loadingDays * (profile.hsfo.load || 0);
     const vlsfoLoading = loadingDays * (profile.vlsfo.load || 0);
-    const lsmgoLoading = 0; // LSMGO not used in port (outside ECA)
+    const lsmgoLoading = loadingDays * (profile.lsmgo.load || 0);
     
     // Discharging consumption (ME fuel only — AE is added separately below)
     const hsfoDischarging = dischargingDays * (profile.hsfo.discharge || 0);
     const vlsfoDischarging = dischargingDays * (profile.vlsfo.discharge || 0);
-    const lsmgoDischarging = 0; // LSMGO not used in port (outside ECA)
+    const lsmgoDischarging = dischargingDays * (profile.lsmgo.discharge || 0);
     
     // Idle/Waiting consumption (including bunkering operations)
     const idleAndBunkeringDays = idleDays + bunkeringDays + extraPortDays;
     const hsfoIdle = idleAndBunkeringDays * (profile.hsfo.idle || 0);
     const vlsfoIdle = idleAndBunkeringDays * (profile.vlsfo.idle || 0);
-    const lsmgoIdle = 0; // LSMGO not used in port (outside ECA)
+    const lsmgoIdle = idleAndBunkeringDays * (profile.lsmgo.idle || 0);
     
     // Canal consumption
     const totalCanalDays = canalDays + extraCanalDays;
     const hsfoCanal = totalCanalDays * (profile.hsfo.canal || 0);
     const vlsfoCanal = totalCanalDays * (profile.vlsfo.canal || 0);
-    const lsmgoCanal = 0; // LSMGO not used in canal (outside ECA)
+    const lsmgoCanal = totalCanalDays * (profile.lsmgo.canal || 0);
     
     // --- AE (Auxiliary Engine) Consumption ---
     // AE runs on LSMGO — only counted for ECA sea time (no LSMGO outside ECA)
