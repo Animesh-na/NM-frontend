@@ -114,12 +114,12 @@ Canal:       [HSFO/VLSFO]_Canal_Rate × (canalDays + extraCanalDays)
 ```
 
 #### 4d. AE (Auxiliary Engine) Consumption
-AE runs on LSMGO — but **only during ECA sea time**:
+AE always runs on LSMGO across **all operations except canal**:
 ```
-AE_ECA = (ECA_Ballast_Days × AE_Ballast + ECA_Laden_Days × AE_Laden) × Reward_Factor
-AE_Canal = 0  (outside ECA)
-AE_Port = 0   (outside ECA)
-LSMGO_AE_Total = AE_ECA
+AE_Sea = (Total_Ballast_Days × AE_Ballast + Total_Laden_Days × AE_Laden + Extra_Sea_Days × AE_Laden) × Reward_Factor
+AE_Port = Loading_Days × AE_Load + Discharging_Days × AE_Discharge + Idle_Days × AE_Idle
+AE_Canal = 0  (AE not counted during canal transit)
+LSMGO_AE_Total = AE_Sea + AE_Port
 ```
 
 #### 4e. Totals
