@@ -192,6 +192,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let bunkeringDays = 0;
     let canalDays = 0;
 
+    console.log(`\n========== VOYAGE CALCULATION START ==========`);
+    console.log(`[Input] Vessel: ${vessel.name}, DWT: ${vessel.dwt}, Speed Profile: ${vessel.speedProfile}`);
+    console.log(`[Input] Hire Rate: $${hireRate}/day`);
+    console.log(`[Input] Cargo: rate=${cargo.rate} ${cargo.rateType}, qty=${cargo.quantity}, voyComm=${cargo.voyageCommission}%, tcComm=${cargo.tcCommission}%`);
+    console.log(`[Input] Bunker Prices: HSFO=$${bunker.hsfo.price}, VLSFO=$${bunker.vlsfo.price}, LSMGO=$${bunker.lsmgo.price}, CO2=$${bunker.co2Price}`);
+    console.log(`[Input] Reward Factor: ${bunker?.rewardFactor ?? 1.0}`);
+
     sequence.forEach((leg) => {
       totalDistance += leg.distance || 0;
       totalEcaDistance += leg.ecaDistance || 0;
@@ -209,6 +216,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const legEcaTime = leg.ecaTime || 0;
       const legNonEcaTime = leg.nonEcaTime || (legSeaTime - legEcaTime);
       
+      console.log(`\n[Step 1] Leg ${leg.id} - "${leg.operation}" at ${leg.port}:
+    distance=${leg.distance} nm, ecaDistance=${leg.ecaDistance} nm
+    portDays=${leg.portDays} d, expDa=$${leg.expDa}
+    seaTime=${legSeaTime.toFixed(4)} d (total with margin)
+    ecaTime=${legEcaTime.toFixed(4)} d, nonEcaTime=${legNonEcaTime.toFixed(4)} d
+    isLaden=${isLaden} → assigned as ${isLaden ? 'LADEN' : 'BALLAST'} leg`);
       if (isLaden) {
         ladenDistance += leg.distance || 0;
         seaDaysLaden += legSeaTime;
@@ -221,28 +234,43 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         nonEcaSeaDaysBallast += legNonEcaTime;
       }
 
-      // Track operation types for port consumption
-      // Update isLaden AFTER sea time assignment so the leg TO loading is ballast, leg FROM loading is laden
-      // For load/discharge: split into working days (load/discharge rates) and idle days (turn+extra time at idle rates)
+      // Port time breakdown
       const turnExtraDays = ((leg.turnTimeHours || 0) + (leg.extraTimeHours || 0)) / 24;
       const workingDays = Math.max(0, (leg.portDays || 0) - turnExtraDays);
       
+      console.log(`    Port breakdown: turnTimeHrs=${leg.turnTimeHours || 0}, extraTimeHrs=${leg.extraTimeHours || 0} → turnExtraDays=${turnExtraDays.toFixed(4)}, workingDays=${workingDays.toFixed(4)}`);
+      
       if (leg.operation === "load" || leg.operation === "loading") {
         loadingDays += workingDays;
-        idleDays += turnExtraDays; // Turn time + extra time at idle consumption
+        idleDays += turnExtraDays;
         isLaden = true;
+        console.log(`    → LOADING: workingDays=${workingDays.toFixed(4)} added to loadingDays, turnExtra=${turnExtraDays.toFixed(4)} added to idleDays. isLaden now TRUE`);
       } else if (leg.operation === "disch" || leg.operation === "discharging") {
         dischargingDays += workingDays;
-        idleDays += turnExtraDays; // Turn time + extra time at idle consumption
+        idleDays += turnExtraDays;
         isLaden = false;
+        console.log(`    → DISCHARGING: workingDays=${workingDays.toFixed(4)} added to dischargingDays, turnExtra=${turnExtraDays.toFixed(4)} added to idleDays. isLaden now FALSE`);
       } else if (leg.operation === "waiting" || leg.operation === "idle") {
         idleDays += leg.portDays || 0;
+        console.log(`    → IDLE/WAITING: ${leg.portDays} days added to idleDays`);
       } else if (leg.operation === "bunkering") {
         bunkeringDays += leg.portDays || 0;
+        console.log(`    → BUNKERING: ${leg.portDays} days added to bunkeringDays`);
       } else if (leg.portDays > 0) {
         idleDays += leg.portDays || 0;
+        console.log(`    → OTHER with port time: ${leg.portDays} days added to idleDays`);
       }
     });
+
+    console.log(`\n[Step 1 Summary] After sequence loop:
+    totalDistance=${totalDistance} nm, totalEcaDistance=${totalEcaDistance} nm
+    seaDaysBallast=${seaDaysBallast.toFixed(4)} d, seaDaysLaden=${seaDaysLaden.toFixed(4)} d
+    ecaSeaDaysBallast=${ecaSeaDaysBallast.toFixed(4)}, ecaSeaDaysLaden=${ecaSeaDaysLaden.toFixed(4)}
+    nonEcaSeaDaysBallast=${nonEcaSeaDaysBallast.toFixed(4)}, nonEcaSeaDaysLaden=${nonEcaSeaDaysLaden.toFixed(4)}
+    totalPortDays=${totalPortDays.toFixed(4)} d, portCosts=$${portCosts}
+    loadingDays=${loadingDays.toFixed(4)}, dischargingDays=${dischargingDays.toFixed(4)}, idleDays=${idleDays.toFixed(4)}, bunkeringDays=${bunkeringDays.toFixed(4)}
+    ballastDistance=${ballastDistance} nm, ladenDistance=${ladenDistance} nm
+    totalBaseSeaTime=${totalBaseSeaTime.toFixed(4)}, totalSeaMarginTime=${totalSeaMarginTime.toFixed(4)}`);
 
     // 2. Calculate extra time (from misc section) - convert to days
     const extraSeaDays = extraTime?.atSeaDays || 0;
@@ -254,6 +282,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     
     // Total voyage days includes all extra time
     const totalVoyageDays = totalSeaDays + totalPortDays + extraPortDays + extraCanalDays;
+
+    console.log(`\n[Step 2-3] Extra & Total Time:
+    extraSeaDays=${extraSeaDays}, extraPortDays=${extraPortDays}, extraCanalDays=${extraCanalDays}
+    totalSeaDays = seaDaysBallast(${seaDaysBallast.toFixed(4)}) + seaDaysLaden(${seaDaysLaden.toFixed(4)}) + extraSea(${extraSeaDays}) = ${totalSeaDays.toFixed(4)}
+    totalVoyageDays = totalSea(${totalSeaDays.toFixed(4)}) + totalPort(${totalPortDays.toFixed(4)}) + extraPort(${extraPortDays}) + extraCanal(${extraCanalDays}) = ${totalVoyageDays.toFixed(4)}`);
 
     // ============================================
     // 4. BUNKER CONSUMPTION CALCULATION (AXS Marine Model)
@@ -348,6 +381,38 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const vlsfoConsumption = vlsfoSeaTotal + vlsfoLoading + vlsfoDischarging + vlsfoIdle + vlsfoCanal;
     const lsmgoConsumption = lsmgoSeaTotal + lsmgoLoading + lsmgoDischarging + lsmgoIdle + lsmgoCanal + lsmgoAeTotal;
 
+    console.log(`\n[Step 4] BUNKER CONSUMPTION (profile: ${vessel.speedProfile}, rewardFactor: ${rewardFactor}):
+    --- Consumption Rates (TPD) ---
+    HSFO: ballast=${profile.hsfo.ballast}, laden=${profile.hsfo.laden}, load=${profile.hsfo.load}, disch=${profile.hsfo.discharge}, idle=${profile.hsfo.idle}, canal=${profile.hsfo.canal}
+    VLSFO: ballast=${profile.vlsfo.ballast}, laden=${profile.vlsfo.laden}, load=${profile.vlsfo.load}, disch=${profile.vlsfo.discharge}, idle=${profile.vlsfo.idle}, canal=${profile.vlsfo.canal}
+    LSMGO: ballast=${profile.lsmgo.ballast}, laden=${profile.lsmgo.laden}, load=${profile.lsmgo.load}, disch=${profile.lsmgo.discharge}, idle=${profile.lsmgo.idle}, canal=${profile.lsmgo.canal}
+    AE: ballast=${profile.ae.ballast}, laden=${profile.ae.laden}, load=${profile.ae.load}, disch=${profile.ae.discharge}, idle=${profile.ae.idle}
+    
+    --- Non-ECA Sea (days: ballast=${nonEcaSeaDaysBallast.toFixed(4)}, laden=${nonEcaSeaDaysLaden.toFixed(4)}) ---
+    HSFO Sea: ballast=${hsfoSeaBallastNonEca.toFixed(2)} + laden=${hsfoSeaLadenNonEca.toFixed(2)} + extra=${hsfoSeaExtraNonEca.toFixed(2)} × RF${rewardFactor} = ${hsfoSeaTotal.toFixed(2)} mt
+    VLSFO Sea: ballast=${vlsfoSeaBallastNonEca.toFixed(2)} + laden=${vlsfoSeaLadenNonEca.toFixed(2)} + extra=${vlsfoSeaExtraNonEca.toFixed(2)} × RF${rewardFactor} = ${vlsfoSeaTotal.toFixed(2)} mt
+    
+    --- ECA Sea (days: ballast=${ecaSeaDaysBallast.toFixed(4)}, laden=${ecaSeaDaysLaden.toFixed(4)}) ---
+    LSMGO ECA: ballast(${ecaSeaDaysBallast.toFixed(4)}×${ecaLsmgoBallastRate}) + laden(${ecaSeaDaysLaden.toFixed(4)}×${ecaLsmgoLadenRate}) × RF${rewardFactor} = ${lsmgoEcaFromHsfoVlsfo.toFixed(2)} mt
+    
+    --- Port Consumption (loading=${loadingDays.toFixed(4)}d, disch=${dischargingDays.toFixed(4)}d, idle+bunk=${idleAndBunkeringDays.toFixed(4)}d) ---
+    HSFO Port: load=${hsfoLoading.toFixed(2)} + disch=${hsfoDischarging.toFixed(2)} + idle=${hsfoIdle.toFixed(2)} = ${(hsfoLoading+hsfoDischarging+hsfoIdle).toFixed(2)} mt
+    VLSFO Port: load=${vlsfoLoading.toFixed(2)} + disch=${vlsfoDischarging.toFixed(2)} + idle=${vlsfoIdle.toFixed(2)} = ${(vlsfoLoading+vlsfoDischarging+vlsfoIdle).toFixed(2)} mt
+    LSMGO Port: load=${lsmgoLoading.toFixed(2)} + disch=${lsmgoDischarging.toFixed(2)} + idle=${lsmgoIdle.toFixed(2)} = ${(lsmgoLoading+lsmgoDischarging+lsmgoIdle).toFixed(2)} mt
+    
+    --- Canal (days=${totalCanalDays.toFixed(4)}) ---
+    HSFO Canal=${hsfoCanal.toFixed(2)}, VLSFO Canal=${vlsfoCanal.toFixed(2)}, LSMGO Canal=${lsmgoCanal.toFixed(2)}
+    
+    --- AE Consumption (always LSMGO) ---
+    AE Sea: (ballast(${(nonEcaSeaDaysBallast+ecaSeaDaysBallast).toFixed(4)}×${profile.ae.ballast}) + laden(${(nonEcaSeaDaysLaden+ecaSeaDaysLaden).toFixed(4)}×${profile.ae.laden}) + extra(${extraSeaDays}×${profile.ae.laden})) × RF${rewardFactor} = ${aeSeaConsumption.toFixed(2)} mt
+    AE Port: load(${loadingDays.toFixed(4)}×${profile.ae.load}) + disch(${dischargingDays.toFixed(4)}×${profile.ae.discharge}) + idle(${idleAndBunkeringDays.toFixed(4)}×${profile.ae.idle}) = ${aePortConsumption.toFixed(2)} mt
+    AE Total = ${lsmgoAeTotal.toFixed(2)} mt
+    
+    --- TOTAL CONSUMPTION ---
+    HSFO: sea(${hsfoSeaTotal.toFixed(2)}) + load(${hsfoLoading.toFixed(2)}) + disch(${hsfoDischarging.toFixed(2)}) + idle(${hsfoIdle.toFixed(2)}) + canal(${hsfoCanal.toFixed(2)}) = ${hsfoConsumption.toFixed(2)} mt
+    VLSFO: sea(${vlsfoSeaTotal.toFixed(2)}) + load(${vlsfoLoading.toFixed(2)}) + disch(${vlsfoDischarging.toFixed(2)}) + idle(${vlsfoIdle.toFixed(2)}) + canal(${vlsfoCanal.toFixed(2)}) = ${vlsfoConsumption.toFixed(2)} mt
+    LSMGO: sea(${lsmgoSeaTotal.toFixed(2)}) + load(${lsmgoLoading.toFixed(2)}) + disch(${lsmgoDischarging.toFixed(2)}) + idle(${lsmgoIdle.toFixed(2)}) + canal(${lsmgoCanal.toFixed(2)}) + AE(${lsmgoAeTotal.toFixed(2)}) = ${lsmgoConsumption.toFixed(2)} mt`);
+
     // --- ECA vs Non-ECA Fuel Breakdown ---
     const nonEcaFuel = {
       hsfo: hsfoSeaTotal,
@@ -356,8 +421,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       total: hsfoSeaTotal + vlsfoSeaTotal + lsmgoSeaNonEcaTotal,
     };
     const ecaFuel = {
-      hsfo: 0, // No HSFO in ECA
-      vlsfo: 0, // No VLSFO in ECA
+      hsfo: 0,
+      vlsfo: 0,
       lsmgo: lsmgoEcaFromHsfoVlsfo,
       total: lsmgoEcaFromHsfoVlsfo,
     };
@@ -367,16 +432,20 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // 5. BUNKER COST CALCULATION (Price × Consumption)
     // ============================================
     
-    // Get fuel prices from bunker section
     const hsfoPrice = bunker.hsfo.price || 0;
     const vlsfoPrice = bunker.vlsfo.price || 0;
     const lsmgoPrice = bunker.lsmgo.price || 0;
     
-    // Calculate costs: Consumption × Price
     const hsfoCost = hsfoConsumption * hsfoPrice;
     const vlsfoCost = vlsfoConsumption * vlsfoPrice;
     const lsmgoCost = lsmgoConsumption * lsmgoPrice;
     const totalBunkerCost = hsfoCost + vlsfoCost + lsmgoCost;
+
+    console.log(`\n[Step 5] BUNKER COSTS:
+    HSFO: ${hsfoConsumption.toFixed(2)} mt × $${hsfoPrice} = $${hsfoCost.toFixed(2)}
+    VLSFO: ${vlsfoConsumption.toFixed(2)} mt × $${vlsfoPrice} = $${vlsfoCost.toFixed(2)}
+    LSMGO: ${lsmgoConsumption.toFixed(2)} mt × $${lsmgoPrice} = $${lsmgoCost.toFixed(2)}
+    Total Bunker Cost = $${totalBunkerCost.toFixed(2)}`);
 
     // 6. Calculate freight and revenue
     let grossFreight = 0;
@@ -389,13 +458,25 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageCommission = grossFreight * (cargo.voyageCommission / 100);
     const netFreight = grossFreight - voyageCommission;
 
+    console.log(`\n[Step 6] FREIGHT & REVENUE:
+    Gross Freight: ${cargo.rateType === 'lumpsum' ? `lumpsum $${cargo.rate}` : `$${cargo.rate}/mt × ${cargo.quantity} mt`} = $${grossFreight.toFixed(2)}
+    Voyage Commission: $${grossFreight.toFixed(2)} × ${cargo.voyageCommission}% = $${voyageCommission.toFixed(2)}
+    Net Freight: $${grossFreight.toFixed(2)} - $${voyageCommission.toFixed(2)} = $${netFreight.toFixed(2)}`);
+
     // 7. Calculate misc costs
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
     const canalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
 
+    console.log(`\n[Step 7] MISC COSTS:
+    Misc: miscCost=$${misc?.miscCost || 0} + extraFees=$${misc?.extraFees || 0} + extraInsurance=$${misc?.extraInsurance || 0} = $${miscCosts.toFixed(2)}
+    Canal: canal1=$${misc?.canalCost1 || 0} + canal2=$${misc?.canalCost2 || 0} = $${canalCosts.toFixed(2)}`);
+
     // 8. Total voyage costs (Bunker + Port + Canal + Misc — NO commissions mixed in)
     const totalVoyageCosts = totalBunkerCost + portCosts + miscCosts + canalCosts;
     
+    console.log(`\n[Step 8] TOTAL VOYAGE COSTS:
+    Bunker($${totalBunkerCost.toFixed(2)}) + Port($${portCosts.toFixed(2)}) + Misc($${miscCosts.toFixed(2)}) + Canal($${canalCosts.toFixed(2)}) = $${totalVoyageCosts.toFixed(2)}`);
+
     // 9. Hire calculations — TC Commission reduces hire ONLY, never freight
     const grossHireRate = hireRate;
     const tcCommissionPct = cargo.tcCommission / 100;
@@ -406,27 +487,39 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageCostInclHire = totalVoyageCosts + hireCost;
     const voyageCostExclHire = totalVoyageCosts;
 
+    console.log(`\n[Step 9] HIRE CALCULATIONS:
+    Gross Hire Rate: $${grossHireRate}/day
+    TC Commission: ${cargo.tcCommission}% → Net Hire Rate: $${grossHireRate} × (1 - ${tcCommissionPct}) = $${netHireRate.toFixed(2)}/day
+    Hire Cost: $${grossHireRate} × ${totalVoyageDays.toFixed(4)} days = $${hireCost.toFixed(2)}
+    Net Hire Cost: $${netHireRate.toFixed(2)} × ${totalVoyageDays.toFixed(4)} = $${netHireCost.toFixed(2)}
+    TC Commission Amount: $${hireCost.toFixed(2)} × ${tcCommissionPct} = $${tcCommissionAmount.toFixed(2)}
+    Voyage Cost incl Hire: $${totalVoyageCosts.toFixed(2)} + $${hireCost.toFixed(2)} = $${voyageCostInclHire.toFixed(2)}
+    Voyage Cost excl Hire: $${voyageCostExclHire.toFixed(2)}`);
+
     // 10. Profitability calculations
-    // Voyage Result = Net Freight − Voyage Costs (commissions NOT in voyage costs)
     const voyageResult = netFreight - totalVoyageCosts + cargo.demurrage - cargo.despatch;
     const grossProfit = voyageResult;
     const netProfit = grossProfit;
     
-    // P&L = Voyage Result − Hire Cost
     const pAndL = voyageResult - hireCost;
 
-    // NTCE = (Net Freight - Voyage Expenses Excl Hire) / Total Days
     const ntce = totalVoyageDays > 0 
       ? (netFreight - totalVoyageCosts) / totalVoyageDays 
       : 0;
     
-    // GTCE = NTCE / (1 - TC Commission Rate)
     const gtce = tcCommissionPct < 1
       ? ntce / (1 - tcCommissionPct) 
       : 0;
     
-    // TCE = GTCE (industry standard, used interchangeably)
     const tce = gtce;
+
+    console.log(`\n[Step 10] PROFITABILITY:
+    Voyage Result = NetFreight($${netFreight.toFixed(2)}) - VoyageCosts($${totalVoyageCosts.toFixed(2)}) + Demurrage($${cargo.demurrage}) - Despatch($${cargo.despatch}) = $${voyageResult.toFixed(2)}
+    Gross Profit = $${grossProfit.toFixed(2)}
+    P&L = VoyageResult($${voyageResult.toFixed(2)}) - HireCost($${hireCost.toFixed(2)}) = $${pAndL.toFixed(2)}
+    NTCE = (NetFreight($${netFreight.toFixed(2)}) - VoyageCosts($${totalVoyageCosts.toFixed(2)})) / Days(${totalVoyageDays.toFixed(4)}) = $${ntce.toFixed(2)}/day
+    GTCE = NTCE($${ntce.toFixed(2)}) / (1 - tcComm(${tcCommissionPct})) = $${gtce.toFixed(2)}/day
+    TCE = GTCE = $${tce.toFixed(2)}/day`);
 
     // 10. Environmental calculations using emission module
     const fuelConsumption = {
@@ -493,6 +586,31 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     
     const afrCii = ciiResult.actualCii;
     const ciiRating = ciiResult.rating;
+
+    console.log(`\n[Step 11] ENVIRONMENTAL METRICS:
+    --- CO2 Emissions (mt) ---
+    HSFO CO2: ${hsfoConsumption.toFixed(2)} mt × ${CO2_EMISSION_FACTORS.hsfo} = ${co2ByFuel.hsfo.toFixed(2)} mt CO2
+    VLSFO CO2: ${vlsfoConsumption.toFixed(2)} mt × ${CO2_EMISSION_FACTORS.vlsfo} = ${co2ByFuel.vlsfo.toFixed(2)} mt CO2
+    LSMGO CO2: ${lsmgoConsumption.toFixed(2)} mt × ${CO2_EMISSION_FACTORS.lsmgo} = ${co2ByFuel.lsmgo.toFixed(2)} mt CO2
+    Total CO2 = ${totalCo2.toFixed(2)} mt
+    Non-ECA CO2 = ${nonEcaCo2.toFixed(2)} mt, ECA CO2 = ${ecaCo2.toFixed(2)} mt
+    CO2 Ballast = totalCO2(${totalCo2.toFixed(2)}) × ballastDays(${seaDaysBallast.toFixed(4)})/totalSeaDays(${totalSeaDays.toFixed(4)}) = ${co2Ballast.toFixed(2)} mt
+    CO2 Laden = totalCO2(${totalCo2.toFixed(2)}) × ladenDays(${seaDaysLaden.toFixed(4)})/totalSeaDays(${totalSeaDays.toFixed(4)}) = ${co2Laden.toFixed(2)} mt
+    
+    --- EFOI ---
+    EFOI = totalCO2(${totalCo2.toFixed(2)}) × 1000000 / (cargo(${cargo.quantity}) × ladenDist(${ladenDistance})) = ${efoi.toFixed(2)} gCO2/tnm
+    
+    --- CII ---
+    Actual CII = totalCO2(${totalCo2.toFixed(2)}) × 1000000 / (DWT(${vessel.dwt}) × totalDist(${totalDistance})) = ${afrCii.toFixed(4)} gCO2/dwt-nm
+    CII Rating = ${ciiRating}
+    
+    --- EU ETS ---
+    ETS Chargeable CO2 = ${etsResult.chargeableCo2.toFixed(2)} mt
+    ETS Coverage = ${(etsResult.etsVoyageCoverage * 100).toFixed(1)}%
+    ETS Phase-in = ${(etsResult.phaseInPercentage * 100).toFixed(1)}%
+    ETS Cost = ${etsResult.etsCost.toFixed(2)} (CO2 price: $${bunker.co2Price})`);
+    
+    console.log(`\n========== VOYAGE CALCULATION END ==========\n`);
 
     // Validate emission inputs
     const validation = validateEmissionInputs(
