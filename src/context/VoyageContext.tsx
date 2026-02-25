@@ -241,7 +241,7 @@ function calculatePortDays(row: SequenceRowUI): number {
     const basePortDays = row.quantity / row.productivity;
     
     // Terms multiplier
-    const termsMultiplier = row.terms === "sshex" ? 1.5 : row.terms === "fhex" ? 1.25 : row.terms === "satpn" ? 1.3333 : 1.0;
+    const termsMultiplier = row.terms === "sshex" ? 1.5 : row.terms === "fhex" ? 1.25 : row.terms === "satpn" ? 1.33 : 1.0;
     
     // Final port days with terms multiplier
     const portDaysWithTerms = basePortDays * termsMultiplier;
