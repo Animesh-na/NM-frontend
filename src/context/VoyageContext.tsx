@@ -318,13 +318,13 @@ function calculateSeaTime(
   const totalLegTime = baseSeaTime + seaMarginTime;
   
   console.log(`[VoyageContext] calculateSeaTime for row (isLaden=${isLaden}):
-    Non-ECA: dist=${row.distance} nm, speed=${nonEcaSpeed} kn → baseNonEcaTime=${baseNonEcaTime.toFixed(4)} days
-    ECA: dist=${row.ecaDistance} nm, speed=${ecaSpeed} kn → baseEcaTime=${baseEcaTime.toFixed(4)} days
-    baseSeaTime (nonEca+eca) = ${baseSeaTime.toFixed(4)} days
-    Sea Margin: ${seaMarginPercent}% → seaMarginTime = ${seaMarginTime.toFixed(4)} days
-    seaTime (nonEca with margin) = baseNonEcaTime × ${seaMarginMultiplier} = ${seaTime.toFixed(4)} days
-    ecaTime (eca with margin) = baseEcaTime × ${seaMarginMultiplier} = ${ecaTime.toFixed(4)} days
-    totalLegTime = baseSeaTime + seaMarginTime = ${totalLegTime.toFixed(4)} days`);
+    Non-ECA: dist=${row.distance} nm, speed=${nonEcaSpeed} kn → baseNonEcaTime=${baseNonEcaTime} days
+    ECA: dist=${row.ecaDistance} nm, speed=${ecaSpeed} kn → baseEcaTime=${baseEcaTime} days
+    baseSeaTime (nonEca+eca) = ${baseSeaTime} days
+    Sea Margin: ${seaMarginPercent}% → seaMarginTime = ${seaMarginTime} days
+    seaTime (nonEca with margin) = baseNonEcaTime × ${seaMarginMultiplier} = ${seaTime} days
+    ecaTime (eca with margin) = baseEcaTime × ${seaMarginMultiplier} = ${ecaTime} days
+    totalLegTime = baseSeaTime + seaMarginTime = ${totalLegTime} days`);
 
   return { baseSeaTime, seaMarginTime, ecaTime, seaTime, totalLegTime };
 }
