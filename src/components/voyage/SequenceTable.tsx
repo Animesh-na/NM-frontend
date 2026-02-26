@@ -77,7 +77,7 @@ export function SequenceTable() {
         shipCubicCapacityM3: cubicCapacity,
         portName: row.port,
         portMaxDraftM: row.portMaxDraft,
-        ukcPercent: row.ukcPercent,
+        ukcPercent: 0,
         stowageFactorM3PerMt: sf,
         requestedCargoMt: row.quantity,
       });
@@ -177,8 +177,7 @@ export function SequenceTable() {
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-36" title="Sea Time: Base / +Margin / Total">
                     Sea Time (d)
                   </th>
-                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-16">Draft (m)</th>
-                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-28" title="Port Max Draft / UKC% / Draft Check">Port Draft</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-20" title="Port Max Draft (m) - Draft restriction check">Port Draft</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12" title="Sea Margin % - Increases sailing time for weather/routing buffer">SM%</th>
                   <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-20">Quantity</th>
@@ -345,27 +344,7 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Draft in meters - editable */}
-                    <td className="px-1 py-0.5 border border-border text-center">
-                      {row.type !== "open" ? (
-                        <div className="flex items-center gap-0.5 justify-center">
-                          <input
-                            type="number"
-                            step="0.1"
-                            className="w-10 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
-                            value={row.draft || ""}
-                            onChange={(e) => updateSequenceRow(row.id, "draft", parseFloat(e.target.value) || 0)}
-                            placeholder="0.0"
-                            title="Draft in meters"
-                          />
-                          <span className="text-[9px] text-muted-foreground">m</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-
-                    {/* Port Draft Restriction - Max Draft, UKC%, Status */}
+                    {/* Port Draft Restriction - Max Draft input + Status */}
                     <td className="px-1 py-0.5 border border-border text-center">
                       {showQuantityFields(row) ? (
                         <div className="flex flex-col gap-0.5">
@@ -373,22 +352,13 @@ export function SequenceTable() {
                             <input
                               type="number"
                               step="0.1"
-                              className="w-10 h-4 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
+                              className="w-12 h-5 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
                               value={row.portMaxDraft || ""}
                               onChange={(e) => updateSequenceRow(row.id, "portMaxDraft", parseFloat(e.target.value) || 0)}
-                              placeholder="Max"
+                              placeholder="Max m"
                               title="Port maximum draft (m)"
                             />
-                            <input
-                              type="number"
-                              step="1"
-                              className="w-8 h-4 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
-                              value={row.ukcPercent || ""}
-                              onChange={(e) => updateSequenceRow(row.id, "ukcPercent", parseFloat(e.target.value) || 0)}
-                              placeholder="UKC"
-                              title="Under Keel Clearance %"
-                            />
-                            <span className="text-[8px] text-muted-foreground">%</span>
+                            <span className="text-[8px] text-muted-foreground">m</span>
                           </div>
                           {draftCheckResults[row.id] && (
                             <TooltipProvider>
