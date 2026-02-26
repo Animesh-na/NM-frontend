@@ -8,6 +8,7 @@ import {
   estimateTpc,
   syncLegacyConsumption,
 } from "@/data/vessels";
+import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { cn } from "@/lib/utils";
 import { searchVesselsWithFuel, type VesselWithFuel, type FuelConsumptionResult } from "@/services/vesselFuelApi";
 
@@ -112,8 +113,8 @@ function vesselWithFuelToVesselData(
     imo: v.imo || "",
     dwt,
     gt: v.gt || 0,
-    cubic: v.capacitycuft || 0,
-    cubicUnit: "cuft",
+    cubic: v.capacitycuft || estimateCubicFromDwt(dwt),
+    cubicUnit: v.capacitycuft ? "cuft" : "cbm",
     draft: v.draught || 0,
     tpcTpi: estimateTpc(dwt),
     hsfoCapability: hasScrubber,
