@@ -1,9 +1,11 @@
-import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, Anchor } from "lucide-react";
+import { useState, useMemo } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
 import { SequenceSummary } from "./SequenceSummary";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { calculateDraftRestriction, estimateCubicFromDwt, type DraftCheckResult } from "@/utils/draftRestriction";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
@@ -52,6 +54,36 @@ export function SequenceTable() {
   } = useVoyageContext();
   
   const [isExpanded, setIsExpanded] = useState(true);
+
+  // Get global stowage factor from first cargo entry
+  const { cargos = [] } = useVoyageContext();
+  const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
+
+  // Compute draft check results for loading/discharging ports with portMaxDraft set
+  const draftCheckResults = useMemo(() => {
+    const results: Record<number, DraftCheckResult> = {};
+    for (const row of sequence) {
+      if (row.type !== "port") continue;
+      if (row.portMaxDraft <= 0) continue;
+      if (row.operation !== "loading" && row.operation !== "discharging") continue;
+      
+      const cubicCapacity = vessel.cubic > 0 ? vessel.cubic : estimateCubicFromDwt(vessel.dwt);
+      const sf = row.stowageFactor > 0 ? row.stowageFactor : globalStowageFactor;
+      
+      results[row.id] = calculateDraftRestriction({
+        currentDraftM: vessel.draft,
+        dwtMt: vessel.dwt,
+        tpcMtPerCm: vessel.tpcTpi,
+        shipCubicCapacityM3: cubicCapacity,
+        portName: row.port,
+        portMaxDraftM: row.portMaxDraft,
+        ukcPercent: row.ukcPercent,
+        stowageFactorM3PerMt: sf,
+        requestedCargoMt: row.quantity,
+      });
+    }
+    return results;
+  }, [sequence, vessel, globalStowageFactor]);
 
   const handlePortChange = (id: number, port: Port | null) => {
     setSequence(prev => prev.map(row => 
@@ -146,6 +178,7 @@ export function SequenceTable() {
                     Sea Time (d)
                   </th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-16">Draft (m)</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-28" title="Port Max Draft / UKC% / Draft Check">Port Draft</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12" title="Sea Margin % - Increases sailing time for weather/routing buffer">SM%</th>
                   <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-20">Quantity</th>
@@ -326,6 +359,55 @@ export function SequenceTable() {
                             title="Draft in meters"
                           />
                           <span className="text-[9px] text-muted-foreground">m</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* Port Draft Restriction - Max Draft, UKC%, Status */}
+                    <td className="px-1 py-0.5 border border-border text-center">
+                      {showQuantityFields(row) ? (
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-0.5 justify-center">
+                            <input
+                              type="number"
+                              step="0.1"
+                              className="w-10 h-4 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
+                              value={row.portMaxDraft || ""}
+                              onChange={(e) => updateSequenceRow(row.id, "portMaxDraft", parseFloat(e.target.value) || 0)}
+                              placeholder="Max"
+                              title="Port maximum draft (m)"
+                            />
+                            <input
+                              type="number"
+                              step="1"
+                              className="w-8 h-4 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
+                              value={row.ukcPercent || ""}
+                              onChange={(e) => updateSequenceRow(row.id, "ukcPercent", parseFloat(e.target.value) || 0)}
+                              placeholder="UKC"
+                              title="Under Keel Clearance %"
+                            />
+                            <span className="text-[8px] text-muted-foreground">%</span>
+                          </div>
+                          {draftCheckResults[row.id] && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={`text-[8px] font-bold px-1 py-0.5 rounded cursor-help ${
+                                    draftCheckResults[row.id].status === "ACCESSIBLE"
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                      : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                  }`}>
+                                    {draftCheckResults[row.id].status === "ACCESSIBLE" ? "✓ OK" : "✗ RESTRICTED"}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="text-[10px] max-w-xs">
+                                  <DraftCheckTooltip result={draftCheckResults[row.id]} />
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
@@ -562,6 +644,42 @@ export function SequenceTable() {
 
           {/* Sequence Summary */}
           <SequenceSummary />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Draft Check Tooltip component
+function DraftCheckTooltip({ result }: { result: DraftCheckResult }) {
+  return (
+    <div className="space-y-1">
+      <div className="font-semibold">{result.portName} — {result.status}</div>
+      {result.error && <div className="text-destructive">{result.error}</div>}
+      {result.effectiveDraft !== undefined && (
+        <div>Effective Draft: {result.effectiveDraft.toFixed(2)} m</div>
+      )}
+      {result.availableDraft !== undefined && (
+        <div>Available Draft: {result.availableDraft.toFixed(2)} m</div>
+      )}
+      {result.maxWeightDraft !== undefined && (
+        <div>Max by Draft: {result.maxWeightDraft.toLocaleString()} mt</div>
+      )}
+      {result.maxWeightVolume !== undefined && result.maxWeightVolume !== Infinity && (
+        <div>Max by Volume: {result.maxWeightVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })} mt</div>
+      )}
+      {result.maxWeightDwt !== undefined && (
+        <div>Max by DWT: {result.maxWeightDwt.toLocaleString()} mt</div>
+      )}
+      {result.maxLoadableCargo !== undefined && (
+        <div className="font-medium">Max Loadable: {result.maxLoadableCargo.toLocaleString()} mt ({result.limitingFactor})</div>
+      )}
+      {result.newDraft !== undefined && (
+        <div>New Draft: {result.newDraft.toFixed(2)} m</div>
+      )}
+      {result.reasons && result.reasons.length > 0 && (
+        <div className="text-destructive">
+          {result.reasons.map((r, i) => <div key={i}>⚠ {r}</div>)}
         </div>
       )}
     </div>
