@@ -81,6 +81,11 @@ export interface SequenceRowUI {
   
   // Expected DA
   expDa: number;
+  
+  // Port draft restriction
+  portMaxDraft: number; // Port maximum allowed draft (m)
+  ukcPercent: number;   // Under Keel Clearance percentage (default 0)
+  stowageFactor: number; // Stowage factor override (m³/mt), 0 = use global default
 }
 
 // Multi-cargo entry structure
@@ -99,6 +104,7 @@ export interface CargoEntry {
   ntcBase: number; // Benchmark NTC $/day
   gtcTarget: number; // Target GTC $/day
   netBBOverride?: number; // Manual override for Net BB
+  stowageFactor: number; // Global stowage factor (m³/mt)
 }
 
 interface VoyageContextValue {
@@ -361,6 +367,9 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   bunkeringVlsfo: 0,
   bunkeringLsmgo: 0,
   expDa: 0,
+  portMaxDraft: 0,
+  ukcPercent: 0,
+  stowageFactor: 0,
 });
 
 const initialSequence: SequenceRowUI[] = [
@@ -395,6 +404,9 @@ const initialSequence: SequenceRowUI[] = [
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
     expDa: 0,
+    portMaxDraft: 0,
+    ukcPercent: 0,
+    stowageFactor: 0,
   },
   {
     id: 2,
@@ -427,6 +439,9 @@ const initialSequence: SequenceRowUI[] = [
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
     expDa: 13000,
+    portMaxDraft: 0,
+    ukcPercent: 0,
+    stowageFactor: 0,
   },
   {
     id: 3,
@@ -459,6 +474,9 @@ const initialSequence: SequenceRowUI[] = [
     bunkeringVlsfo: 1234,
     bunkeringLsmgo: 1234,
     expDa: 2500,
+    portMaxDraft: 0,
+    ukcPercent: 0,
+    stowageFactor: 0,
   },
   {
     id: 4,
@@ -491,6 +509,9 @@ const initialSequence: SequenceRowUI[] = [
     bunkeringVlsfo: 0,
     bunkeringLsmgo: 0,
     expDa: 25000,
+    portMaxDraft: 0,
+    ukcPercent: 0,
+    stowageFactor: 0,
   },
 ];
 
@@ -509,6 +530,7 @@ const initialCargos: CargoEntry[] = [
     averageMode: "average",
     ntcBase: 8000,
     gtcTarget: 12000,
+    stowageFactor: 1.4,
   },
 ];
 
@@ -797,6 +819,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         averageMode: "average" as const,
         ntcBase: 8000,
         gtcTarget: 12000,
+        stowageFactor: 1.4,
       }];
     });
   }, []);

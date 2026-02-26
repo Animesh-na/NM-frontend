@@ -236,6 +236,7 @@ interface CargoEntryRowProps {
     ntcBase: number;
     gtcTarget: number;
     netBBOverride?: number;
+    stowageFactor: number;
   };
   index: number;
   onUpdate: (field: string, value: number | string) => void;
@@ -379,6 +380,20 @@ function CargoEntryRow({ cargo, index, onUpdate, sequenceQuantity }: CargoEntryR
           <option value="per_port">port</option>
           <option value="per_voyage">voyage</option>
         </select>
+      </div>
+
+      {/* Stowage Factor */}
+      <div className="col-span-2">
+        <label className="text-muted-foreground mb-1 block">SF (m³/mt)</label>
+        <input
+          type="number"
+          step="0.01"
+          className="form-input-sm w-full font-mono text-right"
+          value={cargo.stowageFactor || ""}
+          onChange={(e) => onUpdate("stowageFactor", parseFloat(e.target.value) || 0)}
+          placeholder="1.40"
+          title="Stowage Factor - m³ per MT (used for draft restriction volume check)"
+        />
       </div>
     </div>
   );
