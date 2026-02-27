@@ -114,7 +114,7 @@ function vesselWithFuelToVesselData(
     dwt,
     gt: v.gt || 0,
     cubic: v.capacitycuft || estimateCubicFromDwt(dwt),
-    cubicUnit: v.capacitycuft ? "cuft" : "cbm",
+    cubicUnit: "cbm",
     draft: v.draught || 0,
     tpcTpi: estimateTpc(dwt),
     hsfoCapability: hasScrubber,

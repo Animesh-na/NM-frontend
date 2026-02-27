@@ -219,14 +219,7 @@ export function VesselPanel() {
                   onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
-                <select
-                  className="form-select-sm text-[8px] w-10 px-0.5"
-                  value={vessel.cubicUnit}
-                  onChange={(e) => handleFieldChange("cubicUnit", e.target.value)}
-                >
-                  <option value="cbm">m³</option>
-                  <option value="cuft">cft</option>
-                </select>
+                <span className="text-[8px] text-muted-foreground self-center">m³</span>
               </div>
             </div>
             <div className="col-span-1">

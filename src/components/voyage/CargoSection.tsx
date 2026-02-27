@@ -85,9 +85,9 @@ export function CargoSection() {
                   type="number"
                   step="0.25"
                   className="form-input-sm w-full font-mono text-right"
-                  value={cargos[0]?.tcCommission || 3.75}
+                  value={cargos[0]?.tcCommission ?? 3.75}
                   onChange={(e) => {
-                    const value = parseFloat(e.target.value) || 0;
+                    const value = parseFloat(e.target.value);
                     cargos.forEach(c => updateCargoEntry(c.id, "tcCommission", value));
                   }}
                 />
