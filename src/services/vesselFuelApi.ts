@@ -61,6 +61,10 @@ export interface VesselWithFuel {
   builder: string;
   owner: string;
   capacitycuft: number;
+  capacity_cu_m: number | null;
+  tpc: number | null;
+  speed_knots: number | null;
+  sector: string | null;
   scrubber_indicator: boolean;
   hsfo_allowed: boolean;
   main_engine1_mcr: number;
