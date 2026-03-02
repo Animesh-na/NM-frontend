@@ -122,7 +122,7 @@ export function CargoSection() {
                 Net BB
                 <InfoTooltip 
                   formula="Net Freight + Demurrage - Despatch" 
-                  description="Net Brokerage Balance after commissions"
+                  description="Net Ballast Bonus after commissions"
                 />
               </label>
               <div className="input-with-unit">
@@ -145,7 +145,7 @@ export function CargoSection() {
                 Gross BB
                 <InfoTooltip 
                   formula="Gross Freight + Demurrage - Despatch" 
-                  description="Gross Brokerage Balance before commissions"
+                  description="Gross Ballast Bonus before commissions"
                 />
               </label>
               <div className="input-with-unit">
