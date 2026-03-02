@@ -149,9 +149,12 @@ export interface SheetListItem {
 
 export interface SheetListResponse {
   sheets: SheetListItem[];
-  total: number;
-  page: number;
-  limit: number;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  };
 }
 
 export interface SheetDetail {
@@ -169,18 +172,18 @@ export async function listSheets(page: number = 1, limit: number = 10): Promise<
     return data;
   } catch (error) {
     console.error("Failed to list sheets:", error);
-    return { sheets: [], total: 0, page, limit };
+    return { sheets: [], pagination: { total: 0, page, limit, total_pages: 1 } };
   }
 }
 
 // 6. Save (create) a new sheet
 export async function saveSheet(name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
   try {
-    const data = await apiRequest<SheetDetail>("/sheets", undefined, {
+    const data = await apiRequest<{ sheet: SheetDetail }>("/sheets", undefined, {
       method: 'POST',
       body: { name, data: sheetData },
     });
-    return data;
+    return data.sheet || null;
   } catch (error) {
     console.error("Failed to save sheet:", error);
     return null;
@@ -190,11 +193,11 @@ export async function saveSheet(name: string, sheetData: Record<string, unknown>
 // 7. Update an existing sheet
 export async function updateSheet(id: string, name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
   try {
-    const data = await apiRequest<SheetDetail>("/sheets", undefined, {
+    const data = await apiRequest<{ sheet: SheetDetail }>("/sheets", undefined, {
       method: 'POST',
       body: { id, name, data: sheetData },
     });
-    return data;
+    return data.sheet || null;
   } catch (error) {
     console.error("Failed to update sheet:", error);
     return null;
@@ -204,8 +207,8 @@ export async function updateSheet(id: string, name: string, sheetData: Record<st
 // 8. Get a single sheet by ID
 export async function getSheet(id: string): Promise<SheetDetail | null> {
   try {
-    const data = await apiRequest<SheetDetail>(`/sheets/${id}`);
-    return data;
+    const data = await apiRequest<{ sheet: SheetDetail }>(`/sheets/${id}`);
+    return data.sheet || null;
   } catch (error) {
     console.error("Failed to get sheet:", error);
     return null;

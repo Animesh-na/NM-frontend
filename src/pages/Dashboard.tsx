@@ -21,7 +21,7 @@ export default function Dashboard() {
     try {
       const res = await listSheets(page, ITEMS_PER_PAGE);
       setSheets(res.sheets || []);
-      setTotal(res.total || 0);
+      setTotal(res.pagination?.total || 0);
     } catch {
       toast.error("Failed to load sheets");
     } finally {
