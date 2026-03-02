@@ -35,16 +35,26 @@ serve(async (req) => {
 
     const apiUrl = `${MARINE_API_BASE}${endpoint}${params.toString() ? '?' + params.toString() : ''}`;
     
-    console.log('Calling Marine API:', apiUrl);
+    console.log('Calling Marine API:', req.method, apiUrl);
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
+    // Support both GET and POST methods
+    const fetchOptions: RequestInit = {
+      method: req.method === 'POST' ? 'POST' : 'GET',
       headers: {
         'API-Key': MARINE_API_KEY,
         'Content-Type': 'application/json',
       },
-    });
+    };
 
+    // Forward request body for POST requests
+    if (req.method === 'POST') {
+      const body = await req.text();
+      if (body) {
+        fetchOptions.body = body;
+      }
+    }
+
+    const response = await fetch(apiUrl, fetchOptions);
     const data = await response.json();
 
     return new Response(

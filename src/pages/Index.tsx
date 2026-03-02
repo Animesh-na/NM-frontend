@@ -1,4 +1,6 @@
+import { useEffect, useCallback } from "react";
 import { CompactHeader } from "@/components/voyage/CompactHeader";
+import { SheetTabs } from "@/components/voyage/SheetTabs";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
 import { SequenceTable } from "@/components/voyage/SequenceTable";
 import { CargoSection } from "@/components/voyage/CargoSection";
@@ -7,12 +9,76 @@ import { MiscSection } from "@/components/voyage/MiscSection";
 import { SheetNotes } from "@/components/voyage/SheetNotes";
 import { JsonImportSection } from "@/components/voyage/JsonImportSection";
 import { VoyageSummary } from "@/components/voyage/VoyageSummary";
+import { useSheets } from "@/context/SheetContext";
+import { useVoyageContext } from "@/context/VoyageContext";
+import { Loader2 } from "lucide-react";
 
 const Index = () => {
+  const { activeTab, saveCurrentSheet, markDirty } = useSheets();
+  const voyage = useVoyageContext();
+
+  // Load sheet data into VoyageContext when a tab is opened with data
+  useEffect(() => {
+    if (activeTab && activeTab.data && Object.keys(activeTab.data).length > 0 && !activeTab.isLoading) {
+      const d = activeTab.data as Record<string, any>;
+      if (d.vessel) voyage.setVessel(d.vessel);
+      if (d.sequence) voyage.setSequence(d.sequence);
+      if (d.cargos) voyage.setCargos(d.cargos);
+      if (d.bunker) voyage.setBunker(d.bunker);
+      if (d.misc) voyage.setMisc(d.misc);
+      if (d.hireRate !== undefined) voyage.setHireRate(d.hireRate);
+      if (d.vesselCost !== undefined) voyage.setVesselCost(d.vesselCost);
+    }
+    // Only run when tab changes, not on every voyage state change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab?.id, activeTab?.isLoading]);
+
+  // Gather current voyage data for saving
+  const gatherData = useCallback((): Record<string, unknown> => ({
+    vessel: voyage.vessel,
+    sequence: voyage.sequence,
+    cargos: voyage.cargos,
+    bunker: voyage.bunker,
+    misc: voyage.misc,
+    hireRate: voyage.hireRate,
+    vesselCost: voyage.vesselCost,
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost]);
+
+  // Listen for save events from SheetTabs
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { name } = (e as CustomEvent).detail;
+      const data = gatherData();
+      saveCurrentSheet(name, data);
+    };
+    window.addEventListener("sheet-save", handler);
+    return () => window.removeEventListener("sheet-save", handler);
+  }, [gatherData, saveCurrentSheet]);
+
+  // Mark dirty on any voyage change (debounced by React batching)
+  useEffect(() => {
+    if (activeTab && !activeTab.isLoading) {
+      markDirty();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost]);
+
+  if (activeTab?.isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading sheet...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Minimal Header */}
       <CompactHeader />
+      
+      {/* Sheet Tabs */}
+      <SheetTabs />
       
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
