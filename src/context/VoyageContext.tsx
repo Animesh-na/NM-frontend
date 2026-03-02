@@ -810,18 +810,30 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   recalcRef.current = recalculateDistances;
 
   // Persistent flag to suppress distance recalculation (used when loading sheet data)
-  const [distanceSuppressed, setDistanceSuppressed] = useState(false);
+  // Using a ref so setting it doesn't re-trigger the distance effect
+  const distanceSuppressedRef = useRef(false);
+  
+  const setDistanceSuppressed = useCallback((suppressed: boolean) => {
+    distanceSuppressedRef.current = suppressed;
+  }, []);
 
   const suppressDistanceRecalc = useCallback(() => {
-    setDistanceSuppressed(true);
+    distanceSuppressedRef.current = true;
   }, []);
+
+  // Track the previous portCoordsKey to detect actual changes vs initial hydration
+  const prevPortCoordsKeyRef = useRef(portCoordsKey);
 
   // Auto-recalculate distances ONLY when ports or coordinates change
   useEffect(() => {
+    // Skip initial render
+    if (prevPortCoordsKeyRef.current === portCoordsKey) return;
+    prevPortCoordsKeyRef.current = portCoordsKey;
+
     if (autoDistanceEnabled && portCoordsKey) {
-      if (distanceSuppressed) {
+      if (distanceSuppressedRef.current) {
         // Reset the flag but don't trigger API call
-        setDistanceSuppressed(false);
+        distanceSuppressedRef.current = false;
         return;
       }
       const timer = setTimeout(() => {
@@ -829,7 +841,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [portCoordsKey, autoDistanceEnabled, distanceSuppressed]);
+  }, [portCoordsKey, autoDistanceEnabled]);
 
   // Multi-cargo management functions
   const addCargo = useCallback(() => {
