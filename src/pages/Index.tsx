@@ -16,7 +16,14 @@ import { Loader2 } from "lucide-react";
 const Index = () => {
   const { activeTab, saveCurrentSheet, markDirty } = useSheets();
   const voyage = useVoyageContext();
-  const { suppressDistanceRecalc } = voyage;
+  const { suppressDistanceRecalc, setDistanceSuppressed } = voyage;
+
+  // Suppress distance API while any tab is loading
+  useEffect(() => {
+    if (activeTab?.isLoading) {
+      setDistanceSuppressed(true);
+    }
+  }, [activeTab?.isLoading, setDistanceSuppressed]);
 
   // Load sheet data into VoyageContext when a tab is opened with data
   useEffect(() => {

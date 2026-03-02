@@ -129,9 +129,10 @@ interface VoyageContextValue {
   autoDistanceEnabled: boolean;
   setAutoDistanceEnabled: (enabled: boolean) => void;
   distanceLoading: boolean;
-  suppressDistanceRecalc: () => void;
-  
-  // Multi-cargo state
+   suppressDistanceRecalc: () => void;
+   setDistanceSuppressed: (suppressed: boolean) => void;
+   
+   // Multi-cargo state
   cargos: CargoEntry[];
   setCargos: React.Dispatch<React.SetStateAction<CargoEntry[]>>;
   addCargo: () => void;
@@ -808,18 +809,19 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const recalcRef = useRef(recalculateDistances);
   recalcRef.current = recalculateDistances;
 
-  // Ref to skip the next distance recalculation (used when loading sheet data)
-  const skipDistanceRecalcRef = useRef(false);
+  // Persistent flag to suppress distance recalculation (used when loading sheet data)
+  const [distanceSuppressed, setDistanceSuppressed] = useState(false);
 
   const suppressDistanceRecalc = useCallback(() => {
-    skipDistanceRecalcRef.current = true;
+    setDistanceSuppressed(true);
   }, []);
 
   // Auto-recalculate distances ONLY when ports or coordinates change
   useEffect(() => {
     if (autoDistanceEnabled && portCoordsKey) {
-      if (skipDistanceRecalcRef.current) {
-        skipDistanceRecalcRef.current = false;
+      if (distanceSuppressed) {
+        // Reset the flag but don't trigger API call
+        setDistanceSuppressed(false);
         return;
       }
       const timer = setTimeout(() => {
@@ -827,7 +829,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [portCoordsKey, autoDistanceEnabled]);
+  }, [portCoordsKey, autoDistanceEnabled, distanceSuppressed]);
 
   // Multi-cargo management functions
   const addCargo = useCallback(() => {
@@ -1081,6 +1083,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         setHireRate,
         results,
         suppressDistanceRecalc,
+        setDistanceSuppressed,
       }}
     >
       {children}
@@ -1108,6 +1111,7 @@ export function useVoyageContext() {
       setAutoDistanceEnabled: () => {},
       distanceLoading: false,
       suppressDistanceRecalc: () => {},
+      setDistanceSuppressed: () => {},
       cargos: [],
       setCargos: () => {},
       addCargo: () => {},
