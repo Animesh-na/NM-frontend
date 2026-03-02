@@ -86,6 +86,12 @@ export interface SequenceRowUI {
   portMaxDraft: number; // Port maximum allowed draft (m)
   ukcPercent: number;   // Under Keel Clearance percentage (default 0)
   stowageFactor: number; // Stowage factor override (m³/mt), 0 = use global default
+  
+  // Port fuel type (for port consumption calculation)
+  portFuelType: "hsfo" | "vlsfo" | "lsmgo";
+  
+  // Coefficient factor for terms (editable, default based on terms selection)
+  coefficientFactor: number;
 }
 
 // Multi-cargo entry structure
@@ -246,8 +252,8 @@ function calculatePortDays(row: SequenceRowUI): number {
     // Base port days = quantity / productivity
     const basePortDays = row.quantity / row.productivity;
     
-    // Terms multiplier
-    const termsMultiplier = row.terms === "sshex" ? 1.5 : row.terms === "fhex" ? 1.25 : row.terms === "satpn" ? 1.33 : 1.0;
+    // Terms multiplier - use editable coefficientFactor
+    const termsMultiplier = row.coefficientFactor || (row.terms === "sshex" ? 1.5 : row.terms === "fhex" ? 1.25 : row.terms === "satpn" ? 1.33 : 1.0);
     
     // Final port days with terms multiplier
     const portDaysWithTerms = basePortDays * termsMultiplier;
@@ -335,7 +341,7 @@ function calculateSeaTime(
   return { baseSeaTime, seaMarginTime, ecaTime, seaTime, totalLegTime };
 }
 
-const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco", defaultCranes: number = 4): SequenceRowUI => ({
+const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco", defaultCranes: number = 4, hasScrubber: boolean = false): SequenceRowUI => ({
   id: nextId,
   type,
   operation,
@@ -370,6 +376,8 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   portMaxDraft: 0,
   ukcPercent: 0,
   stowageFactor: 0,
+  portFuelType: hasScrubber ? "hsfo" : "vlsfo",
+  coefficientFactor: type === "port" && (operation === "loading" || operation === "discharging") ? 1.0 : 0,
 });
 
 const initialSequence: SequenceRowUI[] = [
@@ -407,6 +415,8 @@ const initialSequence: SequenceRowUI[] = [
     portMaxDraft: 0,
     ukcPercent: 0,
     stowageFactor: 0,
+    portFuelType: "vlsfo",
+    coefficientFactor: 0,
   },
   {
     id: 2,
@@ -442,6 +452,8 @@ const initialSequence: SequenceRowUI[] = [
     portMaxDraft: 0,
     ukcPercent: 0,
     stowageFactor: 0,
+    portFuelType: "vlsfo",
+    coefficientFactor: 1.0,
   },
   {
     id: 3,
@@ -477,6 +489,8 @@ const initialSequence: SequenceRowUI[] = [
     portMaxDraft: 0,
     ukcPercent: 0,
     stowageFactor: 0,
+    portFuelType: "vlsfo",
+    coefficientFactor: 0,
   },
   {
     id: 4,
@@ -512,6 +526,8 @@ const initialSequence: SequenceRowUI[] = [
     portMaxDraft: 0,
     ukcPercent: 0,
     stowageFactor: 0,
+    portFuelType: "vlsfo",
+    coefficientFactor: 1.0,
   },
 ];
 
@@ -646,7 +662,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const addPort = useCallback((operation: PortOperation) => {
     setSequence(prev => {
       const nextId = Math.max(...prev.map(s => s.id), 0) + 1;
-      const newRow = createNewRow("port", nextId, operation, vessel.speedProfile);
+      const newRow = createNewRow("port", nextId, operation, vessel.speedProfile, 4, vessel.hasScrubber);
       
       // Insert before repos (if any exist at the end)
       const reposRows = prev.filter(r => r.type === "repos");
@@ -658,7 +674,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const addRepositioning = useCallback(() => {
     setSequence(prev => {
       const nextId = Math.max(...prev.map(s => s.id), 0) + 1;
-      const newRow = createNewRow("repos", nextId, undefined, vessel.speedProfile);
+      const newRow = createNewRow("repos", nextId, undefined, vessel.speedProfile, 4, vessel.hasScrubber);
       return [...prev, newRow];
     });
   }, [vessel.speedProfile]);

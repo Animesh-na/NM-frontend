@@ -150,7 +150,7 @@ export function CargoSection() {
             </div>
             <div className="col-span-2">
               <label className="text-muted-foreground mb-1 flex items-center">
-                Vessel cost
+                Daily hire
                 <InfoTooltip 
                   formula="Daily vessel hire rate" 
                   description="Used in P&L calculation"

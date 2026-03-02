@@ -181,7 +181,8 @@ export function SequenceTable() {
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-10" title="Number of Cranes">Crn</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12" title="Sea Margin % - Increases sailing time for weather/routing buffer">SM%</th>
                   <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-20">Quantity</th>
-                  <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-28">Terms</th>
+                  <th className="px-1 py-0.5 text-left font-medium text-muted-foreground border border-border w-36">Terms</th>
+                  <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-14" title="Port Fuel Type">P.Fuel</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12">Tt (h)</th>
                   <th className="px-1 py-0.5 text-center font-medium text-muted-foreground border border-border w-12">Et (h)</th>
                   <th className="px-1 py-0.5 text-right font-medium text-muted-foreground border border-border w-16">Exp/DA</th>
@@ -211,19 +212,19 @@ export function SequenceTable() {
                       )}
                     </td>
 
-                    {/* Port with Season dropdown for Open row */}
+                    {/* Port with Season - Open row gets full width port, season on next line */}
                     <td className="px-0.5 py-0.5 border border-border">
-                      <div className="flex items-center gap-1">
-                        <div className="flex-1 min-w-0">
-                          <PortSelect
-                            value={row.port}
-                            onChange={(port) => handlePortChange(row.id, port)}
-                            placeholder="Select..."
-                          />
-                        </div>
-                        {row.type === "open" && (
+                      {row.type === "open" ? (
+                        <div className="flex flex-col gap-0.5">
+                          <div className="w-full">
+                            <PortSelect
+                              value={row.port}
+                              onChange={(port) => handlePortChange(row.id, port)}
+                              placeholder="Select port..."
+                            />
+                          </div>
                           <select
-                            className="h-5 text-[10px] border border-border rounded bg-background px-0.5 w-16"
+                            className="h-5 text-[10px] border border-border rounded bg-background px-0.5 w-full"
                             value={row.season || "summer"}
                             onChange={(e) => updateSequenceRow(row.id, "season", e.target.value as Season)}
                           >
@@ -231,8 +232,16 @@ export function SequenceTable() {
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                           </select>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 min-w-0">
+                          <PortSelect
+                            value={row.port}
+                            onChange={(port) => handlePortChange(row.id, port)}
+                            placeholder="Select..."
+                          />
+                        </div>
+                      )}
                     </td>
 
                     {/* Cargo # - shows #1 for load/disch */}
@@ -490,15 +499,47 @@ export function SequenceTable() {
                           <select
                             className="h-5 text-[10px] border border-border rounded bg-background px-0.5"
                             value={row.terms || "shinc"}
-                            onChange={(e) => updateSequenceRow(row.id, "terms", e.target.value)}
+                            onChange={(e) => {
+                              updateSequenceRow(row.id, "terms", e.target.value);
+                              // Auto-set coefficient factor based on terms
+                              const defaultCoeff = e.target.value === "sshex" ? 1.5 : e.target.value === "fhex" ? 1.25 : e.target.value === "satpn" ? 1.33 : 1.0;
+                              updateSequenceRow(row.id, "coefficientFactor", defaultCoeff);
+                            }}
                           >
                             {termsOptions.map((opt) => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                           </select>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="w-9 h-5 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
+                            value={row.coefficientFactor || ""}
+                            onChange={(e) => updateSequenceRow(row.id, "coefficientFactor", parseFloat(e.target.value) || 0)}
+                            placeholder="1.0"
+                            title="Coefficient factor for terms (shinc=1.0, sshex=1.5, fhex=1.25, satpn=1.33)"
+                          />
                         </div>
                       ) : showBunkeringFields(row) ? (
                         <span className="text-[10px] text-muted-foreground">bunker ops</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* Port Fuel Type */}
+                    <td className="px-1 py-0.5 border border-border text-center">
+                      {row.type === "port" ? (
+                        <select
+                          className="h-5 w-14 text-[9px] border border-border rounded bg-background px-0.5"
+                          value={row.portFuelType || "vlsfo"}
+                          onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}
+                          title="Fuel type used during port operations"
+                        >
+                          {vessel.hasScrubber && <option value="hsfo">HSFO</option>}
+                          <option value="vlsfo">VLSFO</option>
+                          <option value="lsmgo">LSMGO</option>
+                        </select>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
