@@ -5,18 +5,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { VoyageProvider } from "@/context/VoyageContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { SheetProvider, useSheets } from "@/context/SheetContext";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import CalculationBreakdown from "./pages/CalculationBreakdown";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function AppContent() {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Login />;
+function SheetRouter() {
+  const { currentView } = useSheets();
+  
+  if (currentView === "dashboard") {
+    return <Dashboard />;
   }
 
   return (
@@ -29,6 +31,20 @@ function AppContent() {
         </Routes>
       </BrowserRouter>
     </VoyageProvider>
+  );
+}
+
+function AppContent() {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  return (
+    <SheetProvider>
+      <SheetRouter />
+    </SheetProvider>
   );
 }
 

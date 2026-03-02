@@ -38,7 +38,7 @@ export interface MarinePort {
 }
 
 // Helper for API requests via Edge Function
-async function apiRequest<T>(endpoint: string, params?: Record<string, string | number>): Promise<T> {
+async function apiRequest<T>(endpoint: string, params?: Record<string, string | number>, options?: { method?: string; body?: unknown }): Promise<T> {
   const queryParams = new URLSearchParams({ endpoint });
   
   if (params) {
@@ -49,15 +49,21 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, string | 
     });
   }
 
+  const fetchOptions: RequestInit = {
+    method: options?.method || 'GET',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+  };
+
+  if (options?.body) {
+    fetchOptions.body = JSON.stringify(options.body);
+  }
+
   const response = await fetch(
     `${SUPABASE_URL}/functions/v1/marine-api?${queryParams.toString()}`,
-    {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    }
+    fetchOptions
   );
 
   if (!response.ok) {
@@ -130,4 +136,78 @@ export async function getSeaRouteDistance(
     dest_lon: destLon,
   });
   return data;
+}
+
+// ============= Sheet Management APIs =============
+
+export interface SheetListItem {
+  id: string;
+  name: string;
+  updated_at: string;
+  created_at: string;
+}
+
+export interface SheetListResponse {
+  sheets: SheetListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface SheetDetail {
+  id: string;
+  name: string;
+  data: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+// 5. List all sheets with pagination
+export async function listSheets(page: number = 1, limit: number = 10): Promise<SheetListResponse> {
+  try {
+    const data = await apiRequest<SheetListResponse>("/sheets", { page, limit });
+    return data;
+  } catch (error) {
+    console.error("Failed to list sheets:", error);
+    return { sheets: [], total: 0, page, limit };
+  }
+}
+
+// 6. Save (create) a new sheet
+export async function saveSheet(name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
+  try {
+    const data = await apiRequest<SheetDetail>("/sheets", undefined, {
+      method: 'POST',
+      body: { name, data: sheetData },
+    });
+    return data;
+  } catch (error) {
+    console.error("Failed to save sheet:", error);
+    return null;
+  }
+}
+
+// 7. Update an existing sheet
+export async function updateSheet(id: string, name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
+  try {
+    const data = await apiRequest<SheetDetail>("/sheets", undefined, {
+      method: 'POST',
+      body: { id, name, data: sheetData },
+    });
+    return data;
+  } catch (error) {
+    console.error("Failed to update sheet:", error);
+    return null;
+  }
+}
+
+// 8. Get a single sheet by ID
+export async function getSheet(id: string): Promise<SheetDetail | null> {
+  try {
+    const data = await apiRequest<SheetDetail>(`/sheets/${id}`);
+    return data;
+  } catch (error) {
+    console.error("Failed to get sheet:", error);
+    return null;
+  }
 }
