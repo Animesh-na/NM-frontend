@@ -15,6 +15,8 @@ export function CargoSection() {
     sequence
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [netBBOverride, setNetBBOverride] = useState<number | null>(null);
+  const [grossBBOverride, setGrossBBOverride] = useState<number | null>(null);
 
   // Calculate cargo quantity from sequence load/discharge operations
   const sequenceCargoQuantity = sequence
@@ -22,7 +24,7 @@ export function CargoSection() {
     .reduce((sum, row) => sum + (row.quantity || 0), 0);
 
   // Calculate Gross BB using sequence-derived quantity
-  const grossBB = cargos.reduce((sum, cargo) => {
+  const calculatedGrossBB = cargos.reduce((sum, cargo) => {
     const cargoQuantityShare = cargos.length > 1 
       ? sequenceCargoQuantity / cargos.length 
       : sequenceCargoQuantity;
@@ -33,7 +35,10 @@ export function CargoSection() {
   }, 0);
 
   // Calculate Net BB (Gross BB minus commissions)
-  const netBB = results.netFreight + cargos.reduce((sum, c) => sum + c.demurrageAmount - c.despatchAmount, 0);
+  const calculatedNetBB = results.netFreight + cargos.reduce((sum, c) => sum + c.demurrageAmount - c.despatchAmount, 0);
+
+  const grossBB = grossBBOverride ?? calculatedGrossBB;
+  const netBB = netBBOverride ?? calculatedNetBB;
 
   return (
     <div className="calc-card-compact">
@@ -122,10 +127,15 @@ export function CargoSection() {
               </label>
               <div className="input-with-unit">
                 <input
-                  type="text"
-                  className="form-input-sm w-full font-mono text-right bg-muted"
-                  value={netBB.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  readOnly
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={netBB}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setNetBBOverride(isNaN(val) ? null : val);
+                  }}
+                  onDoubleClick={() => setNetBBOverride(null)}
+                  title="Editable. Double-click to reset to calculated value."
                 />
                 <span className="unit">$</span>
               </div>
@@ -140,10 +150,15 @@ export function CargoSection() {
               </label>
               <div className="input-with-unit">
                 <input
-                  type="text"
-                  className="form-input-sm w-full font-mono text-right bg-muted"
-                  value={grossBB.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  readOnly
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={grossBB}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setGrossBBOverride(isNaN(val) ? null : val);
+                  }}
+                  onDoubleClick={() => setGrossBBOverride(null)}
+                  title="Editable. Double-click to reset to calculated value."
                 />
                 <span className="unit">$</span>
               </div>
