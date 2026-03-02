@@ -129,6 +129,7 @@ interface VoyageContextValue {
   autoDistanceEnabled: boolean;
   setAutoDistanceEnabled: (enabled: boolean) => void;
   distanceLoading: boolean;
+  suppressDistanceRecalc: () => void;
   
   // Multi-cargo state
   cargos: CargoEntry[];
@@ -807,9 +808,20 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const recalcRef = useRef(recalculateDistances);
   recalcRef.current = recalculateDistances;
 
+  // Ref to skip the next distance recalculation (used when loading sheet data)
+  const skipDistanceRecalcRef = useRef(false);
+
+  const suppressDistanceRecalc = useCallback(() => {
+    skipDistanceRecalcRef.current = true;
+  }, []);
+
   // Auto-recalculate distances ONLY when ports or coordinates change
   useEffect(() => {
     if (autoDistanceEnabled && portCoordsKey) {
+      if (skipDistanceRecalcRef.current) {
+        skipDistanceRecalcRef.current = false;
+        return;
+      }
       const timer = setTimeout(() => {
         recalcRef.current();
       }, 500);
@@ -1068,6 +1080,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         hireRate,
         setHireRate,
         results,
+        suppressDistanceRecalc,
       }}
     >
       {children}
@@ -1094,6 +1107,7 @@ export function useVoyageContext() {
       autoDistanceEnabled: true,
       setAutoDistanceEnabled: () => {},
       distanceLoading: false,
+      suppressDistanceRecalc: () => {},
       cargos: [],
       setCargos: () => {},
       addCargo: () => {},

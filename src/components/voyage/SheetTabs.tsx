@@ -1,9 +1,9 @@
-import { X, ArrowLeft, Save } from "lucide-react";
+import { X, ArrowLeft, Save, Plus } from "lucide-react";
 import { useSheets } from "@/context/SheetContext";
 import { useState } from "react";
 
 export function SheetTabs() {
-  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab } = useSheets();
+  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, createNewSheet } = useSheets();
   const [savingName, setSavingName] = useState(false);
   const [editName, setEditName] = useState("");
 
@@ -52,6 +52,15 @@ export function SheetTabs() {
           </button>
         </div>
       ))}
+
+      {/* New Sheet Button */}
+      <button
+        onClick={createNewSheet}
+        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm hover:bg-background text-muted-foreground transition-colors ml-1"
+        title="New Sheet"
+      >
+        <Plus className="h-3 w-3" />
+      </button>
 
       {/* Save Button */}
       {activeTab && (

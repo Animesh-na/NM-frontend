@@ -16,11 +16,14 @@ import { Loader2 } from "lucide-react";
 const Index = () => {
   const { activeTab, saveCurrentSheet, markDirty } = useSheets();
   const voyage = useVoyageContext();
+  const { suppressDistanceRecalc } = voyage;
 
   // Load sheet data into VoyageContext when a tab is opened with data
   useEffect(() => {
     if (activeTab && activeTab.data && Object.keys(activeTab.data).length > 0 && !activeTab.isLoading) {
       const d = activeTab.data as Record<string, any>;
+      // Suppress distance API calls — use distances from saved JSON
+      suppressDistanceRecalc();
       if (d.vessel) voyage.setVessel(d.vessel);
       if (d.sequence) voyage.setSequence(d.sequence);
       if (d.cargos) voyage.setCargos(d.cargos);
