@@ -236,7 +236,6 @@ export function BunkerSection() {
               
               <div className="border-t border-border mt-3 pt-3 flex flex-wrap gap-6 text-xs">
                 <div>Total Cost: <span className="font-mono font-semibold text-primary">${results.totalBunkerCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
-                <div>CO₂ Cost: <span className="font-mono">${results.co2Cost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
               </div>
             </div>
           </div>
