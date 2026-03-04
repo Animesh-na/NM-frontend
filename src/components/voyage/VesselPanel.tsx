@@ -147,190 +147,101 @@ export function VesselPanel() {
         className="section-header-compact w-full justify-between"
       >
         <div className="flex items-center gap-2">
-          <Ship className="h-4 w-4" />
+          <Ship className="h-3.5 w-3.5" />
           <span>Vessel</span>
         </div>
-        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
       </button>
 
       {isExpanded && (
-        <div className="p-4 space-y-4">
-          {/* Vessel Search & Particulars */}
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="form-field min-w-[200px] flex-1">
-              <VesselSelect
-                value={vessel.name}
-                onChange={handleVesselSelect}
-                selectedTypeId={selectedTypeId}
-                selectedSectorId={selectedSectorId}
-                placeholder="Search vessel..."
-              />
+        <div className="px-2 py-1 space-y-1">
+          {/* Row 1: Search + Particulars */}
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="form-field min-w-[160px] flex-1">
+              <VesselSelect value={vessel.name} onChange={handleVesselSelect} selectedTypeId={selectedTypeId} selectedSectorId={selectedSectorId} placeholder="Search vessel..." />
             </div>
-            <div className="form-field w-24">
+            <div className="form-field w-20">
               <label className="form-label">DWT</label>
-              <input
-                type="number"
-                className="form-input-sm w-full font-mono tabular-nums text-right"
-                value={vessel.dwt || ""}
-                onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)}
-                placeholder="0"
-              />
+              <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.dwt || ""} onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
-            <div className="form-field w-24">
+            <div className="form-field w-20">
               <label className="form-label">GT</label>
-              <input
-                type="number"
-                className="form-input-sm w-full font-mono tabular-nums text-right"
-                value={vessel.gt || ""}
-                onChange={(e) => handleFieldChange("gt", parseFloat(e.target.value) || 0)}
-                placeholder="0"
-              />
-            </div>
-            <div className="form-field w-28">
-              <label className="form-label">Cubic (m³)</label>
-              <input
-                type="number"
-                className="form-input-sm w-full font-mono tabular-nums text-right"
-                value={vessel.cubic || ""}
-                onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)}
-                placeholder="0"
-              />
+              <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.gt || ""} onChange={(e) => handleFieldChange("gt", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
             <div className="form-field w-20">
+              <label className="form-label">Cubic</label>
+              <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.cubic || ""} onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)} placeholder="0" />
+            </div>
+            <div className="form-field w-16">
               <label className="form-label">Draft</label>
-              <input
-                type="number"
-                step="0.01"
-                className="form-input-sm w-full font-mono tabular-nums text-right"
-                value={vessel.draft || ""}
-                onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)}
-                placeholder="0"
-              />
+              <input type="number" step="0.01" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.draft || ""} onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
-            <div className="form-field w-20">
+            <div className="form-field w-16">
               <label className="form-label">TPC</label>
-              <input
-                type="number"
-                step="0.1"
-                className="form-input-sm w-full font-mono tabular-nums text-right"
-                value={vessel.tpcTpi || ""}
-                onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)}
-                placeholder="0"
-              />
+              <input type="number" step="0.1" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.tpcTpi || ""} onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
-            <div className="form-field w-16">
+            <div className="form-field w-14">
               <label className="form-label">HSFO</label>
-              <select
-                className="form-select-sm w-full"
-                value={vessel.hsfoCapability ? "Y" : "N"}
-                onChange={(e) => handleFieldChange("hsfoCapability", e.target.value === "Y")}
-              >
-                <option value="N">N</option>
-                <option value="Y">Y</option>
+              <select className="form-select-sm w-full" value={vessel.hsfoCapability ? "Y" : "N"} onChange={(e) => handleFieldChange("hsfoCapability", e.target.value === "Y")}>
+                <option value="N">N</option><option value="Y">Y</option>
               </select>
             </div>
-            <div className="form-field w-16">
-              <label className="form-label">Scrubber</label>
-              <select
-                className="form-select-sm w-full"
-                value={vessel.hasScrubber ? "Y" : "N"}
-                onChange={(e) => handleFieldChange("hasScrubber", e.target.value === "Y")}
-              >
-                <option value="N">N</option>
-                <option value="Y">Y</option>
+            <div className="form-field w-14">
+              <label className="form-label">Scrub</label>
+              <select className="form-select-sm w-full" value={vessel.hasScrubber ? "Y" : "N"} onChange={(e) => handleFieldChange("hasScrubber", e.target.value === "Y")}>
+                <option value="N">N</option><option value="Y">Y</option>
               </select>
             </div>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing || !vessel.name}
-              className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors border border-border rounded-md bg-input-bg"
-              title="Refresh vessel data"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            <button onClick={handleRefresh} disabled={refreshing || !vessel.name}
+              className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors border border-input rounded bg-input-bg" title="Refresh">
+              <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
             </button>
           </div>
 
-          {/* Type, Sector, Speed Profile */}
-          <div className="flex flex-wrap gap-4 items-end pt-3 border-t border-border">
-            <div className="form-field w-40">
+          {/* Row 2: Type, Sector, Speed, Checkboxes */}
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="form-field w-32">
               <label className="form-label">Type</label>
-              <select
-                className="form-select-sm w-full"
-                value={selectedTypeId ?? ""}
-                onChange={(e) => {
-                  const typeId = e.target.value ? Number(e.target.value) : null;
-                  const typeName = vesselTypes.find(t => t.id === typeId)?.name || "";
-                  handleVesselTypeChange(typeId, typeName);
-                }}
-                disabled={typesLoading}
-              >
+              <select className="form-select-sm w-full" value={selectedTypeId ?? ""} onChange={(e) => { const typeId = e.target.value ? Number(e.target.value) : null; const typeName = vesselTypes.find(t => t.id === typeId)?.name || ""; handleVesselTypeChange(typeId, typeName); }} disabled={typesLoading}>
                 <option value="">--- ALL ---</option>
-                {vesselTypes.map(type => (
-                  <option key={type.id} value={type.id}>{type.name}</option>
-                ))}
+                {vesselTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
               </select>
             </div>
-            <div className="form-field w-40">
+            <div className="form-field w-32">
               <label className="form-label">Sector</label>
-              <select
-                className="form-select-sm w-full"
-                value={selectedSectorId ?? ""}
-                onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)}
-                disabled={typesLoading}
-              >
+              <select className="form-select-sm w-full" value={selectedSectorId ?? ""} onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)} disabled={typesLoading}>
                 <option value="">--- ALL ---</option>
-                {vesselSectors.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+                {vesselSectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
-            <div className="form-field w-44">
+            <div className="form-field w-36">
               <label className="form-label">Speed Profile</label>
-              <select
-                className="form-select-sm w-full"
-                value={vessel.speedProfile}
-                onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}
-              >
+              <select className="form-select-sm w-full" value={vessel.speedProfile} onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}>
                 <option value="eco">Eco Speed & Cons</option>
                 <option value="full">Full Speed & Cons</option>
               </select>
             </div>
-            <div className="flex items-center gap-2 pb-1">
-              <Checkbox
-                id="loadDischIdle"
-                checked={vessel.loadDischIdleSame}
-                onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)}
-                className="h-4 w-4"
-              />
-              <label htmlFor="loadDischIdle" className="text-xs text-muted-foreground cursor-pointer whitespace-nowrap">
-                Load = Disch = Idle
-              </label>
+            <div className="flex items-center gap-1.5 pb-0.5">
+              <Checkbox id="loadDischIdle" checked={vessel.loadDischIdleSame} onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)} className="h-3.5 w-3.5" />
+              <label htmlFor="loadDischIdle" className="text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap">L=D=I</label>
             </div>
-            <div className="form-field w-24">
+            <div className="form-field w-16">
               <label className="form-label">Misc x</label>
-              <input
-                type="number"
-                className="form-input-sm w-full font-mono tabular-nums text-center"
-                value={vessel.miscMultiplier || ""}
-                onChange={(e) => handleFieldChange("miscMultiplier", parseFloat(e.target.value) || 0)}
-                placeholder="0"
-              />
+              <input type="number" className="form-input-sm w-full font-mono tabular-nums text-center" value={vessel.miscMultiplier || ""} onChange={(e) => handleFieldChange("miscMultiplier", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
           </div>
 
           {/* Consumption Matrix */}
-          <div className="pt-3 border-t border-border">
-            <ConsumptionMatrix
-              speedProfile={vessel.speedProfile}
-              consumptionMatrix={currentMatrix}
-              loadDischIdleSame={vessel.loadDischIdleSame}
-              miscMultiplier={vessel.miscMultiplier}
-              onSpeedProfileChange={handleSpeedProfileChange}
-              onConsumptionChange={handleConsumptionChange}
-              onLoadDischIdleChange={handleLoadDischIdleChange}
-              onMiscMultiplierChange={(value) => handleFieldChange("miscMultiplier", value)}
-            />
-          </div>
+          <ConsumptionMatrix
+            speedProfile={vessel.speedProfile}
+            consumptionMatrix={currentMatrix}
+            loadDischIdleSame={vessel.loadDischIdleSame}
+            miscMultiplier={vessel.miscMultiplier}
+            onSpeedProfileChange={handleSpeedProfileChange}
+            onConsumptionChange={handleConsumptionChange}
+            onLoadDischIdleChange={handleLoadDischIdleChange}
+            onMiscMultiplierChange={(value) => handleFieldChange("miscMultiplier", value)}
+          />
         </div>
       )}
     </div>

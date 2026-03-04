@@ -41,10 +41,10 @@ export function CargoSection() {
       </button>
 
       {isExpanded && (
-        <div className="p-4 space-y-4">
+        <div className="px-2 py-1 space-y-1">
           {/* Top summary fields */}
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="form-field w-32">
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 NTC
                 <InfoTooltip formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" description="Net Time Charter" />
@@ -78,7 +78,7 @@ export function CargoSection() {
                 <span className="unit">%</span>
               </div>
             </div>
-            <div className="form-field w-32">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 GTC
                 <InfoTooltip formula="(Gross Freight - Voyage Cost) / Total Days" description="Gross Time Charter equivalent" />
@@ -93,7 +93,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field w-32">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 Net BB
                 <InfoTooltip formula="Net Freight + Demurrage - Despatch" description="Net Ballast Bonus" />
@@ -113,7 +113,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field w-32">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 Gross BB
                 <InfoTooltip formula="Gross Freight + Demurrage - Despatch" description="Gross Ballast Bonus" />
@@ -133,7 +133,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field w-32">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 Daily Hire
                 <InfoTooltip formula="Daily vessel hire rate" description="Used in P&L calculation" />
@@ -164,7 +164,7 @@ export function CargoSection() {
           ))}
 
           {/* Actions */}
-          <div className="flex items-center gap-4 pt-3 border-t border-border">
+          <div className="flex items-center gap-2 pt-1 border-t border-border">
             <div className="flex items-center gap-2 flex-1">
               <label className="text-xs text-muted-foreground whitespace-nowrap">Link to Charterer</label>
               <select className="form-select-sm flex-1 max-w-xs">
@@ -214,14 +214,14 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntry
   const cargoQuantity = sequenceQuantity;
   
   return (
-    <div className="border border-border rounded-md p-4 bg-card">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs font-semibold bg-primary text-primary-foreground px-2.5 py-1 rounded-md">
+    <div className="border border-border rounded p-2 bg-input-bg">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
           #{index + 1}
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-4 items-end">
+      <div className="flex flex-wrap gap-2 items-end">
         <div className="form-field w-28">
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">

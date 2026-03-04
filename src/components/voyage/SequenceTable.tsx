@@ -92,7 +92,7 @@ export function SequenceTable() {
     return days.toFixed(2);
   };
 
-  const thClass = "px-1.5 py-1.5 text-[10px] font-semibold text-section-header-foreground whitespace-nowrap text-center bg-table-header";
+  const thClass = "px-0.5 py-0.5 text-[9px] font-semibold text-section-header-foreground whitespace-nowrap text-center bg-table-header";
 
   return (
     <div className="calc-card-compact">
@@ -100,8 +100,8 @@ export function SequenceTable() {
         onClick={() => setIsExpanded(!isExpanded)}
         className="section-header-compact w-full justify-between"
       >
-        <div className="flex items-center gap-2">
-          <Ship className="h-4 w-4" />
+        <div className="flex items-center gap-1.5">
+          <Ship className="h-3.5 w-3.5" />
           <span>Sequence</span>
           <span className={`text-[10px] font-normal px-2 py-0.5 rounded-full ${
             vessel.speedProfile === "eco" 
@@ -111,11 +111,11 @@ export function SequenceTable() {
             {vessel.speedProfile === "eco" ? "Eco" : "Full"}
           </span>
         </div>
-        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
       </button>
 
       {isExpanded && (
-        <div className="p-2">
+        <div className="p-1">
           <div className="overflow-x-auto">
             <table className="w-full text-[10px]">
               <thead>
@@ -144,7 +144,7 @@ export function SequenceTable() {
                   const hasQty = showQuantityFields(row);
                   const hasBunkering = showBunkeringFields(row);
                   const typeLabel = getTypeLabel(row);
-                  const tdClass = "px-1 py-0.5";
+                  const tdClass = "px-0.5 py-0";
 
                   return (
                     <tr key={row.id} className="group">
@@ -325,18 +325,18 @@ export function SequenceTable() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-3 pt-2 mt-2 border-t border-border">
-            <button onClick={() => addPort("loading")} className="btn-secondary flex items-center gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> Add Sequence
+          <div className="flex items-center gap-2 pt-1 mt-1 border-t border-border">
+            <button onClick={() => addPort("loading")} className="btn-secondary flex items-center gap-1">
+              <Plus className="h-3 w-3" /> Add
             </button>
             <button onClick={addRepositioning} className="btn-secondary">Repos</button>
             <div className="flex-1" />
-            <div className="flex items-center gap-2">
-              <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-4 w-4" />
-              <label htmlFor="auto-dist" className="text-xs text-muted-foreground cursor-pointer">Auto distance</label>
+            <div className="flex items-center gap-1.5">
+              <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-3.5 w-3.5" />
+              <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">Auto dist</label>
             </div>
-            <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1.5" disabled={autoDistanceEnabled}>
-              <RefreshCw className="h-3.5 w-3.5" /> Get Distances
+            <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled}>
+              <RefreshCw className="h-3 w-3" /> Distances
             </button>
           </div>
 
