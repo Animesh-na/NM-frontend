@@ -325,18 +325,18 @@ export function SequenceTable() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-3 pt-2 mt-2 border-t border-border">
-            <button onClick={() => addPort("loading")} className="btn-secondary flex items-center gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> Add Sequence
+          <div className="flex items-center gap-2 pt-1 mt-1 border-t border-border">
+            <button onClick={() => addPort("loading")} className="btn-secondary flex items-center gap-1">
+              <Plus className="h-3 w-3" /> Add
             </button>
             <button onClick={addRepositioning} className="btn-secondary">Repos</button>
             <div className="flex-1" />
-            <div className="flex items-center gap-2">
-              <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-4 w-4" />
-              <label htmlFor="auto-dist" className="text-xs text-muted-foreground cursor-pointer">Auto distance</label>
+            <div className="flex items-center gap-1.5">
+              <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-3.5 w-3.5" />
+              <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">Auto dist</label>
             </div>
-            <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1.5" disabled={autoDistanceEnabled}>
-              <RefreshCw className="h-3.5 w-3.5" /> Get Distances
+            <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled}>
+              <RefreshCw className="h-3 w-3" /> Distances
             </button>
           </div>
 
