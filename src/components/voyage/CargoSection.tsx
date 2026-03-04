@@ -78,7 +78,7 @@ export function CargoSection() {
                 <span className="unit">%</span>
               </div>
             </div>
-            <div className="form-field w-32">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 GTC
                 <InfoTooltip formula="(Gross Freight - Voyage Cost) / Total Days" description="Gross Time Charter equivalent" />
