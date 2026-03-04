@@ -24,7 +24,6 @@ export function VesselPanel() {
   const [selectedSectorId, setSelectedSectorId] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load vessel types on mount
   useEffect(() => {
     const load = async () => {
       setTypesLoading(true);
@@ -43,21 +42,12 @@ export function VesselPanel() {
 
   const handleVesselTypeChange = (typeId: number | null, typeName: string) => {
     setSelectedTypeId(typeId);
-    // Reset vessel when type changes
-    setVessel({
-      ...defaultVessel,
-      type: typeName,
-    });
+    setVessel({ ...defaultVessel, type: typeName });
   };
 
   const handleVesselSelect = useCallback((selectedVessel: VesselData | null) => {
     if (selectedVessel) {
-      // Preserve the selected type
-      const vesselWithType = {
-        ...selectedVessel,
-        type: vessel.type || selectedVessel.type,
-      };
-      setVessel(vesselWithType);
+      setVessel({ ...selectedVessel, type: vessel.type || selectedVessel.type });
     } else {
       setVessel({ ...defaultVessel, type: vessel.type });
     }
@@ -86,22 +76,13 @@ export function VesselPanel() {
     
     let updatedMatrix = {
       ...vessel[matrixKey],
-      [row]: {
-        ...vessel[matrixKey][row],
-        [col]: value,
-      },
+      [row]: { ...vessel[matrixKey][row], [col]: value },
     };
     
-    // Handle Load = Disch = Idle synchronization
     if (vessel.loadDischIdleSame && (col === "load" || col === "discharge" || col === "idle")) {
       updatedMatrix = {
         ...updatedMatrix,
-        [row]: {
-          ...updatedMatrix[row],
-          load: value,
-          discharge: value,
-          idle: value,
-        },
+        [row]: { ...updatedMatrix[row], load: value, discharge: value, idle: value },
       };
     }
     
@@ -114,7 +95,6 @@ export function VesselPanel() {
 
   const handleLoadDischIdleChange = (checked: boolean) => {
     if (checked) {
-      // Copy Load values to Discharge and Idle
       const currentProfile = vessel.speedProfile;
       const matrixKey = currentProfile === "eco" ? "ecoConsumption" : "fullConsumption";
       const currentMatrix = vessel[matrixKey];
@@ -143,7 +123,6 @@ export function VesselPanel() {
   const handleRefresh = useCallback(async () => {
     if (!vessel.name) return;
     setRefreshing(true);
-    // Reset consumption to estimated values based on DWT
     const dwt = vessel.dwt || 50000;
     const ecoMatrix = estimateExtendedConsumption(dwt, false);
     const fullMatrix = estimateExtendedConsumption(dwt, true);
@@ -167,20 +146,18 @@ export function VesselPanel() {
         onClick={() => setIsExpanded(!isExpanded)}
         className="section-header-compact w-full justify-between"
       >
-        <div className="flex items-center gap-1.5">
-          <Ship className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-2">
+          <Ship className="h-4 w-4" />
           <span>Vessel</span>
         </div>
-        <ChevronDown
-          className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
-        />
+        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
       </button>
 
       {isExpanded && (
-        <div className="p-1.5 space-y-1">
-          {/* Row 1: Vessel Name + Vessel Particulars */}
-          <div className="grid grid-cols-12 gap-1.5 items-end text-[10px]">
-            <div className="col-span-3">
+        <div className="p-4 space-y-4">
+          {/* Vessel Search & Particulars */}
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="form-field min-w-[200px] flex-1">
               <VesselSelect
                 value={vessel.name}
                 onChange={handleVesselSelect}
@@ -189,8 +166,8 @@ export function VesselPanel() {
                 placeholder="Search vessel..."
               />
             </div>
-            <div className="col-span-1">
-              <label className="compact-label">Dwt</label>
+            <div className="form-field w-24">
+              <label className="form-label">DWT</label>
               <input
                 type="number"
                 className="form-input-sm w-full font-mono tabular-nums text-right"
@@ -199,8 +176,8 @@ export function VesselPanel() {
                 placeholder="0"
               />
             </div>
-            <div className="col-span-1">
-              <label className="compact-label">Gt</label>
+            <div className="form-field w-24">
+              <label className="form-label">GT</label>
               <input
                 type="number"
                 className="form-input-sm w-full font-mono tabular-nums text-right"
@@ -209,21 +186,18 @@ export function VesselPanel() {
                 placeholder="0"
               />
             </div>
-            <div className="col-span-2">
-              <label className="compact-label">Cubic</label>
-              <div className="flex items-center gap-0.5">
-                <input
-                  type="number"
-                  className="form-input-sm w-full font-mono tabular-nums text-right"
-                  value={vessel.cubic || ""}
-                  onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                />
-                <span className="text-[8px] text-muted-foreground self-center">m³</span>
-              </div>
+            <div className="form-field w-28">
+              <label className="form-label">Cubic (m³)</label>
+              <input
+                type="number"
+                className="form-input-sm w-full font-mono tabular-nums text-right"
+                value={vessel.cubic || ""}
+                onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
             </div>
-            <div className="col-span-1">
-              <label className="compact-label">Draft</label>
+            <div className="form-field w-20">
+              <label className="form-label">Draft</label>
               <input
                 type="number"
                 step="0.01"
@@ -233,8 +207,8 @@ export function VesselPanel() {
                 placeholder="0"
               />
             </div>
-            <div className="col-span-1">
-              <label className="compact-label">TPC</label>
+            <div className="form-field w-20">
+              <label className="form-label">TPC</label>
               <input
                 type="number"
                 step="0.1"
@@ -244,8 +218,8 @@ export function VesselPanel() {
                 placeholder="0"
               />
             </div>
-            <div className="col-span-1">
-              <label className="compact-label">HSFO</label>
+            <div className="form-field w-16">
+              <label className="form-label">HSFO</label>
               <select
                 className="form-select-sm w-full"
                 value={vessel.hsfoCapability ? "Y" : "N"}
@@ -255,8 +229,8 @@ export function VesselPanel() {
                 <option value="Y">Y</option>
               </select>
             </div>
-            <div className="col-span-1">
-              <label className="compact-label">Scrub</label>
+            <div className="form-field w-16">
+              <label className="form-label">Scrubber</label>
               <select
                 className="form-select-sm w-full"
                 value={vessel.hasScrubber ? "Y" : "N"}
@@ -266,24 +240,22 @@ export function VesselPanel() {
                 <option value="Y">Y</option>
               </select>
             </div>
-            <div className="col-span-1 flex items-center justify-center">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing || !vessel.name}
-                className="p-1 text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors"
-                title="Refresh vessel data"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              </button>
-            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || !vessel.name}
+              className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors border border-border rounded-md bg-input-bg"
+              title="Refresh vessel data"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
           </div>
 
-          {/* Row 2: Type, Sector, Speed Profile */}
-          <div className="grid grid-cols-12 gap-1.5 items-end text-[10px] border-t border-border pt-1">
-            <div className="col-span-2">
-              <label className="compact-label">Type</label>
+          {/* Type, Sector, Speed Profile */}
+          <div className="flex flex-wrap gap-4 items-end pt-3 border-t border-border">
+            <div className="form-field w-40">
+              <label className="form-label">Type</label>
               <select
-                className="form-select w-full text-xs"
+                className="form-select-sm w-full"
                 value={selectedTypeId ?? ""}
                 onChange={(e) => {
                   const typeId = e.target.value ? Number(e.target.value) : null;
@@ -298,10 +270,10 @@ export function VesselPanel() {
                 ))}
               </select>
             </div>
-            <div className="col-span-2">
-              <label className="compact-label">Sector</label>
+            <div className="form-field w-40">
+              <label className="form-label">Sector</label>
               <select
-                className="form-select w-full text-xs"
+                className="form-select-sm w-full"
                 value={selectedSectorId ?? ""}
                 onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)}
                 disabled={typesLoading}
@@ -312,35 +284,33 @@ export function VesselPanel() {
                 ))}
               </select>
             </div>
-            <div className="col-span-2">
-              <label className="compact-label">Speed Profile</label>
+            <div className="form-field w-44">
+              <label className="form-label">Speed Profile</label>
               <select
-                className="form-select w-full text-xs"
+                className="form-select-sm w-full"
                 value={vessel.speedProfile}
                 onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}
               >
-                <option value="eco">Eco Speed&Cons</option>
-                <option value="full">Full Speed&Cons</option>
+                <option value="eco">Eco Speed & Cons</option>
+                <option value="full">Full Speed & Cons</option>
               </select>
             </div>
-            <div className="col-span-3 flex items-end gap-2">
-              <div className="flex items-center gap-1.5">
-                <Checkbox
-                  id="loadDischIdle"
-                  checked={vessel.loadDischIdleSame}
-                  onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)}
-                  className="h-3 w-3"
-                />
-                <label htmlFor="loadDischIdle" className="text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap">
-                  Load = Disch = Idle
-                </label>
-              </div>
+            <div className="flex items-center gap-2 pb-1">
+              <Checkbox
+                id="loadDischIdle"
+                checked={vessel.loadDischIdleSame}
+                onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)}
+                className="h-4 w-4"
+              />
+              <label htmlFor="loadDischIdle" className="text-xs text-muted-foreground cursor-pointer whitespace-nowrap">
+                Load = Disch = Idle
+              </label>
             </div>
-            <div className="col-span-2 flex items-end gap-1">
-              <span className="text-[10px] text-muted-foreground">Misc x</span>
+            <div className="form-field w-24">
+              <label className="form-label">Misc x</label>
               <input
                 type="number"
-                className="form-input-sm w-12 font-mono tabular-nums text-center text-xs"
+                className="form-input-sm w-full font-mono tabular-nums text-center"
                 value={vessel.miscMultiplier || ""}
                 onChange={(e) => handleFieldChange("miscMultiplier", parseFloat(e.target.value) || 0)}
                 placeholder="0"
@@ -348,8 +318,8 @@ export function VesselPanel() {
             </div>
           </div>
 
-          {/* Layer 3: Speed & Consumption Matrix - compact */}
-          <div className="border-t border-border pt-1">
+          {/* Consumption Matrix */}
+          <div className="pt-3 border-t border-border">
             <ConsumptionMatrix
               speedProfile={vessel.speedProfile}
               consumptionMatrix={currentMatrix}

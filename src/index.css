@@ -41,14 +41,14 @@
     --input-background: 0 0% 100%;
     --ring: 201 70% 35%;
 
-    --radius: 0.25rem;
+    --radius: 0.375rem;
 
     /* Maritime specific tokens */
     --section-header: 0 0% 80%;
     --section-header-foreground: 215 25% 15%;
-    --subsection-header: 0 0% 88%;
-    --table-header: 0 0% 88%;
-    --table-row-alt: 0 0% 97%;
+    --subsection-header: 0 0% 90%;
+    --table-header: 0 0% 90%;
+    --table-row-alt: 0 0% 100%;
     --data-highlight: 201 70% 92%;
     --money-positive: 142 70% 35%;
     --money-negative: 0 72% 51%;
@@ -140,50 +140,47 @@
 }
 
 @layer components {
-  /* Section headers - compact maritime blue style */
+  /* Section headers - grey background for clear separation */
   .section-header {
-    @apply bg-section-header text-section-header-foreground px-2 py-1 text-xs font-semibold flex items-center gap-1.5 border-b border-border;
+    @apply bg-section-header text-section-header-foreground px-4 py-2 text-sm font-semibold flex items-center gap-2;
   }
 
   .section-header-compact {
-    @apply bg-section-header text-section-header-foreground px-2 py-1 text-[11px] font-semibold flex items-center gap-1 border-b border-border;
+    @apply bg-section-header text-section-header-foreground px-4 py-2 text-xs font-semibold flex items-center gap-2;
   }
 
-  /* Data table styling - compact */
-  .data-table {
-    @apply w-full text-xs border-collapse;
+  /* Subsection headers */
+  .subsection-header {
+    @apply bg-subsection-header text-foreground px-3 py-1.5 text-xs font-medium;
   }
 
-  .data-table th {
-    @apply bg-table-header px-1 py-0.5 text-left font-medium text-muted-foreground border border-border text-[10px];
-  }
-
-  .data-table td {
-    @apply px-1 py-0 border border-border;
-  }
-
-  .data-table tr:nth-child(even) td {
-    @apply bg-table-row-alt;
-  }
-
-  /* Form input styling - compact */
+  /* Form input styling - white background, clear borders */
   .form-input {
-    @apply h-6 px-1.5 text-xs border border-input bg-input-bg rounded-sm focus:outline-none focus:ring-1 focus:ring-ring;
+    @apply h-8 px-3 text-sm border border-input bg-input-bg rounded-md focus:outline-none focus:ring-1 focus:ring-ring;
   }
 
   .form-input-sm {
-    @apply h-5 px-1 text-[11px] border border-input bg-input-bg rounded-sm focus:outline-none focus:ring-1 focus:ring-ring;
+    @apply h-7 px-2 text-xs border border-input bg-input-bg rounded-md focus:outline-none focus:ring-1 focus:ring-ring;
   }
 
   .form-select {
-    @apply h-6 px-1.5 text-xs border border-input bg-input-bg rounded-sm focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-8 px-3 text-sm border border-input bg-input-bg rounded-md focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
   }
 
   .form-select-sm {
-    @apply h-5 px-1 text-[11px] border border-input bg-input-bg rounded-sm focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-7 px-2 text-xs border border-input bg-input-bg rounded-md focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
   }
 
-  /* Input with unit suffix - compact */
+  /* Form field group - label + input with spacing */
+  .form-field {
+    @apply flex flex-col gap-1;
+  }
+
+  .form-label {
+    @apply text-xs font-medium text-muted-foreground;
+  }
+
+  /* Input with unit suffix */
   .input-with-unit {
     @apply flex items-center;
   }
@@ -193,16 +190,11 @@
   }
 
   .input-with-unit .unit {
-    @apply h-6 px-1.5 text-[10px] bg-muted border border-input rounded-r-sm flex items-center text-muted-foreground;
+    @apply h-8 px-2 text-xs bg-muted border border-input rounded-r-md flex items-center text-muted-foreground;
   }
 
   .input-with-unit-sm .unit {
-    @apply h-5 px-1 text-[9px] bg-muted border border-input rounded-r-sm flex items-center text-muted-foreground;
-  }
-
-  /* Data highlight */
-  .highlight-row {
-    @apply bg-data-highlight;
+    @apply h-7 px-1.5 text-[10px] bg-muted border border-input rounded-r-md flex items-center text-muted-foreground;
   }
 
   /* Money formatting */
@@ -214,18 +206,18 @@
     @apply text-destructive font-medium;
   }
 
-  /* Card sections - compact */
+  /* Card sections - white background panels */
   .calc-card {
-    @apply bg-card border border-border rounded-sm shadow-sm overflow-hidden;
+    @apply bg-card border border-border rounded-md shadow-sm overflow-hidden;
   }
 
   .calc-card-compact {
-    @apply bg-card border border-border rounded-sm overflow-hidden;
+    @apply bg-card border border-border rounded-md overflow-hidden;
   }
 
-  /* Action buttons - compact */
+  /* Action buttons */
   .btn-action {
-    @apply h-6 px-2 text-[11px] font-medium rounded-sm border transition-colors;
+    @apply h-8 px-3 text-xs font-medium rounded-md border transition-colors;
   }
 
   .btn-primary {
@@ -244,13 +236,17 @@
     @apply btn-action bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90;
   }
 
-  /* Compact layout utilities */
-  .compact-grid {
-    @apply gap-1;
+  /* Form layout utilities */
+  .form-row {
+    @apply flex flex-wrap gap-4 items-end;
+  }
+
+  .form-grid {
+    @apply grid gap-4;
   }
 
   .compact-label {
-    @apply text-[10px] text-muted-foreground leading-none mb-0.5;
+    @apply text-xs text-muted-foreground font-medium mb-1 block;
   }
 
   /* Viewport-fit sections */
