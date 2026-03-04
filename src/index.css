@@ -96,10 +96,12 @@
 
     --border: 215 20% 25%;
     --input: 215 20% 25%;
+    --input-background: 215 25% 16%;
     --ring: 201 70% 45%;
 
-    --section-header: 201 60% 35%;
-    --section-header-foreground: 0 0% 100%;
+    --section-header: 215 20% 22%;
+    --section-header-foreground: 210 20% 90%;
+    --subsection-header: 215 20% 18%;
     --table-header: 215 20% 18%;
     --table-row-alt: 215 20% 15%;
     --data-highlight: 201 50% 20%;
