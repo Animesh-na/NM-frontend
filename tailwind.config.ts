@@ -63,6 +63,8 @@ export default {
           DEFAULT: "hsl(var(--section-header))",
           foreground: "hsl(var(--section-header-foreground))",
         },
+        "subsection-header": "hsl(var(--subsection-header))",
+        "input-bg": "hsl(var(--input-background))",
         "table-header": "hsl(var(--table-header))",
         "table-row-alt": "hsl(var(--table-row-alt))",
         "data-highlight": "hsl(var(--data-highlight))",

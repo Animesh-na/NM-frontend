@@ -6,13 +6,13 @@ export function CompactHeader() {
   const { logout } = useAuth();
 
   return (
-    <header className="bg-section-header text-section-header-foreground h-8 flex items-center justify-between px-3 text-xs">
+    <header className="bg-primary text-primary-foreground h-8 flex items-center justify-between px-3 text-xs">
       {/* Logo & Title */}
       <div className="flex items-center gap-2">
         <Ship className="h-4 w-4" />
         <span className="font-semibold">VoyageCalc</span>
-        <span className="text-section-header-foreground/70">|</span>
-        <span className="text-section-header-foreground/70">Voyage Estimator</span>
+        <span className="text-primary-foreground/70">|</span>
+        <span className="text-primary-foreground/70">Voyage Estimator</span>
       </div>
 
       {/* Quick Actions */}
@@ -34,7 +34,7 @@ export function CompactHeader() {
         <button className="flex items-center gap-1 hover:text-white/80 transition-colors">
           <Settings className="h-3 w-3" />
         </button>
-        <span className="text-section-header-foreground/30">|</span>
+        <span className="text-primary-foreground/30">|</span>
         <button
           onClick={logout}
           className="flex items-center gap-1 hover:text-white/80 transition-colors"

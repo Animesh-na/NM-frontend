@@ -224,7 +224,7 @@ export function SequenceTable() {
                             />
                           </div>
                           <select
-                            className="h-5 text-[10px] border border-border rounded bg-background px-0.5 w-full"
+                            className="h-5 text-[10px] border border-border rounded bg-input-bg px-0.5 w-full"
                             value={row.season || "summer"}
                             onChange={(e) => updateSequenceRow(row.id, "season", e.target.value as Season)}
                           >
@@ -266,7 +266,7 @@ export function SequenceTable() {
                           <div className="flex items-center gap-0.5">
                             {/* V = Outside ECA (Non-ECA distance) with speed context selector */}
                             <select
-                              className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                              className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-input-bg px-0.5"
                               value={row.distanceSpeedContext}
                               onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value as SpeedContext)}
                               title="Speed context for Outside ECA distance"
@@ -277,7 +277,7 @@ export function SequenceTable() {
                             </select>
                             <input
                               type="number"
-                              className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                               value={row.distance || ""}
                               onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)}
                               placeholder="0"
@@ -286,7 +286,7 @@ export function SequenceTable() {
                             <span className="text-[10px] text-muted-foreground">&</span>
                             {/* L = Inside ECA with speed context selector */}
                             <select
-                              className="h-5 w-8 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                              className="h-5 w-8 text-[9px] font-medium border border-border rounded bg-input-bg px-0.5"
                               value={row.ecaDistanceSpeedContext}
                               onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value as SpeedContext)}
                               title="Speed context for Inside ECA distance"
@@ -297,7 +297,7 @@ export function SequenceTable() {
                             </select>
                             <input
                               type="number"
-                              className="w-12 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              className="w-12 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                               value={row.ecaDistance || ""}
                               onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)}
                               placeholder="0"
@@ -338,7 +338,7 @@ export function SequenceTable() {
                           <input
                             type="number"
                             step="0.01"
-                            className="w-full h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5 font-medium"
+                            className="w-full h-5 text-[11px] font-mono text-center border border-border rounded bg-input-bg px-0.5 font-medium"
                             value={row.timeOverride !== undefined ? row.timeOverride : (row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "")}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value);
@@ -361,7 +361,7 @@ export function SequenceTable() {
                             <input
                               type="number"
                               step="0.1"
-                              className="w-12 h-5 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
+                              className="w-12 h-5 text-[10px] font-mono text-center border border-border rounded bg-input-bg px-0.5"
                               value={row.portMaxDraft || ""}
                               onChange={(e) => updateSequenceRow(row.id, "portMaxDraft", parseFloat(e.target.value) || 0)}
                               placeholder="Max m"
@@ -400,7 +400,7 @@ export function SequenceTable() {
                           type="number"
                           min="0"
                           max="10"
-                          className="w-8 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          className="w-8 h-5 text-[11px] font-mono text-center border border-border rounded bg-input-bg px-0.5"
                           value={row.cranes || ""}
                           onChange={(e) => updateSequenceRow(row.id, "cranes", parseInt(e.target.value) || 0)}
                           placeholder="0"
@@ -419,7 +419,7 @@ export function SequenceTable() {
                           min="0"
                           max="100"
                           step="0.5"
-                          className="w-10 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          className="w-10 h-5 text-[11px] font-mono text-center border border-border rounded bg-input-bg px-0.5"
                           value={row.seaMargin || ""}
                           onChange={(e) => updateSequenceRow(row.id, "seaMargin", parseFloat(e.target.value) || 0)}
                           placeholder="0"
@@ -436,7 +436,7 @@ export function SequenceTable() {
                         <div className="flex items-center gap-0.5">
                           <input
                             type="number"
-                            className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                             value={row.quantity || ""}
                             onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)}
                             placeholder="0"
@@ -449,7 +449,7 @@ export function SequenceTable() {
                             <span className="text-[8px] text-muted-foreground w-8">HSFO:</span>
                             <input
                               type="number"
-                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                               value={row.bunkeringHsfo || ""}
                               onChange={(e) => updateSequenceRow(row.id, "bunkeringHsfo", parseFloat(e.target.value) || 0)}
                               placeholder="0"
@@ -460,7 +460,7 @@ export function SequenceTable() {
                             <span className="text-[8px] text-muted-foreground w-8">VLSFO:</span>
                             <input
                               type="number"
-                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                               value={row.bunkeringVlsfo || ""}
                               onChange={(e) => updateSequenceRow(row.id, "bunkeringVlsfo", parseFloat(e.target.value) || 0)}
                               placeholder="0"
@@ -471,7 +471,7 @@ export function SequenceTable() {
                             <span className="text-[8px] text-muted-foreground w-8">LSMGO:</span>
                             <input
                               type="number"
-                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                               value={row.bunkeringLsmgo || ""}
                               onChange={(e) => updateSequenceRow(row.id, "bunkeringLsmgo", parseFloat(e.target.value) || 0)}
                               placeholder="0"
@@ -490,14 +490,14 @@ export function SequenceTable() {
                         <div className="flex items-center gap-0.5">
                           <input
                             type="number"
-                            className="w-11 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-11 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                             value={row.productivity || ""}
                             onChange={(e) => updateSequenceRow(row.id, "productivity", parseFloat(e.target.value) || 0)}
                             placeholder="0"
                           />
                           <span className="text-[9px] text-muted-foreground">mt/d</span>
                           <select
-                            className="h-5 text-[10px] border border-border rounded bg-background px-0.5"
+                            className="h-5 text-[10px] border border-border rounded bg-input-bg px-0.5"
                             value={row.terms || "shinc"}
                             onChange={(e) => {
                               updateSequenceRow(row.id, "terms", e.target.value);
@@ -513,7 +513,7 @@ export function SequenceTable() {
                           <input
                             type="number"
                             step="0.01"
-                            className="w-9 h-5 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
+                            className="w-9 h-5 text-[10px] font-mono text-center border border-border rounded bg-input-bg px-0.5"
                             value={row.coefficientFactor || ""}
                             onChange={(e) => updateSequenceRow(row.id, "coefficientFactor", parseFloat(e.target.value) || 0)}
                             placeholder="1.0"
@@ -531,7 +531,7 @@ export function SequenceTable() {
                     <td className="px-1 py-0.5 border border-border text-center">
                       {row.type === "port" ? (
                         <select
-                          className="h-5 w-14 text-[9px] border border-border rounded bg-background px-0.5"
+                          className="h-5 w-14 text-[9px] border border-border rounded bg-input-bg px-0.5"
                           value={row.portFuelType || "vlsfo"}
                           onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}
                           title="Fuel type used during port operations"
@@ -552,7 +552,7 @@ export function SequenceTable() {
                           <input
                             type="number"
                             step="0.01"
-                            className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                             value={row.turnTime || ""}
                             onChange={(e) => updateSequenceRow(row.id, "turnTime", parseFloat(e.target.value) || 0)}
                             placeholder="0"
@@ -570,7 +570,7 @@ export function SequenceTable() {
                         <div className="flex items-center gap-0.5 justify-center">
                           <input
                             type="number"
-                            className="w-8 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-8 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                             value={row.extraTime || ""}
                             onChange={(e) => updateSequenceRow(row.id, "extraTime", parseFloat(e.target.value) || 0)}
                             placeholder="0"
@@ -586,7 +586,7 @@ export function SequenceTable() {
                       {row.type !== "open" ? (
                         <input
                           type="number"
-                          className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                          className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                           value={row.expDa || ""}
                           onChange={(e) => updateSequenceRow(row.id, "expDa", parseFloat(e.target.value) || 0)}
                           placeholder="0"
