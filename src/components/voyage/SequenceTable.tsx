@@ -224,7 +224,7 @@ export function SequenceTable() {
                             />
                           </div>
                           <select
-                            className="h-5 text-[10px] border border-border rounded bg-background px-0.5 w-full"
+                            className="h-5 text-[10px] border border-border rounded bg-input-bg px-0.5 w-full"
                             value={row.season || "summer"}
                             onChange={(e) => updateSequenceRow(row.id, "season", e.target.value as Season)}
                           >
