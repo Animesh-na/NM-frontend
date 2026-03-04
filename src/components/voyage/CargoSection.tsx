@@ -164,7 +164,7 @@ export function CargoSection() {
           ))}
 
           {/* Actions */}
-          <div className="flex items-center gap-4 pt-3 border-t border-border">
+          <div className="flex items-center gap-2 pt-1 border-t border-border">
             <div className="flex items-center gap-2 flex-1">
               <label className="text-xs text-muted-foreground whitespace-nowrap">Link to Charterer</label>
               <select className="form-select-sm flex-1 max-w-xs">
