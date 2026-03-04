@@ -531,7 +531,7 @@ export function SequenceTable() {
                     <td className="px-1 py-0.5 border border-border text-center">
                       {row.type === "port" ? (
                         <select
-                          className="h-5 w-14 text-[9px] border border-border rounded bg-background px-0.5"
+                          className="h-5 w-14 text-[9px] border border-border rounded bg-input-bg px-0.5"
                           value={row.portFuelType || "vlsfo"}
                           onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}
                           title="Fuel type used during port operations"
