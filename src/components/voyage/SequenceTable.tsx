@@ -552,7 +552,7 @@ export function SequenceTable() {
                           <input
                             type="number"
                             step="0.01"
-                            className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-10 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                             value={row.turnTime || ""}
                             onChange={(e) => updateSequenceRow(row.id, "turnTime", parseFloat(e.target.value) || 0)}
                             placeholder="0"
