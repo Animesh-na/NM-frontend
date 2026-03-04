@@ -146,7 +146,7 @@
   }
 
   .section-header-compact {
-    @apply bg-section-header text-section-header-foreground px-2 py-0.5 text-[11px] font-medium flex items-center gap-1;
+    @apply bg-section-header text-section-header-foreground px-2 py-1 text-[11px] font-semibold flex items-center gap-1 border-b border-border;
   }
 
   /* Data table styling - compact */
