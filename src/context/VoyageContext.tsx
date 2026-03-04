@@ -1273,6 +1273,7 @@ export function useVoyageContext() {
       updateExtraTime: () => {},
       hireRate: 0,
       setHireRate: () => {},
+      resetState: () => {},
       results: {
         totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
         totalSeaDays: 0, totalPortDays: 0, extraSeaDays: 0, extraPortDays: 0, extraCanalDays: 0,
