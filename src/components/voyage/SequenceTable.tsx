@@ -338,7 +338,7 @@ export function SequenceTable() {
                           <input
                             type="number"
                             step="0.01"
-                            className="w-full h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5 font-medium"
+                            className="w-full h-5 text-[11px] font-mono text-center border border-border rounded bg-input-bg px-0.5 font-medium"
                             value={row.timeOverride !== undefined ? row.timeOverride : (row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "")}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value);
