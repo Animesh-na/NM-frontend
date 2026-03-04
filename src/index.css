@@ -206,13 +206,13 @@
     @apply text-destructive font-medium;
   }
 
-  /* Card sections - white background panels */
+  /* Card sections - grey background, no visible card borders */
   .calc-card {
-    @apply bg-card border border-border rounded-md shadow-sm overflow-hidden;
+    @apply bg-background overflow-hidden;
   }
 
   .calc-card-compact {
-    @apply bg-card border border-border rounded-md overflow-hidden;
+    @apply bg-background overflow-hidden;
   }
 
   /* Action buttons */
