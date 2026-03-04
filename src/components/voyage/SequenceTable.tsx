@@ -100,8 +100,8 @@ export function SequenceTable() {
         onClick={() => setIsExpanded(!isExpanded)}
         className="section-header-compact w-full justify-between"
       >
-        <div className="flex items-center gap-2">
-          <Ship className="h-4 w-4" />
+        <div className="flex items-center gap-1.5">
+          <Ship className="h-3.5 w-3.5" />
           <span>Sequence</span>
           <span className={`text-[10px] font-normal px-2 py-0.5 rounded-full ${
             vessel.speedProfile === "eco" 
