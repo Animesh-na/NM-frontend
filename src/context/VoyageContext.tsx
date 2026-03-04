@@ -158,12 +158,15 @@ interface VoyageContextValue {
   updateMisc: (field: keyof MiscState, value: number | string) => void;
   updateExtraTime: (field: keyof ExtraTimeState, subField: string, value: number | string) => void;
   
-  // Hire rate
-  hireRate: number;
-  setHireRate: (rate: number) => void;
-  
-  // Calculated results
-  results: VoyageResults;
+   // Hire rate
+   hireRate: number;
+   setHireRate: (rate: number) => void;
+   
+   // Reset all state to defaults
+   resetState: () => void;
+   
+   // Calculated results
+   results: VoyageResults;
 }
 
 // Fuel accounting mode type
