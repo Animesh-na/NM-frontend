@@ -419,7 +419,7 @@ export function SequenceTable() {
                           min="0"
                           max="100"
                           step="0.5"
-                          className="w-10 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          className="w-10 h-5 text-[11px] font-mono text-center border border-border rounded bg-input-bg px-0.5"
                           value={row.seaMargin || ""}
                           onChange={(e) => updateSequenceRow(row.id, "seaMargin", parseFloat(e.target.value) || 0)}
                           placeholder="0"
