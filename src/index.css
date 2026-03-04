@@ -142,16 +142,16 @@
 @layer components {
   /* Section headers - grey background for clear separation */
   .section-header {
-    @apply bg-section-header text-section-header-foreground px-4 py-2 text-sm font-semibold flex items-center gap-2;
+    @apply bg-section-header text-section-header-foreground px-3 py-1 text-sm font-semibold flex items-center gap-2;
   }
 
   .section-header-compact {
-    @apply bg-section-header text-section-header-foreground px-4 py-2 text-xs font-semibold flex items-center gap-2;
+    @apply bg-section-header text-section-header-foreground px-3 py-1 text-[11px] font-semibold flex items-center gap-2;
   }
 
   /* Subsection headers */
   .subsection-header {
-    @apply bg-subsection-header text-foreground px-3 py-1.5 text-xs font-medium;
+    @apply bg-subsection-header text-foreground px-2 py-1 text-[11px] font-medium;
   }
 
   /* Form input styling - white background, clear borders */
