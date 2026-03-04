@@ -113,7 +113,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field w-32">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 Gross BB
                 <InfoTooltip formula="Gross Freight + Demurrage - Despatch" description="Gross Ballast Bonus" />
