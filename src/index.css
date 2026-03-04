@@ -176,7 +176,7 @@
   }
 
   .form-select {
-    @apply h-6 px-1.5 text-xs border border-input bg-background rounded-sm focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-6 px-1.5 text-xs border border-input bg-input-bg rounded-sm focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
   }
 
   .form-select-sm {
