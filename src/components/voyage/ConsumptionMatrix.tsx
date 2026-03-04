@@ -1,5 +1,4 @@
 import { type SpeedProfile, type ConsumptionMatrix as ConsumptionMatrixType } from "@/data/vessels";
-import { Checkbox } from "@/components/ui/checkbox";
 import { InfoTooltip } from "./InfoTooltip";
 
 interface ConsumptionMatrixProps {
@@ -24,106 +23,75 @@ type MatrixRow = {
 };
 
 const matrixRows: MatrixRow[] = [
-  { key: "speed", label: "Spd (kts)", tooltip: { formula: "Speed (knots) = Nautical Miles / Hour", description: "Speed is measured in knots (nautical miles per hour)." } },
-  { key: "hsfo", label: "HSFO cons.", tooltip: { formula: "Consumption (MT/day) at selected speed", description: "Fuel consumption values are calculated per day (MT/day) at the selected speed." } },
-  { key: "vlsfo", label: "VLSFO cons.", tooltip: { formula: "Consumption (MT/day) at selected speed", description: "Fuel consumption values are calculated per day (MT/day) at the selected speed." } },
-  { key: "lsmgo", label: "LSMGO cons.", tooltip: { formula: "Consumption (MT/day) at selected speed", description: "Fuel consumption values are calculated per day (MT/day) at the selected speed." } },
-  { key: "ae", label: "AE cons.", tooltip: { formula: "AE Consumption (MT/day)", description: "Auxiliary engine fuel consumption per day (MT/day)." } },
-  { key: "aeScrubber", label: "AE + scrubber cons.", tooltip: { formula: "AE + Scrubber Consumption (MT/day)", description: "Auxiliary engine with scrubber fuel consumption per day (MT/day)." } },
+  { key: "speed", label: "Speed (kts)", tooltip: { formula: "Speed (knots) = Nautical Miles / Hour", description: "Speed in knots." } },
+  { key: "hsfo", label: "HSFO cons.", tooltip: { formula: "MT/day at selected speed", description: "HSFO consumption per day." } },
+  { key: "vlsfo", label: "VLSFO cons.", tooltip: { formula: "MT/day at selected speed", description: "VLSFO consumption per day." } },
+  { key: "lsmgo", label: "LSMGO cons.", tooltip: { formula: "MT/day at selected speed", description: "LSMGO consumption per day." } },
+  { key: "ae", label: "AE cons.", tooltip: { formula: "AE MT/day", description: "Auxiliary engine consumption." } },
+  { key: "aeScrubber", label: "AE + Scrubber", tooltip: { formula: "AE+Scrubber MT/day", description: "AE with scrubber consumption." } },
 ];
 
 type ColumnKey = keyof ConsumptionMatrixType["speed"];
 
-interface Column {
-  key: ColumnKey;
-  label: string;
-  ecoLabel: string;
-}
-
-const columns: Column[] = [
-  { key: "ballast", label: "Ballast", ecoLabel: "Eco Ballast" },
-  { key: "laden", label: "Laden", ecoLabel: "Eco Laden" },
-  { key: "canal", label: "Canal", ecoLabel: "Canal" },
-  { key: "load", label: "Load", ecoLabel: "Load" },
-  { key: "discharge", label: "Disch", ecoLabel: "Disch" },
-  { key: "idle", label: "Idle", ecoLabel: "Idle" },
-  { key: "misc1", label: "Misc (1)", ecoLabel: "Misc (1)" },
-  { key: "misc2", label: "Misc (2)", ecoLabel: "Misc (2)" },
+const columns: { key: ColumnKey; label: string }[] = [
+  { key: "ballast", label: "Ballast" },
+  { key: "laden", label: "Laden" },
+  { key: "canal", label: "Canal" },
+  { key: "load", label: "Load" },
+  { key: "discharge", label: "Disch" },
+  { key: "idle", label: "Idle" },
+  { key: "misc1", label: "Misc 1" },
+  { key: "misc2", label: "Misc 2" },
 ];
 
 export function ConsumptionMatrix({
   speedProfile,
   consumptionMatrix,
   loadDischIdleSame,
-  miscMultiplier,
-  onSpeedProfileChange,
   onConsumptionChange,
-  onLoadDischIdleChange,
-  onMiscMultiplierChange,
 }: ConsumptionMatrixProps) {
-  const isEco = speedProfile === "eco";
-
-  // Speed row only applies to ballast and laden
   const speedOnlyColumns: ColumnKey[] = ["ballast", "laden"];
 
   return (
-    <div className="space-y-1">
-      {/* Consumption Matrix Table - no header controls, moved to VesselPanel row 2 */}
-      <div className="overflow-x-auto">
-        <table className="data-table w-full text-[10px]">
-          <thead>
-            <tr>
-              <th className="w-24 text-left"></th>
-              {columns.map(col => (
-                <th key={col.key} className="w-16 text-center font-medium">
-                  {isEco && (col.key === "ballast" || col.key === "laden") ? col.ecoLabel : col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {matrixRows.map((row) => (
-              <tr key={row.key}>
-                <td className="font-medium text-left whitespace-nowrap">
-                  <span className="inline-flex items-center">
-                    {row.label}
-                    {row.tooltip && <InfoTooltip formula={row.tooltip.formula} description={row.tooltip.description} />}
-                  </span>
-                </td>
-                {columns.map(col => {
-                  const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
-                  // Speed row: only ballast and laden are editable
-                  const isSpeedNA = row.key === "speed" && !speedOnlyColumns.includes(col.key);
-                  const value = consumptionMatrix[row.key][col.key];
-                  
-                  if (isSpeedNA) {
-                    return (
-                      <td key={col.key} className="p-0 text-center text-muted-foreground/40">
-                        —
-                      </td>
-                    );
-                  }
-
-                  return (
-                    <td key={col.key} className="p-0">
-                      <input
-                        type="number"
-                        step={row.key === "speed" ? "0.1" : "0.01"}
-                        className={`w-full bg-transparent font-mono tabular-nums text-right text-[10px] px-1 py-0 h-5
-                          focus:outline-none focus:bg-background focus:ring-1 focus:ring-ring
-                          ${isDisabled ? "bg-muted/50 text-muted-foreground" : ""}`}
-                        value={value || ""}
-                        onChange={(e) => onConsumptionChange(row.key, col.key, parseFloat(e.target.value) || 0)}
-                        placeholder="0"
-                        disabled={isDisabled}
-                      />
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div>
+      <div className="subsection-header mb-3 rounded-md text-xs font-medium">
+        Speed & Consumption Matrix ({speedProfile === "eco" ? "Eco" : "Full"})
+      </div>
+      
+      {/* Matrix rendered as form groups per row */}
+      <div className="space-y-3">
+        {matrixRows.map((row) => (
+          <div key={row.key} className="flex flex-wrap gap-3 items-end">
+            <div className="w-28 flex items-center gap-1 text-xs font-medium text-muted-foreground pb-1">
+              {row.label}
+              {row.tooltip && <InfoTooltip formula={row.tooltip.formula} description={row.tooltip.description} />}
+            </div>
+            {columns.map(col => {
+              const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
+              const isSpeedNA = row.key === "speed" && !speedOnlyColumns.includes(col.key);
+              const value = consumptionMatrix[row.key][col.key];
+              
+              return (
+                <div key={col.key} className="form-field w-20">
+                  <label className="text-[10px] text-muted-foreground text-center block">{col.label}</label>
+                  {isSpeedNA ? (
+                    <div className="h-7 flex items-center justify-center text-xs text-muted-foreground/40">—</div>
+                  ) : (
+                    <input
+                      type="number"
+                      step={row.key === "speed" ? "0.1" : "0.01"}
+                      className={`form-input-sm w-full font-mono tabular-nums text-right ${isDisabled ? "opacity-50" : ""}`}
+                      value={value || ""}
+                      onChange={(e) => onConsumptionChange(row.key, col.key, parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      disabled={isDisabled}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
