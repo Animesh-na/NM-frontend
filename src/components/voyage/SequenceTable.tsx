@@ -194,7 +194,7 @@ interface SequenceCardProps {
   getTypeLabel: string;
   onPortChange: (port: Port | null) => void;
   onTypeChange: (value: string) => void;
-  onFieldChange: (field: string, value: any) => void;
+  onFieldChange: (field: keyof SequenceRowUI, value: any) => void;
   onRemove: () => void;
   formatTime: (days: number) => string;
 }
