@@ -400,7 +400,7 @@ export function SequenceTable() {
                           type="number"
                           min="0"
                           max="10"
-                          className="w-8 h-5 text-[11px] font-mono text-center border border-border rounded bg-background px-0.5"
+                          className="w-8 h-5 text-[11px] font-mono text-center border border-border rounded bg-input-bg px-0.5"
                           value={row.cranes || ""}
                           onChange={(e) => updateSequenceRow(row.id, "cranes", parseInt(e.target.value) || 0)}
                           placeholder="0"
