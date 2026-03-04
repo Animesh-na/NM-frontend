@@ -436,7 +436,7 @@ export function SequenceTable() {
                         <div className="flex items-center gap-0.5">
                           <input
                             type="number"
-                            className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-background px-0.5"
+                            className="w-14 h-5 text-[11px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                             value={row.quantity || ""}
                             onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)}
                             placeholder="0"
