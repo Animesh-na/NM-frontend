@@ -214,14 +214,14 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntry
   const cargoQuantity = sequenceQuantity;
   
   return (
-    <div className="border border-border rounded-md p-4 bg-card">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs font-semibold bg-primary text-primary-foreground px-2.5 py-1 rounded-md">
+    <div className="border border-border rounded p-2 bg-input-bg">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
           #{index + 1}
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-4 items-end">
+      <div className="flex flex-wrap gap-2 items-end">
         <div className="form-field w-28">
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">
