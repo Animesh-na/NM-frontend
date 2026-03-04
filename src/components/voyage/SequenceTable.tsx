@@ -497,7 +497,7 @@ export function SequenceTable() {
                           />
                           <span className="text-[9px] text-muted-foreground">mt/d</span>
                           <select
-                            className="h-5 text-[10px] border border-border rounded bg-background px-0.5"
+                            className="h-5 text-[10px] border border-border rounded bg-input-bg px-0.5"
                             value={row.terms || "shinc"}
                             onChange={(e) => {
                               updateSequenceRow(row.id, "terms", e.target.value);
