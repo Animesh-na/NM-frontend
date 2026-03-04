@@ -92,7 +92,7 @@ export function SequenceTable() {
     return days.toFixed(2);
   };
 
-  const thClass = "px-1.5 py-1.5 text-[10px] font-semibold text-section-header-foreground whitespace-nowrap text-center bg-table-header";
+  const thClass = "px-0.5 py-0.5 text-[9px] font-semibold text-section-header-foreground whitespace-nowrap text-center bg-table-header";
 
   return (
     <div className="calc-card-compact">
