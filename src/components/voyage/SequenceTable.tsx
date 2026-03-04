@@ -361,7 +361,7 @@ export function SequenceTable() {
                             <input
                               type="number"
                               step="0.1"
-                              className="w-12 h-5 text-[10px] font-mono text-center border border-border rounded bg-background px-0.5"
+                              className="w-12 h-5 text-[10px] font-mono text-center border border-border rounded bg-input-bg px-0.5"
                               value={row.portMaxDraft || ""}
                               onChange={(e) => updateSequenceRow(row.id, "portMaxDraft", parseFloat(e.target.value) || 0)}
                               placeholder="Max m"
