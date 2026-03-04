@@ -44,7 +44,7 @@ export function CargoSection() {
         <div className="px-2 py-1 space-y-1">
           {/* Top summary fields */}
           <div className="flex flex-wrap gap-2 items-end">
-            <div className="form-field w-32">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 NTC
                 <InfoTooltip formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" description="Net Time Charter" />
