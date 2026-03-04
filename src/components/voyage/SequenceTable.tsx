@@ -115,7 +115,7 @@ export function SequenceTable() {
       </button>
 
       {isExpanded && (
-        <div className="p-2">
+        <div className="p-1">
           <div className="overflow-x-auto">
             <table className="w-full text-[10px]">
               <thead>
