@@ -129,7 +129,7 @@ export function SequenceTable() {
               getTypeLabel={getTypeLabel(row)}
               onPortChange={(port) => handlePortChange(row.id, port)}
               onTypeChange={(value) => handleTypeChange(row.id, value)}
-              onFieldChange={(field, value) => updateSequenceRow(row.id, field, value)}
+              onFieldChange={(field: keyof SequenceRowUI, value: any) => updateSequenceRow(row.id, field, value)}
               onRemove={() => removeSequence(row.id)}
               formatTime={formatTime}
             />
