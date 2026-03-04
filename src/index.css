@@ -180,7 +180,7 @@
   }
 
   .form-select-sm {
-    @apply h-5 px-1 text-[11px] border border-input bg-background rounded-sm focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-5 px-1 text-[11px] border border-input bg-input-bg rounded-sm focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
   }
 
   /* Input with unit suffix - compact */
