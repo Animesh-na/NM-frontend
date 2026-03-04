@@ -158,12 +158,15 @@ interface VoyageContextValue {
   updateMisc: (field: keyof MiscState, value: number | string) => void;
   updateExtraTime: (field: keyof ExtraTimeState, subField: string, value: number | string) => void;
   
-  // Hire rate
-  hireRate: number;
-  setHireRate: (rate: number) => void;
-  
-  // Calculated results
-  results: VoyageResults;
+   // Hire rate
+   hireRate: number;
+   setHireRate: (rate: number) => void;
+   
+   // Reset all state to defaults
+   resetState: () => void;
+   
+   // Calculated results
+   results: VoyageResults;
 }
 
 // Fuel accounting mode type
@@ -821,6 +824,106 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     distanceSuppressedRef.current = true;
   }, []);
 
+  // Reset all voyage state to blank defaults
+  const resetState = useCallback(() => {
+    distanceSuppressedRef.current = true;
+    setVessel({
+      ...defaultVessel,
+      name: "",
+      type: "",
+      dwt: 0,
+      gt: 0,
+      cubic: 0,
+      cubicUnit: "cbm",
+      draft: 0,
+      tpcTpi: 0,
+      hsfoCapability: false,
+      hasScrubber: false,
+      scrubberCount: 0,
+    });
+    const blankOpen: SequenceRowUI = {
+      id: 1,
+      type: "open",
+      port: "",
+      portUnloc: "",
+      season: "summer",
+      distance: 0,
+      distanceSpeedContext: "EV",
+      ecaDistance: 0,
+      ecaDistanceSpeedContext: "EL",
+      baseSeaTime: 0,
+      seaMarginTime: 0,
+      ecaTime: 0,
+      seaTime: 0,
+      totalLegTime: 0,
+      quantity: 0,
+      productivity: 0,
+      terms: "",
+      turnTime: 0,
+      extraTime: 0,
+      calculatedPortDays: 0,
+      wdaysUnit: "VL",
+      draft: 0,
+      cranes: 0,
+      seaMargin: 0,
+      bunkeringHsfo: 0,
+      bunkeringVlsfo: 0,
+      bunkeringLsmgo: 0,
+      expDa: 0,
+      portMaxDraft: 0,
+      ukcPercent: 0,
+      stowageFactor: 0,
+      portFuelType: "vlsfo",
+      coefficientFactor: 0,
+    };
+    setSequence([blankOpen]);
+    setCargos([{
+      id: 1,
+      rate: 0,
+      rateType: "mt",
+      quantity: 0,
+      voyageCommission: 1.25,
+      tcCommission: 3.75,
+      demurrageRate: 25000,
+      despatchRate: 12500,
+      demurrageAmount: 0,
+      despatchAmount: 0,
+      averageMode: "average",
+      ntcBase: 8000,
+      gtcTarget: 12000,
+      stowageFactor: 1.4,
+    }]);
+    setBunker({
+      hsfo: { price: 0, robStart: 0 },
+      vlsfo: { price: 0, robStart: 0 },
+      lsmgo: { price: 0, robStart: 0 },
+      co2Price: 0,
+      fuelMode: "average",
+      ignoreBOB: false,
+      rewardFactor: 1.0,
+      portBunkering: [],
+      euEtsHsfo: 0,
+      euEtsVlsfo: 0,
+      euEtsLsmgo: 0,
+    });
+    setMisc({
+      miscCost: 0,
+      extraFees: 0,
+      extraInsurance: 0,
+      canalCost1: 0,
+      canalCost2: 0,
+      tradeType: "",
+      extraTime: {
+        canal1: { mode: "VL", value: 0, unit: "days" },
+        canal2: { mode: "VL", value: 0, unit: "days" },
+        idlePort: { mode: "VL", value: 0, unit: "hours" },
+        atSea: { mode: "EV", value: 0, unit: "hours" },
+      },
+    });
+    setHireRate(0);
+    setVesselCost(0);
+  }, []);
+
   // Track the previous portCoordsKey to detect actual changes vs initial hydration
   const prevPortCoordsKeyRef = useRef(portCoordsKey);
 
@@ -1093,6 +1196,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         updateExtraTime,
         hireRate,
         setHireRate,
+        resetState,
         results,
         suppressDistanceRecalc,
         setDistanceSuppressed,
@@ -1169,6 +1273,7 @@ export function useVoyageContext() {
       updateExtraTime: () => {},
       hireRate: 0,
       setHireRate: () => {},
+      resetState: () => {},
       results: {
         totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
         totalSeaDays: 0, totalPortDays: 0, extraSeaDays: 0, extraPortDays: 0, extraCanalDays: 0,

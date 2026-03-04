@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { CompactHeader } from "@/components/voyage/CompactHeader";
 import { SheetTabs } from "@/components/voyage/SheetTabs";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
@@ -16,7 +16,10 @@ import { Loader2 } from "lucide-react";
 const Index = () => {
   const { activeTab, saveCurrentSheet, markDirty } = useSheets();
   const voyage = useVoyageContext();
-  const { suppressDistanceRecalc, setDistanceSuppressed } = voyage;
+  const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
+
+  // Track which tab id we last loaded to detect tab switches
+  const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
 
   // Suppress distance API while any tab is loading
   useEffect(() => {
@@ -26,10 +29,18 @@ const Index = () => {
   }, [activeTab?.isLoading, setDistanceSuppressed]);
 
   // Load sheet data into VoyageContext when a tab is opened with data
+  // OR reset state for a brand new empty tab
   useEffect(() => {
-    if (activeTab && activeTab.data && Object.keys(activeTab.data).length > 0 && !activeTab.isLoading) {
+    if (!activeTab || activeTab.isLoading) return;
+    
+    // Build a unique key for this tab instance
+    const tabKey = activeTab.id ?? `new-${activeTab.name}`;
+    if (lastLoadedTabRef.current === tabKey) return;
+    lastLoadedTabRef.current = tabKey;
+
+    if (activeTab.data && Object.keys(activeTab.data).length > 0) {
+      // Existing sheet with data — hydrate
       const d = activeTab.data as Record<string, any>;
-      // Suppress distance API calls — use distances from saved JSON
       suppressDistanceRecalc();
       if (d.vessel) voyage.setVessel(d.vessel);
       if (d.sequence) voyage.setSequence(d.sequence);
@@ -38,10 +49,12 @@ const Index = () => {
       if (d.misc) voyage.setMisc(d.misc);
       if (d.hireRate !== undefined) voyage.setHireRate(d.hireRate);
       if (d.vesselCost !== undefined) voyage.setVesselCost(d.vesselCost);
+    } else {
+      // New empty sheet — reset all state
+      resetState();
     }
-    // Only run when tab changes, not on every voyage state change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab?.id, activeTab?.isLoading]);
+  }, [activeTab?.id, activeTab?.name, activeTab?.isLoading]);
 
   // Gather current voyage data for saving
   const gatherData = useCallback((): Record<string, unknown> => ({
