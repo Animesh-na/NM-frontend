@@ -111,7 +111,7 @@ export function SequenceTable() {
             {vessel.speedProfile === "eco" ? "Eco" : "Full"}
           </span>
         </div>
-        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
       </button>
 
       {isExpanded && (
