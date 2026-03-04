@@ -41,9 +41,9 @@ export function CargoSection() {
       </button>
 
       {isExpanded && (
-        <div className="p-4 space-y-4">
+        <div className="px-2 py-1 space-y-1">
           {/* Top summary fields */}
-          <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field w-32">
               <label className="form-label flex items-center gap-1">
                 NTC
