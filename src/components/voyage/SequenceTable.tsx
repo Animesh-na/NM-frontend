@@ -471,7 +471,7 @@ export function SequenceTable() {
                             <span className="text-[8px] text-muted-foreground w-8">LSMGO:</span>
                             <input
                               type="number"
-                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-background px-0.5"
+                              className="w-10 h-4 text-[10px] font-mono text-right border border-border rounded bg-input-bg px-0.5"
                               value={row.bunkeringLsmgo || ""}
                               onChange={(e) => updateSequenceRow(row.id, "bunkeringLsmgo", parseFloat(e.target.value) || 0)}
                               placeholder="0"
