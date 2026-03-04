@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { CompactHeader } from "@/components/voyage/CompactHeader";
 import { SheetTabs } from "@/components/voyage/SheetTabs";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
