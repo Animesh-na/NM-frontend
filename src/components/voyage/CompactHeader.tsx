@@ -34,7 +34,7 @@ export function CompactHeader() {
         <button className="flex items-center gap-1 hover:text-white/80 transition-colors">
           <Settings className="h-3 w-3" />
         </button>
-        <span className="text-section-header-foreground/30">|</span>
+        <span className="text-primary-foreground/30">|</span>
         <button
           onClick={logout}
           className="flex items-center gap-1 hover:text-white/80 transition-colors"
