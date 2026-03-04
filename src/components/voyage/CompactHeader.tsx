@@ -11,7 +11,7 @@ export function CompactHeader() {
       <div className="flex items-center gap-2">
         <Ship className="h-4 w-4" />
         <span className="font-semibold">VoyageCalc</span>
-        <span className="text-section-header-foreground/70">|</span>
+        <span className="text-primary-foreground/70">|</span>
         <span className="text-section-header-foreground/70">Voyage Estimator</span>
       </div>
 
