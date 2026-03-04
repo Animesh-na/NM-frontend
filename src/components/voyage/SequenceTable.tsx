@@ -286,7 +286,7 @@ export function SequenceTable() {
                             <span className="text-[10px] text-muted-foreground">&</span>
                             {/* L = Inside ECA with speed context selector */}
                             <select
-                              className="h-5 w-8 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                              className="h-5 w-8 text-[9px] font-medium border border-border rounded bg-input-bg px-0.5"
                               value={row.ecaDistanceSpeedContext}
                               onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value as SpeedContext)}
                               title="Speed context for Inside ECA distance"
