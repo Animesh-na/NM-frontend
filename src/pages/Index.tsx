@@ -93,7 +93,7 @@ const Index = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
           <VesselPanel />
           <SequenceTable />
           <CargoSection />
@@ -104,21 +104,21 @@ const Index = () => {
         </div>
         
         {/* Right Panel - Summary */}
-        <div className="w-80 flex-shrink-0 border-l border-border overflow-y-auto bg-card">
-          <div className="p-3">
+        <div className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background">
+          <div className="p-2">
             <VoyageSummary />
           </div>
         </div>
       </div>
       
       {/* Footer */}
-      <footer className="bg-card border-t border-border px-4 py-2 text-xs text-muted-foreground flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <footer className="bg-section-header border-t border-border px-3 py-1 text-[10px] text-muted-foreground flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2">
           <span>© 2026 VoyageCalc</span>
           <span className="text-muted-foreground/50">|</span>
           <span>Session: {new Date().toLocaleTimeString()}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button className="btn-primary">Apply</button>
           <button className="btn-success">Calculate</button>
           <button className="btn-secondary">Back</button>
