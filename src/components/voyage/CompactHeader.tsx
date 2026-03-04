@@ -6,7 +6,7 @@ export function CompactHeader() {
   const { logout } = useAuth();
 
   return (
-    <header className="bg-section-header text-section-header-foreground h-8 flex items-center justify-between px-3 text-xs">
+    <header className="bg-primary text-primary-foreground h-8 flex items-center justify-between px-3 text-xs">
       {/* Logo & Title */}
       <div className="flex items-center gap-2">
         <Ship className="h-4 w-4" />
