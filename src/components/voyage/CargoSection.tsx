@@ -93,7 +93,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field w-32">
+            <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 Net BB
                 <InfoTooltip formula="Net Freight + Demurrage - Despatch" description="Net Ballast Bonus" />
