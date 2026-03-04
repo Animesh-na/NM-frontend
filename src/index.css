@@ -173,11 +173,11 @@
 
   /* Form field group - label + input with spacing */
   .form-field {
-    @apply flex flex-col gap-1;
+    @apply flex flex-col gap-0.5;
   }
 
   .form-label {
-    @apply text-xs font-medium text-muted-foreground;
+    @apply text-[10px] font-medium text-muted-foreground;
   }
 
   /* Input with unit suffix */
