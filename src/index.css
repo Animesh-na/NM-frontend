@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    --background: 0 0% 96%;
     --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
@@ -21,7 +21,7 @@
     --secondary: 210 15% 93%;
     --secondary-foreground: 215 25% 25%;
 
-    --muted: 210 15% 96%;
+    --muted: 0 0% 90%;
     --muted-foreground: 215 15% 45%;
 
     --accent: 201 70% 35%;
@@ -36,17 +36,19 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 20% 85%;
-    --input: 214 20% 85%;
+    --border: 214 20% 82%;
+    --input: 214 20% 82%;
+    --input-background: 0 0% 100%;
     --ring: 201 70% 35%;
 
     --radius: 0.25rem;
 
     /* Maritime specific tokens */
-    --section-header: 201 65% 28%;
-    --section-header-foreground: 0 0% 100%;
-    --table-header: 210 15% 90%;
-    --table-row-alt: 210 15% 97%;
+    --section-header: 0 0% 80%;
+    --section-header-foreground: 215 25% 15%;
+    --subsection-header: 0 0% 88%;
+    --table-header: 0 0% 88%;
+    --table-row-alt: 0 0% 97%;
     --data-highlight: 201 70% 92%;
     --money-positive: 142 70% 35%;
     --money-negative: 0 72% 51%;
