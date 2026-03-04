@@ -156,19 +156,19 @@
 
   /* Form input styling - white background, clear borders */
   .form-input {
-    @apply h-8 px-3 text-sm border border-input bg-input-bg rounded-md focus:outline-none focus:ring-1 focus:ring-ring;
+    @apply h-8 px-3 text-sm border-0 bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
   }
 
   .form-input-sm {
-    @apply h-7 px-2 text-xs border border-input bg-input-bg rounded-md focus:outline-none focus:ring-1 focus:ring-ring;
+    @apply h-7 px-2 text-xs border-0 bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
   }
 
   .form-select {
-    @apply h-8 px-3 text-sm border border-input bg-input-bg rounded-md focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-8 px-3 text-sm border-0 bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
   }
 
   .form-select-sm {
-    @apply h-7 px-2 text-xs border border-input bg-input-bg rounded-md focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-7 px-2 text-xs border-0 bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
   }
 
   /* Form field group - label + input with spacing */
