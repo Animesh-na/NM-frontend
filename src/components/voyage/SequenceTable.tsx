@@ -266,7 +266,7 @@ export function SequenceTable() {
                           <div className="flex items-center gap-0.5">
                             {/* V = Outside ECA (Non-ECA distance) with speed context selector */}
                             <select
-                              className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-background px-0.5"
+                              className="h-5 w-9 text-[9px] font-medium border border-border rounded bg-input-bg px-0.5"
                               value={row.distanceSpeedContext}
                               onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value as SpeedContext)}
                               title="Speed context for Outside ECA distance"
