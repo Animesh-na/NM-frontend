@@ -142,7 +142,7 @@
 @layer components {
   /* Section headers - compact maritime blue style */
   .section-header {
-    @apply bg-section-header text-section-header-foreground px-2 py-1 text-xs font-semibold flex items-center gap-1.5;
+    @apply bg-section-header text-section-header-foreground px-2 py-1 text-xs font-semibold flex items-center gap-1.5 border-b border-border;
   }
 
   .section-header-compact {
