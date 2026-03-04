@@ -190,11 +190,11 @@
   }
 
   .input-with-unit .unit {
-    @apply h-8 px-2 text-xs bg-muted border border-input rounded-r-md flex items-center text-muted-foreground;
+    @apply h-6 px-1.5 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
   }
 
   .input-with-unit-sm .unit {
-    @apply h-7 px-1.5 text-[10px] bg-muted border border-input rounded-r-md flex items-center text-muted-foreground;
+    @apply h-5 px-1 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
   }
 
   /* Money formatting */
