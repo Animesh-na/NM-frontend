@@ -247,25 +247,62 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       
       console.log(`    Port breakdown: turnTimeHrs=${leg.turnTimeHours || 0}, extraTimeHrs=${leg.extraTimeHours || 0} → turnExtraDays=${turnExtraDays}, workingDays=${workingDays}`);
       
+      // Determine port fuel type for this leg
+      const legPortFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
+      
+      const addPortDays = (working: number, idle: number) => {
+        if (legPortFuel === "hsfo") {
+          loadingDays_hsfo += working; idleDays_hsfo += idle;
+        } else if (legPortFuel === "vlsfo") {
+          loadingDays_vlsfo += working; idleDays_vlsfo += idle;
+        } else {
+          loadingDays_lsmgo += working; idleDays_lsmgo += idle;
+        }
+      };
+      const addDischDays = (working: number, idle: number) => {
+        if (legPortFuel === "hsfo") {
+          dischargingDays_hsfo += working; idleDays_hsfo += idle;
+        } else if (legPortFuel === "vlsfo") {
+          dischargingDays_vlsfo += working; idleDays_vlsfo += idle;
+        } else {
+          dischargingDays_lsmgo += working; idleDays_lsmgo += idle;
+        }
+      };
+      const addIdleDays = (days: number) => {
+        if (legPortFuel === "hsfo") idleDays_hsfo += days;
+        else if (legPortFuel === "vlsfo") idleDays_vlsfo += days;
+        else idleDays_lsmgo += days;
+      };
+      const addBunkeringDays = (days: number) => {
+        if (legPortFuel === "hsfo") bunkeringDays_hsfo += days;
+        else if (legPortFuel === "vlsfo") bunkeringDays_vlsfo += days;
+        else bunkeringDays_lsmgo += days;
+      };
+      
       if (leg.operation === "load" || leg.operation === "loading") {
         loadingDays += workingDays;
         idleDays += turnExtraDays;
+        addPortDays(workingDays, turnExtraDays);
         isLaden = true;
-        console.log(`    → LOADING: workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now TRUE`);
+        console.log(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now TRUE`);
       } else if (leg.operation === "disch" || leg.operation === "discharging") {
         dischargingDays += workingDays;
         idleDays += turnExtraDays;
+        addDischDays(workingDays, turnExtraDays);
         isLaden = false;
-        console.log(`    → DISCHARGING: workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now FALSE`);
+        console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now FALSE`);
       } else if (leg.operation === "waiting" || leg.operation === "idle") {
         idleDays += leg.portDays || 0;
-        console.log(`    → IDLE/WAITING: ${leg.portDays} days added to idleDays`);
+        addIdleDays(leg.portDays || 0);
+        console.log(`    → IDLE/WAITING (${legPortFuel}): ${leg.portDays} days added to idleDays`);
       } else if (leg.operation === "bunkering") {
         bunkeringDays += leg.portDays || 0;
-        console.log(`    → BUNKERING: ${leg.portDays} days added to bunkeringDays`);
+        addBunkeringDays(leg.portDays || 0);
+        console.log(`    → BUNKERING (${legPortFuel}): ${leg.portDays} days added to bunkeringDays`);
       } else if (leg.portDays > 0) {
         idleDays += leg.portDays || 0;
-        console.log(`    → OTHER with port time: ${leg.portDays} days added to idleDays`);
+        addIdleDays(leg.portDays || 0);
+        console.log(`    → OTHER (${legPortFuel}) with port time: ${leg.portDays} days added to idleDays`);
       }
     });
 
