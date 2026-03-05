@@ -134,6 +134,7 @@ export function SequenceTable() {
                   <th className={thClass}>Coeff</th>
                   <th className={thClass}>Turn (h)</th>
                   <th className={thClass}>Extra (h)</th>
+                  <th className={thClass}>Draft (m)</th>
                   <th className={thClass}>Port Fuel</th>
                   <th className={thClass}>Exp DA</th>
                   <th className={thClass}></th>
