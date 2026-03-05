@@ -55,25 +55,26 @@ export function SheetProvider({ children }: { children: ReactNode }) {
 
   const openSheet = useCallback(async (id: string, name: string) => {
     // Check if already open
-    const existingIdx = tabs.findIndex(t => t.id === id);
-    if (existingIdx >= 0) {
-      setActiveTabIndex(existingIdx);
+    setTabs(prev => {
+      const existingIdx = prev.findIndex(t => t.id === id);
+      if (existingIdx >= 0) {
+        setActiveTabIndex(existingIdx);
+        setCurrentView("editor");
+        return prev;
+      }
+      // Add loading tab
+      const loadingTab: SheetTab = {
+        id,
+        name,
+        data: {},
+        isDirty: false,
+        isLoading: true,
+      };
+      const newIndex = prev.length;
+      setActiveTabIndex(newIndex);
       setCurrentView("editor");
-      return;
-    }
-
-    // Add loading tab
-    const loadingTab: SheetTab = {
-      id,
-      name,
-      data: {},
-      isDirty: false,
-      isLoading: true,
-    };
-    const newIndex = tabs.length;
-    setTabs(prev => [...prev, loadingTab]);
-    setActiveTabIndex(newIndex);
-    setCurrentView("editor");
+      return [...prev, loadingTab];
+    });
 
     // Fetch data
     try {
@@ -88,7 +89,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       toast.error("Failed to load sheet");
       setTabs(prev => prev.map(t => t.id === id ? { ...t, isLoading: false } : t));
     }
-  }, [tabs]);
+  }, []);
 
   const closeTab = useCallback((index: number): boolean => {
     const tab = tabs[index];
