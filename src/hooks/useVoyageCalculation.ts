@@ -300,21 +300,25 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const rewardFactor = bunker?.rewardFactor ?? 1.0;
     
     // --- Sea Consumption (Ballast + Laden) split by ECA / Non-ECA ---
-    // Non-ECA: uses HSFO/VLSFO at normal rates
-    // ECA: fuel switches to LSMGO (MGO) for compliance; HSFO/VLSFO = 0 in ECA
+    // SCRUBBER LOGIC:
+    // - No scrubber → VLSFO only (HSFO = 0) outside ECA, LSMGO in ECA
+    // - Scrubber fitted → HSFO only (VLSFO = 0) outside ECA, LSMGO in ECA
     
     const totalEcaSeaDays = ecaSeaDaysBallast + ecaSeaDaysLaden;
     const totalNonEcaSeaDays = nonEcaSeaDaysBallast + nonEcaSeaDaysLaden;
+    const hasScrubber = vessel.hasScrubber === true;
     
-    // --- Non-ECA Sea Consumption (HSFO/VLSFO used normally) ---
-    const hsfoSeaBallastNonEca = nonEcaSeaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0);
-    const hsfoSeaLadenNonEca = nonEcaSeaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
-    const hsfoSeaExtraNonEca = extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
+    // --- Non-ECA Sea Consumption ---
+    // If scrubber: use HSFO rates, VLSFO = 0
+    // If no scrubber: use VLSFO rates, HSFO = 0
+    const hsfoSeaBallastNonEca = hasScrubber ? nonEcaSeaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0) : 0;
+    const hsfoSeaLadenNonEca = hasScrubber ? nonEcaSeaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0) : 0;
+    const hsfoSeaExtraNonEca = hasScrubber ? extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0) : 0;
     const hsfoSeaTotal = (hsfoSeaBallastNonEca + hsfoSeaLadenNonEca + hsfoSeaExtraNonEca) * rewardFactor;
     
-    const vlsfoSeaBallastNonEca = nonEcaSeaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0);
-    const vlsfoSeaLadenNonEca = nonEcaSeaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
-    const vlsfoSeaExtraNonEca = extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
+    const vlsfoSeaBallastNonEca = !hasScrubber ? nonEcaSeaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0) : 0;
+    const vlsfoSeaLadenNonEca = !hasScrubber ? nonEcaSeaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0) : 0;
+    const vlsfoSeaExtraNonEca = !hasScrubber ? extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0) : 0;
     const vlsfoSeaTotal = (vlsfoSeaBallastNonEca + vlsfoSeaLadenNonEca + vlsfoSeaExtraNonEca) * rewardFactor;
     
     // Non-ECA LSMGO: ZERO — LSMGO is only used inside ECA zones
