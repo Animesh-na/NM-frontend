@@ -346,6 +346,28 @@ export function SequenceTable() {
           <SequenceSummary />
         </div>
       )}
+
+      {/* Intake Calculator Popup */}
+      {intakeRowId !== null && (() => {
+        const row = sequence.find(r => r.id === intakeRowId);
+        if (!row) return null;
+        const sf = row.stowageFactor > 0 ? row.stowageFactor * 35.3147 : globalStowageFactor * 35.3147;
+        return (
+          <IntakeCalculator
+            open={true}
+            onClose={() => setIntakeRowId(null)}
+            onApply={(qty) => {
+              updateSequenceRow(intakeRowId, "quantity", qty);
+              setIntakeRowId(null);
+            }}
+            vessel={vessel}
+            portName={row.port}
+            portDraft={row.portMaxDraft}
+            currentQuantity={row.quantity}
+            stowageFactor={Math.round(sf)}
+          />
+        );
+      })()}
     </div>
   );
 }
