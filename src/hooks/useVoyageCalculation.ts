@@ -350,7 +350,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     
     const totalEcaSeaDays = ecaSeaDaysBallast + ecaSeaDaysLaden;
     const totalNonEcaSeaDays = nonEcaSeaDaysBallast + nonEcaSeaDaysLaden;
-    const hasScrubber = vessel.hasScrubber === true;
+    // hasScrubber moved above sequence loop
     
     // --- Non-ECA Sea Consumption ---
     // If scrubber: use HSFO rates, VLSFO = 0
