@@ -414,19 +414,22 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const lsmgoCanal = 0; // LSMGO canal only via AE, not ME
     
     // --- AE (Auxiliary Engine) Consumption ---
+    // If scrubber fitted → use aeScrubber rates; otherwise → use ae rates
     // AE always runs on LSMGO across ALL operations EXCEPT canal
+    const aeProfile = hasScrubber ? profile.aeScrubber : profile.ae;
+    
     // Sea: ballast + laden (both ECA and non-ECA) + extra sea days
     const aeSeaConsumption = (
-      (nonEcaSeaDaysBallast + ecaSeaDaysBallast) * (profile.ae.ballast || 0) +
-      (nonEcaSeaDaysLaden + ecaSeaDaysLaden) * (profile.ae.laden || 0) +
-      extraSeaDays * (profile.ae.laden || 0)
+      (nonEcaSeaDaysBallast + ecaSeaDaysBallast) * (aeProfile.ballast || 0) +
+      (nonEcaSeaDaysLaden + ecaSeaDaysLaden) * (aeProfile.laden || 0) +
+      extraSeaDays * (aeProfile.laden || 0)
     ) * rewardFactor;
     
     // Port: AE runs during loading, discharging, and idle
     const aePortConsumption = 
-      loadingDays * (profile.ae.load || 0) +
-      dischargingDays * (profile.ae.discharge || 0) +
-      idleAndBunkeringDays * (profile.ae.idle || 0);
+      loadingDays * (aeProfile.load || 0) +
+      dischargingDays * (aeProfile.discharge || 0) +
+      idleAndBunkeringDays * (aeProfile.idle || 0);
     
     // Canal: AE is NOT used during canal transit
     const aeCanalConsumption = 0;
