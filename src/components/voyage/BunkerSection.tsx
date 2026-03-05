@@ -1,5 +1,5 @@
+import React, { useState } from "react";
 import { ChevronDown, Fuel, X } from "lucide-react";
-import { useState } from "react";
 import { useVoyageContext, type FuelAccountingMode } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
