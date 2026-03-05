@@ -381,23 +381,30 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const lsmgoSeaTotal = lsmgoEcaFromHsfoVlsfo;
     
     // --- Port Consumption (by operation type) ---
-    // Port fuel follows scrubber logic: scrubber → HSFO, no scrubber → VLSFO
-    // LSMGO port rates are always included if defined in matrix
-    // Loading consumption (ME fuel only — AE is added separately below)
-    const hsfoLoading = hasScrubber ? loadingDays * (profile.hsfo.load || 0) : 0;
-    const vlsfoLoading = !hasScrubber ? loadingDays * (profile.vlsfo.load || 0) : 0;
-    const lsmgoLoading = loadingDays * (profile.lsmgo.load || 0);
+    // Port fuel is determined PER LEG by the portFuelType selection
+    // Only the selected fuel type is consumed for that leg's port operations
     
-    // Discharging consumption (ME fuel only — AE is added separately below)
-    const hsfoDischarging = hasScrubber ? dischargingDays * (profile.hsfo.discharge || 0) : 0;
-    const vlsfoDischarging = !hasScrubber ? dischargingDays * (profile.vlsfo.discharge || 0) : 0;
-    const lsmgoDischarging = dischargingDays * (profile.lsmgo.discharge || 0);
+    // Extra port days use default fuel (scrubber → HSFO, else VLSFO)
+    const extraPortFuel = hasScrubber ? "hsfo" : "vlsfo";
+    const extraIdleDays_hsfo = extraPortFuel === "hsfo" ? extraPortDays : 0;
+    const extraIdleDays_vlsfo = extraPortFuel === "vlsfo" ? extraPortDays : 0;
+    const extraIdleDays_lsmgo = 0;
     
-    // Idle/Waiting consumption (including bunkering operations)
+    // Loading consumption — only the fuel type selected for that port
+    const hsfoLoading = loadingDays_hsfo * (profile.hsfo.load || 0);
+    const vlsfoLoading = loadingDays_vlsfo * (profile.vlsfo.load || 0);
+    const lsmgoLoading = loadingDays_lsmgo * (profile.lsmgo.load || 0);
+    
+    // Discharging consumption
+    const hsfoDischarging = dischargingDays_hsfo * (profile.hsfo.discharge || 0);
+    const vlsfoDischarging = dischargingDays_vlsfo * (profile.vlsfo.discharge || 0);
+    const lsmgoDischarging = dischargingDays_lsmgo * (profile.lsmgo.discharge || 0);
+    
+    // Idle/Waiting consumption (including bunkering + extra port days)
     const idleAndBunkeringDays = idleDays + bunkeringDays + extraPortDays;
-    const hsfoIdle = hasScrubber ? idleAndBunkeringDays * (profile.hsfo.idle || 0) : 0;
-    const vlsfoIdle = !hasScrubber ? idleAndBunkeringDays * (profile.vlsfo.idle || 0) : 0;
-    const lsmgoIdle = idleAndBunkeringDays * (profile.lsmgo.idle || 0);
+    const hsfoIdle = (idleDays_hsfo + bunkeringDays_hsfo + extraIdleDays_hsfo) * (profile.hsfo.idle || 0);
+    const vlsfoIdle = (idleDays_vlsfo + bunkeringDays_vlsfo + extraIdleDays_vlsfo) * (profile.vlsfo.idle || 0);
+    const lsmgoIdle = (idleDays_lsmgo + bunkeringDays_lsmgo + extraIdleDays_lsmgo) * (profile.lsmgo.idle || 0);
     
     // Canal consumption
     const totalCanalDays = canalDays + extraCanalDays;
