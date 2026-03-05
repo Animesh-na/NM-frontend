@@ -297,7 +297,7 @@ export function SequenceTable() {
                         {hasQty ? (() => {
                           const draftExceedsPort = row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           const draftCheck = draftCheckResults[row.id];
-                          const hasRestriction = draftCheck && !draftCheck.canLoad;
+                          const hasRestriction = draftCheck && draftCheck.status === "NOT ACCESSIBLE";
                           const showWarning = draftExceedsPort || hasRestriction;
                           return (
                             <input type="number" step="0.01"
