@@ -335,7 +335,8 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {!isOpen && (
                           <button onClick={() => removeSequence(row.id)}
-                            className="p-0.5 hover:bg-destructive/10 rounded text-destructive/40 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100">
+                            className="p-0.5 hover:bg-destructive/10 rounded text-destructive/50 hover:text-destructive transition-colors"
+                            title="Delete row">
                             <Trash2 className="h-3 w-3" />
                           </button>
                         )}
