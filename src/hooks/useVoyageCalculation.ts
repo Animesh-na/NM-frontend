@@ -37,6 +37,8 @@ export interface SequenceRow {
   // Port time breakdown
   turnTimeHours?: number; // Turn time in hours
   extraTimeHours?: number; // Extra time in hours
+  // Port fuel type selection
+  portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
 }
 
 export interface CargoData {
