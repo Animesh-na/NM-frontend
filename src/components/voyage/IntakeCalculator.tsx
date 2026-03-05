@@ -122,16 +122,7 @@ export function IntakeCalculator({
     return { seasonalDraft, draftReduction, dwtReduction, correctedDwt, dwccCalc, dwccCubic, finalIntake };
   }, [summerDwt, summerDraft, tpc, draft, season, densityFactor, constants, bob, freshWater, grainCuM, grainCuFt, sf]);
 
-  const labelClass = "text-[11px] text-muted-foreground font-medium w-28 shrink-0";
   const inputClass = "form-input-sm w-24 text-[11px] font-mono text-right";
-  const unitClass = "text-[10px] text-muted-foreground ml-1 w-8";
-
-  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="flex items-center gap-2 py-0.5">
-      <span className={labelClass}>{label}</span>
-      {children}
-    </div>
-  );
 
   const handleGrainCuFtChange = useCallback((val: string) => {
     setGrainCuFt(val);
