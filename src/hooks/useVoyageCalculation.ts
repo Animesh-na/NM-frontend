@@ -188,6 +188,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let nonEcaSeaDaysLaden = 0;
     
     // Track operation-specific time for detailed consumption
+    // Split by port fuel type selection
+    let loadingDays_hsfo = 0, loadingDays_vlsfo = 0, loadingDays_lsmgo = 0;
+    let dischargingDays_hsfo = 0, dischargingDays_vlsfo = 0, dischargingDays_lsmgo = 0;
+    let idleDays_hsfo = 0, idleDays_vlsfo = 0, idleDays_lsmgo = 0;
+    let bunkeringDays_hsfo = 0, bunkeringDays_vlsfo = 0, bunkeringDays_lsmgo = 0;
     let loadingDays = 0;
     let dischargingDays = 0;
     let idleDays = 0;
