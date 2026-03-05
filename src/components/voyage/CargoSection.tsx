@@ -16,13 +16,15 @@ export function CargoSection() {
     .filter(row => row.operation === "loading")
     .reduce((sum, row) => sum + (row.quantity || 0), 0);
 
-  const calculatedGrossBB = cargos.reduce((sum, cargo) => {
-    const cargoQuantityShare = cargos.length > 1 ? sequenceCargoQuantity / cargos.length : sequenceCargoQuantity;
-    const cargoGrossFreight = cargo.rateType === "lumpsum" ? cargo.rate : cargo.rate * cargoQuantityShare;
-    return sum + cargoGrossFreight + cargo.demurrageAmount - cargo.despatchAmount;
-  }, 0);
-
-  const calculatedNetBB = results.netFreight + cargos.reduce((sum, c) => sum + c.demurrageAmount - c.despatchAmount, 0);
+  // BB (Ballast Bonus) is a lumpsum amount added to hire, NOT related to freight.
+  // Gross BB and Net BB differ only by TC commission.
+  // Gross BB = editable lumpsum amount (default 0)
+  // Net BB = Gross BB × (1 - TC Commission%)
+  const tcCommRate = (cargos[0]?.tcCommission ?? 3.75) / 100;
+  const calculatedGrossBB = 0; // BB is a manual lumpsum entry, default 0
+  const calculatedNetBB = grossBBOverride !== null 
+    ? (grossBBOverride ?? 0) * (1 - tcCommRate) 
+    : 0;
 
   const grossBB = grossBBOverride ?? calculatedGrossBB;
   const netBB = netBBOverride ?? calculatedNetBB;
