@@ -236,7 +236,8 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {hasQty ? (
                           <input type="number" className="form-input-sm w-16 font-mono text-right text-[10px]"
-                            value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
+                            value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
+                            onDoubleClick={() => setIntakeRowId(row.id)} title="Double-click for Intake Calculator" />
                         ) : hasBunkering ? (
                           <span className="text-[10px] text-muted-foreground px-1">bkr</span>
                         ) : (
