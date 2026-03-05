@@ -25,6 +25,16 @@ const seasonOptions: { value: SeasonType; label: string }[] = [
   { value: "tropical", label: "Tropical" },
 ];
 
+const labelClass = "text-[11px] text-muted-foreground font-medium w-28 shrink-0";
+const unitClass = "text-[10px] text-muted-foreground ml-1 w-8";
+
+const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="flex items-center gap-2 py-0.5">
+    <span className={labelClass}>{label}</span>
+    {children}
+  </div>
+);
+
 interface IntakeCalculatorProps {
   open: boolean;
   onClose: () => void;
