@@ -225,10 +225,6 @@ export function VesselPanel() {
               <Checkbox id="loadDischIdle" checked={vessel.loadDischIdleSame} onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)} className="h-3.5 w-3.5" />
               <label htmlFor="loadDischIdle" className="text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap">L=D=I</label>
             </div>
-            <div className="form-field w-16">
-              <label className="form-label">Misc x</label>
-              <input type="number" className="form-input-sm w-full font-mono tabular-nums text-center" value={vessel.miscMultiplier || ""} onChange={(e) => handleFieldChange("miscMultiplier", parseFloat(e.target.value) || 0)} placeholder="0" />
-            </div>
           </div>
 
           {/* Consumption Matrix */}

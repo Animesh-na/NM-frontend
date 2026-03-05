@@ -300,21 +300,25 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const rewardFactor = bunker?.rewardFactor ?? 1.0;
     
     // --- Sea Consumption (Ballast + Laden) split by ECA / Non-ECA ---
-    // Non-ECA: uses HSFO/VLSFO at normal rates
-    // ECA: fuel switches to LSMGO (MGO) for compliance; HSFO/VLSFO = 0 in ECA
+    // SCRUBBER LOGIC:
+    // - No scrubber → VLSFO only (HSFO = 0) outside ECA, LSMGO in ECA
+    // - Scrubber fitted → HSFO only (VLSFO = 0) outside ECA, LSMGO in ECA
     
     const totalEcaSeaDays = ecaSeaDaysBallast + ecaSeaDaysLaden;
     const totalNonEcaSeaDays = nonEcaSeaDaysBallast + nonEcaSeaDaysLaden;
+    const hasScrubber = vessel.hasScrubber === true;
     
-    // --- Non-ECA Sea Consumption (HSFO/VLSFO used normally) ---
-    const hsfoSeaBallastNonEca = nonEcaSeaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0);
-    const hsfoSeaLadenNonEca = nonEcaSeaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
-    const hsfoSeaExtraNonEca = extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
+    // --- Non-ECA Sea Consumption ---
+    // If scrubber: use HSFO rates, VLSFO = 0
+    // If no scrubber: use VLSFO rates, HSFO = 0
+    const hsfoSeaBallastNonEca = hasScrubber ? nonEcaSeaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0) : 0;
+    const hsfoSeaLadenNonEca = hasScrubber ? nonEcaSeaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0) : 0;
+    const hsfoSeaExtraNonEca = hasScrubber ? extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0) : 0;
     const hsfoSeaTotal = (hsfoSeaBallastNonEca + hsfoSeaLadenNonEca + hsfoSeaExtraNonEca) * rewardFactor;
     
-    const vlsfoSeaBallastNonEca = nonEcaSeaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0);
-    const vlsfoSeaLadenNonEca = nonEcaSeaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
-    const vlsfoSeaExtraNonEca = extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
+    const vlsfoSeaBallastNonEca = !hasScrubber ? nonEcaSeaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0) : 0;
+    const vlsfoSeaLadenNonEca = !hasScrubber ? nonEcaSeaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0) : 0;
+    const vlsfoSeaExtraNonEca = !hasScrubber ? extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0) : 0;
     const vlsfoSeaTotal = (vlsfoSeaBallastNonEca + vlsfoSeaLadenNonEca + vlsfoSeaExtraNonEca) * rewardFactor;
     
     // Non-ECA LSMGO: ZERO — LSMGO is only used inside ECA zones
@@ -333,26 +337,28 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const lsmgoSeaTotal = lsmgoEcaFromHsfoVlsfo;
     
     // --- Port Consumption (by operation type) ---
+    // Port fuel follows scrubber logic: scrubber → HSFO, no scrubber → VLSFO
+    // LSMGO port rates are always included if defined in matrix
     // Loading consumption (ME fuel only — AE is added separately below)
-    const hsfoLoading = loadingDays * (profile.hsfo.load || 0);
-    const vlsfoLoading = loadingDays * (profile.vlsfo.load || 0);
+    const hsfoLoading = hasScrubber ? loadingDays * (profile.hsfo.load || 0) : 0;
+    const vlsfoLoading = !hasScrubber ? loadingDays * (profile.vlsfo.load || 0) : 0;
     const lsmgoLoading = loadingDays * (profile.lsmgo.load || 0);
     
     // Discharging consumption (ME fuel only — AE is added separately below)
-    const hsfoDischarging = dischargingDays * (profile.hsfo.discharge || 0);
-    const vlsfoDischarging = dischargingDays * (profile.vlsfo.discharge || 0);
+    const hsfoDischarging = hasScrubber ? dischargingDays * (profile.hsfo.discharge || 0) : 0;
+    const vlsfoDischarging = !hasScrubber ? dischargingDays * (profile.vlsfo.discharge || 0) : 0;
     const lsmgoDischarging = dischargingDays * (profile.lsmgo.discharge || 0);
     
     // Idle/Waiting consumption (including bunkering operations)
     const idleAndBunkeringDays = idleDays + bunkeringDays + extraPortDays;
-    const hsfoIdle = idleAndBunkeringDays * (profile.hsfo.idle || 0);
-    const vlsfoIdle = idleAndBunkeringDays * (profile.vlsfo.idle || 0);
+    const hsfoIdle = hasScrubber ? idleAndBunkeringDays * (profile.hsfo.idle || 0) : 0;
+    const vlsfoIdle = !hasScrubber ? idleAndBunkeringDays * (profile.vlsfo.idle || 0) : 0;
     const lsmgoIdle = idleAndBunkeringDays * (profile.lsmgo.idle || 0);
     
     // Canal consumption
     const totalCanalDays = canalDays + extraCanalDays;
-    const hsfoCanal = totalCanalDays * (profile.hsfo.canal || 0);
-    const vlsfoCanal = totalCanalDays * (profile.vlsfo.canal || 0);
+    const hsfoCanal = hasScrubber ? totalCanalDays * (profile.hsfo.canal || 0) : 0;
+    const vlsfoCanal = !hasScrubber ? totalCanalDays * (profile.vlsfo.canal || 0) : 0;
     const lsmgoCanal = totalCanalDays * (profile.lsmgo.canal || 0);
     
     // --- AE (Auxiliary Engine) Consumption ---

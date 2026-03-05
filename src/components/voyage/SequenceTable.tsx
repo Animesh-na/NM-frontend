@@ -134,6 +134,7 @@ export function SequenceTable() {
                   <th className={thClass}>Coeff</th>
                   <th className={thClass}>Turn (h)</th>
                   <th className={thClass}>Extra (h)</th>
+                  <th className={thClass}>Draft (m)</th>
                   <th className={thClass}>Port Fuel</th>
                   <th className={thClass}>Exp DA</th>
                   <th className={thClass}></th>
@@ -291,6 +292,25 @@ export function SequenceTable() {
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
+                      {/* Draft (m) */}
+                      <td className={tdClass}>
+                        {hasQty ? (() => {
+                          const draftExceedsPort = row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
+                          const draftCheck = draftCheckResults[row.id];
+                          const hasRestriction = draftCheck && draftCheck.status === "NOT ACCESSIBLE";
+                          const showWarning = draftExceedsPort || hasRestriction;
+                          return (
+                            <input type="number" step="0.01"
+                              className={`form-input-sm w-14 font-mono text-right text-[10px] ${showWarning ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
+                              value={row.draft || ""} 
+                              onChange={(e) => updateSequenceRow(row.id, "draft", parseFloat(e.target.value) || 0)} 
+                              placeholder="0"
+                              title={showWarning ? `Draft ${row.draft}m exceeds limit${row.portMaxDraft > 0 ? ` (max ${row.portMaxDraft}m)` : ''}` : 'Vessel draft at this port (m)'}
+                            />
+                          );
+                        })() : <span className="text-muted-foreground/40 px-1">—</span>}
+                      </td>
+
                       {/* Port Fuel */}
                       <td className={tdClass}>
                         {!isOpen && isPort ? (
@@ -356,8 +376,11 @@ export function SequenceTable() {
           <IntakeCalculator
             open={true}
             onClose={() => setIntakeRowId(null)}
-            onApply={(qty) => {
+            onApply={(qty, draft) => {
               updateSequenceRow(intakeRowId, "quantity", qty);
+              if (draft !== undefined) {
+                updateSequenceRow(intakeRowId, "draft", draft);
+              }
               setIntakeRowId(null);
             }}
             vessel={vessel}
