@@ -406,11 +406,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const vlsfoIdle = (idleDays_vlsfo + bunkeringDays_vlsfo + extraIdleDays_vlsfo) * (profile.vlsfo.idle || 0);
     const lsmgoIdle = (idleDays_lsmgo + bunkeringDays_lsmgo + extraIdleDays_lsmgo) * (profile.lsmgo.idle || 0);
     
-    // Canal consumption
+    // Canal consumption — uses scrubber default fuel, no per-leg override
     const totalCanalDays = canalDays + extraCanalDays;
     const hsfoCanal = hasScrubber ? totalCanalDays * (profile.hsfo.canal || 0) : 0;
     const vlsfoCanal = !hasScrubber ? totalCanalDays * (profile.vlsfo.canal || 0) : 0;
-    const lsmgoCanal = totalCanalDays * (profile.lsmgo.canal || 0);
+    const lsmgoCanal = 0; // LSMGO canal only via AE, not ME
     
     // --- AE (Auxiliary Engine) Consumption ---
     // AE always runs on LSMGO across ALL operations EXCEPT canal
