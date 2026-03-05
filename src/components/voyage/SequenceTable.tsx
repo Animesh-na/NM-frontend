@@ -6,6 +6,7 @@ import { SequenceSummary } from "./SequenceSummary";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { calculateDraftRestriction, estimateCubicFromDwt, type DraftCheckResult } from "@/utils/draftRestriction";
+import { IntakeCalculator } from "./IntakeCalculator";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
@@ -38,6 +39,7 @@ export function SequenceTable() {
   } = useVoyageContext();
   
   const [isExpanded, setIsExpanded] = useState(true);
+  const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
 
@@ -234,7 +236,8 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {hasQty ? (
                           <input type="number" className="form-input-sm w-16 font-mono text-right text-[10px]"
-                            value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
+                            value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
+                            onDoubleClick={() => setIntakeRowId(row.id)} title="Double-click for Intake Calculator" />
                         ) : hasBunkering ? (
                           <span className="text-[10px] text-muted-foreground px-1">bkr</span>
                         ) : (
@@ -343,6 +346,28 @@ export function SequenceTable() {
           <SequenceSummary />
         </div>
       )}
+
+      {/* Intake Calculator Popup */}
+      {intakeRowId !== null && (() => {
+        const row = sequence.find(r => r.id === intakeRowId);
+        if (!row) return null;
+        const sf = row.stowageFactor > 0 ? row.stowageFactor * 35.3147 : globalStowageFactor * 35.3147;
+        return (
+          <IntakeCalculator
+            open={true}
+            onClose={() => setIntakeRowId(null)}
+            onApply={(qty) => {
+              updateSequenceRow(intakeRowId, "quantity", qty);
+              setIntakeRowId(null);
+            }}
+            vessel={vessel}
+            portName={row.port}
+            portDraft={row.portMaxDraft}
+            currentQuantity={row.quantity}
+            stowageFactor={Math.round(sf)}
+          />
+        );
+      })()}
     </div>
   );
 }
