@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,9 @@ interface IntakeCalculatorProps {
   stowageFactor: number;
 }
 
+/** Parse a string to number, returning 0 for empty/invalid */
+const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? 0 : n; };
+
 export function IntakeCalculator({
   open,
   onClose,
@@ -46,68 +49,72 @@ export function IntakeCalculator({
   currentQuantity,
   stowageFactor: initialSF,
 }: IntakeCalculatorProps) {
-  // Port section
-  const [draft, setDraft] = useState(portDraft || 0);
+  // All inputs stored as strings for free editing
+  const [draft, setDraft] = useState("");
   const [waterType, setWaterType] = useState<WaterType>("sw");
   const [season, setSeason] = useState<SeasonType>("summer");
 
-  // Vessel section (editable copies)
-  const [summerDwt, setSummerDwt] = useState(vessel.dwt);
-  const [summerDraft, setSummerDraft] = useState(vessel.draft);
-  const [tpc, setTpc] = useState(vessel.tpcTpi);
-  const [constants, setConstants] = useState(0);
-  const [bob, setBob] = useState(0);
-  const [freshWater, setFreshWater] = useState(0);
-  const [grainCuFt, setGrainCuFt] = useState(0);
-  const [grainCuM, setGrainCuM] = useState(0);
+  const [summerDwt, setSummerDwt] = useState("");
+  const [summerDraft, setSummerDraft] = useState("");
+  const [tpc, setTpc] = useState("");
+  const [constants, setConstants] = useState("");
+  const [bob, setBob] = useState("");
+  const [freshWater, setFreshWater] = useState("");
+  const [grainCuFt, setGrainCuFt] = useState("");
+  const [grainCuM, setGrainCuM] = useState("");
 
-  // Cargo section
-  const [sf, setSf] = useState(initialSF || 53);
+  const [sf, setSf] = useState("");
 
   // Initialize from vessel when dialog opens
   useEffect(() => {
     if (open) {
-      setSummerDwt(vessel.dwt);
-      setSummerDraft(vessel.draft);
-      setTpc(vessel.tpcTpi);
-      setDraft(portDraft || 0);
-      // Convert cubic capacity
+      setSummerDwt(String(vessel.dwt));
+      setSummerDraft(String(vessel.draft));
+      setTpc(String(vessel.tpcTpi));
+      setDraft(portDraft ? String(portDraft) : "");
+      setConstants("");
+      setBob("");
+      setFreshWater("");
       if (vessel.cubicUnit === "cbm") {
-        setGrainCuM(vessel.cubic);
-        setGrainCuFt(Math.round(vessel.cubic * 35.3147));
+        setGrainCuM(String(vessel.cubic));
+        setGrainCuFt(String(Math.round(vessel.cubic * 35.3147)));
       } else {
-        setGrainCuFt(vessel.cubic);
-        setGrainCuM(Math.round(vessel.cubic / 35.3147));
+        setGrainCuFt(String(vessel.cubic));
+        setGrainCuM(String(Math.round(vessel.cubic / 35.3147)));
       }
-      setSf(initialSF || 53);
+      setSf(initialSF ? String(initialSF) : "53");
     }
   }, [open, vessel, portDraft, initialSF]);
 
   const densityFactor = waterOptions.find((w) => w.value === waterType)?.factor ?? 1.0;
 
   const calc = useMemo(() => {
-    // Step 1 – Seasonal Draft
-    let seasonalDraft = summerDraft;
-    if (season === "winter") seasonalDraft = summerDraft - summerDraft / 48;
-    else if (season === "tropical") seasonalDraft = summerDraft + summerDraft / 48;
+    const _summerDwt = num(summerDwt);
+    const _summerDraft = num(summerDraft);
+    const _tpc = num(tpc);
+    const _draft = num(draft);
+    const _constants = num(constants);
+    const _bob = num(bob);
+    const _freshWater = num(freshWater);
+    const _grainCuM = num(grainCuM);
+    const _grainCuFt = num(grainCuFt);
+    const _sf = num(sf);
 
-    // Step 2 – Draft Limitation
-    const draftReduction = Math.max(0, seasonalDraft - draft);
+    let seasonalDraft = _summerDraft;
+    if (season === "winter") seasonalDraft = _summerDraft - _summerDraft / 48;
+    else if (season === "tropical") seasonalDraft = _summerDraft + _summerDraft / 48;
+
+    const draftReduction = Math.max(0, seasonalDraft - _draft);
     const draftReductionCm = draftReduction * 100;
-    const dwtReduction = draftReductionCm * tpc;
+    const dwtReduction = draftReductionCm * _tpc;
 
-    // Step 3 – Density Correction
-    const correctedDwt = (summerDwt - dwtReduction) * densityFactor;
+    const correctedDwt = (_summerDwt - dwtReduction) * densityFactor;
+    const dwcc = correctedDwt - _constants - _bob - _freshWater;
 
-    // Step 4 – DWCC
-    const dwcc = correctedDwt - constants - bob - freshWater;
-
-    // Step 5 – Volume Limit (use cu.m for calc)
-    const capacityM3 = grainCuM > 0 ? grainCuM : grainCuFt / 35.3147;
-    const sfM3 = sf > 0 ? sf / 35.3147 : 1; // convert cu.ft/mt to m³/mt
+    const capacityM3 = _grainCuM > 0 ? _grainCuM : _grainCuFt / 35.3147;
+    const sfM3 = _sf > 0 ? _sf / 35.3147 : 1;
     const volumeLimit = capacityM3 / sfM3;
 
-    // Step 6 – Final
     const dwccCalc = Math.max(0, Math.round(dwcc));
     const dwccCubic = Math.max(0, Math.round(volumeLimit));
     const finalIntake = Math.min(dwccCalc, dwccCubic);
@@ -126,6 +133,18 @@ export function IntakeCalculator({
     </div>
   );
 
+  const handleGrainCuFtChange = useCallback((val: string) => {
+    setGrainCuFt(val);
+    const v = parseFloat(val);
+    if (!isNaN(v)) setGrainCuM(String(Math.round(v / 35.3147)));
+  }, []);
+
+  const handleGrainCuMChange = useCallback((val: string) => {
+    setGrainCuM(val);
+    const v = parseFloat(val);
+    if (!isNaN(v)) setGrainCuFt(String(Math.round(v * 35.3147)));
+  }, []);
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-[520px] p-0 gap-0">
@@ -142,7 +161,7 @@ export function IntakeCalculator({
               <span className="text-[11px] font-semibold">{portName || "—"}</span>
             </div>
             <Row label="Draft">
-              <input type="number" step="0.1" className={inputClass} value={draft || ""} onChange={(e) => setDraft(parseFloat(e.target.value) || 0)} />
+              <input type="number" step="0.1" className={inputClass} value={draft} onChange={(e) => setDraft(e.target.value)} />
               <span className={unitClass}>m</span>
             </Row>
             <Row label="Water">
@@ -170,37 +189,37 @@ export function IntakeCalculator({
                 <span className="text-[11px] font-semibold truncate">{vessel.name || "—"}</span>
               </div>
               <Row label="Summer DWT">
-                <input type="number" className={inputClass} value={summerDwt || ""} onChange={(e) => setSummerDwt(parseFloat(e.target.value) || 0)} />
+                <input type="number" className={inputClass} value={summerDwt} onChange={(e) => setSummerDwt(e.target.value)} />
                 <span className={unitClass}>mt</span>
               </Row>
               <Row label="Summer Draft">
-                <input type="number" step="0.01" className={inputClass} value={summerDraft || ""} onChange={(e) => setSummerDraft(parseFloat(e.target.value) || 0)} />
+                <input type="number" step="0.01" className={inputClass} value={summerDraft} onChange={(e) => setSummerDraft(e.target.value)} />
                 <span className={unitClass}>m</span>
               </Row>
               <Row label="TPC/TPI">
-                <input type="number" step="0.1" className={inputClass} value={tpc || ""} onChange={(e) => setTpc(parseFloat(e.target.value) || 0)} />
+                <input type="number" step="0.1" className={inputClass} value={tpc} onChange={(e) => setTpc(e.target.value)} />
                 <span className={unitClass}>tpc</span>
               </Row>
               <Row label="Constants">
-                <input type="number" className={inputClass} value={constants || ""} onChange={(e) => setConstants(parseFloat(e.target.value) || 0)} />
+                <input type="number" className={inputClass} value={constants} onChange={(e) => setConstants(e.target.value)} />
                 <span className={unitClass}>mt</span>
               </Row>
               <Row label="BOB">
-                <input type="number" className={inputClass} value={bob || ""} onChange={(e) => setBob(parseFloat(e.target.value) || 0)} />
+                <input type="number" className={inputClass} value={bob} onChange={(e) => setBob(e.target.value)} />
                 <span className={unitClass}>t</span>
               </Row>
               <Row label="Fresh Water">
-                <input type="number" className={inputClass} value={freshWater || ""} onChange={(e) => setFreshWater(parseFloat(e.target.value) || 0)} />
+                <input type="number" className={inputClass} value={freshWater} onChange={(e) => setFreshWater(e.target.value)} />
                 <span className={unitClass}>mt</span>
               </Row>
               <Row label="Grain">
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center">
-                    <input type="number" className={`${inputClass} w-20`} value={grainCuFt || ""} onChange={(e) => { const v = parseFloat(e.target.value) || 0; setGrainCuFt(v); setGrainCuM(Math.round(v / 35.3147)); }} />
+                    <input type="number" className={`${inputClass} w-20`} value={grainCuFt} onChange={(e) => handleGrainCuFtChange(e.target.value)} />
                     <span className="text-[10px] text-muted-foreground ml-1">cu.ft</span>
                   </div>
                   <div className="flex items-center">
-                    <input type="number" className={`${inputClass} w-20`} value={grainCuM || ""} onChange={(e) => { const v = parseFloat(e.target.value) || 0; setGrainCuM(v); setGrainCuFt(Math.round(v * 35.3147)); }} />
+                    <input type="number" className={`${inputClass} w-20`} value={grainCuM} onChange={(e) => handleGrainCuMChange(e.target.value)} />
                     <span className="text-[10px] text-muted-foreground ml-1">cu.m</span>
                   </div>
                 </div>
@@ -213,15 +232,15 @@ export function IntakeCalculator({
               <div className="space-y-1 mt-1">
                 <div className="flex justify-between text-[11px]">
                   <span className="text-muted-foreground">DWT</span>
-                  <span className="font-mono">{summerDwt.toLocaleString()} mt</span>
+                  <span className="font-mono">{num(summerDwt).toLocaleString()} mt</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-muted-foreground">Draft</span>
-                  <span className="font-mono">{summerDraft} m ({calc.seasonalDraft.toFixed(1)} m)</span>
+                  <span className="font-mono">{num(summerDraft)} m ({calc.seasonalDraft.toFixed(1)} m)</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-muted-foreground">TPC/TPI</span>
-                  <span className="font-mono">{tpc} mt/cm</span>
+                  <span className="font-mono">{num(tpc)} mt/cm</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-muted-foreground">DWCC calc</span>
@@ -243,7 +262,7 @@ export function IntakeCalculator({
           <div>
             <div className="text-[11px] font-bold text-primary mb-1.5">Cargo #1</div>
             <Row label="Stowage Factor">
-              <input type="number" step="0.1" className={inputClass} value={sf || ""} onChange={(e) => setSf(parseFloat(e.target.value) || 0)} />
+              <input type="number" step="0.1" className={inputClass} value={sf} onChange={(e) => setSf(e.target.value)} />
               <span className="text-[10px] text-muted-foreground ml-1">cu.ft/mt</span>
             </Row>
           </div>
