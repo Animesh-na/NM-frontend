@@ -98,7 +98,7 @@ export function CargoSection() {
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 Net BB
-                <InfoTooltip formula="Net Freight + Demurrage - Despatch" description="Net Ballast Bonus" />
+                <InfoTooltip formula="Gross BB × (1 - TC Commission%)" description="Net Ballast Bonus (lumpsum added to hire)" />
               </label>
               <div className="input-with-unit">
                 <input
