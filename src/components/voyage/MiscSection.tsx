@@ -1,6 +1,6 @@
-import { ChevronDown, Settings, Clock, DollarSign } from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 import { useState } from "react";
-import { useVoyageContext, type ExtraTimeState } from "@/context/VoyageContext";
+import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -9,8 +9,6 @@ import {
 export function MiscSection() {
   const { misc, updateMisc, updateExtraTime, results } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isCostExpanded, setIsCostExpanded] = useState(true);
-  const [isTimeExpanded, setIsTimeExpanded] = useState(true);
 
   const totalMiscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
   const totalCanalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
@@ -23,6 +21,9 @@ export function MiscSection() {
     getExtraTimeDays(misc.extraTime.canal1) + getExtraTimeDays(misc.extraTime.canal2) +
     getExtraTimeDays(misc.extraTime.idlePort) + getExtraTimeDays(misc.extraTime.atSea)
   ) : 0;
+
+  const extraTimeKeys = ["canal1", "canal2", "idlePort", "atSea"] as const;
+  const extraTimeLabels: Record<string, string> = { canal1: "Canal 1", canal2: "Canal 2", idlePort: "Port (idle)", atSea: "At Sea" };
 
   return (
     <div className="calc-card-compact">
@@ -41,75 +42,60 @@ export function MiscSection() {
       </button>
 
       {isExpanded && (
-        <div className="p-4 space-y-4">
-          {/* Misc Costs */}
-          <div className="border border-border rounded-md overflow-hidden">
-            <button
-              onClick={() => setIsCostExpanded(!isCostExpanded)}
-              className="w-full flex items-center justify-between px-4 py-2 subsection-header hover:opacity-80 transition-opacity"
-            >
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium">Miscellaneous Costs</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">
-                  Total: <span className="font-mono font-semibold text-primary">${(totalMiscCosts + totalCanalCosts).toLocaleString()}</span>
-                </span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isCostExpanded ? "" : "-rotate-90"}`} />
-              </div>
-            </button>
-            
-            {isCostExpanded && (
-              <div className="p-4 space-y-4">
-                <div className="flex flex-wrap gap-4 items-end">
-                  <div className="form-field w-32">
-                    <label className="form-label flex items-center gap-1">
-                      Misc Cost
-                      <InfoTooltip formula="Added to voyage expense" description="Additional costs" />
-                    </label>
+        <div className="p-3 space-y-3">
+          {/* Misc Costs - tabular */}
+          <div className="border border-border rounded overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="subsection-header">
+                  <th className="text-left px-2 py-1 text-[10px] font-medium">Misc Costs</th>
+                  <th className="text-left px-2 py-1 text-[10px] font-medium">Extra Fees</th>
+                  <th className="text-left px-2 py-1 text-[10px] font-medium">Insurance</th>
+                  <th className="text-left px-2 py-1 text-[10px] font-medium">Canal 1</th>
+                  <th className="text-left px-2 py-1 text-[10px] font-medium">Canal 2</th>
+                  <th className="text-left px-2 py-1 text-[10px] font-medium">Trade Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-border">
+                  <td className="px-1 py-0.5">
                     <div className="input-with-unit">
-                      <span className="unit border-r-0 rounded-r-none rounded-l-md">$</span>
-                      <input type="number" className="form-input-sm w-full font-mono text-right rounded-l-none"
+                      <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
+                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.miscCost || ""} onChange={(e) => updateMisc("miscCost", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
-                  </div>
-                  <div className="form-field w-32">
-                    <label className="form-label">Extra Fees</label>
+                  </td>
+                  <td className="px-1 py-0.5">
                     <div className="input-with-unit">
-                      <span className="unit border-r-0 rounded-r-none rounded-l-md">$</span>
-                      <input type="number" className="form-input-sm w-full font-mono text-right rounded-l-none"
+                      <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
+                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.extraFees || ""} onChange={(e) => updateMisc("extraFees", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
-                  </div>
-                  <div className="form-field w-32">
-                    <label className="form-label">Extra Insurance</label>
+                  </td>
+                  <td className="px-1 py-0.5">
                     <div className="input-with-unit">
-                      <span className="unit border-r-0 rounded-r-none rounded-l-md">$</span>
-                      <input type="number" className="form-input-sm w-full font-mono text-right rounded-l-none"
+                      <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
+                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.extraInsurance || ""} onChange={(e) => updateMisc("extraInsurance", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
-                  </div>
-                  <div className="form-field w-32">
-                    <label className="form-label">Canal Cost 1</label>
+                  </td>
+                  <td className="px-1 py-0.5">
                     <div className="input-with-unit">
-                      <span className="unit border-r-0 rounded-r-none rounded-l-md">$</span>
-                      <input type="number" className="form-input-sm w-full font-mono text-right rounded-l-none"
+                      <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
+                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.canalCost1 || ""} onChange={(e) => updateMisc("canalCost1", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
-                  </div>
-                  <div className="form-field w-32">
-                    <label className="form-label">Canal Cost 2</label>
+                  </td>
+                  <td className="px-1 py-0.5">
                     <div className="input-with-unit">
-                      <span className="unit border-r-0 rounded-r-none rounded-l-md">$</span>
-                      <input type="number" className="form-input-sm w-full font-mono text-right rounded-l-none"
+                      <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
+                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.canalCost2 || ""} onChange={(e) => updateMisc("canalCost2", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
-                  </div>
-                  <div className="form-field w-32">
-                    <label className="form-label">Trade Type</label>
+                  </td>
+                  <td className="px-1 py-0.5">
                     <Select value={misc?.tradeType || "none"} onValueChange={(value) => updateMisc("tradeType", value === "none" ? "" : value)}>
-                      <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="---" /></SelectTrigger>
+                      <SelectTrigger className="h-6 text-[10px]"><SelectValue placeholder="---" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none" className="text-xs">---</SelectItem>
                         <SelectItem value="voyage" className="text-xs">Voyage</SelectItem>
@@ -117,64 +103,44 @@ export function MiscSection() {
                         <SelectItem value="coa" className="text-xs">COA</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-              </div>
-            )}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          {/* Extra Time */}
-          <div className="border border-border rounded-md overflow-hidden">
-            <button
-              onClick={() => setIsTimeExpanded(!isTimeExpanded)}
-              className="w-full flex items-center justify-between px-4 py-2 subsection-header hover:opacity-80 transition-opacity"
-            >
-              <div className="flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium">Extra Time</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">
-                  Total: <span className="font-mono font-semibold text-primary">{totalExtraTime.toFixed(2)} days</span>
-                </span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isTimeExpanded ? "" : "-rotate-90"}`} />
-              </div>
-            </button>
-            
-            {isTimeExpanded && (
-              <div className="p-4">
-                <div className="flex flex-wrap gap-4 items-end">
-                  {(["canal1", "canal2", "idlePort", "atSea"] as const).map(key => {
-                    const labels: Record<string, string> = { canal1: "Canal 1", canal2: "Canal 2", idlePort: "In Port (idle)", atSea: "At Sea" };
-                    return (
-                      <div key={key} className="form-field w-44">
-                        <label className="form-label flex items-center gap-1">
-                          {labels[key]}
-                          {key === "idlePort" && <InfoTooltip formula="Idle consumption × time" description="Waiting time in port" />}
-                          {key === "atSea" && <InfoTooltip formula="Sea consumption × time" description="Extra sailing time" />}
-                        </label>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            className="form-input-sm flex-1 font-mono text-right"
-                            value={misc?.extraTime?.[key]?.value || ""}
-                            onChange={(e) => updateExtraTime(key, "value", parseFloat(e.target.value) || 0)}
-                            placeholder="0"
-                          />
-                          <Select value={misc?.extraTime?.[key]?.unit || "days"} onValueChange={(value) => updateExtraTime(key, "unit", value)}>
-                            <SelectTrigger className="h-7 w-16 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="days" className="text-xs">days</SelectItem>
-                              <SelectItem value="hours" className="text-xs">hrs</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+          {/* Extra Time - tabular */}
+          <div className="border border-border rounded overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="subsection-header">
+                  {extraTimeKeys.map(key => (
+                    <th key={key} className="text-left px-2 py-1 text-[10px] font-medium">{extraTimeLabels[key]}</th>
+                  ))}
+                  <th className="text-right px-2 py-1 text-[10px] font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-border">
+                  {extraTimeKeys.map(key => (
+                    <td key={key} className="px-1 py-0.5">
+                      <div className="flex items-center gap-0.5">
+                        <input type="number" className="form-input-sm flex-1 font-mono text-right text-xs"
+                          value={misc?.extraTime?.[key]?.value || ""} onChange={(e) => updateExtraTime(key, "value", parseFloat(e.target.value) || 0)} placeholder="0" />
+                        <Select value={misc?.extraTime?.[key]?.unit || "days"} onValueChange={(value) => updateExtraTime(key, "unit", value)}>
+                          <SelectTrigger className="h-6 w-14 text-[10px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="days" className="text-xs">days</SelectItem>
+                            <SelectItem value="hours" className="text-xs">hrs</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                    </td>
+                  ))}
+                  <td className="px-2 py-1 font-mono text-right text-[10px] font-semibold text-primary">{totalExtraTime.toFixed(2)}d</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { ChevronDown, Fuel, Plus, X } from "lucide-react";
+import { ChevronDown, Fuel, X } from "lucide-react";
 import { useState } from "react";
 import { useVoyageContext, type FuelAccountingMode } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
@@ -42,6 +42,8 @@ export function BunkerSection() {
     if (port) addPortBunkering(port.portUnloc, port.port);
   };
 
+  const fuels = ["hsfo", "vlsfo", "lsmgo"] as const;
+
   return (
     <div className="calc-card-compact">
       <button
@@ -59,105 +61,71 @@ export function BunkerSection() {
       </button>
 
       {isExpanded && (
-        <div className="p-4 space-y-4">
-          {/* Global Controls */}
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="form-field w-28">
-              <label className="form-label">CO₂ Price</label>
-              <div className="input-with-unit">
-                <input
-                  type="number"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={bunker.co2Price || ""}
-                  onChange={(e) => updateBunkerField("co2Price", parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                />
-                <span className="unit">$/t</span>
+        <div className="p-3 space-y-3">
+          {/* Global Controls - single line */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground">CO₂</span>
+              <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
+                value={bunker.co2Price || ""} onChange={(e) => updateBunkerField("co2Price", parseFloat(e.target.value) || 0)} placeholder="0" />
+              <span className="text-[10px] text-muted-foreground">$/t</span>
+            </div>
+            <RadioGroup value={bunker.fuelMode} onValueChange={(value) => updateBunkerField("fuelMode", value as FuelAccountingMode)} className="flex gap-3 items-center">
+              <div className="flex items-center space-x-1">
+                <RadioGroupItem value="average" id="average" className="h-3.5 w-3.5" />
+                <Label htmlFor="average" className="text-[10px] cursor-pointer">Avg</Label>
               </div>
+              <div className="flex items-center space-x-1">
+                <RadioGroupItem value="fifo" id="fifo" className="h-3.5 w-3.5" />
+                <Label htmlFor="fifo" className="text-[10px] cursor-pointer">FIFO</Label>
+              </div>
+            </RadioGroup>
+            <div className="flex items-center gap-1">
+              <Checkbox id="ignoreBOB" checked={bunker.ignoreBOB} onCheckedChange={(checked) => updateBunkerField("ignoreBOB", checked === true)} className="h-3.5 w-3.5" />
+              <Label htmlFor="ignoreBOB" className="text-[10px] cursor-pointer">Ignore BOB</Label>
             </div>
-
-            <div className="form-field">
-              <label className="form-label">Fuel Pricing</label>
-              <RadioGroup
-                value={bunker.fuelMode}
-                onValueChange={(value) => updateBunkerField("fuelMode", value as FuelAccountingMode)}
-                className="flex gap-4 h-7 items-center"
-              >
-                <div className="flex items-center space-x-1.5">
-                  <RadioGroupItem value="average" id="average" className="h-4 w-4" />
-                  <Label htmlFor="average" className="text-xs cursor-pointer">Average</Label>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <RadioGroupItem value="fifo" id="fifo" className="h-4 w-4" />
-                  <Label htmlFor="fifo" className="text-xs cursor-pointer">FIFO</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="flex items-center gap-2 pb-1">
-              <Checkbox id="ignoreBOB" checked={bunker.ignoreBOB} onCheckedChange={(checked) => updateBunkerField("ignoreBOB", checked === true)} className="h-4 w-4" />
-              <Label htmlFor="ignoreBOB" className="text-xs cursor-pointer">Ignore BOB</Label>
-              <InfoTooltip formula="Excludes starting fuel from pricing" description="When enabled, ignores BOB inventory" />
-            </div>
-
-            <div className="form-field w-24">
-              <label className="form-label flex items-center gap-1">
-                Reward Factor
-                <InfoTooltip formula="Consumption × Factor" description="Wind-assisted propulsion multiplier" />
-              </label>
-              <input
-                type="number" step="0.01"
-                className="form-input-sm w-full font-mono text-right"
-                value={bunker.rewardFactor}
-                onChange={(e) => updateBunkerField("rewardFactor", parseFloat(e.target.value) || 1)}
-              />
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground">Reward</span>
+              <input type="number" step="0.01" className="form-input-sm w-14 font-mono text-right text-xs"
+                value={bunker.rewardFactor} onChange={(e) => updateBunkerField("rewardFactor", parseFloat(e.target.value) || 1)} />
             </div>
           </div>
 
-          {/* BOB Section */}
-          <div className="border border-border rounded-md overflow-hidden">
-            <div className="subsection-header px-4 py-2 border-b border-border">
-              BOB (Bunker On Board)
-            </div>
-            <div className="p-4 space-y-3">
-              {(["hsfo", "vlsfo", "lsmgo"] as const).map(fuel => (
-                <div key={fuel} className="flex flex-wrap gap-4 items-end">
-                  <div className="w-16 text-xs font-medium pb-1">{fuel.toUpperCase()}</div>
-                  <div className="form-field w-28">
-                    <label className="form-label">Quantity (t)</label>
-                    <input
-                      type="number"
-                      className="form-input-sm w-full font-mono text-right"
-                      value={bunker[fuel].robStart || ""}
-                      onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground pb-1">@</div>
-                  <div className="form-field w-28">
-                    <label className="form-label">Price ($/t)</label>
-                    <input
-                      type="number"
-                      className="form-input-sm w-full font-mono text-right"
-                      value={bunker[fuel].price || ""}
-                      onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* BOB - tabular single-row per fuel */}
+          <div className="border border-border rounded overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="subsection-header">
+                  <th className="text-left px-2 py-1 font-medium text-[10px]">BOB</th>
+                  <th className="text-right px-2 py-1 font-medium text-[10px]">Qty (t)</th>
+                  <th className="text-right px-2 py-1 font-medium text-[10px]">Price ($/t)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fuels.map(fuel => (
+                  <tr key={fuel} className="border-t border-border">
+                    <td className="px-2 py-1 font-medium text-[10px]">{fuel.toUpperCase()}</td>
+                    <td className="px-1 py-0.5">
+                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
+                        value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
+                        value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {/* Port Bunkering */}
-          <div className="border border-border rounded-md overflow-hidden">
-            <div className="subsection-header px-4 py-2 border-b border-border flex items-center justify-between">
-              <span>Port Fuel Prices</span>
+          {/* Port Bunkering - tabular */}
+          <div className="border border-border rounded overflow-hidden">
+            <div className="subsection-header px-2 py-1 border-b border-border flex items-center justify-between">
+              <span className="text-[10px] font-medium">Port Fuel Prices</span>
               {bunkeringPorts.length > 0 && (
                 <Select onValueChange={handleAddBunkeringPort}>
-                  <SelectTrigger className="w-36 h-7 text-xs">
-                    <SelectValue placeholder="Add port..." />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-28 h-6 text-[10px]"><SelectValue placeholder="Add port..." /></SelectTrigger>
                   <SelectContent>
                     {bunkeringPorts
                       .filter(p => !bunker.portBunkering.find(pb => pb.portUnloc === p.portUnloc))
@@ -168,79 +136,95 @@ export function BunkerSection() {
                 </Select>
               )}
             </div>
-            <div className="p-4">
-              {bunker.portBunkering.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">
-                  No port bunkering. Add a bunkering operation in the sequence first.
-                </p>
-              ) : (
-                <div className="space-y-4">
+            {bunker.portBunkering.length === 0 ? (
+              <p className="text-[10px] text-muted-foreground text-center py-2">No bunkering ports in sequence.</p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="subsection-header">
+                    <th className="text-left px-2 py-1 text-[10px] font-medium">Port</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">HSFO</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">VLSFO</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">LSMGO</th>
+                    <th className="w-6"></th>
+                  </tr>
+                  <tr className="subsection-header border-t border-border">
+                    <th></th>
+                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">Qty</th>
+                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
+                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">Qty</th>
+                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
+                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">Qty</th>
+                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
                   {bunker.portBunkering.map((port) => (
-                    <div key={port.id} className="border border-border rounded-md p-4 bg-card">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold">{port.portName}</span>
-                        <Button variant="ghost" size="sm" onClick={() => removePortBunkering(port.id)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
-                          <X className="h-3.5 w-3.5" />
+                    <tr key={port.id} className="border-t border-border">
+                      <td className="px-2 py-0.5 text-[10px] font-medium whitespace-nowrap">{port.portName}</td>
+                      {fuels.map(fuel => (
+                        <React.Fragment key={fuel}>
+                          <td className="px-0.5 py-0.5">
+                            <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
+                              value={port[fuel].quantity || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          </td>
+                          <td className="px-0.5 py-0.5">
+                            <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
+                              value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          </td>
+                        </React.Fragment>
+                      ))}
+                      <td className="px-0.5 py-0.5">
+                        <Button variant="ghost" size="sm" onClick={() => removePortBunkering(port.id)} className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive">
+                          <X className="h-3 w-3" />
                         </Button>
-                      </div>
-                      <div className="space-y-3">
-                        {(["hsfo", "vlsfo", "lsmgo"] as const).map(fuel => (
-                          <div key={fuel} className="flex flex-wrap gap-4 items-end">
-                            <div className="w-16 text-xs text-muted-foreground pb-1">{fuel.toUpperCase()}</div>
-                            <div className="form-field w-24">
-                              <input type="number" className="form-input-sm w-full font-mono text-right"
-                                value={port[fuel].quantity || ""}
-                                onChange={(e) => updatePortBunkering(port.id, fuel, "quantity", parseFloat(e.target.value) || 0)}
-                                placeholder="0" />
-                            </div>
-                            <span className="text-xs text-muted-foreground pb-1">@</span>
-                            <div className="form-field w-24">
-                              <input type="number" className="form-input-sm w-full font-mono text-right"
-                                value={port[fuel].price || ""}
-                                onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)}
-                                placeholder="0" />
-                            </div>
-                            <span className="text-xs text-muted-foreground pb-1">$/t</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              )}
-            </div>
+                </tbody>
+              </table>
+            )}
           </div>
 
-          {/* Bunker Summary */}
-          <div className="border border-border rounded-md overflow-hidden">
-            <div className="subsection-header px-4 py-2 border-b border-border flex items-center gap-1">
-              Bunker Summary
-              <InfoTooltip formula="Consumption = Vessel Daily Rate × Voyage Time" description="All values auto-calculated" />
-            </div>
-            <div className="p-4">
-              <div className="flex flex-wrap gap-6">
-                {([ 
+          {/* Summary - compact inline */}
+          <div className="border border-border rounded overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="subsection-header">
+                  <th className="text-left px-2 py-1 text-[10px] font-medium">Summary</th>
+                  <th className="text-right px-2 py-1 text-[10px] font-medium">Consumed</th>
+                  <th className="text-right px-2 py-1 text-[10px] font-medium">Avg $/t</th>
+                  <th className="text-right px-2 py-1 text-[10px] font-medium">Cost</th>
+                  <th className="text-right px-2 py-1 text-[10px] font-medium">ROB End</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
                   { label: "HSFO", consumed: results.hsfoConsumption, price: getAveragePrice('hsfo'), robEnd: robEndHsfo },
                   { label: "VLSFO", consumed: results.vlsfoConsumption, price: getAveragePrice('vlsfo'), robEnd: robEndVlsfo },
                   { label: "LSMGO", consumed: results.lsmgoConsumption, price: getAveragePrice('lsmgo'), robEnd: robEndLsmgo },
-                ] as const).map(fuel => (
-                  <div key={fuel.label} className="space-y-1 min-w-[140px]">
-                    <div className="text-xs font-semibold">{fuel.label}</div>
-                    <div className="text-xs text-muted-foreground">Consumed: <span className="font-mono text-foreground">{fuel.consumed.toFixed(2)} t</span></div>
-                    <div className="text-xs text-muted-foreground">Avg Price: <span className="font-mono text-foreground">${fuel.price.toFixed(0)}</span></div>
-                    <div className="text-xs text-muted-foreground">Cost: <span className="font-mono text-foreground">${(fuel.consumed * fuel.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
-                    <div className="text-xs text-muted-foreground">ROB End: <span className="font-mono text-foreground">{fuel.robEnd.toFixed(1)} t</span></div>
-                  </div>
+                ] as const).map(f => (
+                  <tr key={f.label} className="border-t border-border">
+                    <td className="px-2 py-1 text-[10px] font-medium">{f.label}</td>
+                    <td className="px-2 py-1 font-mono text-right text-[10px]">{f.consumed.toFixed(1)} t</td>
+                    <td className="px-2 py-1 font-mono text-right text-[10px]">${f.price.toFixed(0)}</td>
+                    <td className="px-2 py-1 font-mono text-right text-[10px]">${(f.consumed * f.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                    <td className="px-2 py-1 font-mono text-right text-[10px]">{f.robEnd.toFixed(1)} t</td>
+                  </tr>
                 ))}
-              </div>
-              
-              <div className="border-t border-border mt-3 pt-3 flex flex-wrap gap-6 text-xs">
-                <div>Total Cost: <span className="font-mono font-semibold text-primary">${results.totalBunkerCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
-              </div>
-            </div>
+                <tr className="border-t border-border font-semibold">
+                  <td colSpan={3} className="px-2 py-1 text-[10px]">Total Cost</td>
+                  <td className="px-2 py-1 font-mono text-right text-[10px] text-primary">${results.totalBunkerCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
     </div>
   );
 }
+
+import React from "react";
