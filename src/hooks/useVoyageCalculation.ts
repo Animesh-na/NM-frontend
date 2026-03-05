@@ -198,6 +198,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let idleDays = 0;
     let bunkeringDays = 0;
     let canalDays = 0;
+    const hasScrubber = vessel.hasScrubber === true;
 
     console.log(`\n========== VOYAGE CALCULATION START ==========`);
     console.log(`[Input] Vessel: ${vessel.name}, DWT: ${vessel.dwt}, Speed Profile: ${vessel.speedProfile}`);
@@ -350,7 +351,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     
     const totalEcaSeaDays = ecaSeaDaysBallast + ecaSeaDaysLaden;
     const totalNonEcaSeaDays = nonEcaSeaDaysBallast + nonEcaSeaDaysLaden;
-    const hasScrubber = vessel.hasScrubber === true;
+    // hasScrubber moved above sequence loop
     
     // --- Non-ECA Sea Consumption ---
     // If scrubber: use HSFO rates, VLSFO = 0
