@@ -271,7 +271,7 @@ export function IntakeCalculator({
 
         <DialogFooter className="px-4 py-2 border-t border-border gap-1">
           <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
-          <Button size="sm" onClick={() => onApply(calc.finalIntake)}>Apply</Button>
+          <Button size="sm" onClick={() => onApply(calc.finalIntake, num(draft) > 0 ? num(draft) : undefined)}>Apply</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

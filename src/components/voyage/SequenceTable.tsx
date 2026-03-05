@@ -376,8 +376,11 @@ export function SequenceTable() {
           <IntakeCalculator
             open={true}
             onClose={() => setIntakeRowId(null)}
-            onApply={(qty) => {
+            onApply={(qty, draft) => {
               updateSequenceRow(intakeRowId, "quantity", qty);
+              if (draft !== undefined) {
+                updateSequenceRow(intakeRowId, "draft", draft);
+              }
               setIntakeRowId(null);
             }}
             vessel={vessel}
