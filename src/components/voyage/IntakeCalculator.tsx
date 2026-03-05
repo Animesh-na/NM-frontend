@@ -38,7 +38,7 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
 interface IntakeCalculatorProps {
   open: boolean;
   onClose: () => void;
-  onApply: (quantity: number) => void;
+  onApply: (quantity: number, draft?: number) => void;
   vessel: VesselData;
   portName: string;
   portDraft: number;
