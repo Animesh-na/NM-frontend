@@ -37,6 +37,8 @@ export interface SequenceRow {
   // Port time breakdown
   turnTimeHours?: number; // Turn time in hours
   extraTimeHours?: number; // Extra time in hours
+  // Port fuel type selection
+  portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
 }
 
 export interface CargoData {
@@ -186,6 +188,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let nonEcaSeaDaysLaden = 0;
     
     // Track operation-specific time for detailed consumption
+    // Split by port fuel type selection
+    let loadingDays_hsfo = 0, loadingDays_vlsfo = 0, loadingDays_lsmgo = 0;
+    let dischargingDays_hsfo = 0, dischargingDays_vlsfo = 0, dischargingDays_lsmgo = 0;
+    let idleDays_hsfo = 0, idleDays_vlsfo = 0, idleDays_lsmgo = 0;
+    let bunkeringDays_hsfo = 0, bunkeringDays_vlsfo = 0, bunkeringDays_lsmgo = 0;
     let loadingDays = 0;
     let dischargingDays = 0;
     let idleDays = 0;
@@ -240,25 +247,62 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       
       console.log(`    Port breakdown: turnTimeHrs=${leg.turnTimeHours || 0}, extraTimeHrs=${leg.extraTimeHours || 0} → turnExtraDays=${turnExtraDays}, workingDays=${workingDays}`);
       
+      // Determine port fuel type for this leg
+      const legPortFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
+      
+      const addPortDays = (working: number, idle: number) => {
+        if (legPortFuel === "hsfo") {
+          loadingDays_hsfo += working; idleDays_hsfo += idle;
+        } else if (legPortFuel === "vlsfo") {
+          loadingDays_vlsfo += working; idleDays_vlsfo += idle;
+        } else {
+          loadingDays_lsmgo += working; idleDays_lsmgo += idle;
+        }
+      };
+      const addDischDays = (working: number, idle: number) => {
+        if (legPortFuel === "hsfo") {
+          dischargingDays_hsfo += working; idleDays_hsfo += idle;
+        } else if (legPortFuel === "vlsfo") {
+          dischargingDays_vlsfo += working; idleDays_vlsfo += idle;
+        } else {
+          dischargingDays_lsmgo += working; idleDays_lsmgo += idle;
+        }
+      };
+      const addIdleDays = (days: number) => {
+        if (legPortFuel === "hsfo") idleDays_hsfo += days;
+        else if (legPortFuel === "vlsfo") idleDays_vlsfo += days;
+        else idleDays_lsmgo += days;
+      };
+      const addBunkeringDays = (days: number) => {
+        if (legPortFuel === "hsfo") bunkeringDays_hsfo += days;
+        else if (legPortFuel === "vlsfo") bunkeringDays_vlsfo += days;
+        else bunkeringDays_lsmgo += days;
+      };
+      
       if (leg.operation === "load" || leg.operation === "loading") {
         loadingDays += workingDays;
         idleDays += turnExtraDays;
+        addPortDays(workingDays, turnExtraDays);
         isLaden = true;
-        console.log(`    → LOADING: workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now TRUE`);
+        console.log(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now TRUE`);
       } else if (leg.operation === "disch" || leg.operation === "discharging") {
         dischargingDays += workingDays;
         idleDays += turnExtraDays;
+        addDischDays(workingDays, turnExtraDays);
         isLaden = false;
-        console.log(`    → DISCHARGING: workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now FALSE`);
+        console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now FALSE`);
       } else if (leg.operation === "waiting" || leg.operation === "idle") {
         idleDays += leg.portDays || 0;
-        console.log(`    → IDLE/WAITING: ${leg.portDays} days added to idleDays`);
+        addIdleDays(leg.portDays || 0);
+        console.log(`    → IDLE/WAITING (${legPortFuel}): ${leg.portDays} days added to idleDays`);
       } else if (leg.operation === "bunkering") {
         bunkeringDays += leg.portDays || 0;
-        console.log(`    → BUNKERING: ${leg.portDays} days added to bunkeringDays`);
+        addBunkeringDays(leg.portDays || 0);
+        console.log(`    → BUNKERING (${legPortFuel}): ${leg.portDays} days added to bunkeringDays`);
       } else if (leg.portDays > 0) {
         idleDays += leg.portDays || 0;
-        console.log(`    → OTHER with port time: ${leg.portDays} days added to idleDays`);
+        addIdleDays(leg.portDays || 0);
+        console.log(`    → OTHER (${legPortFuel}) with port time: ${leg.portDays} days added to idleDays`);
       }
     });
 
@@ -337,29 +381,36 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const lsmgoSeaTotal = lsmgoEcaFromHsfoVlsfo;
     
     // --- Port Consumption (by operation type) ---
-    // Port fuel follows scrubber logic: scrubber → HSFO, no scrubber → VLSFO
-    // LSMGO port rates are always included if defined in matrix
-    // Loading consumption (ME fuel only — AE is added separately below)
-    const hsfoLoading = hasScrubber ? loadingDays * (profile.hsfo.load || 0) : 0;
-    const vlsfoLoading = !hasScrubber ? loadingDays * (profile.vlsfo.load || 0) : 0;
-    const lsmgoLoading = loadingDays * (profile.lsmgo.load || 0);
+    // Port fuel is determined PER LEG by the portFuelType selection
+    // Only the selected fuel type is consumed for that leg's port operations
     
-    // Discharging consumption (ME fuel only — AE is added separately below)
-    const hsfoDischarging = hasScrubber ? dischargingDays * (profile.hsfo.discharge || 0) : 0;
-    const vlsfoDischarging = !hasScrubber ? dischargingDays * (profile.vlsfo.discharge || 0) : 0;
-    const lsmgoDischarging = dischargingDays * (profile.lsmgo.discharge || 0);
+    // Extra port days use default fuel (scrubber → HSFO, else VLSFO)
+    const extraPortFuel = hasScrubber ? "hsfo" : "vlsfo";
+    const extraIdleDays_hsfo = extraPortFuel === "hsfo" ? extraPortDays : 0;
+    const extraIdleDays_vlsfo = extraPortFuel === "vlsfo" ? extraPortDays : 0;
+    const extraIdleDays_lsmgo = 0;
     
-    // Idle/Waiting consumption (including bunkering operations)
+    // Loading consumption — only the fuel type selected for that port
+    const hsfoLoading = loadingDays_hsfo * (profile.hsfo.load || 0);
+    const vlsfoLoading = loadingDays_vlsfo * (profile.vlsfo.load || 0);
+    const lsmgoLoading = loadingDays_lsmgo * (profile.lsmgo.load || 0);
+    
+    // Discharging consumption
+    const hsfoDischarging = dischargingDays_hsfo * (profile.hsfo.discharge || 0);
+    const vlsfoDischarging = dischargingDays_vlsfo * (profile.vlsfo.discharge || 0);
+    const lsmgoDischarging = dischargingDays_lsmgo * (profile.lsmgo.discharge || 0);
+    
+    // Idle/Waiting consumption (including bunkering + extra port days)
     const idleAndBunkeringDays = idleDays + bunkeringDays + extraPortDays;
-    const hsfoIdle = hasScrubber ? idleAndBunkeringDays * (profile.hsfo.idle || 0) : 0;
-    const vlsfoIdle = !hasScrubber ? idleAndBunkeringDays * (profile.vlsfo.idle || 0) : 0;
-    const lsmgoIdle = idleAndBunkeringDays * (profile.lsmgo.idle || 0);
+    const hsfoIdle = (idleDays_hsfo + bunkeringDays_hsfo + extraIdleDays_hsfo) * (profile.hsfo.idle || 0);
+    const vlsfoIdle = (idleDays_vlsfo + bunkeringDays_vlsfo + extraIdleDays_vlsfo) * (profile.vlsfo.idle || 0);
+    const lsmgoIdle = (idleDays_lsmgo + bunkeringDays_lsmgo + extraIdleDays_lsmgo) * (profile.lsmgo.idle || 0);
     
-    // Canal consumption
+    // Canal consumption — uses scrubber default fuel, no per-leg override
     const totalCanalDays = canalDays + extraCanalDays;
     const hsfoCanal = hasScrubber ? totalCanalDays * (profile.hsfo.canal || 0) : 0;
     const vlsfoCanal = !hasScrubber ? totalCanalDays * (profile.vlsfo.canal || 0) : 0;
-    const lsmgoCanal = totalCanalDays * (profile.lsmgo.canal || 0);
+    const lsmgoCanal = 0; // LSMGO canal only via AE, not ME
     
     // --- AE (Auxiliary Engine) Consumption ---
     // AE always runs on LSMGO across ALL operations EXCEPT canal
