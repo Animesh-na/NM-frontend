@@ -543,9 +543,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const grossHireRate = hireRate;
     const tcCommissionPct = cargo.tcCommission / 100;
     const netHireRate = grossHireRate * (1 - tcCommissionPct);
-    const hireCost = grossHireRate * totalVoyageDays;
-    const netHireCost = netHireRate * totalVoyageDays;
-    const tcCommissionAmount = hireCost * tcCommissionPct;
+    const netBBValue = (inputs.netBB && inputs.netBB > 0) ? inputs.netBB : 0;
+    const hireCost = grossHireRate * totalVoyageDays + netBBValue;
+    const netHireCost = netHireRate * totalVoyageDays + netBBValue;
+    const tcCommissionAmount = (grossHireRate * totalVoyageDays) * tcCommissionPct;
     const voyageCostInclHire = totalVoyageCosts + hireCost;
     const voyageCostExclHire = totalVoyageCosts;
 
