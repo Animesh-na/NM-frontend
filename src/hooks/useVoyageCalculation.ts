@@ -83,6 +83,7 @@ export interface VoyageInputs {
   cargo: CargoData;
   bunker: BunkerData;
   hireRate: number; // $/day for TC equivalent comparison
+  netBB?: number; // Net Ballast Bonus (lumpsum added to hire)
   misc?: MiscCostsData;
   extraTime?: ExtraTimeData;
 }
