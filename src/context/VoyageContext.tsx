@@ -1308,7 +1308,7 @@ export function useVoyageContext() {
         emissionWarnings: [], emissionErrors: [], ladenDistance: 0,
         nonEcaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
         ecaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
-        nonEcaCo2: 0, ecaCo2: 0, nonEcaDistance: 0,
+        nonEcaCo2: 0, ecaCo2: 0, nonEcaDistance: 0, grossRate: 0,
       },
     } as VoyageContextValue;
   }
