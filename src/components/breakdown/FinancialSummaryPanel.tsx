@@ -69,7 +69,7 @@ export function FinancialSummaryPanel({ results, hireRate, cargos }: FinancialSu
 
             <FormulaBlock
               name="4. Hire Cost"
-              formula="Hire Rate × Voyage Days"
+              formula="Hire Rate × Voyage Days + Net BB"
               inputs={[
                 { label: "Hire Rate", value: `${formatCurrency(hireRate)}/day`, source: "Manual" },
                 { label: "Voyage Days", value: `${results.totalVoyageDays.toFixed(2)} d`, source: "Sequence" },
