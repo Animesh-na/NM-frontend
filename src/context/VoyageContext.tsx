@@ -1281,6 +1281,8 @@ export function useVoyageContext() {
       updateExtraTime: () => {},
       hireRate: 0,
       setHireRate: () => {},
+      netBB: 0,
+      setNetBB: () => {},
       resetState: () => {},
       results: {
         totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
