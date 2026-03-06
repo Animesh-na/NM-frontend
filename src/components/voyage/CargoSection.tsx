@@ -6,28 +6,14 @@ import { InfoTooltip } from "./InfoTooltip";
 export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
-    hireRate, setHireRate, results, sequence
+    hireRate, setHireRate, results, sequence,
+    netBB, setNetBB
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [netBBOverride, setNetBBOverride] = useState<number | null>(null);
-  const [grossBBOverride, setGrossBBOverride] = useState<number | null>(null);
 
   const sequenceCargoQuantity = sequence
     .filter(row => row.operation === "loading")
     .reduce((sum, row) => sum + (row.quantity || 0), 0);
-
-  // BB (Ballast Bonus) is a lumpsum amount added to hire, NOT related to freight.
-  // Gross BB and Net BB differ only by TC commission.
-  // Gross BB = editable lumpsum amount (default 0)
-  // Net BB = Gross BB × (1 - TC Commission%)
-  const tcCommRate = (cargos[0]?.tcCommission ?? 3.75) / 100;
-  const calculatedGrossBB = 0; // BB is a manual lumpsum entry, default 0
-  const calculatedNetBB = grossBBOverride !== null 
-    ? (grossBBOverride ?? 0) * (1 - tcCommRate) 
-    : 0;
-
-  const grossBB = grossBBOverride ?? calculatedGrossBB;
-  const netBB = netBBOverride ?? calculatedNetBB;
 
   return (
     <div className="calc-card-compact">
@@ -98,7 +84,7 @@ export function CargoSection() {
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 Net BB
-                <InfoTooltip formula="Gross BB × (1 - TC Commission%)" description="Net Ballast Bonus (lumpsum added to hire)" />
+                <InfoTooltip formula="Net Ballast Bonus (lumpsum added to hire cost)" description="Net Ballast Bonus" />
               </label>
               <div className="input-with-unit">
                 <input
@@ -107,30 +93,8 @@ export function CargoSection() {
                   value={netBB}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value);
-                    setNetBBOverride(isNaN(val) ? null : val);
+                    setNetBB(isNaN(val) ? 0 : val);
                   }}
-                  onDoubleClick={() => setNetBBOverride(null)}
-                  title="Editable. Double-click to reset."
-                />
-                <span className="unit">$</span>
-              </div>
-            </div>
-            <div className="form-field w-28">
-              <label className="form-label flex items-center gap-1">
-                Gross BB
-                <InfoTooltip formula="Lumpsum amount added to hire rate" description="Gross Ballast Bonus" />
-              </label>
-              <div className="input-with-unit">
-                <input
-                  type="number"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={grossBB}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    setGrossBBOverride(isNaN(val) ? null : val);
-                  }}
-                  onDoubleClick={() => setGrossBBOverride(null)}
-                  title="Editable. Double-click to reset."
                 />
                 <span className="unit">$</span>
               </div>

@@ -162,6 +162,10 @@ interface VoyageContextValue {
    hireRate: number;
    setHireRate: (rate: number) => void;
    
+   // Net Ballast Bonus
+   netBB: number;
+   setNetBB: (value: number) => void;
+   
    // Reset all state to defaults
    resetState: () => void;
    
@@ -607,6 +611,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [bunker, setBunker] = useState<BunkerState>(initialBunker);
   const [misc, setMisc] = useState<MiscState>(initialMisc);
   const [hireRate, setHireRate] = useState(8542);
+  const [netBB, setNetBB] = useState(0);
   const [vesselCost, setVesselCost] = useState(6500);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
   const [distanceLoading, setDistanceLoading] = useState(false);
@@ -1135,6 +1140,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       co2Price: bunker.co2Price,
     },
     hireRate,
+    netBB,
     misc: {
       miscCost: misc.miscCost,
       extraFees: misc.extraFees,
@@ -1196,6 +1202,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         updateExtraTime,
         hireRate,
         setHireRate,
+        netBB,
+        setNetBB,
         resetState,
         results,
         suppressDistanceRecalc,
@@ -1273,6 +1281,8 @@ export function useVoyageContext() {
       updateExtraTime: () => {},
       hireRate: 0,
       setHireRate: () => {},
+      netBB: 0,
+      setNetBB: () => {},
       resetState: () => {},
       results: {
         totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,

@@ -83,6 +83,7 @@ export interface VoyageInputs {
   cargo: CargoData;
   bunker: BunkerData;
   hireRate: number; // $/day for TC equivalent comparison
+  netBB?: number; // Net Ballast Bonus (lumpsum added to hire)
   misc?: MiscCostsData;
   extraTime?: ExtraTimeData;
 }
@@ -542,18 +543,20 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const grossHireRate = hireRate;
     const tcCommissionPct = cargo.tcCommission / 100;
     const netHireRate = grossHireRate * (1 - tcCommissionPct);
-    const hireCost = grossHireRate * totalVoyageDays;
-    const netHireCost = netHireRate * totalVoyageDays;
-    const tcCommissionAmount = hireCost * tcCommissionPct;
+    const netBBValue = (inputs.netBB && inputs.netBB > 0) ? inputs.netBB : 0;
+    const hireCost = grossHireRate * totalVoyageDays + netBBValue;
+    const netHireCost = netHireRate * totalVoyageDays + netBBValue;
+    const tcCommissionAmount = (grossHireRate * totalVoyageDays) * tcCommissionPct;
     const voyageCostInclHire = totalVoyageCosts + hireCost;
     const voyageCostExclHire = totalVoyageCosts;
 
     console.log(`\n[Step 9] HIRE CALCULATIONS:
     Gross Hire Rate: $${grossHireRate}/day
+    Net BB: $${netBBValue}
     TC Commission: ${cargo.tcCommission}% → Net Hire Rate: $${grossHireRate} × (1 - ${tcCommissionPct}) = $${netHireRate}/day
-    Hire Cost: $${grossHireRate} × ${totalVoyageDays} days = $${hireCost}
-    Net Hire Cost: $${netHireRate} × ${totalVoyageDays} = $${netHireCost}
-    TC Commission Amount: $${hireCost} × ${tcCommissionPct} = $${tcCommissionAmount}
+    Hire Cost: $${grossHireRate} × ${totalVoyageDays} days + NetBB($${netBBValue}) = $${hireCost}
+    Net Hire Cost: $${netHireRate} × ${totalVoyageDays} + NetBB($${netBBValue}) = $${netHireCost}
+    TC Commission Amount: ($${grossHireRate} × ${totalVoyageDays}) × ${tcCommissionPct} = $${tcCommissionAmount}
     Voyage Cost incl Hire: $${totalVoyageCosts} + $${hireCost} = $${voyageCostInclHire}
     Voyage Cost excl Hire: $${voyageCostExclHire}`);
 
