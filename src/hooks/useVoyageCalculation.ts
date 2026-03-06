@@ -552,10 +552,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
     console.log(`\n[Step 9] HIRE CALCULATIONS:
     Gross Hire Rate: $${grossHireRate}/day
+    Net BB: $${netBBValue}
     TC Commission: ${cargo.tcCommission}% → Net Hire Rate: $${grossHireRate} × (1 - ${tcCommissionPct}) = $${netHireRate}/day
-    Hire Cost: $${grossHireRate} × ${totalVoyageDays} days = $${hireCost}
-    Net Hire Cost: $${netHireRate} × ${totalVoyageDays} = $${netHireCost}
-    TC Commission Amount: $${hireCost} × ${tcCommissionPct} = $${tcCommissionAmount}
+    Hire Cost: $${grossHireRate} × ${totalVoyageDays} days + NetBB($${netBBValue}) = $${hireCost}
+    Net Hire Cost: $${netHireRate} × ${totalVoyageDays} + NetBB($${netBBValue}) = $${netHireCost}
+    TC Commission Amount: ($${grossHireRate} × ${totalVoyageDays}) × ${tcCommissionPct} = $${tcCommissionAmount}
     Voyage Cost incl Hire: $${totalVoyageCosts} + $${hireCost} = $${voyageCostInclHire}
     Voyage Cost excl Hire: $${voyageCostExclHire}`);
 
