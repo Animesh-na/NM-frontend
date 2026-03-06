@@ -169,9 +169,15 @@ export function VoyageSummary() {
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Gross Rate :</span>
+              <span className="text-muted-foreground flex items-center">
+                Gross Rate
+                <InfoTooltip 
+                  formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
+                  description="Breakeven freight rate per MT including hire and commission"
+                />
+              </span>
               <span className="font-mono tabular-nums">
-                ${primaryCargo.rate} /{primaryCargo.rateType}
+                ${formatCurrency(results.grossRate)} /mt
               </span>
             </div>
             <div className="flex justify-between">

@@ -752,6 +752,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       emissionErrors: validation.errors,
       // Additional
       ladenDistance,
+      grossRate,
     };
   }, [inputs]);
 }
