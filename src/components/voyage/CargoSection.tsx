@@ -84,7 +84,7 @@ export function CargoSection() {
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 Net BB
-                <InfoTooltip formula="Gross BB × (1 - TC Commission%)" description="Net Ballast Bonus (lumpsum added to hire)" />
+                <InfoTooltip formula="Net Ballast Bonus (lumpsum added to hire cost)" description="Net Ballast Bonus" />
               </label>
               <div className="input-with-unit">
                 <input
@@ -93,30 +93,8 @@ export function CargoSection() {
                   value={netBB}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value);
-                    setNetBBOverride(isNaN(val) ? null : val);
+                    setNetBB(isNaN(val) ? 0 : val);
                   }}
-                  onDoubleClick={() => setNetBBOverride(null)}
-                  title="Editable. Double-click to reset."
-                />
-                <span className="unit">$</span>
-              </div>
-            </div>
-            <div className="form-field w-28">
-              <label className="form-label flex items-center gap-1">
-                Gross BB
-                <InfoTooltip formula="Lumpsum amount added to hire rate" description="Gross Ballast Bonus" />
-              </label>
-              <div className="input-with-unit">
-                <input
-                  type="number"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={grossBB}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    setGrossBBOverride(isNaN(val) ? null : val);
-                  }}
-                  onDoubleClick={() => setGrossBBOverride(null)}
-                  title="Editable. Double-click to reset."
                 />
                 <span className="unit">$</span>
               </div>
