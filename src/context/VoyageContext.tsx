@@ -611,6 +611,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [bunker, setBunker] = useState<BunkerState>(initialBunker);
   const [misc, setMisc] = useState<MiscState>(initialMisc);
   const [hireRate, setHireRate] = useState(8542);
+  const [netBB, setNetBB] = useState(0);
   const [vesselCost, setVesselCost] = useState(6500);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
   const [distanceLoading, setDistanceLoading] = useState(false);
