@@ -162,6 +162,10 @@ interface VoyageContextValue {
    hireRate: number;
    setHireRate: (rate: number) => void;
    
+   // Net Ballast Bonus
+   netBB: number;
+   setNetBB: (value: number) => void;
+   
    // Reset all state to defaults
    resetState: () => void;
    
