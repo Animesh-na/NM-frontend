@@ -1202,6 +1202,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         updateExtraTime,
         hireRate,
         setHireRate,
+        netBB,
+        setNetBB,
         resetState,
         results,
         suppressDistanceRecalc,
