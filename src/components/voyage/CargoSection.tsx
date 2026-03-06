@@ -9,25 +9,11 @@ export function CargoSection() {
     hireRate, setHireRate, results, sequence
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [netBBOverride, setNetBBOverride] = useState<number | null>(null);
-  const [grossBBOverride, setGrossBBOverride] = useState<number | null>(null);
+  const [netBB, setNetBB] = useState<number>(0);
 
   const sequenceCargoQuantity = sequence
     .filter(row => row.operation === "loading")
     .reduce((sum, row) => sum + (row.quantity || 0), 0);
-
-  // BB (Ballast Bonus) is a lumpsum amount added to hire, NOT related to freight.
-  // Gross BB and Net BB differ only by TC commission.
-  // Gross BB = editable lumpsum amount (default 0)
-  // Net BB = Gross BB × (1 - TC Commission%)
-  const tcCommRate = (cargos[0]?.tcCommission ?? 3.75) / 100;
-  const calculatedGrossBB = 0; // BB is a manual lumpsum entry, default 0
-  const calculatedNetBB = grossBBOverride !== null 
-    ? (grossBBOverride ?? 0) * (1 - tcCommRate) 
-    : 0;
-
-  const grossBB = grossBBOverride ?? calculatedGrossBB;
-  const netBB = netBBOverride ?? calculatedNetBB;
 
   return (
     <div className="calc-card-compact">
