@@ -6,10 +6,10 @@ import { InfoTooltip } from "./InfoTooltip";
 export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
-    hireRate, setHireRate, results, sequence
+    hireRate, setHireRate, results, sequence,
+    netBB, setNetBB
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [netBB, setNetBB] = useState<number>(0);
 
   const sequenceCargoQuantity = sequence
     .filter(row => row.operation === "loading")
