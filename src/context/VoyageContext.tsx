@@ -1140,6 +1140,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       co2Price: bunker.co2Price,
     },
     hireRate,
+    netBB,
     misc: {
       miscCost: misc.miscCost,
       extraFees: misc.extraFees,
