@@ -580,6 +580,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     
     const tce = gtce;
 
+    // Gross Rate = (Voyage Cost Incl Hire / Load Qty) grossed up by voyage commission
+    const voyageCommissionPct = cargo.voyageCommission / 100;
+    const baseRatePerMt = cargo.quantity > 0 ? voyageCostInclHire / cargo.quantity : 0;
+    const grossRate = voyageCommissionPct < 1 ? baseRatePerMt / (1 - voyageCommissionPct) : 0;
+
     console.log(`\n[Step 10] PROFITABILITY:
     Voyage Result = NetFreight($${netFreight}) - VoyageCosts($${totalVoyageCosts}) + Demurrage($${cargo.demurrage}) - Despatch($${cargo.despatch}) = $${voyageResult}
     Gross Profit = $${grossProfit}
