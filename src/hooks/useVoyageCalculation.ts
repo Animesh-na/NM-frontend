@@ -160,6 +160,9 @@ export interface VoyageResults {
   
   // Laden distance (for EFOI)
   ladenDistance: number;
+  
+  // Gross Rate (voyage cost incl hire / load qty, grossed up by voyage commission)
+  grossRate: number;
 }
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
