@@ -132,10 +132,16 @@ const Index = () => {
           <span>Session: {new Date().toLocaleTimeString()}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <button className="btn-primary">Apply</button>
-          <button className="btn-success">Calculate</button>
-          <button className="btn-secondary">Back</button>
-          <button className="btn-danger">Close</button>
+          <button
+            className="btn-success flex items-center gap-1"
+            onClick={() => {
+              if (activeTab) {
+                window.dispatchEvent(new CustomEvent("sheet-save", { detail: { name: activeTab.name } }));
+              }
+            }}
+          >
+            Save Sheet
+          </button>
         </div>
       </footer>
     </div>
