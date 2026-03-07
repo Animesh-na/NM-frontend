@@ -43,6 +43,7 @@ export function SequenceTable() {
   const [isExpanded, setIsExpanded] = useState(true);
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
+  const [savedCustomTerms, setSavedCustomTerms] = useState<{ name: string; coefficient: number }[]>([]);
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
 
@@ -261,11 +262,17 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {hasQty ? (
                           <select className="form-select-sm w-16 text-[10px]" 
-                            value={row.terms || "shinc"}
+                            value={row.terms === "custom" ? `custom:${row.customTermsName}` : (row.terms || "shinc")}
                             onChange={(e) => {
                               const val = e.target.value;
-                              if (val === "custom") {
+                              if (val === "__new_custom__") {
                                 setCustomTermsRowId(row.id);
+                              } else if (val.startsWith("custom:")) {
+                                const cName = val.replace("custom:", "");
+                                const found = savedCustomTerms.find(t => t.name === cName);
+                                updateSequenceRow(row.id, "terms", "custom");
+                                updateSequenceRow(row.id, "customTermsName", cName);
+                                updateSequenceRow(row.id, "coefficientFactor", found?.coefficient || 1.0);
                               } else {
                                 updateSequenceRow(row.id, "terms", val);
                                 const dc = val === "sshex" ? 1.5 : val === "fhex" ? 1.25 : val === "satpn" ? 1.33 : 1.0;
@@ -273,10 +280,11 @@ export function SequenceTable() {
                                 updateSequenceRow(row.id, "customTermsName", "");
                               }
                             }}>
-                            {termsOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            {row.terms === "custom" && row.customTermsName && (
-                              <option value="custom">{row.customTermsName}</option>
-                            )}
+                            {termsOptions.filter(o => o.value !== "custom").map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            {savedCustomTerms.map(ct => (
+                              <option key={`custom:${ct.name}`} value={`custom:${ct.name}`}>{ct.name}</option>
+                            ))}
+                            <option value="__new_custom__">＋ custom</option>
                           </select>
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
@@ -414,6 +422,12 @@ export function SequenceTable() {
             open={true}
             onClose={() => setCustomTermsRowId(null)}
             onSave={(name, coefficient) => {
+              // Add to saved list if not already there
+              setSavedCustomTerms(prev => {
+                const exists = prev.find(t => t.name === name);
+                if (exists) return prev.map(t => t.name === name ? { name, coefficient } : t);
+                return [...prev, { name, coefficient }];
+              });
               updateSequenceRow(customTermsRowId, "terms", "custom");
               updateSequenceRow(customTermsRowId, "customTermsName", name);
               updateSequenceRow(customTermsRowId, "coefficientFactor", coefficient);
