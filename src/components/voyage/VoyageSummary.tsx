@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { exportVoyageToExcel } from "@/utils/excelExport";
 
 export function VoyageSummary() {
-  const { results, cargos, hireRate } = useVoyageContext();
+  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB } = useVoyageContext();
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
