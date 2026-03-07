@@ -57,6 +57,8 @@ export function exportVoyageToExcel(data: ExportData) {
   }
   function setFormula(c: number, r: number, f: string, v: number) {
     ws[cellRef(c, r)] = { t: "n", f, v };
+    // Also write the software's actual value in column C for comparison
+    ws[cellRef(c + 1, r)] = { t: "n", v };
   }
 
   let r = 1; // current row (1-indexed for Excel)
