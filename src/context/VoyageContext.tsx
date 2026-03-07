@@ -504,6 +504,7 @@ const initialSequence: SequenceRowUI[] = [
     stowageFactor: 0,
     portFuelType: "vlsfo",
     coefficientFactor: 0,
+    customTermsName: "",
   },
   {
     id: 4,
