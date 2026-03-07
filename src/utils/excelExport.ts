@@ -198,7 +198,7 @@ export function exportVoyageToExcel(data: ExportData) {
   const seqStartRow = r;
   sequence.forEach((leg, idx) => {
     const rr = r + idx;
-    const op = leg.operation || "";
+    const op = String(leg.operation || "");
     const portFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
     const seaTime = leg.seaTime || 0;
     const ecaTime = leg.ecaTime || 0;
