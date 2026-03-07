@@ -38,10 +38,10 @@ export function CargoSection() {
                 <InfoTooltip formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" description="Net Time Charter" />
               </label>
               <div className="input-with-unit">
-                <input
+                 <input
                   type="text"
                   className="form-input-sm w-full font-mono text-right bg-muted/30"
-                  value={results.ntce.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                  value={hireRate.toLocaleString(undefined, { maximumFractionDigits: 1 })}
                   readOnly
                 />
                 <span className="unit">$/d</span>
@@ -72,10 +72,10 @@ export function CargoSection() {
                 <InfoTooltip formula="(Gross Freight - Voyage Cost) / Total Days" description="Gross Time Charter equivalent" />
               </label>
               <div className="input-with-unit">
-                <input
+                 <input
                   type="text"
                   className="form-input-sm w-full font-mono text-right bg-muted/30"
-                  value={results.gtce.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  value={((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   readOnly
                 />
                 <span className="unit">$/d</span>
