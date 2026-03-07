@@ -10,9 +10,11 @@ import {
   getEtsPhaseInPercentage,
   isEuPort,
   validateEmissionInputs,
+  calculateFuelEuPenalty,
   type EtsResult,
   type CiiResult,
   type Co2BreakdownByFuel,
+  type FuelEuResult,
 } from "@/utils/emissionCalculations";
 
 // Types for voyage calculation inputs
