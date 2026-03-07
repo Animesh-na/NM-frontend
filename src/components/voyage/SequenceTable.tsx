@@ -42,6 +42,7 @@ export function SequenceTable() {
   
   const [isExpanded, setIsExpanded] = useState(true);
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
+  const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
 
