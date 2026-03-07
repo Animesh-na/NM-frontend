@@ -699,6 +699,54 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     ETS Coverage = ${etsResult.etsVoyageCoverage * 100}%
     ETS Phase-in = ${etsResult.phaseInPercentage * 100}%
     ETS Cost = ${etsResult.etsCost} (CO2 price: $${bunker.co2Price})`);
+
+    // Calculate EU-covered fuel quantities (proportional to ETS voyage coverage per leg)
+    // For each leg, determine what fraction of fuel is EU-covered based on leg coverage
+    let euCoveredHsfo = 0;
+    let euCoveredVlsfo = 0;
+    let euCoveredLsmgo = 0;
+    
+    if (voyageLegs.length > 0 && totalSeaDays > 0) {
+      sequence.forEach((leg) => {
+        if (leg.portUnloc && leg.seaTime) {
+          // Find matching voyage leg to get coverage
+          const matchingLeg = etsResult.legBreakdown.find(
+            vl => vl.destination === leg.portUnloc
+          );
+          if (matchingLeg) {
+            const legFraction = (leg.seaTime || 0) / totalSeaDays;
+            euCoveredHsfo += hsfoConsumption * legFraction * matchingLeg.coverage;
+            euCoveredVlsfo += vlsfoConsumption * legFraction * matchingLeg.coverage;
+            euCoveredLsmgo += lsmgoConsumption * legFraction * matchingLeg.coverage;
+          }
+        }
+      });
+    }
+    
+    const euCoveredFuel = { hsfo: euCoveredHsfo, vlsfo: euCoveredVlsfo, lsmgo: euCoveredLsmgo };
+    
+    // Total CO2 cost (all CO2 × price)
+    const totalCo2Cost = totalCo2 * (bunker.co2Price || 0);
+    
+    // EUA CO2 cost = chargeable CO2 × price (same as etsCost)
+    const euaCo2Cost = etsResult.etsCost;
+    
+    // EUA Freight Impact = ETS cost / cargo quantity
+    const euaFreightImpact = cargo.quantity > 0 ? euaCo2Cost / cargo.quantity : 0;
+    
+    // FuelEU Maritime penalties (applied to EU-covered fuel only)
+    const fuelEuResult = calculateFuelEuPenalty(
+      euCoveredFuel,
+      bunker?.rewardFactor ?? 1.0
+    );
+    
+    console.log(`\n[Step 12] EU COVERED FUEL & FUEL EU:
+    EU Covered: HSFO=${euCoveredHsfo.toFixed(2)}t, VLSFO=${euCoveredVlsfo.toFixed(2)}t, LSMGO=${euCoveredLsmgo.toFixed(2)}t
+    Total CO2 Cost: ${totalCo2} × $${bunker.co2Price} = $${totalCo2Cost.toFixed(2)}
+    EUA CO2: ${etsResult.chargeableCo2.toFixed(2)}t → Cost: $${euaCo2Cost.toFixed(2)}
+    EUA Freight Impact: $${euaFreightImpact.toFixed(2)}/mt
+    FuelEU Penalties: HSFO=$${fuelEuResult.fuels.hsfo.penalty.toFixed(2)}, VLSFO=$${fuelEuResult.fuels.vlsfo.penalty.toFixed(2)}, LSMGO=$${fuelEuResult.fuels.lsmgo.penalty.toFixed(2)}
+    FuelEU Total: $${fuelEuResult.totalPenalty.toFixed(2)}`);
     
     console.log(`\n========== VOYAGE CALCULATION END ==========\n`);
 
@@ -771,6 +819,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       // Additional
       ladenDistance,
       grossRate,
+      // EU-covered fuel & FuelEU
+      euCoveredFuel,
+      totalCo2Cost,
+      euaCo2Cost,
+      euaFreightImpact,
+      fuelEuResult,
+      fuelEuTotalPenalty: fuelEuResult.totalPenalty,
     };
   }, [inputs]);
 }
