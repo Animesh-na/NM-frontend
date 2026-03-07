@@ -312,89 +312,171 @@ export function exportVoyageToExcel(data: ExportData) {
   // SECTION 3: CALCULATIONS (ALL EXCEL FORMULAS)
   // ═══════════════════════════════════════════════════════
 
+  // ═══════════════════════════════════════════════════════
+  // COMPUTE INTERMEDIATES (mirrors useVoyageCalculation.ts)
+  // ═══════════════════════════════════════════════════════
+  let c_ecaBalD = 0, c_ecaLadD = 0, c_necaBalD = 0, c_necaLadD = 0;
+  let c_hld = 0, c_vld = 0, c_lld = 0;
+  let c_hdd = 0, c_vdd = 0, c_ldd = 0;
+  let c_hid = 0, c_vid = 0, c_lid = 0;
+  let c_tload = 0, c_tdisch = 0, c_tidle = 0;
+  const rewardFactor = bunker.rewardFactor;
+
+  sequence.forEach((leg, idx) => {
+    const il = ladenFlags[idx];
+    const st = (leg as any).seaTime || 0;
+    const et = (leg as any).ecaTime || 0;
+    const net = st - et;
+    const pd = (leg as any).calculatedPortDays || 0;
+    const teh = ((leg as any).turnTime || 0) + ((leg as any).extraTime || 0);
+    const wd = Math.max(0, pd - teh / 24);
+    const op = String(leg.operation || "");
+    const pf = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
+    const isLd = op === "load" || op === "loading";
+    const isDc = op === "disch" || op === "discharging";
+
+    if (il) { c_ecaLadD += et; c_necaLadD += net; }
+    else { c_ecaBalD += et; c_necaBalD += net; }
+
+    if (isLd) {
+      c_tload += wd;
+      if (pf === "hsfo") { c_hld += wd; c_hid += pd - wd; }
+      else if (pf === "vlsfo") { c_vld += wd; c_vid += pd - wd; }
+      else { c_lld += wd; c_lid += pd - wd; }
+      c_tidle += pd - wd;
+    } else if (isDc) {
+      c_tdisch += wd;
+      if (pf === "hsfo") { c_hdd += wd; c_hid += pd - wd; }
+      else if (pf === "vlsfo") { c_vdd += wd; c_vid += pd - wd; }
+      else { c_ldd += wd; c_lid += pd - wd; }
+      c_tidle += pd - wd;
+    } else if (pd > 0) {
+      if (pf === "hsfo") c_hid += pd;
+      else if (pf === "vlsfo") c_vid += pd;
+      else c_lid += pd;
+      c_tidle += pd;
+    }
+  });
+
+  const extraSeaDays = results.extraSeaDays;
+  const extraPortDays = results.extraPortDays;
+  const extraCanalDays = results.extraCanalDays;
+  const extraPortFuel = hasScrubber ? "hsfo" : "vlsfo";
+
+  // Sea consumption
+  const sv_hsfoSea = hasScrubber ? (c_necaBalD * (profile.hsfo.ballast || 0) + c_necaLadD * (profile.hsfo.laden || 0) + extraSeaDays * (profile.hsfo.laden || 0)) * rewardFactor : 0;
+  const sv_vlsfoSea = !hasScrubber ? (c_necaBalD * (profile.vlsfo.ballast || 0) + c_necaLadD * (profile.vlsfo.laden || 0) + extraSeaDays * (profile.vlsfo.laden || 0)) * rewardFactor : 0;
+  const sv_lsmgoSea = (c_ecaBalD * (profile.lsmgo.ballast || 0) + c_ecaLadD * (profile.lsmgo.laden || 0)) * rewardFactor;
+
+  // Port consumption
+  const sv_hLoad = c_hld * (profile.hsfo.load || 0);
+  const sv_hDisch = c_hdd * (profile.hsfo.discharge || 0);
+  const sv_hIdle = (c_hid + (hasScrubber ? extraPortDays : 0)) * (profile.hsfo.idle || 0);
+  const sv_hCanal = hasScrubber ? extraCanalDays * (profile.hsfo.canal || 0) : 0;
+  const sv_vLoad = c_vld * (profile.vlsfo.load || 0);
+  const sv_vDisch = c_vdd * (profile.vlsfo.discharge || 0);
+  const sv_vIdle = (c_vid + (!hasScrubber ? extraPortDays : 0)) * (profile.vlsfo.idle || 0);
+  const sv_vCanal = !hasScrubber ? extraCanalDays * (profile.vlsfo.canal || 0) : 0;
+  const sv_lLoad = c_lld * (profile.lsmgo.load || 0);
+  const sv_lDisch = c_ldd * (profile.lsmgo.discharge || 0);
+  const sv_lIdle = c_lid * (profile.lsmgo.idle || 0);
+
+  // AE consumption
+  const aeProf = hasScrubber ? profile.aeScrubber : profile.ae;
+  const sv_aeSea = ((results.seaDaysBallast) * ((aeProf?.ballast) || 0) + (results.seaDaysLaden) * ((aeProf?.laden) || 0) + extraSeaDays * ((aeProf?.laden) || 0)) * rewardFactor;
+  const sv_aePort = c_tload * ((aeProf?.load) || 0) + c_tdisch * ((aeProf?.discharge) || 0) + (c_tidle + extraPortDays) * ((aeProf?.idle) || 0);
+  const sv_aeTotal = sv_aeSea + sv_aePort;
+
+  // ═══════════════════════════════════════════════════════
+  // SECTION 3: CALCULATIONS (ALL EXCEL FORMULAS)
+  // ═══════════════════════════════════════════════════════
+
   setText(0, r, "══════════════════════════════════════════════"); r++;
-  setText(0, r, "CALCULATIONS (ALL EXCEL FORMULAS BELOW)"); r++;
+  setText(0, r, "CALCULATIONS (ALL EXCEL FORMULAS BELOW)");
+  setText(1, r, "Excel Formula");
+  setText(2, r, "Software Value");
+  r++;
   r++;
 
   // --- TIME & DISTANCE ---
   setText(0, r, "═══ TIME & DISTANCE ═══"); r++;
 
   setText(0, r, "Total Distance (nm)");
-  setFormula(1, r, `SUM(${seqRange(SC.DIST)})`, results.totalDistance);
+  setCalcFormula(r, `SUM(${seqRange(SC.DIST)})`, results.totalDistance);
   const R_TOTDIST = r; r++;
 
   setText(0, r, "Total ECA Distance (nm)");
-  setFormula(1, r, `SUM(${seqRange(SC.ECAD)})`, results.totalEcaDistance);
+  setCalcFormula(r, `SUM(${seqRange(SC.ECAD)})`, results.totalEcaDistance);
   const R_ECADIST = r; r++;
 
   setText(0, r, "Non-ECA Distance (nm)");
-  setFormula(1, r, `${B(R_TOTDIST)}-${B(R_ECADIST)}`, results.nonEcaDistance);
+  setCalcFormula(r, `${B(R_TOTDIST)}-${B(R_ECADIST)}`, results.nonEcaDistance);
   r++;
 
   setText(0, r, "Laden Distance (nm)");
-  setFormula(1, r, `SUMPRODUCT(${seqRange(SC.LADEN)},${seqRange(SC.DIST)})`, results.ladenDistance);
+  setCalcFormula(r, `SUMPRODUCT(${seqRange(SC.LADEN)},${seqRange(SC.DIST)})`, results.ladenDistance);
   const R_LADIST = r; r++;
 
   setText(0, r, "Sea Days Ballast");
-  setFormula(1, r, `SUM(${seqRange(SC.BSEA)})`, results.seaDaysBallast);
+  setCalcFormula(r, `SUM(${seqRange(SC.BSEA)})`, results.seaDaysBallast);
   const R_SBAL = r; r++;
 
   setText(0, r, "Sea Days Laden");
-  setFormula(1, r, `SUM(${seqRange(SC.LSEA)})`, results.seaDaysLaden);
+  setCalcFormula(r, `SUM(${seqRange(SC.LSEA)})`, results.seaDaysLaden);
   const R_SLAD = r; r++;
 
   setText(0, r, "Total Port Days");
-  setFormula(1, r, `SUM(${seqRange(SC.PORTD)})`, results.totalPortDays);
+  setCalcFormula(r, `SUM(${seqRange(SC.PORTD)})`, results.totalPortDays);
   const R_TPORT = r; r++;
 
   setText(0, r, "Port Costs ($)");
-  setFormula(1, r, `SUM(${seqRange(SC.DA)})`, results.portCosts);
+  setCalcFormula(r, `SUM(${seqRange(SC.DA)})`, results.portCosts);
   const R_PCOST = r; r++;
 
   setText(0, r, "Total Sea Days");
-  setFormula(1, r, `${B(R_SBAL)}+${B(R_SLAD)}+${xSeaCell}`, results.totalSeaDays);
+  setCalcFormula(r, `${B(R_SBAL)}+${B(R_SLAD)}+${xSeaCell}`, results.totalSeaDays);
   const R_TSEA = r; r++;
 
   setText(0, r, "TOTAL VOYAGE DAYS");
-  setFormula(1, r, `${B(R_TSEA)}+${B(R_TPORT)}+${xPortCell}+${xCanalCell}`, results.totalVoyageDays);
+  setCalcFormula(r, `${B(R_TSEA)}+${B(R_TPORT)}+${xPortCell}+${xCanalCell}`, results.totalVoyageDays);
   const R_TVOY = r; r++;
   r++;
 
   // ECA/NonECA sea time breakdown
   setText(0, r, "ECA Sea Bal Days");
-  setFormula(1, r, `SUM(${seqRange(SC.ECAB)})`, 0);
+  setCalcFormula(r, `SUM(${seqRange(SC.ECAB)})`, c_ecaBalD);
   const R_ECAB_D = r; r++;
 
   setText(0, r, "ECA Sea Lad Days");
-  setFormula(1, r, `SUM(${seqRange(SC.ECAL)})`, 0);
+  setCalcFormula(r, `SUM(${seqRange(SC.ECAL)})`, c_ecaLadD);
   const R_ECAL_D = r; r++;
 
   setText(0, r, "NonECA Sea Bal Days");
-  setFormula(1, r, `SUM(${seqRange(SC.NECAB)})`, 0);
+  setCalcFormula(r, `SUM(${seqRange(SC.NECAB)})`, c_necaBalD);
   const R_NECAB_D = r; r++;
 
   setText(0, r, "NonECA Sea Lad Days");
-  setFormula(1, r, `SUM(${seqRange(SC.NECAL)})`, 0);
+  setCalcFormula(r, `SUM(${seqRange(SC.NECAL)})`, c_necaLadD);
   const R_NECAL_D = r; r++;
   r++;
 
   // --- PORT TIME AGGREGATES ---
   setText(0, r, "═══ PORT TIME BY FUEL TYPE ═══"); r++;
 
-  setText(0, r, "Loading Days (HSFO)"); setFormula(1, r, `SUM(${seqRange(SC.HLD)})`, 0); const R_HLD = r; r++;
-  setText(0, r, "Loading Days (VLSFO)"); setFormula(1, r, `SUM(${seqRange(SC.VLD)})`, 0); const R_VLD = r; r++;
-  setText(0, r, "Loading Days (LSMGO)"); setFormula(1, r, `SUM(${seqRange(SC.LLD)})`, 0); const R_LLD = r; r++;
-  setText(0, r, "Disch Days (HSFO)"); setFormula(1, r, `SUM(${seqRange(SC.HDD)})`, 0); const R_HDD = r; r++;
-  setText(0, r, "Disch Days (VLSFO)"); setFormula(1, r, `SUM(${seqRange(SC.VDD)})`, 0); const R_VDD = r; r++;
-  setText(0, r, "Disch Days (LSMGO)"); setFormula(1, r, `SUM(${seqRange(SC.LDD)})`, 0); const R_LDD = r; r++;
-  setText(0, r, "Idle Days (HSFO)"); setFormula(1, r, `SUM(${seqRange(SC.HID)})`, 0); const R_HID = r; r++;
-  setText(0, r, "Idle Days (VLSFO)"); setFormula(1, r, `SUM(${seqRange(SC.VID)})`, 0); const R_VID = r; r++;
-  setText(0, r, "Idle Days (LSMGO)"); setFormula(1, r, `SUM(${seqRange(SC.LID)})`, 0); const R_LID = r; r++;
+  setText(0, r, "Loading Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HLD)})`, c_hld); const R_HLD = r; r++;
+  setText(0, r, "Loading Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VLD)})`, c_vld); const R_VLD = r; r++;
+  setText(0, r, "Loading Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LLD)})`, c_lld); const R_LLD = r; r++;
+  setText(0, r, "Disch Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HDD)})`, c_hdd); const R_HDD = r; r++;
+  setText(0, r, "Disch Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VDD)})`, c_vdd); const R_VDD = r; r++;
+  setText(0, r, "Disch Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LDD)})`, c_ldd); const R_LDD = r; r++;
+  setText(0, r, "Idle Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HID)})`, c_hid); const R_HID = r; r++;
+  setText(0, r, "Idle Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VID)})`, c_vid); const R_VID = r; r++;
+  setText(0, r, "Idle Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LID)})`, c_lid); const R_LID = r; r++;
 
   // Total loading/disch/idle (all fuels)
-  setText(0, r, "Total Loading Days"); setFormula(1, r, `${B(R_HLD)}+${B(R_VLD)}+${B(R_LLD)}`, 0); const R_TLOAD = r; r++;
-  setText(0, r, "Total Disch Days"); setFormula(1, r, `${B(R_HDD)}+${B(R_VDD)}+${B(R_LDD)}`, 0); const R_TDISCH = r; r++;
-  setText(0, r, "Total Idle Days"); setFormula(1, r, `${B(R_HID)}+${B(R_VID)}+${B(R_LID)}`, 0); const R_TIDLE = r; r++;
+  setText(0, r, "Total Loading Days"); setCalcFormula(r, `${B(R_HLD)}+${B(R_VLD)}+${B(R_LLD)}`, c_tload); const R_TLOAD = r; r++;
+  setText(0, r, "Total Disch Days"); setCalcFormula(r, `${B(R_HDD)}+${B(R_VDD)}+${B(R_LDD)}`, c_tdisch); const R_TDISCH = r; r++;
+  setText(0, r, "Total Idle Days"); setCalcFormula(r, `${B(R_HID)}+${B(R_VID)}+${B(R_LID)}`, c_tidle); const R_TIDLE = r; r++;
   r++;
 
   // ═══════════════════════════════════════════════════════
@@ -406,75 +488,67 @@ export function exportVoyageToExcel(data: ExportData) {
   // --- Sea Consumption ---
   setText(0, r, "--- Sea Consumption ---"); r++;
 
-  // HSFO Sea = IF(scrubber, (NonECA_Bal×Rate + NonECA_Lad×Rate + ExtraSea×LadenRate) × RF, 0)
   setText(0, r, "HSFO Sea (mt)");
-  setFormula(1, r,
+  setCalcFormula(r,
     `IF(${scrCell}=1,(${B(R_NECAB_D)}*${hBal}+${B(R_NECAL_D)}*${hLad}+${xSeaCell}*${hLad})*${rfCell},0)`,
-    results.nonEcaFuel.hsfo);
+    sv_hsfoSea);
   const R_HSFO_SEA = r; r++;
 
-  // VLSFO Sea = IF(NO scrubber, same logic with VLSFO rates)
   setText(0, r, "VLSFO Sea (mt)");
-  setFormula(1, r,
+  setCalcFormula(r,
     `IF(${scrCell}=0,(${B(R_NECAB_D)}*${vBal}+${B(R_NECAL_D)}*${vLad}+${xSeaCell}*${vLad})*${rfCell},0)`,
-    results.nonEcaFuel.vlsfo);
+    sv_vlsfoSea);
   const R_VLSFO_SEA = r; r++;
 
-  // LSMGO Sea (ECA only) = (ECA_Bal×LSMGO_Bal + ECA_Lad×LSMGO_Lad) × RF
   setText(0, r, "LSMGO Sea ECA (mt)");
-  setFormula(1, r,
+  setCalcFormula(r,
     `(${B(R_ECAB_D)}*${lBal}+${B(R_ECAL_D)}*${lLad})*${rfCell}`,
-    results.ecaFuel.lsmgo);
+    sv_lsmgoSea);
   const R_LSMGO_SEA = r; r++;
   r++;
 
   // --- Port Consumption ---
   setText(0, r, "--- Port Consumption ---"); r++;
 
-  // HSFO port
-  setText(0, r, "HSFO Loading (mt)"); setFormula(1, r, `${B(R_HLD)}*${hLoad}`, 0); const R_HL = r; r++;
-  setText(0, r, "HSFO Disch (mt)"); setFormula(1, r, `${B(R_HDD)}*${hDisch}`, 0); const R_HD = r; r++;
+  setText(0, r, "HSFO Loading (mt)"); setCalcFormula(r, `${B(R_HLD)}*${hLoad}`, sv_hLoad); const R_HL = r; r++;
+  setText(0, r, "HSFO Disch (mt)"); setCalcFormula(r, `${B(R_HDD)}*${hDisch}`, sv_hDisch); const R_HD = r; r++;
   setText(0, r, "HSFO Idle (mt)");
-  setFormula(1, r, `(${B(R_HID)}+IF(${scrCell}=1,${xPortCell},0))*${hIdle}`, 0);
+  setCalcFormula(r, `(${B(R_HID)}+IF(${scrCell}=1,${xPortCell},0))*${hIdle}`, sv_hIdle);
   const R_HI = r; r++;
   setText(0, r, "HSFO Canal (mt)");
-  setFormula(1, r, `IF(${scrCell}=1,${xCanalCell}*${hCanal},0)`, 0);
+  setCalcFormula(r, `IF(${scrCell}=1,${xCanalCell}*${hCanal},0)`, sv_hCanal);
   const R_HC = r; r++;
 
-  // VLSFO port
-  setText(0, r, "VLSFO Loading (mt)"); setFormula(1, r, `${B(R_VLD)}*${vLoad}`, 0); const R_VL = r; r++;
-  setText(0, r, "VLSFO Disch (mt)"); setFormula(1, r, `${B(R_VDD)}*${vDisch}`, 0); const R_VD = r; r++;
+  setText(0, r, "VLSFO Loading (mt)"); setCalcFormula(r, `${B(R_VLD)}*${vLoad}`, sv_vLoad); const R_VL = r; r++;
+  setText(0, r, "VLSFO Disch (mt)"); setCalcFormula(r, `${B(R_VDD)}*${vDisch}`, sv_vDisch); const R_VD = r; r++;
   setText(0, r, "VLSFO Idle (mt)");
-  setFormula(1, r, `(${B(R_VID)}+IF(${scrCell}=0,${xPortCell},0))*${vIdle}`, 0);
+  setCalcFormula(r, `(${B(R_VID)}+IF(${scrCell}=0,${xPortCell},0))*${vIdle}`, sv_vIdle);
   const R_VI = r; r++;
   setText(0, r, "VLSFO Canal (mt)");
-  setFormula(1, r, `IF(${scrCell}=0,${xCanalCell}*${vCanal},0)`, 0);
+  setCalcFormula(r, `IF(${scrCell}=0,${xCanalCell}*${vCanal},0)`, sv_vCanal);
   const R_VC = r; r++;
 
-  // LSMGO port
-  setText(0, r, "LSMGO Loading (mt)"); setFormula(1, r, `${B(R_LLD)}*${lLoad}`, 0); const R_LL = r; r++;
-  setText(0, r, "LSMGO Disch (mt)"); setFormula(1, r, `${B(R_LDD)}*${lDisch}`, 0); const R_LD = r; r++;
-  setText(0, r, "LSMGO Idle (mt)"); setFormula(1, r, `${B(R_LID)}*${lIdle}`, 0); const R_LI = r; r++;
-  setText(0, r, "LSMGO Canal (mt)"); setFormula(1, r, `0`, 0); const R_LC = r; r++;
+  setText(0, r, "LSMGO Loading (mt)"); setCalcFormula(r, `${B(R_LLD)}*${lLoad}`, sv_lLoad); const R_LL = r; r++;
+  setText(0, r, "LSMGO Disch (mt)"); setCalcFormula(r, `${B(R_LDD)}*${lDisch}`, sv_lDisch); const R_LD = r; r++;
+  setText(0, r, "LSMGO Idle (mt)"); setCalcFormula(r, `${B(R_LID)}*${lIdle}`, sv_lIdle); const R_LI = r; r++;
+  setText(0, r, "LSMGO Canal (mt)"); setCalcFormula(r, `0`, 0); const R_LC = r; r++;
   r++;
 
   // --- AE Consumption (always LSMGO) ---
   setText(0, r, "--- AE Consumption (→ LSMGO) ---"); r++;
 
-  // AE Sea = (Bal_Total × AE_Bal + Lad_Total × AE_Lad + ExtraSea × AE_Lad) × RF
   setText(0, r, "AE Sea (mt)");
-  setFormula(1, r,
-    `(${B(R_SBAL)}*(${aeBal})+${B(R_SLAD)}*(${aeLad})+${xSeaCell}*(${aeLad}))*${rfCell}`, 0);
+  setCalcFormula(r,
+    `(${B(R_SBAL)}*(${aeBal})+${B(R_SLAD)}*(${aeLad})+${xSeaCell}*(${aeLad}))*${rfCell}`, sv_aeSea);
   const R_AES = r; r++;
 
-  // AE Port = Load_Total × AE_Load + Disch_Total × AE_Disch + (Idle+ExtraPort) × AE_Idle
   setText(0, r, "AE Port (mt)");
-  setFormula(1, r,
-    `${B(R_TLOAD)}*(${aeLoad})+${B(R_TDISCH)}*(${aeDisch})+(${B(R_TIDLE)}+${xPortCell})*(${aeIdle})`, 0);
+  setCalcFormula(r,
+    `${B(R_TLOAD)}*(${aeLoad})+${B(R_TDISCH)}*(${aeDisch})+(${B(R_TIDLE)}+${xPortCell})*(${aeIdle})`, sv_aePort);
   const R_AEP = r; r++;
 
   setText(0, r, "AE Total (mt)");
-  setFormula(1, r, `${B(R_AES)}+${B(R_AEP)}`, 0);
+  setCalcFormula(r, `${B(R_AES)}+${B(R_AEP)}`, sv_aeTotal);
   const R_AET = r; r++;
   r++;
 
@@ -482,15 +556,15 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "═══ TOTAL FUEL CONSUMPTION ═══"); r++;
 
   setText(0, r, "HSFO Total (mt)");
-  setFormula(1, r, `${B(R_HSFO_SEA)}+${B(R_HL)}+${B(R_HD)}+${B(R_HI)}+${B(R_HC)}`, results.hsfoConsumption);
+  setCalcFormula(r, `${B(R_HSFO_SEA)}+${B(R_HL)}+${B(R_HD)}+${B(R_HI)}+${B(R_HC)}`, results.hsfoConsumption);
   const R_HSFOT = r; r++;
 
   setText(0, r, "VLSFO Total (mt)");
-  setFormula(1, r, `${B(R_VLSFO_SEA)}+${B(R_VL)}+${B(R_VD)}+${B(R_VI)}+${B(R_VC)}`, results.vlsfoConsumption);
+  setCalcFormula(r, `${B(R_VLSFO_SEA)}+${B(R_VL)}+${B(R_VD)}+${B(R_VI)}+${B(R_VC)}`, results.vlsfoConsumption);
   const R_VLSFOT = r; r++;
 
   setText(0, r, "LSMGO Total (mt)");
-  setFormula(1, r, `${B(R_LSMGO_SEA)}+${B(R_LL)}+${B(R_LD)}+${B(R_LI)}+${B(R_LC)}+${B(R_AET)}`, results.lsmgoConsumption);
+  setCalcFormula(r, `${B(R_LSMGO_SEA)}+${B(R_LL)}+${B(R_LD)}+${B(R_LI)}+${B(R_LC)}+${B(R_AET)}`, results.lsmgoConsumption);
   const R_LSMGOT = r; r++;
   r++;
 
@@ -501,19 +575,19 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "═══ BUNKER COST ═══"); r++;
 
   setText(0, r, "HSFO Cost ($)");
-  setFormula(1, r, `${B(R_HSFOT)}*${B(R_HP)}`, results.hsfoConsumption * bunker.hsfo.price);
+  setCalcFormula(r, `${B(R_HSFOT)}*${B(R_HP)}`, results.hsfoConsumption * bunker.hsfo.price);
   const R_HCOST = r; r++;
 
   setText(0, r, "VLSFO Cost ($)");
-  setFormula(1, r, `${B(R_VLSFOT)}*${B(R_VP)}`, results.vlsfoConsumption * bunker.vlsfo.price);
+  setCalcFormula(r, `${B(R_VLSFOT)}*${B(R_VP)}`, results.vlsfoConsumption * bunker.vlsfo.price);
   const R_VCOST = r; r++;
 
   setText(0, r, "LSMGO Cost ($)");
-  setFormula(1, r, `${B(R_LSMGOT)}*${B(R_LP)}`, results.lsmgoConsumption * bunker.lsmgo.price);
+  setCalcFormula(r, `${B(R_LSMGOT)}*${B(R_LP)}`, results.lsmgoConsumption * bunker.lsmgo.price);
   const R_LCOST = r; r++;
 
   setText(0, r, "Total Bunker Cost ($)");
-  setFormula(1, r, `${B(R_HCOST)}+${B(R_VCOST)}+${B(R_LCOST)}`, results.totalBunkerCost);
+  setCalcFormula(r, `${B(R_HCOST)}+${B(R_VCOST)}+${B(R_LCOST)}`, results.totalBunkerCost);
   const R_BUNKC = r; r++;
   r++;
 
@@ -524,35 +598,35 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "═══ FINANCIALS ═══"); r++;
 
   setText(0, r, "Gross Freight ($)");
-  setFormula(1, r, `IF(${B(R_RTYPE)}="lumpsum",${B(R_RATE)},${B(R_RATE)}*${B(R_QTY)})`, results.grossFreight);
+  setCalcFormula(r, `IF(${B(R_RTYPE)}="lumpsum",${B(R_RATE)},${B(R_RATE)}*${B(R_QTY)})`, results.grossFreight);
   const R_GF = r; r++;
 
   setText(0, r, "Voyage Commission ($)");
-  setFormula(1, r, `${B(R_GF)}*${B(R_VCOMM)}/100`, results.voyageCommission);
+  setCalcFormula(r, `${B(R_GF)}*${B(R_VCOMM)}/100`, results.voyageCommission);
   const R_VCAMT = r; r++;
 
   setText(0, r, "Net Freight ($)");
-  setFormula(1, r, `${B(R_GF)}-${B(R_VCAMT)}`, results.netFreight);
+  setCalcFormula(r, `${B(R_GF)}-${B(R_VCAMT)}`, results.netFreight);
   const R_NF = r; r++;
 
   setText(0, r, "Misc Costs ($)");
-  setFormula(1, r, `${B(R_MISC)}+${B(R_XFEE)}+${B(R_XINS)}`, results.miscCosts);
+  setCalcFormula(r, `${B(R_MISC)}+${B(R_XFEE)}+${B(R_XINS)}`, results.miscCosts);
   const R_MISCT = r; r++;
 
   setText(0, r, "Canal Costs ($)");
-  setFormula(1, r, `${B(R_CC1)}+${B(R_CC2)}`, results.canalCosts);
+  setCalcFormula(r, `${B(R_CC1)}+${B(R_CC2)}`, results.canalCosts);
   const R_CANALT = r; r++;
 
   setText(0, r, "Voyage Costs excl Hire ($)");
-  setFormula(1, r, `${B(R_BUNKC)}+${B(R_PCOST)}+${B(R_MISCT)}+${B(R_CANALT)}`, results.voyageCostExclHire);
+  setCalcFormula(r, `${B(R_BUNKC)}+${B(R_PCOST)}+${B(R_MISCT)}+${B(R_CANALT)}`, results.voyageCostExclHire);
   const R_VCEXH = r; r++;
 
   setText(0, r, "Hire Cost ($)");
-  setFormula(1, r, `${B(R_HIRE)}*${B(R_TVOY)}+${B(R_BB)}`, results.hireCost);
+  setCalcFormula(r, `${B(R_HIRE)}*${B(R_TVOY)}+${B(R_BB)}`, results.hireCost);
   const R_HIRECOST = r; r++;
 
   setText(0, r, "Voyage Cost incl Hire ($)");
-  setFormula(1, r, `${B(R_VCEXH)}+${B(R_HIRECOST)}`, results.voyageCostInclHire);
+  setCalcFormula(r, `${B(R_VCEXH)}+${B(R_HIRECOST)}`, results.voyageCostInclHire);
   const R_VCINH = r; r++;
   r++;
 
@@ -563,27 +637,27 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "═══ PROFITABILITY ═══"); r++;
 
   setText(0, r, "Gross Profit ($)");
-  setFormula(1, r, `${B(R_NF)}-${B(R_VCEXH)}+${B(R_DEM)}-${B(R_DESP)}`, results.grossProfit);
+  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}+${B(R_DEM)}-${B(R_DESP)}`, results.grossProfit);
   const R_GP = r; r++;
 
   setText(0, r, "P&L ($)");
-  setFormula(1, r, `${B(R_GP)}-${B(R_HIRECOST)}`, results.pAndL);
+  setCalcFormula(r, `${B(R_GP)}-${B(R_HIRECOST)}`, results.pAndL);
   r++;
 
   setText(0, r, "NTCE ($/day)");
-  setFormula(1, r, `IF(${B(R_TVOY)}>0,(${B(R_NF)}-${B(R_VCEXH)})/${B(R_TVOY)},0)`, results.ntce);
+  setCalcFormula(r, `IF(${B(R_TVOY)}>0,(${B(R_NF)}-${B(R_VCEXH)})/${B(R_TVOY)},0)`, results.ntce);
   const R_NTCE = r; r++;
 
   setText(0, r, "GTCE ($/day)");
-  setFormula(1, r, `IF(${B(R_TCOMM)}<100,${B(R_NTCE)}/(1-${B(R_TCOMM)}/100),0)`, results.gtce);
+  setCalcFormula(r, `IF(${B(R_TCOMM)}<100,${B(R_NTCE)}/(1-${B(R_TCOMM)}/100),0)`, results.gtce);
   const R_GTCE = r; r++;
 
   setText(0, r, "TCE ($/day)");
-  setFormula(1, r, `${B(R_GTCE)}`, results.tce);
+  setCalcFormula(r, `${B(R_GTCE)}`, results.tce);
   r++;
 
   setText(0, r, "Gross Rate ($/mt)");
-  setFormula(1, r,
+  setCalcFormula(r,
     `IF(AND(${B(R_QTY)}>0,${B(R_VCOMM)}<100),(${B(R_VCINH)}/${B(R_QTY)})/(1-${B(R_VCOMM)}/100),0)`,
     results.grossRate);
   r++;
@@ -602,77 +676,77 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   setText(0, r, "CO₂ from HSFO (mt)");
-  setFormula(1, r, `${B(R_HSFOT)}*${B(R_CFH)}`, results.co2ByFuel.hsfo);
+  setCalcFormula(r, `${B(R_HSFOT)}*${B(R_CFH)}`, results.co2ByFuel.hsfo);
   const R_CO2H = r; r++;
 
   setText(0, r, "CO₂ from VLSFO (mt)");
-  setFormula(1, r, `${B(R_VLSFOT)}*${B(R_CFV)}`, results.co2ByFuel.vlsfo);
+  setCalcFormula(r, `${B(R_VLSFOT)}*${B(R_CFV)}`, results.co2ByFuel.vlsfo);
   const R_CO2V = r; r++;
 
   setText(0, r, "CO₂ from LSMGO (mt)");
-  setFormula(1, r, `${B(R_LSMGOT)}*${B(R_CFL)}`, results.co2ByFuel.lsmgo);
+  setCalcFormula(r, `${B(R_LSMGOT)}*${B(R_CFL)}`, results.co2ByFuel.lsmgo);
   const R_CO2L = r; r++;
 
   setText(0, r, "Total CO₂ (mt)");
-  setFormula(1, r, `${B(R_CO2H)}+${B(R_CO2V)}+${B(R_CO2L)}`, results.totalCo2);
+  setCalcFormula(r, `${B(R_CO2H)}+${B(R_CO2V)}+${B(R_CO2L)}`, results.totalCo2);
   const R_TCO2 = r; r++;
   r++;
 
   setText(0, r, "CO₂ Ballast (mt)");
-  setFormula(1, r, `IF(${B(R_TSEA)}>0,${B(R_TCO2)}*${B(R_SBAL)}/${B(R_TSEA)},0)`, results.co2Ballast);
+  setCalcFormula(r, `IF(${B(R_TSEA)}>0,${B(R_TCO2)}*${B(R_SBAL)}/${B(R_TSEA)},0)`, results.co2Ballast);
   r++;
 
   setText(0, r, "CO₂ Laden (mt)");
-  setFormula(1, r, `IF(${B(R_TSEA)}>0,${B(R_TCO2)}*${B(R_SLAD)}/${B(R_TSEA)},0)`, results.co2Laden);
+  setCalcFormula(r, `IF(${B(R_TSEA)}>0,${B(R_TCO2)}*${B(R_SLAD)}/${B(R_TSEA)},0)`, results.co2Laden);
   r++;
   r++;
 
   // EFOI
   setText(0, r, "EFOI (gCO₂/tnm)");
-  setFormula(1, r,
+  setCalcFormula(r,
     `IF(AND(${B(R_QTY)}>0,${B(R_LADIST)}>0),${B(R_TCO2)}*1000000/(${B(R_QTY)}*${B(R_LADIST)}),0)`,
     results.efoi);
   r++;
 
   // CII
   setText(0, r, "CII Actual (gCO₂/dwt-nm)");
-  setFormula(1, r,
+  setCalcFormula(r,
     `IF(AND(${B(R_DWT)}>0,${B(R_TOTDIST)}>0),${B(R_TCO2)}*1000000/(${B(R_DWT)}*${B(R_TOTDIST)}),0)`,
     results.afrCii);
   r++;
 
-  setText(0, r, "CII Rating"); setText(1, r, results.ciiRating); r++;
-  setText(0, r, "Required CII"); setNum(1, r, results.ciiResult.requiredCii); r++;
-  setText(0, r, "CII Ratio"); setNum(1, r, results.ciiResult.ciiRatio); r++;
+  setText(0, r, "CII Rating"); setText(1, r, results.ciiRating); setText(2, r, results.ciiRating); r++;
+  setText(0, r, "Required CII"); setNum(1, r, results.ciiResult.requiredCii); setNum(2, r, results.ciiResult.requiredCii); r++;
+  setText(0, r, "CII Ratio"); setNum(1, r, results.ciiResult.ciiRatio); setNum(2, r, results.ciiResult.ciiRatio); r++;
   r++;
 
   // Total CO₂ Cost
   setText(0, r, "Total CO₂ Cost ($)");
-  setFormula(1, r, `${B(R_TCO2)}*${B(R_CO2P)}`, results.totalCo2Cost);
+  setCalcFormula(r, `${B(R_TCO2)}*${B(R_CO2P)}`, results.totalCo2Cost);
   r++;
 
-  // EU ETS (per-leg coverage is pre-computed — too complex for simple formulas)
-  setText(0, r, "Chargeable CO₂ EUA (mt)"); setNum(1, r, results.chargeableCo2); const R_CHCO2 = r; r++;
-  setText(0, r, "ETS Coverage (%)"); setNum(1, r, results.etsVoyageCoverage * 100); r++;
-  setText(0, r, "ETS Phase-in (%)"); setNum(1, r, results.etsPhaseIn * 100); r++;
+  // EU ETS
+  setText(0, r, "Chargeable CO₂ EUA (mt)"); setNum(1, r, results.chargeableCo2); setNum(2, r, results.chargeableCo2); const R_CHCO2 = r; r++;
+  setText(0, r, "ETS Coverage (%)"); setNum(1, r, results.etsVoyageCoverage * 100); setNum(2, r, results.etsVoyageCoverage * 100); r++;
+  setText(0, r, "ETS Phase-in (%)"); setNum(1, r, results.etsPhaseIn * 100); setNum(2, r, results.etsPhaseIn * 100); r++;
 
   setText(0, r, "EUA CO₂ Cost ($)");
-  setFormula(1, r, `${B(R_CHCO2)}*${B(R_CO2P)}`, results.euaCo2Cost);
+  setCalcFormula(r, `${B(R_CHCO2)}*${B(R_CO2P)}`, results.euaCo2Cost);
   const R_EUACOST = r; r++;
 
   setText(0, r, "EUA Freight Impact ($/mt)");
-  setFormula(1, r, `IF(${B(R_QTY)}>0,${B(R_EUACOST)}/${B(R_QTY)},0)`, results.euaFreightImpact);
+  setCalcFormula(r, `IF(${B(R_QTY)}>0,${B(R_EUACOST)}/${B(R_QTY)},0)`, results.euaFreightImpact);
   r++;
   r++;
 
   // FuelEU Maritime
   setText(0, r, "═══ FuelEU Maritime ═══"); r++;
-  setText(0, r, "GHG Intensity Target (gCO₂eq/MJ)"); setNum(1, r, results.fuelEuResult.target); r++;
-  setText(0, r, "HSFO Penalty ($)"); setNum(1, r, results.fuelEuResult.fuels.hsfo.penalty); const R_FEH = r; r++;
-  setText(0, r, "VLSFO Penalty ($)"); setNum(1, r, results.fuelEuResult.fuels.vlsfo.penalty); const R_FEV = r; r++;
-  setText(0, r, "LSMGO Penalty ($)"); setNum(1, r, results.fuelEuResult.fuels.lsmgo.penalty); const R_FEL = r; r++;
+  setText(0, r, "GHG Intensity Target (gCO₂eq/MJ)"); setNum(1, r, results.fuelEuResult.target); setNum(2, r, results.fuelEuResult.target); r++;
+  setText(0, r, "HSFO Penalty ($)"); setNum(1, r, results.fuelEuResult.fuels.hsfo.penalty); setNum(2, r, results.fuelEuResult.fuels.hsfo.penalty); const R_FEH = r; r++;
+  setText(0, r, "VLSFO Penalty ($)"); setNum(1, r, results.fuelEuResult.fuels.vlsfo.penalty); setNum(2, r, results.fuelEuResult.fuels.vlsfo.penalty); const R_FEV = r; r++;
+  setText(0, r, "LSMGO Penalty ($)"); setNum(1, r, results.fuelEuResult.fuels.lsmgo.penalty); setNum(2, r, results.fuelEuResult.fuels.lsmgo.penalty); const R_FEL = r; r++;
   setText(0, r, "FuelEU Total Penalty ($)");
-  setFormula(1, r, `${B(R_FEH)}+${B(R_FEV)}+${B(R_FEL)}`, results.fuelEuTotalPenalty);
+  setCalcFormula(r, `${B(R_FEH)}+${B(R_FEV)}+${B(R_FEL)}`, results.fuelEuTotalPenalty);
   r++;
 
   // ═══════════════════════════════════════════════════════
