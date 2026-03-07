@@ -20,6 +20,7 @@ const termsOptions = [
   { value: "sshex", label: "sshex" },
   { value: "fhex", label: "fhex" },
   { value: "satpn", label: "satpn" },
+  { value: "custom", label: "custom" },
 ];
 
 const distanceSpeedContextOptions: { value: SpeedContext; label: string }[] = [
@@ -257,14 +258,26 @@ export function SequenceTable() {
                       {/* Terms */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <select className="form-select-sm w-16 text-[10px]" value={row.terms || "shinc"}
-                            onChange={(e) => {
-                              updateSequenceRow(row.id, "terms", e.target.value);
-                              const dc = e.target.value === "sshex" ? 1.5 : e.target.value === "fhex" ? 1.25 : e.target.value === "satpn" ? 1.33 : 1.0;
-                              updateSequenceRow(row.id, "coefficientFactor", dc);
-                            }}>
-                            {termsOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
+                          <div className="flex items-center gap-0.5">
+                            <select className="form-select-sm w-16 text-[10px]" value={row.terms || "shinc"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                updateSequenceRow(row.id, "terms", val);
+                                if (val !== "custom") {
+                                  const dc = val === "sshex" ? 1.5 : val === "fhex" ? 1.25 : val === "satpn" ? 1.33 : 1.0;
+                                  updateSequenceRow(row.id, "coefficientFactor", dc);
+                                  updateSequenceRow(row.id, "customTermsName", "");
+                                }
+                              }}>
+                              {termsOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                            {row.terms === "custom" && (
+                              <input type="text" className="form-input-sm w-14 text-[10px]"
+                                value={row.customTermsName || ""}
+                                onChange={(e) => updateSequenceRow(row.id, "customTermsName", e.target.value)}
+                                placeholder="name" title="Custom terms name" />
+                            )}
+                          </div>
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 

@@ -52,7 +52,8 @@ export interface SequenceRowUI {
   productivity: number; // MT/day
   
   // Terms and time calculations
-  terms: "shinc" | "sshex" | "fhex" | "satpn" | "";
+  terms: "shinc" | "sshex" | "fhex" | "satpn" | "custom" | "";
+  customTermsName: string; // user-defined name when terms === "custom"
   turnTime: number; // hours (stored as hours, displayed as days)
   extraTime: number; // hours
   
@@ -387,6 +388,7 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   stowageFactor: 0,
   portFuelType: hasScrubber ? "hsfo" : "vlsfo",
   coefficientFactor: type === "port" && (operation === "loading" || operation === "discharging") ? 1.0 : 0,
+  customTermsName: "",
 });
 
 const initialSequence: SequenceRowUI[] = [
@@ -426,6 +428,7 @@ const initialSequence: SequenceRowUI[] = [
     stowageFactor: 0,
     portFuelType: "vlsfo",
     coefficientFactor: 0,
+    customTermsName: "",
   },
   {
     id: 2,
@@ -463,6 +466,7 @@ const initialSequence: SequenceRowUI[] = [
     stowageFactor: 0,
     portFuelType: "vlsfo",
     coefficientFactor: 1.0,
+    customTermsName: "",
   },
   {
     id: 3,
@@ -500,6 +504,7 @@ const initialSequence: SequenceRowUI[] = [
     stowageFactor: 0,
     portFuelType: "vlsfo",
     coefficientFactor: 0,
+    customTermsName: "",
   },
   {
     id: 4,
@@ -537,6 +542,7 @@ const initialSequence: SequenceRowUI[] = [
     stowageFactor: 0,
     portFuelType: "vlsfo",
     coefficientFactor: 1.0,
+    customTermsName: "",
   },
 ];
 
@@ -880,6 +886,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       stowageFactor: 0,
       portFuelType: "vlsfo",
       coefficientFactor: 0,
+      customTermsName: "",
     };
     setSequence([blankOpen]);
     setCargos([{
