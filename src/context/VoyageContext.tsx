@@ -886,6 +886,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       stowageFactor: 0,
       portFuelType: "vlsfo",
       coefficientFactor: 0,
+      customTermsName: "",
     };
     setSequence([blankOpen]);
     setCargos([{
