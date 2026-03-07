@@ -226,7 +226,7 @@ export function exportVoyageToExcel(data: ExportData) {
     ["AFR/CII (Actual)", fmt(results.afrCii, 4), "gCO₂/dwt-nm", "Total CO₂ × 1M / (DWT × Total Dist)"],
     ["CII Rating", results.ciiRating, "", "A/B/C/D/E based on IMO thresholds"],
     ["Required CII", fmt(results.ciiResult.requiredCii, 4), "gCO₂/dwt-nm", "IMO reference for vessel type/year"],
-    ["CII Ratio", fmt(results.ciiResult.ratio, 4), "", "Actual / Required"],
+    ["CII Ratio", fmt(results.ciiResult.ciiRatio, 4), "", "Actual / Required"],
     [],
     ["=== EU ETS ==="],
     ["Chargeable CO₂", fmt(results.chargeableCo2, 4), "mt", ""],
