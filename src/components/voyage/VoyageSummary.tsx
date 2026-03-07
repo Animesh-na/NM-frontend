@@ -1,11 +1,11 @@
-import { DollarSign, Clock, TrendingUp, Leaf, FileText } from "lucide-react";
-import { Link } from "react-router-dom";
+import { DollarSign, Clock, TrendingUp, Leaf, Download } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { Button } from "@/components/ui/button";
+import { exportVoyageToExcel } from "@/utils/excelExport";
 
 export function VoyageSummary() {
-  const { results, cargos, hireRate } = useVoyageContext();
+  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB } = useVoyageContext();
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
@@ -345,14 +345,32 @@ export function VoyageSummary() {
           </div>
         </div>
 
-        {/* View Calculation Details Link */}
+        {/* Export Excel */}
         <div className="pt-2 border-t border-border">
-          <Link to="/calculation-breakdown">
-            <Button variant="outline" size="sm" className="w-full gap-1.5 h-6 text-[10px]">
-              <FileText className="h-3 w-3" />
-              View Details
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5 h-6 text-[10px]"
+            onClick={() => exportVoyageToExcel({
+              vessel,
+              sequence,
+              cargos,
+              bunker: {
+                hsfo: bunker.hsfo,
+                vlsfo: bunker.vlsfo,
+                lsmgo: bunker.lsmgo,
+                co2Price: bunker.co2Price,
+                rewardFactor: bunker.rewardFactor,
+              },
+              misc,
+              hireRate,
+              netBB,
+              results,
+            })}
+          >
+            <Download className="h-3 w-3" />
+            Export Excel
+          </Button>
         </div>
       </div>
     </div>
