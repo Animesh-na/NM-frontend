@@ -253,7 +253,7 @@ export function exportVoyageToExcel(data: ExportData) {
     ["HSFO Penalty", fmt(results.fuelEuResult.fuels.hsfo.penalty), "$", `${fmt(results.euCoveredFuel.hsfo, 2)}t × penalty rate`],
     ["VLSFO Penalty", fmt(results.fuelEuResult.fuels.vlsfo.penalty), "$", `${fmt(results.euCoveredFuel.vlsfo, 2)}t × penalty rate`],
     ["LSMGO Penalty", fmt(results.fuelEuResult.fuels.lsmgo.penalty), "$", `${fmt(results.euCoveredFuel.lsmgo, 2)}t × penalty rate`],
-    ["GHG Intensity Target", fmt(results.fuelEuResult.targetIntensity, 2), "gCO₂eq/MJ", "FuelEU Maritime benchmark for current year"],
+    ["GHG Intensity Target", fmt(results.fuelEuResult.target, 2), "gCO₂eq/MJ", "FuelEU Maritime benchmark for current year"],
   ];
   const wsEnv = XLSX.utils.aoa_to_sheet(envData);
   wsEnv["!cols"] = [{ wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 55 }];
