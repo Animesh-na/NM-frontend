@@ -249,39 +249,13 @@ export function VoyageSummary() {
             <span className="font-medium flex items-center">
               Bunker cost
               <InfoTooltip 
-                formula="(HSFO × Price) + (VLSFO × Price) + (LSMGO × Price) + (CO₂ × Price)" 
-                description="Total fuel and emissions cost"
+                formula="(HSFO × Price) + (VLSFO × Price) + (LSMGO × Price)" 
+                description="Total fuel cost (excluding CO₂)"
               />
             </span>
             <span className="font-mono tabular-nums font-semibold">
               ${formatCurrency(results.totalBunkerCost)}
             </span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
-            <span className="text-muted-foreground flex items-center">
-              Total HSFO
-              <InfoTooltip 
-                formula="(Ballast Days × Consumption) + (Laden Days × Consumption)" 
-                description="High Sulphur Fuel Oil consumption"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{results.hsfoConsumption.toFixed(2)} t</span>
-            <span className="text-muted-foreground flex items-center">
-              Total VLSFO
-              <InfoTooltip 
-                formula="(Ballast Days × Consumption) + (Laden Days × Consumption)" 
-                description="Very Low Sulphur Fuel Oil consumption"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{results.vlsfoConsumption.toFixed(2)} t</span>
-            <span className="text-muted-foreground flex items-center">
-              Total LSMGO
-              <InfoTooltip 
-                formula="Port Days × Daily Consumption" 
-                description="Low Sulphur Marine Gas Oil consumption (port use)"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{results.lsmgoConsumption.toFixed(2)} t</span>
           </div>
         </div>
 
