@@ -345,14 +345,32 @@ export function VoyageSummary() {
           </div>
         </div>
 
-        {/* View Calculation Details Link */}
+        {/* Export Excel */}
         <div className="pt-2 border-t border-border">
-          <Link to="/calculation-breakdown">
-            <Button variant="outline" size="sm" className="w-full gap-1.5 h-6 text-[10px]">
-              <FileText className="h-3 w-3" />
-              View Details
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5 h-6 text-[10px]"
+            onClick={() => exportVoyageToExcel({
+              vessel,
+              sequence,
+              cargos,
+              bunker: {
+                hsfo: bunker.hsfo,
+                vlsfo: bunker.vlsfo,
+                lsmgo: bunker.lsmgo,
+                co2Price: bunker.co2Price,
+                rewardFactor: bunker.rewardFactor,
+              },
+              misc,
+              hireRate,
+              netBB,
+              results,
+            })}
+          >
+            <Download className="h-3 w-3" />
+            Export Excel
+          </Button>
         </div>
       </div>
     </div>
