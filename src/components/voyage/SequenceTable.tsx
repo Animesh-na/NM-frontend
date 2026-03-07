@@ -422,6 +422,12 @@ export function SequenceTable() {
             open={true}
             onClose={() => setCustomTermsRowId(null)}
             onSave={(name, coefficient) => {
+              // Add to saved list if not already there
+              setSavedCustomTerms(prev => {
+                const exists = prev.find(t => t.name === name);
+                if (exists) return prev.map(t => t.name === name ? { name, coefficient } : t);
+                return [...prev, { name, coefficient }];
+              });
               updateSequenceRow(customTermsRowId, "terms", "custom");
               updateSequenceRow(customTermsRowId, "customTermsName", name);
               updateSequenceRow(customTermsRowId, "coefficientFactor", coefficient);
