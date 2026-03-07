@@ -405,6 +405,25 @@ export function SequenceTable() {
           />
         );
       })()}
+
+      {/* Custom Terms Dialog */}
+      {customTermsRowId !== null && (() => {
+        const row = sequence.find(r => r.id === customTermsRowId);
+        return (
+          <CustomTermsDialog
+            open={true}
+            onClose={() => setCustomTermsRowId(null)}
+            onSave={(name, coefficient) => {
+              updateSequenceRow(customTermsRowId, "terms", "custom");
+              updateSequenceRow(customTermsRowId, "customTermsName", name);
+              updateSequenceRow(customTermsRowId, "coefficientFactor", coefficient);
+              setCustomTermsRowId(null);
+            }}
+            initialName={row?.customTermsName || ""}
+            initialCoefficient={row?.coefficientFactor || 1.0}
+          />
+        );
+      })()}
     </div>
   );
 }
