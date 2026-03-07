@@ -542,6 +542,7 @@ const initialSequence: SequenceRowUI[] = [
     stowageFactor: 0,
     portFuelType: "vlsfo",
     coefficientFactor: 1.0,
+    customTermsName: "",
   },
 ];
 
