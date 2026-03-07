@@ -260,26 +260,24 @@ export function SequenceTable() {
                       {/* Terms */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <div className="flex items-center gap-0.5">
-                            <select className="form-select-sm w-16 text-[10px]" value={row.terms || "shinc"}
-                              onChange={(e) => {
-                                const val = e.target.value;
+                          <select className="form-select-sm w-16 text-[10px]" 
+                            value={row.terms || "shinc"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "custom") {
+                                setCustomTermsRowId(row.id);
+                              } else {
                                 updateSequenceRow(row.id, "terms", val);
-                                if (val !== "custom") {
-                                  const dc = val === "sshex" ? 1.5 : val === "fhex" ? 1.25 : val === "satpn" ? 1.33 : 1.0;
-                                  updateSequenceRow(row.id, "coefficientFactor", dc);
-                                  updateSequenceRow(row.id, "customTermsName", "");
-                                }
-                              }}>
-                              {termsOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            </select>
-                            {row.terms === "custom" && (
-                              <input type="text" className="form-input-sm w-14 text-[10px]"
-                                value={row.customTermsName || ""}
-                                onChange={(e) => updateSequenceRow(row.id, "customTermsName", e.target.value)}
-                                placeholder="name" title="Custom terms name" />
+                                const dc = val === "sshex" ? 1.5 : val === "fhex" ? 1.25 : val === "satpn" ? 1.33 : 1.0;
+                                updateSequenceRow(row.id, "coefficientFactor", dc);
+                                updateSequenceRow(row.id, "customTermsName", "");
+                              }
+                            }}>
+                            {termsOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            {row.terms === "custom" && row.customTermsName && (
+                              <option value="custom">{row.customTermsName}</option>
                             )}
-                          </div>
+                          </select>
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
