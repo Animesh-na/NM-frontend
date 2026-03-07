@@ -257,6 +257,15 @@ export function VoyageSummary() {
               ${formatCurrency(results.totalBunkerCost)}
             </span>
           </div>
+          {/* Total fuel consumption */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+            <span className="text-muted-foreground">Total HSFO</span>
+            <span className="font-mono tabular-nums text-right">{results.hsfoConsumption.toFixed(2)} t</span>
+            <span className="text-muted-foreground">Total VLSFO</span>
+            <span className="font-mono tabular-nums text-right">{results.vlsfoConsumption.toFixed(2)} t</span>
+            <span className="text-muted-foreground">Total LSMGO</span>
+            <span className="font-mono tabular-nums text-right">{results.lsmgoConsumption.toFixed(2)} t</span>
+          </div>
         </div>
 
         {/* Environmental Metrics */}
