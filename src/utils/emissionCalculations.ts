@@ -415,3 +415,86 @@ export function validateEmissionInputs(
 export function requiresCiiCorrectiveAction(rating: string): boolean {
   return rating === 'D' || rating === 'E';
 }
+
+// ===========================================
+// FUEL EU MARITIME COMPLIANCE
+// ===========================================
+
+// Well-to-Wake GHG Intensity by fuel type (gCO₂eq/MJ)
+export const FUEL_EU_GHG_INTENSITY: Record<string, number> = {
+  hsfo: 91.74,
+  vlsfo: 91.39,
+  lsmgo: 90.77,
+};
+
+// FuelEU Maritime GHG intensity targets by year (gCO₂eq/MJ)
+export const FUEL_EU_TARGETS: Record<number, number> = {
+  2025: 89.34,
+  2026: 89.34,
+  2030: 80.70,
+  2035: 72.00,
+  2040: 63.40,
+  2045: 54.70,
+  2050: 26.10,
+};
+
+// Per-ton penalty rates for 2026 (USD) — derived from FuelEU Maritime regulation
+export const FUEL_EU_PENALTY_PER_TON: Record<string, number> = {
+  hsfo: 73.30,
+  vlsfo: 63.61,
+  lsmgo: 46.42,
+};
+
+export function getFuelEuTarget(year?: number): number {
+  const y = year || new Date().getFullYear();
+  if (y <= 2025) return FUEL_EU_TARGETS[2025] || 89.34;
+  if (y <= 2029) return FUEL_EU_TARGETS[2026] || 89.34;
+  if (y <= 2034) return FUEL_EU_TARGETS[2030] || 80.70;
+  if (y <= 2039) return FUEL_EU_TARGETS[2035] || 72.00;
+  if (y <= 2044) return FUEL_EU_TARGETS[2040] || 63.40;
+  if (y <= 2049) return FUEL_EU_TARGETS[2045] || 54.70;
+  return FUEL_EU_TARGETS[2050] || 26.10;
+}
+
+export interface FuelEuResult {
+  target: number; // gCO₂eq/MJ target for year
+  rewardFactor: number;
+  fuels: {
+    hsfo: { intensity: number; penalty_per_ton: number; euQuantity: number; penalty: number };
+    vlsfo: { intensity: number; penalty_per_ton: number; euQuantity: number; penalty: number };
+    lsmgo: { intensity: number; penalty_per_ton: number; euQuantity: number; penalty: number };
+  };
+  totalPenalty: number;
+}
+
+/**
+ * Calculate FuelEU Maritime penalties
+ * Penalties apply only to EU-covered fuel quantities
+ */
+export function calculateFuelEuPenalty(
+  euCoveredFuel: { hsfo: number; vlsfo: number; lsmgo: number },
+  rewardFactor: number = 1.0,
+  year?: number
+): FuelEuResult {
+  const target = getFuelEuTarget(year);
+
+  const calcPenalty = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
+    const intensity = FUEL_EU_GHG_INTENSITY[fuelType];
+    const penaltyPerTon = FUEL_EU_PENALTY_PER_TON[fuelType];
+    const qty = euCoveredFuel[fuelType];
+    // Penalty only applies if intensity exceeds target
+    const penalty = intensity > target ? qty * penaltyPerTon : 0;
+    return { intensity, penalty_per_ton: penaltyPerTon, euQuantity: qty, penalty };
+  };
+
+  const hsfo = calcPenalty('hsfo');
+  const vlsfo = calcPenalty('vlsfo');
+  const lsmgo = calcPenalty('lsmgo');
+
+  return {
+    target,
+    rewardFactor,
+    fuels: { hsfo, vlsfo, lsmgo },
+    totalPenalty: hsfo.penalty + vlsfo.penalty + lsmgo.penalty,
+  };
+}
