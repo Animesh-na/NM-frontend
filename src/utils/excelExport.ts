@@ -190,7 +190,7 @@ export function exportVoyageToExcel(data: ExportData) {
   let isLaden = false;
   sequence.forEach((leg) => {
     ladenFlags.push(isLaden);
-    const op = leg.operation || "";
+    const op = String(leg.operation || "");
     if (op === "load" || op === "loading") isLaden = true;
     else if (op === "disch" || op === "discharging") isLaden = false;
   });
