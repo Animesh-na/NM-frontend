@@ -165,6 +165,22 @@ export interface VoyageResults {
   
   // Gross Rate (voyage cost incl hire / load qty, grossed up by voyage commission)
   grossRate: number;
+
+  // EU-covered fuel quantities (for EU ETS & FuelEU)
+  euCoveredFuel: { hsfo: number; vlsfo: number; lsmgo: number };
+  
+  // Total CO2 cost (all CO2 × CO2 price)
+  totalCo2Cost: number;
+  
+  // EUA CO2 cost (chargeable CO2 × CO2 price) — same as etsCost
+  euaCo2Cost: number;
+  
+  // EUA Freight Impact (ETS cost / cargo quantity)
+  euaFreightImpact: number;
+  
+  // FuelEU Maritime penalties
+  fuelEuResult: FuelEuResult;
+  fuelEuTotalPenalty: number;
 }
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
