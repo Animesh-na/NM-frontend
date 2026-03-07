@@ -1309,6 +1309,18 @@ export function useVoyageContext() {
         nonEcaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
         ecaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
         nonEcaCo2: 0, ecaCo2: 0, nonEcaDistance: 0, grossRate: 0,
+        euCoveredFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
+        totalCo2Cost: 0, euaCo2Cost: 0, euaFreightImpact: 0,
+        fuelEuResult: {
+          target: 89.34, rewardFactor: 1.0,
+          fuels: {
+            hsfo: { intensity: 91.74, penalty_per_ton: 73.30, euQuantity: 0, penalty: 0 },
+            vlsfo: { intensity: 91.39, penalty_per_ton: 63.61, euQuantity: 0, penalty: 0 },
+            lsmgo: { intensity: 90.77, penalty_per_ton: 46.42, euQuantity: 0, penalty: 0 },
+          },
+          totalPenalty: 0,
+        },
+        fuelEuTotalPenalty: 0,
       },
     } as VoyageContextValue;
   }

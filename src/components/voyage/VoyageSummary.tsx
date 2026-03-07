@@ -249,39 +249,13 @@ export function VoyageSummary() {
             <span className="font-medium flex items-center">
               Bunker cost
               <InfoTooltip 
-                formula="(HSFO × Price) + (VLSFO × Price) + (LSMGO × Price) + (CO₂ × Price)" 
-                description="Total fuel and emissions cost"
+                formula="(HSFO × Price) + (VLSFO × Price) + (LSMGO × Price)" 
+                description="Total fuel cost (excluding CO₂)"
               />
             </span>
             <span className="font-mono tabular-nums font-semibold">
               ${formatCurrency(results.totalBunkerCost)}
             </span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
-            <span className="text-muted-foreground flex items-center">
-              Total HSFO
-              <InfoTooltip 
-                formula="(Ballast Days × Consumption) + (Laden Days × Consumption)" 
-                description="High Sulphur Fuel Oil consumption"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{results.hsfoConsumption.toFixed(2)} t</span>
-            <span className="text-muted-foreground flex items-center">
-              Total VLSFO
-              <InfoTooltip 
-                formula="(Ballast Days × Consumption) + (Laden Days × Consumption)" 
-                description="Very Low Sulphur Fuel Oil consumption"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{results.vlsfoConsumption.toFixed(2)} t</span>
-            <span className="text-muted-foreground flex items-center">
-              Total LSMGO
-              <InfoTooltip 
-                formula="Port Days × Daily Consumption" 
-                description="Low Sulphur Marine Gas Oil consumption (port use)"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{results.lsmgoConsumption.toFixed(2)} t</span>
           </div>
         </div>
 
@@ -331,16 +305,145 @@ export function VoyageSummary() {
               {results.ciiRating}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground flex items-center">
-              Total CO₂
-              <InfoTooltip 
-                formula="(HSFO × 3.114) + (VLSFO × 3.151) + (LSMGO × 3.206)" 
-                description="CO₂ emissions using IMO emission factors (t CO₂/t fuel)"
-              />
-            </span>
-            <span className="font-mono tabular-nums">
-              {results.totalCo2.toFixed(2)} t (L {results.co2Laden.toFixed(2)} / B {results.co2Ballast.toFixed(2)})
+        </div>
+
+        {/* CO₂ & EU ETS Section */}
+        <div className="space-y-1 border-t border-border pt-2">
+          <div className="flex items-center gap-1 mb-2">
+            <span className="font-medium">CO₂ & EU ETS</span>
+          </div>
+          
+          {/* Total fuel with EU ETS allocation */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+            <span className="text-muted-foreground">Total HSFO</span>
+            <span className="font-mono tabular-nums text-right">{results.hsfoConsumption.toFixed(2)} t</span>
+            <span className="text-muted-foreground">Total VLSFO</span>
+            <span className="font-mono tabular-nums text-right">{results.vlsfoConsumption.toFixed(2)} t</span>
+            <span className="text-muted-foreground">Total LSMGO</span>
+            <span className="font-mono tabular-nums text-right">{results.lsmgoConsumption.toFixed(2)} t</span>
+          </div>
+
+          {/* EU ETS fuel allocation */}
+          <div className="bg-muted rounded-sm p-1.5 mt-1 space-y-0.5">
+            <div className="text-[9px] text-muted-foreground font-medium">EU ETS & Fuel EU Allocation</div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+              <span className="text-muted-foreground">HSFO (EU)</span>
+              <span className="font-mono tabular-nums text-right">{results.euCoveredFuel.hsfo.toFixed(2)} t</span>
+              <span className="text-muted-foreground">VLSFO (EU)</span>
+              <span className="font-mono tabular-nums text-right">{results.euCoveredFuel.vlsfo.toFixed(2)} t</span>
+              <span className="text-muted-foreground">LSMGO (EU)</span>
+              <span className="font-mono tabular-nums text-right">{results.euCoveredFuel.lsmgo.toFixed(2)} t</span>
+            </div>
+          </div>
+
+          {/* CO2 totals */}
+          <div className="mt-1 space-y-0.5">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground flex items-center">
+                Total CO₂
+                <InfoTooltip 
+                  formula="(HSFO × 3.114) + (VLSFO × 3.114) + (LSMGO × 3.206)" 
+                  description="CO₂ emissions using IMO emission factors"
+                />
+              </span>
+              <span className="font-mono tabular-nums">
+                {results.totalCo2.toFixed(2)} t
+              </span>
+            </div>
+            <div className="flex justify-between text-[9px]">
+              <span className="text-muted-foreground pl-2">
+                (L {results.co2Laden.toFixed(2)} / B {results.co2Ballast.toFixed(2)})
+              </span>
+              <span className="font-mono tabular-nums">
+                ${formatCurrency(results.totalCo2Cost)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground flex items-center">
+                EUA CO₂
+                <InfoTooltip 
+                  formula="Total CO₂ × Voyage Coverage × Phase-In %" 
+                  description="Chargeable CO₂ under EU ETS after coverage and phase-in"
+                />
+              </span>
+              <span className="font-mono tabular-nums">
+                {results.chargeableCo2.toFixed(2)} t
+              </span>
+            </div>
+            <div className="flex justify-between text-[9px]">
+              <span className="text-muted-foreground pl-2">EUA CO₂ cost</span>
+              <span className="font-mono tabular-nums font-semibold text-primary">
+                ${formatCurrency(results.euaCo2Cost)}
+              </span>
+            </div>
+          </div>
+
+          {/* EUA Freight Impact */}
+          {results.euaFreightImpact > 0 && (
+            <div className="flex justify-between mt-1 pt-1 border-t border-border">
+              <span className="text-muted-foreground flex items-center">
+                EUA Freight Impact
+                <InfoTooltip 
+                  formula="EUA CO₂ Cost / Cargo Quantity" 
+                  description="EU ETS cost per metric ton of cargo"
+                />
+              </span>
+              <span className="font-mono tabular-nums font-semibold">
+                ${results.euaFreightImpact.toFixed(2)} /mt
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* FuelEU Maritime Section */}
+        <div className="space-y-1 border-t border-border pt-2">
+          <div className="flex items-center gap-1 mb-2">
+            <span className="font-medium">Fuel EU Maritime</span>
+          </div>
+          
+          <div className="bg-muted rounded-sm p-1.5 space-y-0.5 text-[9px]">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Reward Factor</span>
+              <span className="font-mono">{results.fuelEuResult.rewardFactor.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Target '{new Date().getFullYear().toString().slice(-2)}</span>
+              <span className="font-mono">{results.fuelEuResult.target} gCO₂eq/MJ</span>
+            </div>
+          </div>
+
+          {/* GHG Intensities & Penalties */}
+          <div className="space-y-0.5 mt-1">
+            {(['hsfo', 'vlsfo', 'lsmgo'] as const).map(fuel => {
+              const f = results.fuelEuResult.fuels[fuel];
+              return (
+                <div key={fuel} className="space-y-0.5">
+                  <div className="flex justify-between text-[9px]">
+                    <span className="text-muted-foreground uppercase">{fuel} Intensity</span>
+                    <span className="font-mono">{f.intensity} gCO₂eq/MJ</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground flex items-center">
+                      {fuel.toUpperCase()} Penalty
+                      <InfoTooltip 
+                        formula={`EU Qty (${f.euQuantity.toFixed(1)}t) × $${f.penalty_per_ton}/t`}
+                        description={`$${f.penalty_per_ton} per ton of ${fuel.toUpperCase()} bunker`}
+                      />
+                    </span>
+                    <span className="font-mono tabular-nums">
+                      ${formatCurrency(f.penalty)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* FuelEU Total */}
+          <div className="flex justify-between mt-1 pt-1 border-t border-border font-semibold">
+            <span>Total Fuel EU</span>
+            <span className="font-mono tabular-nums text-primary">
+              ${formatCurrency(results.fuelEuTotalPenalty)}
             </span>
           </div>
         </div>
