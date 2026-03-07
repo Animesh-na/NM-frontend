@@ -388,6 +388,7 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   stowageFactor: 0,
   portFuelType: hasScrubber ? "hsfo" : "vlsfo",
   coefficientFactor: type === "port" && (operation === "loading" || operation === "discharging") ? 1.0 : 0,
+  customTermsName: "",
 });
 
 const initialSequence: SequenceRowUI[] = [
