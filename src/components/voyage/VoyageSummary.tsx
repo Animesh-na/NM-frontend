@@ -1,8 +1,8 @@
-import { DollarSign, Clock, TrendingUp, Leaf, FileText } from "lucide-react";
-import { Link } from "react-router-dom";
+import { DollarSign, Clock, TrendingUp, Leaf, Download } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { Button } from "@/components/ui/button";
+import { exportVoyageToExcel } from "@/utils/excelExport";
 
 export function VoyageSummary() {
   const { results, cargos, hireRate } = useVoyageContext();
