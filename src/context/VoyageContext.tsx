@@ -52,7 +52,8 @@ export interface SequenceRowUI {
   productivity: number; // MT/day
   
   // Terms and time calculations
-  terms: "shinc" | "sshex" | "fhex" | "satpn" | "";
+  terms: "shinc" | "sshex" | "fhex" | "satpn" | "custom" | "";
+  customTermsName: string; // user-defined name when terms === "custom"
   turnTime: number; // hours (stored as hours, displayed as days)
   extraTime: number; // hours
   

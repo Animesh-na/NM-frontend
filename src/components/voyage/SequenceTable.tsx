@@ -20,6 +20,7 @@ const termsOptions = [
   { value: "sshex", label: "sshex" },
   { value: "fhex", label: "fhex" },
   { value: "satpn", label: "satpn" },
+  { value: "custom", label: "custom" },
 ];
 
 const distanceSpeedContextOptions: { value: SpeedContext; label: string }[] = [
