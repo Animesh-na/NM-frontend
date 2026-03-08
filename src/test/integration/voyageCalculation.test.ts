@@ -29,8 +29,8 @@ describe("Integration: Full Voyage Calculation", () => {
     expect(r.totalPortDays).toBeGreaterThan(0);
     expect(r.totalVoyageDays).toBeGreaterThan(0);
 
-    // Fuel
-    expect(r.hsfoConsumption).toBeGreaterThan(0);
+    // Fuel — mockVessel has hasScrubber=false → VLSFO only (HSFO=0)
+    expect(r.hsfoConsumption).toBe(0);
     expect(r.vlsfoConsumption).toBeGreaterThan(0);
     expect(r.lsmgoConsumption).toBeGreaterThan(0);
     expect(r.totalBunkerCost).toBeGreaterThan(0);

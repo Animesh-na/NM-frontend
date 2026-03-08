@@ -18,9 +18,10 @@ describe("Bunkering Section", () => {
   };
 
   describe("Fuel Consumption", () => {
-    it("should calculate HSFO, VLSFO, and LSMGO consumption > 0", () => {
+    it("should calculate VLSFO and LSMGO consumption > 0 (no scrubber → HSFO=0)", () => {
       const { result } = renderHook(() => useVoyageCalculation(baseInputs));
-      expect(result.current.hsfoConsumption).toBeGreaterThan(0);
+      // mockVessel has hasScrubber=false → VLSFO only, HSFO=0
+      expect(result.current.hsfoConsumption).toBe(0);
       expect(result.current.vlsfoConsumption).toBeGreaterThan(0);
       expect(result.current.lsmgoConsumption).toBeGreaterThan(0);
     });
@@ -33,9 +34,10 @@ describe("Bunkering Section", () => {
       expect(result.current.ecaFuel.lsmgo).toBeGreaterThan(0);
     });
 
-    it("should have positive non-ECA HSFO and VLSFO", () => {
+    it("should have positive non-ECA VLSFO (no scrubber → HSFO=0)", () => {
       const { result } = renderHook(() => useVoyageCalculation(baseInputs));
-      expect(result.current.nonEcaFuel.hsfo).toBeGreaterThan(0);
+      // No scrubber: HSFO=0 outside ECA, VLSFO used instead
+      expect(result.current.nonEcaFuel.hsfo).toBe(0);
       expect(result.current.nonEcaFuel.vlsfo).toBeGreaterThan(0);
     });
   });
@@ -127,7 +129,8 @@ describe("Bunkering Section", () => {
       const { result: normalResult } = renderHook(() => useVoyageCalculation(baseInputs));
       const { result: windResult } = renderHook(() => useVoyageCalculation(windAssisted));
 
-      expect(windResult.current.hsfoConsumption).toBeLessThan(normalResult.current.hsfoConsumption);
+      // No scrubber → VLSFO is the primary fuel, HSFO=0 for both
+      expect(windResult.current.vlsfoConsumption).toBeLessThan(normalResult.current.vlsfoConsumption);
       expect(windResult.current.totalBunkerCost).toBeLessThan(normalResult.current.totalBunkerCost);
     });
   });

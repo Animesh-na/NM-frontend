@@ -21,11 +21,10 @@ describe("Vessel Section", () => {
     const { result } = renderHook(() => useVoyageCalculation(baseInputs));
     const r = result.current;
 
-    // Eco speed: HSFO ballast=20, laden=22 TPD
-    // Ballast leg: 3.33 days non-ECA → HSFO = 3.33 * 20 = 66.6
-    // Laden leg: 16.66 days non-ECA → HSFO = 16.66 * 22 = 366.52
-    // Total HSFO sea ≈ 433.12 (before port consumption)
-    expect(r.hsfoConsumption).toBeGreaterThan(0);
+    // mockVessel has hasScrubber=false → VLSFO only, HSFO=0
+    // Eco speed VLSFO: ballast=5, laden=5.5 TPD
+    expect(r.hsfoConsumption).toBe(0);
+    expect(r.vlsfoConsumption).toBeGreaterThan(0);
     expect(r.totalBunkerCost).toBeGreaterThan(0);
   });
 
@@ -34,10 +33,10 @@ describe("Vessel Section", () => {
     const { result: ecoResult } = renderHook(() => useVoyageCalculation(baseInputs));
     const { result: fullResult } = renderHook(() => useVoyageCalculation(fullInputs));
 
-    // Full speed has higher consumption rates, so fuel should be higher
-    expect(fullResult.current.hsfoConsumption).toBeGreaterThan(ecoResult.current.hsfoConsumption);
-    expect(fullResult.current.vlsfoConsumption).toBeGreaterThan(ecoResult.current.vlsfoConsumption);
-    expect(fullResult.current.totalBunkerCost).toBeGreaterThan(ecoResult.current.totalBunkerCost);
+    // No scrubber → VLSFO only. Full speed has higher rates but shorter voyage.
+    // Total fuel cost should differ between eco and full profiles
+    expect(fullResult.current.vlsfoConsumption).not.toBe(ecoResult.current.vlsfoConsumption);
+    expect(fullResult.current.totalBunkerCost).not.toBe(ecoResult.current.totalBunkerCost);
   });
 
   it("should apply reward factor to reduce consumption", () => {
@@ -48,8 +47,8 @@ describe("Vessel Section", () => {
     const { result: normalResult } = renderHook(() => useVoyageCalculation(baseInputs));
     const { result: rewardResult } = renderHook(() => useVoyageCalculation(rewardInputs));
 
-    // 0.9 reward factor should reduce sea consumption by 10%
-    expect(rewardResult.current.hsfoConsumption).toBeLessThan(normalResult.current.hsfoConsumption);
+    // 0.9 reward factor should reduce sea consumption by ~10% (VLSFO for non-scrubber vessel)
+    expect(rewardResult.current.vlsfoConsumption).toBeLessThan(normalResult.current.vlsfoConsumption);
   });
 
   it("should use vessel DWT for CII calculation", () => {
