@@ -335,82 +335,79 @@ export function exportVoyageToExcel(data: ExportData) {
   const seqStartRow = r;
   sequence.forEach((leg, idx) => {
     const rr = r + idx;
+    const isAlt = idx % 2 === 1;
+    const dStyle = isAlt ? S.seqDataAlt : S.seqData;
+    const tStyle = isAlt ? S.seqTextAlt : S.seqText;
+    const fStyle = isAlt ? S.seqFormulaAlt : S.seqFormula;
+    
     const op = String(leg.operation || "");
     const portFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
-    const seaTime = leg.totalLegTime || 0; // Total sea time (ECA + NonECA) with margin
+    const seaTime = leg.totalLegTime || 0;
     const ecaTime = leg.ecaTime || 0;
     const portDays = leg.calculatedPortDays || 0;
     const turnExtraH = (leg.turnTime || 0) + (leg.extraTime || 0);
     const isLadenLeg = ladenFlags[idx];
 
     // --- Data columns (inputs) ---
-    setNum(SC.ID, rr, leg.id);
-    setText(SC.OP, rr, op);
-    setText(SC.PORT, rr, leg.port);
-    setNum(SC.DIST, rr, leg.distance);
-    setNum(SC.ECAD, rr, leg.ecaDistance);
-    setNum(SC.SEAT, rr, seaTime);
-    setNum(SC.ECAT, rr, ecaTime);
-    setNum(SC.PORTD, rr, portDays);
-    setNum(SC.TURNH, rr, turnExtraH);
-    setNum(SC.DA, rr, leg.expDa);
-    setNum(SC.LADEN, rr, isLadenLeg ? 1 : 0);
-    setText(SC.PFUEL, rr, portFuel);
+    setNum(SC.ID, rr, leg.id, dStyle);
+    setText(SC.OP, rr, op, tStyle);
+    setText(SC.PORT, rr, leg.port, tStyle);
+    setNum(SC.DIST, rr, leg.distance, dStyle);
+    setNum(SC.ECAD, rr, leg.ecaDistance, dStyle);
+    setNum(SC.SEAT, rr, seaTime, dStyle);
+    setNum(SC.ECAT, rr, ecaTime, dStyle);
+    setNum(SC.PORTD, rr, portDays, dStyle);
+    setNum(SC.TURNH, rr, turnExtraH, dStyle);
+    setNum(SC.DA, rr, leg.expDa, dStyle);
+    setNum(SC.LADEN, rr, isLadenLeg ? 1 : 0, dStyle);
+    setText(SC.PFUEL, rr, portFuel, tStyle);
 
-    // --- Formula columns ---
+    // --- Formula columns (green tinted) ---
     const c = (cn: number) => cellRef(cn, rr);
 
-    // NonECA Time = SeaTime - ECA Time
-    setFormula(SC.NECAT, rr, `${c(SC.SEAT)}-${c(SC.ECAT)}`, seaTime - ecaTime);
+    setFormula(SC.NECAT, rr, `${c(SC.SEAT)}-${c(SC.ECAT)}`, seaTime - ecaTime, fStyle);
 
-    // Working Days = MAX(0, PortDays - TurnHours/24)
     const wd = Math.max(0, portDays - turnExtraH / 24);
-    setFormula(SC.WDAYS, rr, `MAX(0,${c(SC.PORTD)}-${c(SC.TURNH)}/24)`, wd);
+    setFormula(SC.WDAYS, rr, `MAX(0,${c(SC.PORTD)}-${c(SC.TURNH)}/24)`, wd, fStyle);
 
-    // Idle Days: for load/disch = turnExtra time; for idle/waiting/bunkering/other = all port days
     const isLoadDisch = op === "load" || op === "loading" || op === "disch" || op === "discharging";
     const idleVal = isLoadDisch ? portDays - wd : portDays;
     setFormula(SC.IDAYS, rr,
       `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),${c(SC.PORTD)}-${c(SC.WDAYS)},${c(SC.PORTD)})`,
-      idleVal);
+      idleVal, fStyle);
 
-    // Ballast/Laden sea time split
-    setFormula(SC.BSEA, rr, `IF(${c(SC.LADEN)}=0,${c(SC.SEAT)},0)`, isLadenLeg ? 0 : seaTime);
-    setFormula(SC.LSEA, rr, `IF(${c(SC.LADEN)}=1,${c(SC.SEAT)},0)`, isLadenLeg ? seaTime : 0);
-    setFormula(SC.ECAB, rr, `IF(${c(SC.LADEN)}=0,${c(SC.ECAT)},0)`, isLadenLeg ? 0 : ecaTime);
-    setFormula(SC.ECAL, rr, `IF(${c(SC.LADEN)}=1,${c(SC.ECAT)},0)`, isLadenLeg ? ecaTime : 0);
-    setFormula(SC.NECAB, rr, `IF(${c(SC.LADEN)}=0,${c(SC.NECAT)},0)`, isLadenLeg ? 0 : (seaTime - ecaTime));
-    setFormula(SC.NECAL, rr, `IF(${c(SC.LADEN)}=1,${c(SC.NECAT)},0)`, isLadenLeg ? (seaTime - ecaTime) : 0);
+    setFormula(SC.BSEA, rr, `IF(${c(SC.LADEN)}=0,${c(SC.SEAT)},0)`, isLadenLeg ? 0 : seaTime, fStyle);
+    setFormula(SC.LSEA, rr, `IF(${c(SC.LADEN)}=1,${c(SC.SEAT)},0)`, isLadenLeg ? seaTime : 0, fStyle);
+    setFormula(SC.ECAB, rr, `IF(${c(SC.LADEN)}=0,${c(SC.ECAT)},0)`, isLadenLeg ? 0 : ecaTime, fStyle);
+    setFormula(SC.ECAL, rr, `IF(${c(SC.LADEN)}=1,${c(SC.ECAT)},0)`, isLadenLeg ? ecaTime : 0, fStyle);
+    setFormula(SC.NECAB, rr, `IF(${c(SC.LADEN)}=0,${c(SC.NECAT)},0)`, isLadenLeg ? 0 : (seaTime - ecaTime), fStyle);
+    setFormula(SC.NECAL, rr, `IF(${c(SC.LADEN)}=1,${c(SC.NECAT)},0)`, isLadenLeg ? (seaTime - ecaTime) : 0, fStyle);
 
-    // Is Load / Is Disch flags
     const isLoad = op === "load" || op === "loading";
     const isDisch = op === "disch" || op === "discharging";
-    setFormula(SC.ISLD, rr, `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading"),1,0)`, isLoad ? 1 : 0);
-    setFormula(SC.ISDC, rr, `IF(OR(${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),1,0)`, isDisch ? 1 : 0);
+    setFormula(SC.ISLD, rr, `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading"),1,0)`, isLoad ? 1 : 0, fStyle);
+    setFormula(SC.ISDC, rr, `IF(OR(${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),1,0)`, isDisch ? 1 : 0, fStyle);
 
-    // Port fuel type split — loading days
     setFormula(SC.HLD, rr, `IF(AND(${c(SC.ISLD)}=1,${c(SC.PFUEL)}="hsfo"),${c(SC.WDAYS)},0)`,
-      (isLoad && portFuel === "hsfo") ? wd : 0);
+      (isLoad && portFuel === "hsfo") ? wd : 0, fStyle);
     setFormula(SC.VLD, rr, `IF(AND(${c(SC.ISLD)}=1,${c(SC.PFUEL)}="vlsfo"),${c(SC.WDAYS)},0)`,
-      (isLoad && portFuel === "vlsfo") ? wd : 0);
+      (isLoad && portFuel === "vlsfo") ? wd : 0, fStyle);
     setFormula(SC.LLD, rr, `IF(AND(${c(SC.ISLD)}=1,${c(SC.PFUEL)}="lsmgo"),${c(SC.WDAYS)},0)`,
-      (isLoad && portFuel === "lsmgo") ? wd : 0);
+      (isLoad && portFuel === "lsmgo") ? wd : 0, fStyle);
 
-    // Disch days by fuel
     setFormula(SC.HDD, rr, `IF(AND(${c(SC.ISDC)}=1,${c(SC.PFUEL)}="hsfo"),${c(SC.WDAYS)},0)`,
-      (isDisch && portFuel === "hsfo") ? wd : 0);
+      (isDisch && portFuel === "hsfo") ? wd : 0, fStyle);
     setFormula(SC.VDD, rr, `IF(AND(${c(SC.ISDC)}=1,${c(SC.PFUEL)}="vlsfo"),${c(SC.WDAYS)},0)`,
-      (isDisch && portFuel === "vlsfo") ? wd : 0);
+      (isDisch && portFuel === "vlsfo") ? wd : 0, fStyle);
     setFormula(SC.LDD, rr, `IF(AND(${c(SC.ISDC)}=1,${c(SC.PFUEL)}="lsmgo"),${c(SC.WDAYS)},0)`,
-      (isDisch && portFuel === "lsmgo") ? wd : 0);
+      (isDisch && portFuel === "lsmgo") ? wd : 0, fStyle);
 
-    // Idle days by fuel
     setFormula(SC.HID, rr, `IF(${c(SC.PFUEL)}="hsfo",${c(SC.IDAYS)},0)`,
-      portFuel === "hsfo" ? idleVal : 0);
+      portFuel === "hsfo" ? idleVal : 0, fStyle);
     setFormula(SC.VID, rr, `IF(${c(SC.PFUEL)}="vlsfo",${c(SC.IDAYS)},0)`,
-      portFuel === "vlsfo" ? idleVal : 0);
+      portFuel === "vlsfo" ? idleVal : 0, fStyle);
     setFormula(SC.LID, rr, `IF(${c(SC.PFUEL)}="lsmgo",${c(SC.IDAYS)},0)`,
-      portFuel === "lsmgo" ? idleVal : 0);
+      portFuel === "lsmgo" ? idleVal : 0, fStyle);
   });
 
   const seqEndRow = seqStartRow + sequence.length - 1;
