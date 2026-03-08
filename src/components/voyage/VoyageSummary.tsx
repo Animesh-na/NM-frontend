@@ -149,8 +149,8 @@ export function VoyageSummary() {
             <span className="text-muted-foreground flex items-center">
               GTCE
               <InfoTooltip 
-                formula="Gross Freight / Total Days" 
-                description="Gross Time Charter Equivalent - daily gross earning"
+                formula="NTCE / (1 - TC Commission%)" 
+                description="Gross Time Charter Equivalent - NTCE grossed up by TC commission"
               />
             </span>
             <span className="font-mono tabular-nums text-right text-success font-semibold">
@@ -159,8 +159,8 @@ export function VoyageSummary() {
             <span className="text-muted-foreground flex items-center">
               TCE
               <InfoTooltip 
-                formula="(Gross Freight - Voyage Cost Excl Hire) / Total Days" 
-                description="Time Charter Equivalent - standard profitability measure"
+                formula="NTCE / (1 - TC Commission%)" 
+                description="Time Charter Equivalent - equals GTCE in this model"
               />
             </span>
             <span className="font-mono tabular-nums text-right">

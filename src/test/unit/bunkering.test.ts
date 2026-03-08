@@ -129,7 +129,8 @@ describe("Bunkering Section", () => {
       const { result: normalResult } = renderHook(() => useVoyageCalculation(baseInputs));
       const { result: windResult } = renderHook(() => useVoyageCalculation(windAssisted));
 
-      expect(windResult.current.hsfoConsumption).toBeLessThan(normalResult.current.hsfoConsumption);
+      // No scrubber → VLSFO is the primary fuel, HSFO=0 for both
+      expect(windResult.current.vlsfoConsumption).toBeLessThan(normalResult.current.vlsfoConsumption);
       expect(windResult.current.totalBunkerCost).toBeLessThan(normalResult.current.totalBunkerCost);
     });
   });

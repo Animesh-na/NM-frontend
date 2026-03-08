@@ -47,8 +47,8 @@ describe("Vessel Section", () => {
     const { result: normalResult } = renderHook(() => useVoyageCalculation(baseInputs));
     const { result: rewardResult } = renderHook(() => useVoyageCalculation(rewardInputs));
 
-    // 0.9 reward factor should reduce sea consumption by 10%
-    expect(rewardResult.current.hsfoConsumption).toBeLessThan(normalResult.current.hsfoConsumption);
+    // 0.9 reward factor should reduce sea consumption by ~10% (VLSFO for non-scrubber vessel)
+    expect(rewardResult.current.vlsfoConsumption).toBeLessThan(normalResult.current.vlsfoConsumption);
   });
 
   it("should use vessel DWT for CII calculation", () => {
