@@ -151,6 +151,12 @@ export function exportVoyageToExcel(data: ExportData) {
     rate: 0, rateType: "mt", quantity: 0, voyageCommission: 0, tcCommission: 0,
     demurrageRate: 0, despatchRate: 0, demurrageAmount: 0, despatchAmount: 0, stowageFactor: 0,
   };
+
+  // Derive quantity from sequence (sum of loading operations) — matches calculation engine
+  const sequenceCargoQuantity = Math.max(
+    sequence.filter(r => r.operation === "loading").reduce((sum, r) => sum + (r.quantity || 0), 0),
+    sequence.filter(r => r.operation === "discharging").reduce((sum, r) => sum + (r.quantity || 0), 0),
+  );
   const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
   const hasScrubber = vessel.hasScrubber === true;
 
@@ -251,7 +257,7 @@ export function exportVoyageToExcel(data: ExportData) {
   setSectionHeader(r, "CARGO"); r++;
   setText(0, r, "Rate", S.inputLabel); setNum(1, r, cargo.rate); const R_RATE = r; r++;
   setText(0, r, "Rate Type", S.inputLabel); setText(1, r, cargo.rateType, S.inputText); const R_RTYPE = r; r++;
-  setText(0, r, "Quantity (MT)", S.inputLabel); setNum(1, r, cargo.quantity); const R_QTY = r; r++;
+  setText(0, r, "Quantity (MT)", S.inputLabel); setNum(1, r, sequenceCargoQuantity); const R_QTY = r; r++;
   setText(0, r, "Voyage Comm (%)", S.inputLabel); setNum(1, r, cargo.voyageCommission); const R_VCOMM = r; r++;
   setText(0, r, "TC Comm (%)", S.inputLabel); setNum(1, r, cargo.tcCommission); const R_TCOMM = r; r++;
   const totalDemurrage = cargos.reduce((sum, c) => sum + (c.demurrageAmount || 0), 0);
