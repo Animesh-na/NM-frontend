@@ -1138,6 +1138,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       // Port time breakdown for fuel consumption split
       turnTimeHours: row.turnTime || 0, // Turn time in hours
       extraTimeHours: row.extraTime || 0, // Extra time in hours
+      portFuelType: row.portFuelType, // Port fuel type per leg
     })),
     cargo: aggregatedCargo,
     bunker: {
@@ -1145,6 +1146,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       vlsfo: { price: bunker.vlsfo.price, robStart: bunker.vlsfo.robStart },
       lsmgo: { price: bunker.lsmgo.price, robStart: bunker.lsmgo.robStart },
       co2Price: bunker.co2Price,
+      rewardFactor: bunker.rewardFactor,
     },
     hireRate,
     netBB,

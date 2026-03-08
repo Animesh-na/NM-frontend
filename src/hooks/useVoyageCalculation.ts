@@ -271,7 +271,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       console.log(`    Port breakdown: turnTimeHrs=${leg.turnTimeHours || 0}, extraTimeHrs=${leg.extraTimeHours || 0} → turnExtraDays=${turnExtraDays}, workingDays=${workingDays}`);
       
       // Determine port fuel type for this leg
-      const legPortFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
+      const legPortFuel = leg.portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
       
       const addPortDays = (working: number, idle: number) => {
         if (legPortFuel === "hsfo") {

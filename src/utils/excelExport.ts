@@ -205,7 +205,7 @@ export function exportVoyageToExcel(data: ExportData) {
     const rr = r + idx;
     const op = String(leg.operation || "");
     const portFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
-    const seaTime = leg.seaTime || 0;
+    const seaTime = leg.totalLegTime || 0; // Total sea time (ECA + NonECA) with margin
     const ecaTime = leg.ecaTime || 0;
     const portDays = leg.calculatedPortDays || 0;
     const turnExtraH = (leg.turnTime || 0) + (leg.extraTime || 0);
@@ -324,7 +324,7 @@ export function exportVoyageToExcel(data: ExportData) {
 
   sequence.forEach((leg, idx) => {
     const il = ladenFlags[idx];
-    const st = (leg as any).seaTime || 0;
+    const st = (leg as any).totalLegTime || 0; // Total sea time (ECA + NonECA)
     const et = (leg as any).ecaTime || 0;
     const net = st - et;
     const pd = (leg as any).calculatedPortDays || 0;
