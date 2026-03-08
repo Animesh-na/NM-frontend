@@ -21,11 +21,10 @@ describe("Vessel Section", () => {
     const { result } = renderHook(() => useVoyageCalculation(baseInputs));
     const r = result.current;
 
-    // Eco speed: HSFO ballast=20, laden=22 TPD
-    // Ballast leg: 3.33 days non-ECA → HSFO = 3.33 * 20 = 66.6
-    // Laden leg: 16.66 days non-ECA → HSFO = 16.66 * 22 = 366.52
-    // Total HSFO sea ≈ 433.12 (before port consumption)
-    expect(r.hsfoConsumption).toBeGreaterThan(0);
+    // mockVessel has hasScrubber=false → VLSFO only, HSFO=0
+    // Eco speed VLSFO: ballast=5, laden=5.5 TPD
+    expect(r.hsfoConsumption).toBe(0);
+    expect(r.vlsfoConsumption).toBeGreaterThan(0);
     expect(r.totalBunkerCost).toBeGreaterThan(0);
   });
 
