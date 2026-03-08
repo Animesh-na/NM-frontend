@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
@@ -19,6 +19,112 @@ interface ExportData {
   netBB: number;
   results: VoyageResults;
 }
+
+// ═══════════════════════════════════════════════════════
+// STYLE DEFINITIONS — Industrial Maritime Theme
+// ═══════════════════════════════════════════════════════
+
+const COLORS = {
+  // Headers & Sections
+  headerBg: "1B2A4A",       // Dark navy
+  headerFont: "FFFFFF",     // White text
+  sectionBg: "2C3E6B",     // Medium navy
+  sectionFont: "FFFFFF",   
+  subSectionBg: "E8EAF0",  // Light grey-blue
+  subSectionFont: "1B2A4A",
+  
+  // Data types
+  inputBg: "F0F0F0",       // Light grey for inputs
+  inputFont: "333333",     
+  formulaBg: "E8F5E9",     // Light green for Excel formulas
+  formulaFont: "1B5E20",   // Dark green text
+  softwareBg: "E3F2FD",    // Light blue for software values
+  softwareFont: "0D47A1",  // Dark blue text
+  
+  // Sequence table
+  seqHeaderBg: "37474F",   // Dark grey
+  seqHeaderFont: "FFFFFF",
+  seqAltBg: "F5F5F5",      // Zebra stripe
+  seqFormulaColBg: "F1F8E9",// Pale green for formula cols
+  
+  // Accents
+  totalBg: "FFF3E0",       // Light orange for totals
+  totalFont: "E65100",     // Dark orange
+  profitBg: "E8F5E9",
+  profitFont: "1B5E20",
+  envBg: "E0F7FA",         // Light cyan for environmental
+  envFont: "006064",
+  
+  borderColor: "BDBDBD",   // Grey borders
+};
+
+const FONT = {
+  name: "Calibri",
+  sz: 10,
+};
+
+// Style factories
+function makeStyle(opts: {
+  bg?: string; fg?: string; bold?: boolean; sz?: number;
+  border?: boolean; numFmt?: string; align?: string;
+}): any {
+  const s: any = {
+    font: {
+      name: FONT.name,
+      sz: opts.sz || FONT.sz,
+      color: { rgb: opts.fg || "000000" },
+      bold: opts.bold || false,
+    },
+  };
+  if (opts.bg) {
+    s.fill = { fgColor: { rgb: opts.bg }, patternType: "solid" };
+  }
+  if (opts.border) {
+    const side = { style: "thin", color: { rgb: COLORS.borderColor } };
+    s.border = { top: side, bottom: side, left: side, right: side };
+  }
+  if (opts.numFmt) s.numFmt = opts.numFmt;
+  s.alignment = { vertical: "center", horizontal: opts.align || "left" };
+  return s;
+}
+
+const S = {
+  title: makeStyle({ bg: COLORS.headerBg, fg: COLORS.headerFont, bold: true, sz: 14 }),
+  subtitle: makeStyle({ bg: COLORS.headerBg, fg: COLORS.headerFont, sz: 9 }),
+  section: makeStyle({ bg: COLORS.sectionBg, fg: COLORS.sectionFont, bold: true, sz: 11 }),
+  subSection: makeStyle({ bg: COLORS.subSectionBg, fg: COLORS.subSectionFont, bold: true, sz: 10, border: true }),
+  
+  inputLabel: makeStyle({ bold: true, border: true }),
+  inputValue: makeStyle({ bg: COLORS.inputBg, fg: COLORS.inputFont, border: true, align: "right" }),
+  inputText: makeStyle({ bg: COLORS.inputBg, fg: COLORS.inputFont, border: true }),
+  
+  calcLabel: makeStyle({ bold: true, border: true }),
+  formula: makeStyle({ bg: COLORS.formulaBg, fg: COLORS.formulaFont, border: true, align: "right", numFmt: "#,##0.00" }),
+  software: makeStyle({ bg: COLORS.softwareBg, fg: COLORS.softwareFont, border: true, align: "right", numFmt: "#,##0.00" }),
+  
+  totalLabel: makeStyle({ bg: COLORS.totalBg, fg: COLORS.totalFont, bold: true, border: true, sz: 11 }),
+  totalFormula: makeStyle({ bg: COLORS.totalBg, fg: COLORS.totalFont, bold: true, border: true, align: "right", numFmt: "#,##0.00", sz: 11 }),
+  totalSoftware: makeStyle({ bg: COLORS.totalBg, fg: COLORS.totalFont, bold: true, border: true, align: "right", numFmt: "#,##0.00", sz: 11 }),
+  
+  profitLabel: makeStyle({ bg: COLORS.profitBg, fg: COLORS.profitFont, bold: true, border: true, sz: 11 }),
+  profitFormula: makeStyle({ bg: COLORS.profitBg, fg: COLORS.profitFont, bold: true, border: true, align: "right", numFmt: "#,##0.00", sz: 11 }),
+  profitSoftware: makeStyle({ bg: COLORS.profitBg, fg: COLORS.profitFont, bold: true, border: true, align: "right", numFmt: "#,##0.00", sz: 11 }),
+  
+  envLabel: makeStyle({ bg: COLORS.envBg, fg: COLORS.envFont, bold: false, border: true }),
+  envFormula: makeStyle({ bg: COLORS.envBg, fg: COLORS.envFont, border: true, align: "right", numFmt: "#,##0.00" }),
+  envSoftware: makeStyle({ bg: COLORS.envBg, fg: COLORS.envFont, border: true, align: "right", numFmt: "#,##0.00" }),
+  
+  seqHeader: makeStyle({ bg: COLORS.seqHeaderBg, fg: COLORS.seqHeaderFont, bold: true, sz: 9, border: true, align: "center" }),
+  seqData: makeStyle({ border: true, align: "right", sz: 9 }),
+  seqDataAlt: makeStyle({ bg: COLORS.seqAltBg, border: true, align: "right", sz: 9 }),
+  seqText: makeStyle({ border: true, sz: 9 }),
+  seqTextAlt: makeStyle({ bg: COLORS.seqAltBg, border: true, sz: 9 }),
+  seqFormula: makeStyle({ bg: COLORS.seqFormulaColBg, fg: COLORS.formulaFont, border: true, align: "right", sz: 9, numFmt: "#,##0.00" }),
+  seqFormulaAlt: makeStyle({ bg: "E8F0DC", fg: COLORS.formulaFont, border: true, align: "right", sz: 9, numFmt: "#,##0.00" }),
+  
+  colHeaderFormula: makeStyle({ bg: COLORS.formulaBg, fg: COLORS.formulaFont, bold: true, border: true, align: "center", sz: 10 }),
+  colHeaderSoftware: makeStyle({ bg: COLORS.softwareBg, fg: COLORS.softwareFont, bold: true, border: true, align: "center", sz: 10 }),
+};
 
 // Convert 0-indexed column number to Excel column letter (0→A, 25→Z, 26→AA)
 function colLetter(c: number): string {
@@ -48,20 +154,43 @@ export function exportVoyageToExcel(data: ExportData) {
   const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
   const hasScrubber = vessel.hasScrubber === true;
 
-  // ---- Cell writing helpers ----
-  function setText(c: number, r: number, v: string) {
-    ws[cellRef(c, r)] = { t: "s", v };
+  // ---- Styled Cell writing helpers ----
+  function setText(c: number, r: number, v: string, style?: any) {
+    ws[cellRef(c, r)] = { t: "s", v, s: style || S.inputLabel };
   }
-  function setNum(c: number, r: number, v: number) {
-    ws[cellRef(c, r)] = { t: "n", v };
+  function setNum(c: number, r: number, v: number, style?: any) {
+    ws[cellRef(c, r)] = { t: "n", v, s: style || S.inputValue };
   }
-  function setFormula(c: number, r: number, f: string, v: number) {
-    ws[cellRef(c, r)] = { t: "n", f, v };
+  function setFormula(c: number, r: number, f: string, v: number, style?: any) {
+    ws[cellRef(c, r)] = { t: "n", f, v, s: style || S.seqFormula };
   }
-  // setCalcFormula: formula in col B + software value in col C for comparison
-  function setCalcFormula(r: number, f: string, v: number) {
-    ws[cellRef(1, r)] = { t: "n", f, v };
-    ws[cellRef(2, r)] = { t: "n", v };
+  
+  // setCalcFormula: formula in col B (green) + software value in col C (blue) for comparison
+  function setCalcFormula(r: number, f: string, v: number, isTotal = false, isProfit = false, isEnv = false) {
+    const fStyle = isTotal ? S.totalFormula : isProfit ? S.profitFormula : isEnv ? S.envFormula : S.formula;
+    const sStyle = isTotal ? S.totalSoftware : isProfit ? S.profitSoftware : isEnv ? S.envSoftware : S.software;
+    ws[cellRef(1, r)] = { t: "n", f, v, s: fStyle };
+    ws[cellRef(2, r)] = { t: "n", v, s: sStyle };
+  }
+  
+  // Section header spanning 3 cols
+  function setSectionHeader(r: number, title: string) {
+    for (let c = 0; c < 3; c++) {
+      ws[cellRef(c, r)] = { t: "s", v: c === 0 ? title : "", s: S.section };
+    }
+  }
+  
+  // Sub-section header
+  function setSubSectionHeader(r: number, title: string) {
+    for (let c = 0; c < 3; c++) {
+      ws[cellRef(c, r)] = { t: "s", v: c === 0 ? title : "", s: S.subSection };
+    }
+  }
+  
+  // Calc row label (with optional style)
+  function setCalcLabel(r: number, label: string, isTotal = false, isProfit = false, isEnv = false) {
+    const style = isTotal ? S.totalLabel : isProfit ? S.profitLabel : isEnv ? S.envLabel : S.calcLabel;
+    ws[cellRef(0, r)] = { t: "s", v: label, s: style };
   }
 
   let r = 1; // current row (1-indexed for Excel)
