@@ -34,9 +34,10 @@ describe("Bunkering Section", () => {
       expect(result.current.ecaFuel.lsmgo).toBeGreaterThan(0);
     });
 
-    it("should have positive non-ECA HSFO and VLSFO", () => {
+    it("should have positive non-ECA VLSFO (no scrubber → HSFO=0)", () => {
       const { result } = renderHook(() => useVoyageCalculation(baseInputs));
-      expect(result.current.nonEcaFuel.hsfo).toBeGreaterThan(0);
+      // No scrubber: HSFO=0 outside ECA, VLSFO used instead
+      expect(result.current.nonEcaFuel.hsfo).toBe(0);
       expect(result.current.nonEcaFuel.vlsfo).toBeGreaterThan(0);
     });
   });
