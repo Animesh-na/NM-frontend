@@ -199,98 +199,101 @@ export function exportVoyageToExcel(data: ExportData) {
   // SECTION 1: ALL MANUAL INPUTS
   // ═══════════════════════════════════════════════════════
 
-  setText(0, r, "VOYAGE ESTIMATION — FORMULA WORKBOOK"); r++;
-  setText(0, r, "Generated"); setText(1, r, new Date().toLocaleString()); r++;
+  // Title row
+  for (let c = 0; c < 3; c++) ws[cellRef(c, r)] = { t: "s", v: c === 0 ? "VOYAGE ESTIMATION — FORMULA WORKBOOK" : "", s: S.title };
   r++;
+  for (let c = 0; c < 3; c++) ws[cellRef(c, r)] = { t: "s", v: c === 0 ? "Generated" : c === 1 ? new Date().toLocaleString() : "", s: S.subtitle };
+  r++; r++;
 
   // --- VESSEL ---
-  setText(0, r, "═══ VESSEL ═══"); r++;
-  setText(0, r, "Vessel Name"); setText(1, r, vessel.name); r++;
-  setText(0, r, "DWT"); setNum(1, r, vessel.dwt); const R_DWT = r; r++;
-  setText(0, r, "GT"); setNum(1, r, vessel.gt); r++;
-  setText(0, r, "Scrubber (1=Yes, 0=No)"); setNum(1, r, hasScrubber ? 1 : 0); const R_SCR = r; r++;
-  setText(0, r, "Speed Ballast (kn)"); setNum(1, r, profile.speed.ballast); r++;
-  setText(0, r, "Speed Laden (kn)"); setNum(1, r, profile.speed.laden); r++;
+  setSectionHeader(r, "VESSEL PARTICULARS"); r++;
+  setText(0, r, "Vessel Name", S.inputLabel); setText(1, r, vessel.name, S.inputText); r++;
+  setText(0, r, "DWT", S.inputLabel); setNum(1, r, vessel.dwt); const R_DWT = r; r++;
+  setText(0, r, "GT", S.inputLabel); setNum(1, r, vessel.gt); r++;
+  setText(0, r, "Scrubber (1=Yes, 0=No)", S.inputLabel); setNum(1, r, hasScrubber ? 1 : 0); const R_SCR = r; r++;
+  setText(0, r, "Speed Ballast (kn)", S.inputLabel); setNum(1, r, profile.speed.ballast); r++;
+  setText(0, r, "Speed Laden (kn)", S.inputLabel); setNum(1, r, profile.speed.laden); r++;
   r++;
 
   // --- CONSUMPTION MATRIX ---
-  setText(0, r, "═══ CONSUMPTION RATES (TPD) ═══"); r++;
+  setSectionHeader(r, "CONSUMPTION RATES (TPD)"); r++;
   const rateColNames = ["Ballast", "Laden", "Load", "Disch", "Idle", "Canal"];
-  rateColNames.forEach((h, i) => setText(i + 1, r, h)); r++;
+  setText(0, r, "", S.seqHeader);
+  rateColNames.forEach((h, i) => setText(i + 1, r, h, S.seqHeader)); r++;
 
   const R_HSFO = r;
-  setText(0, r, "HSFO");
+  setText(0, r, "HSFO", S.inputLabel);
   [profile.hsfo.ballast, profile.hsfo.laden, profile.hsfo.load, profile.hsfo.discharge, profile.hsfo.idle, profile.hsfo.canal]
     .forEach((v, i) => setNum(i + 1, r, v || 0)); r++;
 
   const R_VLSFO = r;
-  setText(0, r, "VLSFO");
+  setText(0, r, "VLSFO", S.inputLabel);
   [profile.vlsfo.ballast, profile.vlsfo.laden, profile.vlsfo.load, profile.vlsfo.discharge, profile.vlsfo.idle, profile.vlsfo.canal]
     .forEach((v, i) => setNum(i + 1, r, v || 0)); r++;
 
   const R_LSMGO = r;
-  setText(0, r, "LSMGO");
+  setText(0, r, "LSMGO", S.inputLabel);
   [profile.lsmgo.ballast, profile.lsmgo.laden, profile.lsmgo.load, profile.lsmgo.discharge, profile.lsmgo.idle, profile.lsmgo.canal]
     .forEach((v, i) => setNum(i + 1, r, v || 0)); r++;
 
   const R_AE = r;
-  setText(0, r, "AE");
+  setText(0, r, "AE", S.inputLabel);
   [profile.ae.ballast, profile.ae.laden, profile.ae.load, profile.ae.discharge, profile.ae.idle]
     .forEach((v, i) => setNum(i + 1, r, v || 0)); r++;
 
   const R_AESCR = r;
-  setText(0, r, "AE+Scrubber");
+  setText(0, r, "AE+Scrubber", S.inputLabel);
   [profile.aeScrubber?.ballast || 0, profile.aeScrubber?.laden || 0, profile.aeScrubber?.load || 0, profile.aeScrubber?.discharge || 0, profile.aeScrubber?.idle || 0]
     .forEach((v, i) => setNum(i + 1, r, v || 0)); r++;
   r++;
 
   // --- CARGO ---
-  setText(0, r, "═══ CARGO ═══"); r++;
-  setText(0, r, "Rate"); setNum(1, r, cargo.rate); const R_RATE = r; r++;
-  setText(0, r, "Rate Type"); setText(1, r, cargo.rateType); const R_RTYPE = r; r++;
-  setText(0, r, "Quantity (MT)"); setNum(1, r, cargo.quantity); const R_QTY = r; r++;
-  setText(0, r, "Voyage Comm (%)"); setNum(1, r, cargo.voyageCommission); const R_VCOMM = r; r++;
-  setText(0, r, "TC Comm (%)"); setNum(1, r, cargo.tcCommission); const R_TCOMM = r; r++;
-  setText(0, r, "Demurrage ($)"); setNum(1, r, cargo.demurrageAmount); const R_DEM = r; r++;
-  setText(0, r, "Despatch ($)"); setNum(1, r, cargo.despatchAmount); const R_DESP = r; r++;
+  setSectionHeader(r, "CARGO"); r++;
+  setText(0, r, "Rate", S.inputLabel); setNum(1, r, cargo.rate); const R_RATE = r; r++;
+  setText(0, r, "Rate Type", S.inputLabel); setText(1, r, cargo.rateType, S.inputText); const R_RTYPE = r; r++;
+  setText(0, r, "Quantity (MT)", S.inputLabel); setNum(1, r, cargo.quantity); const R_QTY = r; r++;
+  setText(0, r, "Voyage Comm (%)", S.inputLabel); setNum(1, r, cargo.voyageCommission); const R_VCOMM = r; r++;
+  setText(0, r, "TC Comm (%)", S.inputLabel); setNum(1, r, cargo.tcCommission); const R_TCOMM = r; r++;
+  setText(0, r, "Demurrage ($)", S.inputLabel); setNum(1, r, cargo.demurrageAmount); const R_DEM = r; r++;
+  setText(0, r, "Despatch ($)", S.inputLabel); setNum(1, r, cargo.despatchAmount); const R_DESP = r; r++;
   r++;
 
   // --- BUNKER PRICES ---
-  setText(0, r, "═══ BUNKER PRICES ═══"); r++;
-  setText(0, r, "HSFO Price ($/mt)"); setNum(1, r, bunker.hsfo.price); const R_HP = r; r++;
-  setText(0, r, "VLSFO Price ($/mt)"); setNum(1, r, bunker.vlsfo.price); const R_VP = r; r++;
-  setText(0, r, "LSMGO Price ($/mt)"); setNum(1, r, bunker.lsmgo.price); const R_LP = r; r++;
-  setText(0, r, "CO₂ Price ($/mt)"); setNum(1, r, bunker.co2Price); const R_CO2P = r; r++;
-  setText(0, r, "Reward Factor"); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
+  setSectionHeader(r, "BUNKER PRICES"); r++;
+  setText(0, r, "HSFO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.hsfo.price); const R_HP = r; r++;
+  setText(0, r, "VLSFO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.vlsfo.price); const R_VP = r; r++;
+  setText(0, r, "LSMGO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.lsmgo.price); const R_LP = r; r++;
+  setText(0, r, "CO₂ Price ($/mt)", S.inputLabel); setNum(1, r, bunker.co2Price); const R_CO2P = r; r++;
+  setText(0, r, "Reward Factor", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
   r++;
 
   // --- HIRE ---
-  setText(0, r, "═══ HIRE ═══"); r++;
-  setText(0, r, "Daily Hire Rate ($/day)"); setNum(1, r, hireRate); const R_HIRE = r; r++;
-  setText(0, r, "Net BB ($)"); setNum(1, r, netBB); const R_BB = r; r++;
+  setSectionHeader(r, "HIRE"); r++;
+  setText(0, r, "Daily Hire Rate ($/day)", S.inputLabel); setNum(1, r, hireRate); const R_HIRE = r; r++;
+  setText(0, r, "Net BB ($)", S.inputLabel); setNum(1, r, netBB); const R_BB = r; r++;
   r++;
 
   // --- MISC ---
-  setText(0, r, "═══ MISC COSTS ═══"); r++;
-  setText(0, r, "Misc Cost ($)"); setNum(1, r, misc.miscCost); const R_MISC = r; r++;
-  setText(0, r, "Extra Fees ($)"); setNum(1, r, misc.extraFees); const R_XFEE = r; r++;
-  setText(0, r, "Extra Insurance ($)"); setNum(1, r, misc.extraInsurance); const R_XINS = r; r++;
-  setText(0, r, "Canal Cost 1 ($)"); setNum(1, r, misc.canalCost1); const R_CC1 = r; r++;
-  setText(0, r, "Canal Cost 2 ($)"); setNum(1, r, misc.canalCost2); const R_CC2 = r; r++;
+  setSectionHeader(r, "MISC COSTS"); r++;
+  setText(0, r, "Misc Cost ($)", S.inputLabel); setNum(1, r, misc.miscCost); const R_MISC = r; r++;
+  setText(0, r, "Extra Fees ($)", S.inputLabel); setNum(1, r, misc.extraFees); const R_XFEE = r; r++;
+  setText(0, r, "Extra Insurance ($)", S.inputLabel); setNum(1, r, misc.extraInsurance); const R_XINS = r; r++;
+  setText(0, r, "Canal Cost 1 ($)", S.inputLabel); setNum(1, r, misc.canalCost1); const R_CC1 = r; r++;
+  setText(0, r, "Canal Cost 2 ($)", S.inputLabel); setNum(1, r, misc.canalCost2); const R_CC2 = r; r++;
   r++;
 
   // --- EXTRA TIME ---
-  setText(0, r, "═══ EXTRA TIME ═══"); r++;
-  setText(0, r, "Extra Sea Days"); setNum(1, r, results.extraSeaDays); const R_XSEA = r; r++;
-  setText(0, r, "Extra Port Days"); setNum(1, r, results.extraPortDays); const R_XPORT = r; r++;
-  setText(0, r, "Extra Canal Days"); setNum(1, r, results.extraCanalDays); const R_XCANAL = r; r++;
+  setSectionHeader(r, "EXTRA TIME"); r++;
+  setText(0, r, "Extra Sea Days", S.inputLabel); setNum(1, r, results.extraSeaDays); const R_XSEA = r; r++;
+  setText(0, r, "Extra Port Days", S.inputLabel); setNum(1, r, results.extraPortDays); const R_XPORT = r; r++;
+  setText(0, r, "Extra Canal Days", S.inputLabel); setNum(1, r, results.extraCanalDays); const R_XCANAL = r; r++;
   r++;
 
   // ═══════════════════════════════════════════════════════
   // SECTION 2: SEQUENCE TABLE (with formula helper columns)
   // ═══════════════════════════════════════════════════════
 
-  setText(0, r, "═══ SEQUENCE ═══"); r++;
+  setSectionHeader(r, "VOYAGE SEQUENCE"); r++;
 
   // Column indices
   const SC = {
@@ -305,7 +308,7 @@ export function exportVoyageToExcel(data: ExportData) {
     HID: 29, VID: 30, LID: 31,
   };
 
-  // Headers
+  // Headers — styled
   const seqHeaders = [
     "ID", "Operation", "Port", "Distance", "ECA Dist", "Sea Time", "ECA Time",
     "Port Days", "Turn+Extra(h)", "Exp DA", "Is Laden", "Port Fuel",
@@ -316,7 +319,7 @@ export function exportVoyageToExcel(data: ExportData) {
     "HSFO Dc D", "VLSFO Dc D", "LSMGO Dc D",
     "HSFO Id D", "VLSFO Id D", "LSMGO Id D",
   ];
-  seqHeaders.forEach((h, i) => setText(i, r, h));
+  seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
 
   // Pre-compute isLaden flags (stateful — cannot be done with pure Excel formulas)
