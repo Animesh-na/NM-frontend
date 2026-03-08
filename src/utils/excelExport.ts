@@ -205,7 +205,7 @@ export function exportVoyageToExcel(data: ExportData) {
     const rr = r + idx;
     const op = String(leg.operation || "");
     const portFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
-    const seaTime = leg.seaTime || 0;
+    const seaTime = leg.totalLegTime || 0; // Total sea time (ECA + NonECA) with margin
     const ecaTime = leg.ecaTime || 0;
     const portDays = leg.calculatedPortDays || 0;
     const turnExtraH = (leg.turnTime || 0) + (leg.extraTime || 0);
