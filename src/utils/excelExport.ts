@@ -151,6 +151,12 @@ export function exportVoyageToExcel(data: ExportData) {
     rate: 0, rateType: "mt", quantity: 0, voyageCommission: 0, tcCommission: 0,
     demurrageRate: 0, despatchRate: 0, demurrageAmount: 0, despatchAmount: 0, stowageFactor: 0,
   };
+
+  // Derive quantity from sequence (sum of loading operations) — matches calculation engine
+  const sequenceCargoQuantity = Math.max(
+    sequence.filter(r => r.operation === "loading").reduce((sum, r) => sum + (r.quantity || 0), 0),
+    sequence.filter(r => r.operation === "discharging").reduce((sum, r) => sum + (r.quantity || 0), 0),
+  );
   const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
   const hasScrubber = vessel.hasScrubber === true;
 
