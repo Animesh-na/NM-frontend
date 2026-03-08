@@ -1146,6 +1146,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       vlsfo: { price: bunker.vlsfo.price, robStart: bunker.vlsfo.robStart },
       lsmgo: { price: bunker.lsmgo.price, robStart: bunker.lsmgo.robStart },
       co2Price: bunker.co2Price,
+      rewardFactor: bunker.rewardFactor,
     },
     hireRate,
     netBB,
