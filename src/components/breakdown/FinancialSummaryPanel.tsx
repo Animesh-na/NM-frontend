@@ -110,22 +110,31 @@ export function FinancialSummaryPanel({ results, hireRate, cargos }: FinancialSu
 
         <div className="grid grid-cols-3 gap-4 mt-4">
           <FormulaBlock
-            name="TCE"
-            formula="Gross Profit / Voyage Days"
-            result={{ label: "TCE", value: `${formatCurrency(results.tce)}/day` }}
-          />
-          <FormulaBlock
-            name="NTCE (after TC Comm)"
-            formula="TCE - (TCE × TC Comm%)"
+            name="NTCE"
+            formula="(Net Freight - Voyage Costs) / Voyage Days"
             inputs={[
-              { label: "TC Commission", value: `${primaryCargo?.tcCommission || 0}%`, source: "Cargo" },
+              { label: "Net Freight", value: formatCurrency(results.netFreight), source: "Step 2" },
+              { label: "Voyage Costs", value: formatCurrency(results.voyageCostExclHire), source: "Step 3" },
+              { label: "Voyage Days", value: `${results.totalVoyageDays.toFixed(2)} d`, source: "Sequence" },
             ]}
             result={{ label: "NTCE", value: `${formatCurrency(results.ntce)}/day` }}
           />
           <FormulaBlock
             name="GTCE"
-            formula="(Gross Freight - Voyage Cost) / Days"
+            formula="NTCE / (1 - TC Commission%)"
+            inputs={[
+              { label: "NTCE", value: `${formatCurrency(results.ntce)}/day`, source: "Calculated" },
+              { label: "TC Commission", value: `${primaryCargo?.tcCommission || 0}%`, source: "Cargo" },
+            ]}
             result={{ label: "GTCE", value: `${formatCurrency(results.gtce)}/day` }}
+          />
+          <FormulaBlock
+            name="TCE"
+            formula="= GTCE"
+            inputs={[
+              { label: "GTCE", value: `${formatCurrency(results.gtce)}/day`, source: "Calculated" },
+            ]}
+            result={{ label: "TCE", value: `${formatCurrency(results.tce)}/day` }}
           />
         </div>
       </div>
