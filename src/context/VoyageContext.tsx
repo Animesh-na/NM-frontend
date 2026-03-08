@@ -1138,6 +1138,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       // Port time breakdown for fuel consumption split
       turnTimeHours: row.turnTime || 0, // Turn time in hours
       extraTimeHours: row.extraTime || 0, // Extra time in hours
+      portFuelType: row.portFuelType, // Port fuel type per leg
     })),
     cargo: aggregatedCargo,
     bunker: {
