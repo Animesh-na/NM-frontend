@@ -71,7 +71,7 @@ export function ConsumptionMatrix({
         <tbody>
           {matrixRows.map((row) => (
             <tr key={row.key}>
-              <td className="px-0.5 py-0 text-[10px] font-medium text-muted-foreground bg-subsection-header">{row.label}</td>
+              <td className="px-0.5 py-0 text-[10px] font-bold text-foreground bg-subsection-header">{row.label}</td>
               {columns.map(col => {
                 const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
                 const isSpeedNA = row.key === "speed" && !speedOnlyColumns.includes(col.key);
