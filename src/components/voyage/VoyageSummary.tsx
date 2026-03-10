@@ -345,7 +345,7 @@ export function VoyageSummary() {
               <span className="text-muted-foreground flex items-center">
                 Total CO₂
                 <InfoTooltip 
-                  formula="(HSFO × 3.114) + (VLSFO × 3.114) + (LSMGO × 3.206)" 
+                  formula="(HSFO × 3.114) + (VLSFO × 3.151) + (LSMGO × 3.206)" 
                   description="CO₂ emissions using IMO emission factors"
                 />
               </span>
