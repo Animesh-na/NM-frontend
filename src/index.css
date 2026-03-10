@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -141,63 +140,44 @@
 }
 
 @layer components {
-  /* Section headers - clear visual hierarchy */
+  /* Section headers - grey background for clear separation */
   .section-header {
-    @apply bg-[hsl(220_14%_96%)] text-[hsl(215_28%_17%)] px-4 py-2.5 text-base font-semibold flex items-center gap-2;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    @apply bg-section-header text-section-header-foreground px-3 py-1 text-sm font-semibold flex items-center gap-2;
   }
 
   .section-header-compact {
-    @apply bg-[hsl(220_14%_96%)] text-[hsl(215_28%_17%)] px-3 py-2 text-sm font-semibold flex items-center gap-2;
-    font-size: 15px;
-    font-weight: 600;
+    @apply bg-section-header text-section-header-foreground px-3 py-1 text-[11px] font-semibold flex items-center gap-2;
   }
 
-  /* Subsection headers - medium weight, slightly darker */
+  /* Subsection headers */
   .subsection-header {
-    @apply bg-subsection-header text-[hsl(215_25%_27%)] px-3 py-1.5 font-medium;
-    font-size: 14px;
-    font-weight: 500;
+    @apply bg-subsection-header text-foreground px-2 py-1 text-[11px] font-medium;
   }
 
-  /* Form input styling - readable, clean */
+  /* Form input styling - white background with borders */
   .form-input {
-    @apply h-8 px-2.5 border border-[hsl(216_12%_84%)] bg-[hsl(0_0%_100%)] rounded-md focus:outline-none focus:ring-1 focus:ring-ring;
-    font-size: 14px;
-    font-weight: 400;
-    padding: 6px 8px;
+    @apply h-6 px-2 text-xs border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
   }
 
   .form-input-sm {
-    @apply h-7 px-2 border border-[hsl(216_12%_84%)] bg-[hsl(0_0%_100%)] rounded-md focus:outline-none focus:ring-1 focus:ring-ring;
-    font-size: 13px;
-    font-weight: 400;
-    padding: 4px 6px;
+    @apply h-5 px-1.5 text-[10px] border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
   }
 
   .form-select {
-    @apply h-8 px-2.5 border border-[hsl(216_12%_84%)] bg-[hsl(0_0%_100%)] rounded-md focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
-    font-size: 14px;
-    font-weight: 400;
+    @apply h-6 px-2 text-xs border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
   }
 
   .form-select-sm {
-    @apply h-7 px-2 border border-[hsl(216_12%_84%)] bg-[hsl(0_0%_100%)] rounded-md focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
-    font-size: 13px;
-    font-weight: 400;
+    @apply h-5 px-1 text-[10px] border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
   }
 
   /* Form field group - label + input with spacing */
   .form-field {
-    @apply flex flex-col gap-1;
+    @apply flex flex-col gap-0.5;
   }
 
   .form-label {
-    @apply font-medium text-muted-foreground;
-    font-size: 12px;
-    font-weight: 500;
+    @apply text-[10px] font-medium text-muted-foreground;
   }
 
   /* Input with unit suffix */
@@ -210,38 +190,34 @@
   }
 
   .input-with-unit .unit {
-    @apply h-8 px-2 bg-muted border border-[hsl(216_12%_84%)] rounded-r-md flex items-center text-muted-foreground;
-    font-size: 12px;
+    @apply h-6 px-1.5 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
   }
 
   .input-with-unit-sm .unit {
-    @apply h-7 px-1.5 bg-muted border border-[hsl(216_12%_84%)] rounded-r-md flex items-center text-muted-foreground;
-    font-size: 11px;
+    @apply h-5 px-1 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
   }
 
-  /* Money formatting - prominent numeric output */
+  /* Money formatting */
   .money-positive {
-    @apply text-success font-semibold;
-    font-size: 15px;
+    @apply text-success font-medium;
   }
 
   .money-negative {
-    @apply text-destructive font-semibold;
-    font-size: 15px;
+    @apply text-destructive font-medium;
   }
 
-  /* Card sections */
+  /* Card sections - grey background, no visible card borders */
   .calc-card {
-    @apply bg-background overflow-hidden mb-4;
+    @apply bg-background overflow-hidden;
   }
 
   .calc-card-compact {
-    @apply bg-background overflow-hidden mb-3;
+    @apply bg-background overflow-hidden;
   }
 
   /* Action buttons */
   .btn-action {
-    @apply h-7 px-3 text-xs font-medium rounded-md border transition-colors;
+    @apply h-6 px-2 text-[10px] font-medium rounded border transition-colors;
   }
 
   .btn-primary {
@@ -262,16 +238,15 @@
 
   /* Form layout utilities */
   .form-row {
-    @apply flex flex-wrap gap-2.5 items-end;
+    @apply flex flex-wrap gap-2 items-end;
   }
 
   .form-grid {
-    @apply grid gap-2.5;
+    @apply grid gap-2;
   }
 
   .compact-label {
-    @apply text-muted-foreground font-medium mb-1 block;
-    font-size: 12px;
+    @apply text-[10px] text-muted-foreground font-medium mb-0.5 block;
   }
 
   /* Viewport-fit sections */
@@ -281,27 +256,5 @@
 
   .scrollable-section {
     @apply flex-1 overflow-y-auto;
-  }
-
-  /* Numeric output values */
-  .numeric-output {
-    font-size: 15px;
-    font-weight: 600;
-    color: hsl(215, 28%, 7%);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .numeric-output-positive {
-    font-size: 15px;
-    font-weight: 600;
-    color: hsl(142, 72%, 29%);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .numeric-output-negative {
-    font-size: 15px;
-    font-weight: 600;
-    color: hsl(0, 72%, 51%);
-    font-variant-numeric: tabular-nums;
   }
 }
