@@ -161,7 +161,7 @@ export function VesselPanel() {
               <VesselSelect value={vessel.name} onChange={handleVesselSelect} selectedTypeId={selectedTypeId} selectedSectorId={selectedSectorId} placeholder="Search vessel..." />
             </div>
             <div className="form-field w-20">
-              <label className="form-label">DWT</label>
+              <label className="form-label">DWT (mt)</label>
               <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.dwt || ""} onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
             <div className="form-field w-20">
@@ -169,15 +169,15 @@ export function VesselPanel() {
               <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.gt || ""} onChange={(e) => handleFieldChange("gt", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
             <div className="form-field w-20">
-              <label className="form-label">Cubic</label>
+              <label className="form-label">Cubic (m³)</label>
               <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.cubic || ""} onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
             <div className="form-field w-16">
-              <label className="form-label">Draft</label>
+              <label className="form-label">Draft (m)</label>
               <input type="number" step="0.01" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.draft || ""} onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
             <div className="form-field w-16">
-              <label className="form-label">TPC</label>
+              <label className="form-label">TPC (t/cm)</label>
               <input type="number" step="0.1" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.tpcTpi || ""} onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
             <div className="form-field w-14">

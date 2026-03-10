@@ -48,37 +48,44 @@ export function ConsumptionMatrix({
   onConsumptionChange,
 }: ConsumptionMatrixProps) {
   const speedOnlyColumns: ColumnKey[] = ["ballast", "laden"];
-  const thClass = "px-1 py-0.5 text-[9px] font-semibold text-section-header-foreground text-center bg-table-header";
+  const thClass = "px-0.5 py-0 text-[9px] font-semibold text-section-header-foreground text-center bg-table-header";
+
+  const getUnit = (rowKey: string): string => {
+    if (rowKey === "speed") return "kn";
+    if (rowKey === "ae" || rowKey === "aeScrubber") return "mt/d";
+    return "mt/d";
+  };
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[10px]">
+      <table className="w-full text-[10px] border-collapse">
         <thead>
           <tr>
             <th className={`${thClass} text-left w-14`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
             {columns.map(col => (
               <th key={col.key} className={thClass}>{col.label}</th>
             ))}
+            <th className={`${thClass} w-8`}>Unit</th>
           </tr>
         </thead>
         <tbody>
           {matrixRows.map((row) => (
             <tr key={row.key}>
-              <td className="px-1 py-0.5 text-[10px] font-medium text-muted-foreground bg-subsection-header">{row.label}</td>
+              <td className="px-0.5 py-0 text-[10px] font-medium text-muted-foreground bg-subsection-header">{row.label}</td>
               {columns.map(col => {
                 const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
                 const isSpeedNA = row.key === "speed" && !speedOnlyColumns.includes(col.key);
                 const value = consumptionMatrix[row.key][col.key];
                 
                 return (
-                  <td key={col.key} className="px-0.5 py-0.5">
+                  <td key={col.key} className="px-0 py-0">
                     {isSpeedNA ? (
-                      <div className="h-5 flex items-center justify-center text-[10px] text-muted-foreground/40">—</div>
+                      <div className="h-4 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                     ) : (
                       <input
                         type="number"
                         step={row.key === "speed" ? "0.1" : "0.01"}
-                        className={`form-input-sm w-full font-mono tabular-nums text-right ${isDisabled ? "opacity-50" : ""}`}
+                        className={`form-input-sm w-full font-mono tabular-nums text-right h-4 text-[9px] px-0.5 ${isDisabled ? "opacity-50" : ""}`}
                         value={value || ""}
                         onChange={(e) => onConsumptionChange(row.key, col.key, parseFloat(e.target.value) || 0)}
                         placeholder="0"
@@ -88,6 +95,7 @@ export function ConsumptionMatrix({
                   </td>
                 );
               })}
+              <td className="px-0.5 py-0 text-[8px] text-muted-foreground text-center">{getUnit(row.key)}</td>
             </tr>
           ))}
         </tbody>
