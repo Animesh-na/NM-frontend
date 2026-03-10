@@ -245,8 +245,8 @@ export function SequenceTable() {
                       {/* Quantity */}
                       <td className={tdClass}>
                         {hasQty ? (() => {
-                          const draftCheck = draftCheckResults[row.id];
-                          const qtyExceedsDraft = row.operation === 'discharging' && draftCheck && draftCheck.status === "NOT ACCESSIBLE";
+                          // Simple draft check: does the vessel's draft at this port exceed the port max draft?
+                          const qtyExceedsDraft = row.operation === 'discharging' && row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
                             <div className="flex items-center gap-0.5">
                               <input type="number" className={`form-input-sm w-16 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
@@ -260,9 +260,7 @@ export function SequenceTable() {
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-[220px] text-[10px]">
                                       <p className="font-semibold">Draft Restriction</p>
-                                      <p>Qty {row.quantity?.toLocaleString()} mt exceeds port draft limit.</p>
-                                      {draftCheck.maxLoadableCargo !== undefined && <p>Max: {Math.round(draftCheck.maxLoadableCargo).toLocaleString()} mt</p>}
-                                      {draftCheck.newDraft !== undefined && <p>Draft: {draftCheck.newDraft.toFixed(2)}m vs limit {draftCheck.effectiveDraft?.toFixed(2)}m</p>}
+                                      <p>Vessel draft {row.draft?.toFixed(2)}m exceeds port limit {row.portMaxDraft}m</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
