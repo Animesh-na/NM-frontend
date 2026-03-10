@@ -421,8 +421,9 @@ export function SequenceTable() {
         if (!row) return null;
         const sf = row.stowageFactor > 0 ? row.stowageFactor * 35.3147 : globalStowageFactor * 35.3147;
         
-        const validateAndApply = (qty: number, draft: number | undefined) => {
-          const applyChanges = () => {
+          const validateAndApply = (qty: number, draft: number | undefined) => {
+            // The intake calculator already properly calculates max loadable cargo
+            // accounting for draft, volume, and DWT limits — just apply directly
             updateSequenceRow(intakeRowId, "quantity", qty);
             if (draft !== undefined) {
               updateSequenceRow(intakeRowId, "portMaxDraft", draft);
@@ -430,50 +431,6 @@ export function SequenceTable() {
             }
             setIntakeRowId(null);
           };
-
-          // Find the next discharge port(s) and validate draft restriction
-          const currentIndex = sequence.findIndex(r => r.id === intakeRowId);
-          const warnings: string[] = [];
-
-          for (let i = currentIndex + 1; i < sequence.length; i++) {
-            const dischRow = sequence[i];
-            if (dischRow.operation !== "discharging") continue;
-            if (!dischRow.portMaxDraft || dischRow.portMaxDraft <= 0) continue;
-
-            const cubicCapacity = vessel.cubic > 0 ? vessel.cubic : estimateCubicFromDwt(vessel.dwt);
-            const dischSf = dischRow.stowageFactor > 0 ? dischRow.stowageFactor : globalStowageFactor;
-            const dischCheck = calculateDraftRestriction({
-              currentDraftM: draft ?? vessel.draft,
-              dwtMt: vessel.dwt,
-              tpcMtPerCm: vessel.tpcTpi,
-              shipCubicCapacityM3: cubicCapacity,
-              portName: dischRow.port || `Discharge Port #${i + 1}`,
-              portMaxDraftM: dischRow.portMaxDraft,
-              ukcPercent: 0,
-              stowageFactorM3PerMt: dischSf,
-              requestedCargoMt: qty,
-            });
-
-            if (dischCheck.status === "NOT ACCESSIBLE") {
-              const reasonStr = dischCheck.reasons?.join(", ") || "Draft restriction exceeded";
-              warnings.push(
-                `⚠ ${dischRow.port || "Discharge port"}: ${reasonStr}` +
-                (dischCheck.maxLoadableCargo ? ` (Max loadable: ${Math.round(dischCheck.maxLoadableCargo).toLocaleString()} MT)` : "") +
-                (dischCheck.newDraft ? ` (New draft: ${dischCheck.newDraft.toFixed(2)}m vs limit: ${dischCheck.effectiveDraft?.toFixed(2)}m)` : "")
-              );
-            }
-          }
-
-          if (warnings.length > 0) {
-            setDraftAlert({
-              show: true,
-              messages: warnings,
-              onProceed: applyChanges,
-            });
-          } else {
-            applyChanges();
-          }
-        };
 
         return (
           <IntakeCalculator
