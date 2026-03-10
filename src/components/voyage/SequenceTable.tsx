@@ -244,11 +244,32 @@ export function SequenceTable() {
 
                       {/* Quantity */}
                       <td className={tdClass}>
-                        {hasQty ? (
-                          <input type="number" className="form-input-sm w-16 font-mono text-right text-[10px]"
-                            value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
-                            onDoubleClick={() => setIntakeRowId(row.id)} title="Double-click for Intake Calculator" />
-                        ) : hasBunkering ? (
+                        {hasQty ? (() => {
+                          const draftCheck = draftCheckResults[row.id];
+                          const qtyExceedsDraft = row.operation === 'discharging' && draftCheck && draftCheck.status === "NOT ACCESSIBLE";
+                          return (
+                            <div className="flex items-center gap-0.5">
+                              <input type="number" className={`form-input-sm w-16 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
+                                value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
+                                onDoubleClick={() => setIntakeRowId(row.id)} title="Double-click for Intake Calculator" />
+                              {qtyExceedsDraft && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-[220px] text-[10px]">
+                                      <p className="font-semibold">Draft Restriction</p>
+                                      <p>Qty {row.quantity?.toLocaleString()} mt exceeds port draft limit.</p>
+                                      {draftCheck.maxLoadableCargo !== undefined && <p>Max: {Math.round(draftCheck.maxLoadableCargo).toLocaleString()} mt</p>}
+                                      {draftCheck.newDraft !== undefined && <p>Draft: {draftCheck.newDraft.toFixed(2)}m vs limit {draftCheck.effectiveDraft?.toFixed(2)}m</p>}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                          );
+                        })() : hasBunkering ? (
                           <span className="text-[10px] text-muted-foreground px-1">bkr</span>
                         ) : (
                           <span className="text-muted-foreground/40 px-1">—</span>
