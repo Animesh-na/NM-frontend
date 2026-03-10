@@ -155,7 +155,7 @@ export function VesselPanel() {
 
       {isExpanded && (
         <div className="px-2 py-1 space-y-1">
-          {/* Row 1: Search + Particulars */}
+          {/* Row 1: Search + Particulars + Type/Sector/Speed */}
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field min-w-[120px] max-w-[200px] flex-1">
               <VesselSelect value={vessel.name} onChange={handleVesselSelect} selectedTypeId={selectedTypeId} selectedSectorId={selectedSectorId} placeholder="Search vessel..." />
@@ -192,39 +192,35 @@ export function VesselPanel() {
                 <option value="N">N</option><option value="Y">Y</option>
               </select>
             </div>
-            <button onClick={handleRefresh} disabled={refreshing || !vessel.name}
-              className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors border border-input rounded bg-input-bg" title="Refresh">
-              <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
-            </button>
-          </div>
-
-          {/* Row 2: Type, Sector, Speed, Checkboxes */}
-          <div className="flex flex-wrap gap-2 items-end">
-            <div className="form-field w-32">
+            <div className="form-field w-24">
               <label className="form-label">Type</label>
               <select className="form-select-sm w-full" value={selectedTypeId ?? ""} onChange={(e) => { const typeId = e.target.value ? Number(e.target.value) : null; const typeName = vesselTypes.find(t => t.id === typeId)?.name || ""; handleVesselTypeChange(typeId, typeName); }} disabled={typesLoading}>
-                <option value="">--- ALL ---</option>
+                <option value="">ALL</option>
                 {vesselTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
               </select>
             </div>
-            <div className="form-field w-32">
+            <div className="form-field w-24">
               <label className="form-label">Sector</label>
               <select className="form-select-sm w-full" value={selectedSectorId ?? ""} onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)} disabled={typesLoading}>
-                <option value="">--- ALL ---</option>
+                <option value="">ALL</option>
                 {vesselSectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
-            <div className="form-field w-36">
+            <div className="form-field w-28">
               <label className="form-label">Speed Profile</label>
               <select className="form-select-sm w-full" value={vessel.speedProfile} onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}>
-                <option value="eco">Eco Speed & Cons</option>
-                <option value="full">Full Speed & Cons</option>
+                <option value="eco">Eco</option>
+                <option value="full">Full</option>
               </select>
             </div>
             <div className="flex items-center gap-1.5 pb-0.5">
               <Checkbox id="loadDischIdle" checked={vessel.loadDischIdleSame} onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)} className="h-3.5 w-3.5" />
-              <label htmlFor="loadDischIdle" className="text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap">L=D=I</label>
+              <label htmlFor="loadDischIdle" className="text-[10px] text-foreground font-bold cursor-pointer whitespace-nowrap">L=D=I</label>
             </div>
+            <button onClick={handleRefresh} disabled={refreshing || !vessel.name}
+              className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors border border-input rounded bg-input-bg" title="Refresh">
+              <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
           </div>
 
           {/* Consumption Matrix */}
