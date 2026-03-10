@@ -425,7 +425,7 @@ export function SequenceTable() {
           const applyChanges = () => {
             updateSequenceRow(intakeRowId, "quantity", qty);
             if (draft !== undefined) {
-              updateSequenceRow(intakeRowId, "draft", draft);
+              updateSequenceRow(intakeRowId, "portMaxDraft", draft);
             }
             setIntakeRowId(null);
           };
