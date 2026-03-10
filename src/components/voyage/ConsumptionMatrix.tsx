@@ -39,8 +39,6 @@ const columns: { key: ColumnKey; label: string }[] = [
   { key: "load", label: "Ld" },
   { key: "discharge", label: "Dis" },
   { key: "idle", label: "Idl" },
-  { key: "misc1", label: "M1" },
-  { key: "misc2", label: "M2" },
 ];
 
 export function ConsumptionMatrix({

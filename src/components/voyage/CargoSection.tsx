@@ -181,13 +181,10 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntry
   
   return (
     <div className="border border-border rounded p-2 bg-input-bg">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
+      <div className="flex flex-wrap gap-2 items-end">
+        <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded self-center">
           #{index + 1}
         </span>
-      </div>
-
-      <div className="flex flex-wrap gap-2 items-end">
         <div className="form-field w-28">
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">
