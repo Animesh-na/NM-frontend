@@ -340,10 +340,7 @@ export function SequenceTable() {
                       {/* Draft (m) */}
                       <td className={tdClass}>
                         {hasQty ? (() => {
-                          const draftExceedsPort = row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
-                          const draftCheck = draftCheckResults[row.id];
-                          const hasRestriction = draftCheck && draftCheck.status === "NOT ACCESSIBLE";
-                          const showWarning = draftExceedsPort || hasRestriction;
+                          const showWarning = row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
                             <input type="number" step="0.01"
                               className={`form-input-sm w-14 font-mono text-right text-[10px] ${showWarning ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
