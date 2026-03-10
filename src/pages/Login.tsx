@@ -24,9 +24,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-sm">
-        <div className="bg-card border border-border rounded-md shadow-sm p-6">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="w-full max-w-sm relative z-10">
+        <div className="bg-card/95 backdrop-blur-sm border border-border rounded-md shadow-lg p-6">
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-3">
