@@ -54,8 +54,8 @@ serve(async (req) => {
       headers: fetchHeaders,
     };
 
-    // Forward request body for POST requests
-    if (req.method === 'POST') {
+    // Forward request body for POST/PUT requests
+    if (req.method === 'POST' || req.method === 'PUT') {
       const body = await req.text();
       if (body) {
         fetchOptions.body = body;
