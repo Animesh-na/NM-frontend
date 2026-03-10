@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 
 export function VoyageSummary() {
   const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB } = useVoyageContext();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
