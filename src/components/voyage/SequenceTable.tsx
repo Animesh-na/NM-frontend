@@ -128,19 +128,19 @@ export function SequenceTable() {
                 <tr>
                   <th className={thClass}>Type</th>
                   <th className={`${thClass} text-left min-w-[140px]`}>Port</th>
-                  <th className={thClass}>Dist (V)</th>
-                  <th className={thClass}>ECA (L)</th>
-                  <th className={thClass}>Sea Time</th>
-                  <th className={thClass}>SM%</th>
-                  <th className={thClass}>Qty (mt)</th>
-                  <th className={thClass}>Prod</th>
+                  <th className={thClass}>Dist nm</th>
+                  <th className={thClass}>ECA nm</th>
+                  <th className={thClass}>Sea (d)</th>
+                  <th className={thClass}>SM %</th>
+                  <th className={thClass}>Qty mt</th>
+                  <th className={thClass}>mt/d</th>
                   <th className={thClass}>Terms</th>
                   <th className={thClass}>Coeff</th>
-                  <th className={thClass}>Turn (h)</th>
-                  <th className={thClass}>Extra (h)</th>
-                  <th className={thClass}>Draft (m)</th>
+                  <th className={thClass}>Turn h</th>
+                  <th className={thClass}>Extra h</th>
+                  <th className={thClass}>Draft m</th>
                   <th className={thClass}>Port Fuel</th>
-                  <th className={thClass}>Exp DA</th>
+                  <th className={thClass}>DA $</th>
                   <th className={thClass}></th>
                 </tr>
               </thead>
