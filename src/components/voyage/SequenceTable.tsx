@@ -56,7 +56,7 @@ export function SequenceTable() {
     const results: Record<number, DraftCheckResult> = {};
     for (const row of sequence) {
       if (row.type !== "port") continue;
-      if (row.portMaxDraft <= 0) continue;
+      if (!row.portMaxDraft || row.portMaxDraft <= 0) continue;
       if (row.operation !== "loading" && row.operation !== "discharging") continue;
       const cubicCapacity = vessel.cubic > 0 ? vessel.cubic : estimateCubicFromDwt(vessel.dwt);
       const sf = row.stowageFactor > 0 ? row.stowageFactor : globalStowageFactor;
