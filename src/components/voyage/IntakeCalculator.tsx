@@ -112,22 +112,36 @@ export function IntakeCalculator({
     if (season === "winter") seasonalDraft = _summerDraft - _summerDraft / 48;
     else if (season === "tropical") seasonalDraft = _summerDraft + _summerDraft / 48;
 
-    const draftReduction = Math.max(0, seasonalDraft - _draft);
-    const draftReductionCm = draftReduction * 100;
-    const dwtReduction = draftReductionCm * _tpc;
+    // Step 1: Draft Difference (can be negative when port allows more draft)
+    const draftDifference = seasonalDraft - _draft;
+    const draftDifferenceCm = draftDifference * 100;
 
-    const correctedDwt = (_summerDwt - dwtReduction) * densityFactor;
-    const dwcc = correctedDwt - _constants - _bob - _freshWater;
+    // Step 2: DWT Reduction (negative = DWT increase when port draft > seasonal draft)
+    const dwtReduction = draftDifferenceCm * _tpc;
 
-    const capacityM3 = _grainCuM > 0 ? _grainCuM : _grainCuFt / 35.3147;
-    const sfM3 = _sf > 0 ? _sf / 35.3147 : 1;
-    const volumeLimit = capacityM3 / sfM3;
+    // Step 3: DWT after draft & density correction
+    const dwtAfterDraftDensity = (_summerDwt - dwtReduction) * densityFactor;
 
-    const dwccCalc = Math.max(0, Math.round(dwcc));
-    const dwccCubic = Math.max(0, Math.round(volumeLimit));
-    const finalIntake = Math.min(dwccCalc, dwccCubic);
+    // Step 4: Total deductions
+    const totalDeductions = _constants + _bob + _freshWater;
 
-    return { seasonalDraft, draftReduction, dwtReduction, correctedDwt, dwccCalc, dwccCubic, finalIntake };
+    // Step 5: DWCC (Dead Weight Cargo Capacity)
+    const dwcc = dwtAfterDraftDensity - totalDeductions;
+
+    // Step 6: Volume-based cargo (cu.ft / SF in cu.ft/mt)
+    const grainCuFtVal = _grainCuFt > 0 ? _grainCuFt : _grainCuM * 35.3147;
+    const volumeBasedCargo = _sf > 0 ? grainCuFtVal / _sf : Infinity;
+
+    // Step 7: Final allowable cargo = min of DWCC and volume
+    const dwccCalc = Math.round(dwcc);
+    const dwccCubic = Math.round(volumeBasedCargo);
+    const finalIntake = Math.max(0, Math.min(dwccCalc, dwccCubic));
+
+    return {
+      seasonalDraft, draftDifference, draftDifferenceCm, dwtReduction,
+      dwtAfterDraftDensity, totalDeductions, dwccCalc, dwccCubic, finalIntake,
+      densityFactor,
+    };
   }, [summerDwt, summerDraft, tpc, draft, season, densityFactor, constants, bob, freshWater, grainCuM, grainCuFt, sf]);
 
   const inputClass = "form-input-sm w-24 text-[11px] font-mono text-right";
