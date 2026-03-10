@@ -1,20 +1,25 @@
 import { useState } from "react";
-import { Ship } from "lucide-react";
+import { Ship, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const success = login(email, password);
-    if (!success) {
-      setError("Invalid login credentials");
+    setLoading(true);
+    
+    const result = await login(email, password);
+    
+    if (!result.success) {
+      setError(result.error || "Invalid login credentials");
     }
+    setLoading(false);
   };
 
   return (
@@ -42,6 +47,7 @@ const Login = () => {
                 className="form-input w-full h-9 px-3 text-sm"
                 placeholder="Enter your email"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -56,6 +62,7 @@ const Login = () => {
                 className="form-input w-full h-9 px-3 text-sm"
                 placeholder="Enter your password"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -65,9 +72,11 @@ const Login = () => {
 
             <button
               type="submit"
-              className="w-full h-9 bg-primary text-primary-foreground text-sm font-medium rounded-sm hover:bg-primary/90 transition-colors"
+              disabled={loading}
+              className="w-full h-9 bg-primary text-primary-foreground text-sm font-medium rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Login
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loading ? "Signing in..." : "Login"}
             </button>
           </form>
         </div>

@@ -3,6 +3,12 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+const STORAGE_KEY_TOKEN = "voyagecalc_token";
+
+function getAuthToken(): string | null {
+  return localStorage.getItem(STORAGE_KEY_TOKEN);
+}
+
 // Types
 export interface VesselType {
   id: number;
@@ -38,7 +44,11 @@ export interface MarinePort {
 }
 
 // Helper for API requests via Edge Function
-async function apiRequest<T>(endpoint: string, params?: Record<string, string | number>, options?: { method?: string; body?: unknown }): Promise<T> {
+async function apiRequest<T>(
+  endpoint: string,
+  params?: Record<string, string | number>,
+  options?: { method?: string; body?: unknown; authenticated?: boolean }
+): Promise<T> {
   const queryParams = new URLSearchParams({ endpoint });
   
   if (params) {
@@ -49,12 +59,22 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, string | 
     });
   }
 
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+  };
+
+  // Add JWT auth token for authenticated endpoints
+  if (options?.authenticated !== false) {
+    const token = getAuthToken();
+    if (token) {
+      headers['X-Auth-Token'] = token;
+    }
+  }
+
   const fetchOptions: RequestInit = {
     method: options?.method || 'GET',
-    headers: {
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
   };
 
   if (options?.body) {
@@ -76,7 +96,7 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, string | 
 // 1. Get Vessel Types
 export async function getVesselTypes(): Promise<VesselType[]> {
   try {
-    const data = await apiRequest<{ types: VesselType[] }>("/vessel-types");
+    const data = await apiRequest<{ types: VesselType[] }>("/vessel-types", undefined, { authenticated: false });
     return data.types || [];
   } catch (error) {
     console.error("Failed to fetch vessel types:", error);
@@ -95,7 +115,7 @@ export async function searchVessels(
     if (typeId) {
       params.type_id = typeId;
     }
-    const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels/search", params);
+    const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels/search", params, { authenticated: false });
     return data.vessels || [];
   } catch (error) {
     console.error("Failed to search vessels:", error);
@@ -106,7 +126,7 @@ export async function searchVessels(
 // 3. Search Ports
 export async function searchPorts(query: string, limit: number = 10): Promise<MarinePort[]> {
   try {
-    const data = await apiRequest<{ ports: MarinePort[] }>("/ports/search", { q: query, limit });
+    const data = await apiRequest<{ ports: MarinePort[] }>("/ports/search", { q: query, limit }, { authenticated: false });
     return data.ports || [];
   } catch (error) {
     console.error("Failed to search ports:", error);
@@ -134,11 +154,11 @@ export async function getSeaRouteDistance(
     origin_lon: originLon,
     dest_lat: destLat,
     dest_lon: destLon,
-  });
+  }, { authenticated: false });
   return data;
 }
 
-// ============= Sheet Management APIs =============
+// ============= Sheet Management APIs (Authenticated) =============
 
 export interface SheetListItem {
   id: string;
@@ -168,7 +188,7 @@ export interface SheetDetail {
 // 5. List all sheets with pagination
 export async function listSheets(page: number = 1, limit: number = 10): Promise<SheetListResponse> {
   try {
-    const data = await apiRequest<SheetListResponse>("/sheets", { page, limit });
+    const data = await apiRequest<SheetListResponse>("/sheets", { page, limit }, { authenticated: true });
     return data;
   } catch (error) {
     console.error("Failed to list sheets:", error);
@@ -182,6 +202,7 @@ export async function saveSheet(name: string, sheetData: Record<string, unknown>
     const data = await apiRequest<{ sheet: SheetDetail }>("/sheets", undefined, {
       method: 'POST',
       body: { name, data: sheetData },
+      authenticated: true,
     });
     return data.sheet || null;
   } catch (error) {
@@ -196,6 +217,7 @@ export async function updateSheet(id: string, name: string, sheetData: Record<st
     const data = await apiRequest<{ sheet: SheetDetail }>("/sheets", undefined, {
       method: 'POST',
       body: { id, name, data: sheetData },
+      authenticated: true,
     });
     return data.sheet || null;
   } catch (error) {
@@ -207,10 +229,24 @@ export async function updateSheet(id: string, name: string, sheetData: Record<st
 // 8. Get a single sheet by ID
 export async function getSheet(id: string): Promise<SheetDetail | null> {
   try {
-    const data = await apiRequest<{ sheet: SheetDetail }>(`/sheets/${id}`);
+    const data = await apiRequest<{ sheet: SheetDetail }>(`/sheets/${id}`, undefined, { authenticated: true });
     return data.sheet || null;
   } catch (error) {
     console.error("Failed to get sheet:", error);
     return null;
+  }
+}
+
+// 9. Delete a sheet by ID
+export async function deleteSheet(id: string): Promise<boolean> {
+  try {
+    await apiRequest<{ message: string }>(`/sheets/${id}`, undefined, {
+      method: 'DELETE',
+      authenticated: true,
+    });
+    return true;
+  } catch (error) {
+    console.error("Failed to delete sheet:", error);
+    return false;
   }
 }
