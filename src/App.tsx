@@ -9,16 +9,21 @@ import { SheetProvider, useSheets } from "@/context/SheetContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import AdminPanel from "./pages/AdminPanel";
 import CalculationBreakdown from "./pages/CalculationBreakdown";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function SheetRouter() {
-  const { currentView } = useSheets();
+  const { currentView, setCurrentView } = useSheets();
   
   if (currentView === "dashboard") {
     return <Dashboard />;
+  }
+
+  if (currentView === "admin") {
+    return <AdminPanel onBack={() => setCurrentView("dashboard")} />;
   }
 
   return (

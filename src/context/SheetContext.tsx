@@ -12,8 +12,8 @@ export interface SheetTab {
 
 interface SheetContextValue {
   // Navigation
-  currentView: "dashboard" | "editor";
-  setCurrentView: (view: "dashboard" | "editor") => void;
+  currentView: "dashboard" | "editor" | "admin";
+  setCurrentView: (view: "dashboard" | "editor" | "admin") => void;
   
   // Tabs
   tabs: SheetTab[];
@@ -34,7 +34,7 @@ interface SheetContextValue {
 const SheetContext = createContext<SheetContextValue | null>(null);
 
 export function SheetProvider({ children }: { children: ReactNode }) {
-  const [currentView, setCurrentView] = useState<"dashboard" | "editor">("dashboard");
+  const [currentView, setCurrentView] = useState<"dashboard" | "editor" | "admin">("dashboard");
   const [tabs, setTabs] = useState<SheetTab[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
+import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/SheetContext";
 import { listSheets, deleteSheet, type SheetListItem } from "@/services/marineApi";
@@ -9,7 +9,8 @@ const ITEMS_PER_PAGE = 10;
 
 export default function Dashboard() {
   const { logout, user } = useAuth();
-  const { openSheet, createNewSheet } = useSheets();
+  const { openSheet, createNewSheet, setCurrentView } = useSheets();
+  const isAdmin = user?.role === "admin";
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -67,6 +68,15 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           {user && (
             <span className="text-section-header-foreground/70">{user.email}</span>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setCurrentView("admin")}
+              className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              <span>Admin</span>
+            </button>
           )}
           <button
             onClick={logout}

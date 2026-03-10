@@ -44,7 +44,7 @@ export interface MarinePort {
 }
 
 // Helper for API requests via Edge Function
-async function apiRequest<T>(
+export async function apiRequest<T>(
   endpoint: string,
   params?: Record<string, string | number>,
   options?: { method?: string; body?: unknown; authenticated?: boolean }
