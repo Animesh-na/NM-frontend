@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
@@ -8,6 +8,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { calculateDraftRestriction, estimateCubicFromDwt, type DraftCheckResult } from "@/utils/draftRestriction";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
@@ -44,6 +48,7 @@ export function SequenceTable() {
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
   const [savedCustomTerms, setSavedCustomTerms] = useState<{ name: string; coefficient: number }[]>([]);
+  const [draftAlert, setDraftAlert] = useState<{ show: boolean; messages: string[]; onProceed: () => void } | null>(null);
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
 
@@ -394,17 +399,65 @@ export function SequenceTable() {
         const row = sequence.find(r => r.id === intakeRowId);
         if (!row) return null;
         const sf = row.stowageFactor > 0 ? row.stowageFactor * 35.3147 : globalStowageFactor * 35.3147;
+        
+        const validateAndApply = (qty: number, draft: number | undefined) => {
+          const applyChanges = () => {
+            updateSequenceRow(intakeRowId, "quantity", qty);
+            if (draft !== undefined) {
+              updateSequenceRow(intakeRowId, "draft", draft);
+            }
+            setIntakeRowId(null);
+          };
+
+          // Find the next discharge port(s) and validate draft restriction
+          const currentIndex = sequence.findIndex(r => r.id === intakeRowId);
+          const warnings: string[] = [];
+
+          for (let i = currentIndex + 1; i < sequence.length; i++) {
+            const dischRow = sequence[i];
+            if (dischRow.operation !== "discharging") continue;
+            if (dischRow.portMaxDraft <= 0) continue;
+
+            const cubicCapacity = vessel.cubic > 0 ? vessel.cubic : estimateCubicFromDwt(vessel.dwt);
+            const dischSf = dischRow.stowageFactor > 0 ? dischRow.stowageFactor : globalStowageFactor;
+            const dischCheck = calculateDraftRestriction({
+              currentDraftM: draft ?? vessel.draft,
+              dwtMt: vessel.dwt,
+              tpcMtPerCm: vessel.tpcTpi,
+              shipCubicCapacityM3: cubicCapacity,
+              portName: dischRow.port || `Discharge Port #${i + 1}`,
+              portMaxDraftM: dischRow.portMaxDraft,
+              ukcPercent: 0,
+              stowageFactorM3PerMt: dischSf,
+              requestedCargoMt: qty,
+            });
+
+            if (dischCheck.status === "NOT ACCESSIBLE") {
+              const reasonStr = dischCheck.reasons?.join(", ") || "Draft restriction exceeded";
+              warnings.push(
+                `⚠ ${dischRow.port || "Discharge port"}: ${reasonStr}` +
+                (dischCheck.maxLoadableCargo ? ` (Max loadable: ${Math.round(dischCheck.maxLoadableCargo).toLocaleString()} MT)` : "") +
+                (dischCheck.newDraft ? ` (New draft: ${dischCheck.newDraft.toFixed(2)}m vs limit: ${dischCheck.effectiveDraft?.toFixed(2)}m)` : "")
+              );
+            }
+          }
+
+          if (warnings.length > 0) {
+            setDraftAlert({
+              show: true,
+              messages: warnings,
+              onProceed: applyChanges,
+            });
+          } else {
+            applyChanges();
+          }
+        };
+
         return (
           <IntakeCalculator
             open={true}
             onClose={() => setIntakeRowId(null)}
-            onApply={(qty, draft) => {
-              updateSequenceRow(intakeRowId, "quantity", qty);
-              if (draft !== undefined) {
-                updateSequenceRow(intakeRowId, "draft", draft);
-              }
-              setIntakeRowId(null);
-            }}
+            onApply={(qty, draft) => validateAndApply(qty, draft)}
             vessel={vessel}
             portName={row.port}
             portDraft={row.portMaxDraft}
@@ -438,6 +491,42 @@ export function SequenceTable() {
           />
         );
       })()}
+
+      {/* Draft Restriction Alert */}
+      <AlertDialog open={!!draftAlert?.show} onOpenChange={(open) => { if (!open) setDraftAlert(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Draft Restriction Warning
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 mt-2">
+                <p className="text-sm font-medium text-foreground">
+                  The cargo quantity may cause draft issues at discharge port(s):
+                </p>
+                {draftAlert?.messages.map((msg, i) => (
+                  <div key={i} className="text-sm bg-destructive/10 text-destructive p-2 rounded border border-destructive/20">
+                    {msg}
+                  </div>
+                ))}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDraftAlert(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                draftAlert?.onProceed();
+                setDraftAlert(null);
+              }}
+            >
+              Apply Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
