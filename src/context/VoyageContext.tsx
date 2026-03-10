@@ -646,7 +646,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const updateSequenceRow = useCallback((id: number, field: keyof SequenceRowUI, value: string | number) => {
     setSequence(prev => {
       let isLaden = false;
-      return prev.map(row => {
+      const updated = prev.map(row => {
         // IMPORTANT: Calculate sea time BEFORE updating isLaden
         // The leg TO a loading port is BALLAST, the leg FROM loading is LADEN
         if (row.id !== id) {
@@ -672,6 +672,29 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         if (row.operation === "discharging") isLaden = false;
         return updatedRow;
       });
+
+      // Auto-sync: when a loading port quantity changes, update the next discharge port quantity
+      if (field === 'quantity') {
+        const changedRow = updated.find(r => r.id === id);
+        if (changedRow && changedRow.operation === 'loading') {
+          const changedIndex = updated.indexOf(changedRow);
+          // Sum all loading quantities
+          const totalLoadQty = updated
+            .filter(r => r.operation === 'loading')
+            .reduce((sum, r) => sum + (r.quantity || 0), 0);
+          // Apply total to all discharge ports (split equally if multiple, or full if single)
+          const dischPorts = updated.filter(r => r.operation === 'discharging');
+          if (dischPorts.length > 0) {
+            const qtyPerDisch = totalLoadQty / dischPorts.length;
+            for (const dp of dischPorts) {
+              dp.quantity = Math.round(qtyPerDisch);
+              dp.calculatedPortDays = calculatePortDays(dp);
+            }
+          }
+        }
+      }
+
+      return updated;
     });
   }, [vessel]);
 
