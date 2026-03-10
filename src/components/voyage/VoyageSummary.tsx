@@ -3,9 +3,12 @@ import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { Button } from "@/components/ui/button";
 import { exportVoyageToExcel } from "@/utils/excelExport";
+import { useAuth } from "@/context/AuthContext";
 
 export function VoyageSummary() {
   const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB } = useVoyageContext();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
@@ -448,33 +451,35 @@ export function VoyageSummary() {
           </div>
         </div>
 
-        {/* Export Excel */}
-        <div className="pt-2 border-t border-border">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-1.5 h-6 text-[10px]"
-            onClick={() => exportVoyageToExcel({
-              vessel,
-              sequence,
-              cargos,
-              bunker: {
-                hsfo: bunker.hsfo,
-                vlsfo: bunker.vlsfo,
-                lsmgo: bunker.lsmgo,
-                co2Price: bunker.co2Price,
-                rewardFactor: bunker.rewardFactor,
-              },
-              misc,
-              hireRate,
-              netBB,
-              results,
-            })}
-          >
-            <Download className="h-3 w-3" />
-            Export Excel
-          </Button>
-        </div>
+        {/* Export Excel - Admin only */}
+        {isAdmin && (
+          <div className="pt-2 border-t border-border">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 h-6 text-[10px]"
+              onClick={() => exportVoyageToExcel({
+                vessel,
+                sequence,
+                cargos,
+                bunker: {
+                  hsfo: bunker.hsfo,
+                  vlsfo: bunker.vlsfo,
+                  lsmgo: bunker.lsmgo,
+                  co2Price: bunker.co2Price,
+                  rewardFactor: bunker.rewardFactor,
+                },
+                misc,
+                hireRate,
+                netBB,
+                results,
+              })}
+            >
+              <Download className="h-3 w-3" />
+              Export Excel
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
