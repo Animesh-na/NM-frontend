@@ -37,13 +37,21 @@ serve(async (req) => {
     
     console.log('Calling Marine API:', req.method, apiUrl);
 
-    // Support both GET and POST methods
+    // Support GET, POST, PUT, DELETE methods
+    const fetchHeaders: Record<string, string> = {
+      'API-Key': MARINE_API_KEY,
+      'Content-Type': 'application/json',
+    };
+
+    // Forward JWT auth token if present
+    const authToken = req.headers.get('X-Auth-Token');
+    if (authToken) {
+      fetchHeaders['Authorization'] = `Bearer ${authToken}`;
+    }
+
     const fetchOptions: RequestInit = {
-      method: req.method === 'POST' ? 'POST' : 'GET',
-      headers: {
-        'API-Key': MARINE_API_KEY,
-        'Content-Type': 'application/json',
-      },
+      method: req.method,
+      headers: fetchHeaders,
     };
 
     // Forward request body for POST requests
