@@ -481,7 +481,7 @@ export function SequenceTable() {
             onApply={(qty, draft) => validateAndApply(qty, draft)}
             vessel={vessel}
             portName={row.port}
-            portDraft={row.portMaxDraft || row.draft || portDraft}
+            portDraft={row.portMaxDraft || row.draft || 0}
             currentQuantity={row.quantity}
             stowageFactor={Math.round(sf)}
           />
