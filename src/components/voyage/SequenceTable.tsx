@@ -52,22 +52,6 @@ export function SequenceTable() {
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
 
-  const draftCheckResults = useMemo(() => {
-    const results: Record<number, DraftCheckResult> = {};
-    for (const row of sequence) {
-      if (row.type !== "port") continue;
-      if (!row.portMaxDraft || row.portMaxDraft <= 0) continue;
-      if (row.operation !== "loading" && row.operation !== "discharging") continue;
-      const cubicCapacity = vessel.cubic > 0 ? vessel.cubic : estimateCubicFromDwt(vessel.dwt);
-      const sf = row.stowageFactor > 0 ? row.stowageFactor : globalStowageFactor;
-      results[row.id] = calculateDraftRestriction({
-        currentDraftM: vessel.draft, dwtMt: vessel.dwt, tpcMtPerCm: vessel.tpcTpi,
-        shipCubicCapacityM3: cubicCapacity, portName: row.port, portMaxDraftM: row.portMaxDraft,
-        ukcPercent: 0, stowageFactorM3PerMt: sf, requestedCargoMt: row.quantity,
-      });
-    }
-    return results;
-  }, [sequence, vessel, globalStowageFactor]);
 
   const handlePortChange = (id: number, port: Port | null) => {
     setSequence(prev => prev.map(row => 
