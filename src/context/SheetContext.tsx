@@ -12,8 +12,8 @@ export interface SheetTab {
 
 interface SheetContextValue {
   // Navigation
-  currentView: "dashboard" | "editor";
-  setCurrentView: (view: "dashboard" | "editor") => void;
+  currentView: "dashboard" | "editor" | "admin";
+  setCurrentView: (view: "dashboard" | "editor" | "admin") => void;
   
   // Tabs
   tabs: SheetTab[];
