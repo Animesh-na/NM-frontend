@@ -5,7 +5,7 @@ import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, 
 import { SequenceSummary } from "./SequenceSummary";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { calculateDraftRestriction, estimateCubicFromDwt, type DraftCheckResult } from "@/utils/draftRestriction";
+import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
 import {
