@@ -491,6 +491,42 @@ export function SequenceTable() {
           />
         );
       })()}
+
+      {/* Draft Restriction Alert */}
+      <AlertDialog open={!!draftAlert?.show} onOpenChange={(open) => { if (!open) setDraftAlert(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Draft Restriction Warning
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 mt-2">
+                <p className="text-sm font-medium text-foreground">
+                  The cargo quantity may cause draft issues at discharge port(s):
+                </p>
+                {draftAlert?.messages.map((msg, i) => (
+                  <div key={i} className="text-sm bg-destructive/10 text-destructive p-2 rounded border border-destructive/20">
+                    {msg}
+                  </div>
+                ))}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDraftAlert(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                draftAlert?.onProceed();
+                setDraftAlert(null);
+              }}
+            >
+              Apply Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
