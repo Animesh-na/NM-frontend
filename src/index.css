@@ -188,7 +188,7 @@
   }
 
   .form-label {
-    @apply text-[10px] font-medium text-muted-foreground;
+    @apply text-[10px] font-bold text-foreground;
   }
 
   /* Input with unit suffix */

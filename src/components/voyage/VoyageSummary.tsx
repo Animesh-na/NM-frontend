@@ -28,7 +28,7 @@ export function VoyageSummary() {
         <span>Voyage Summary</span>
       </div>
 
-      <div className="p-2 space-y-2 text-[10px]">
+      <div className="p-2 space-y-2 text-[10px] [&_.text-muted-foreground]:text-foreground [&_.text-muted-foreground]:font-bold">
         {/* Financial Summary */}
         <div className="space-y-1">
           <div className="flex justify-between items-center border-b border-border pb-1">
