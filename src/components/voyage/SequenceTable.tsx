@@ -1,17 +1,13 @@
 import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
 import { SequenceSummary } from "./SequenceSummary";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { calculateDraftRestriction, estimateCubicFromDwt, type DraftCheckResult } from "@/utils/draftRestriction";
+import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
-import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
@@ -48,26 +44,10 @@ export function SequenceTable() {
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
   const [savedCustomTerms, setSavedCustomTerms] = useState<{ name: string; coefficient: number }[]>([]);
-  const [draftAlert, setDraftAlert] = useState<{ show: boolean; messages: string[]; onProceed: () => void } | null>(null);
+  
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
 
-  const draftCheckResults = useMemo(() => {
-    const results: Record<number, DraftCheckResult> = {};
-    for (const row of sequence) {
-      if (row.type !== "port") continue;
-      if (!row.portMaxDraft || row.portMaxDraft <= 0) continue;
-      if (row.operation !== "loading" && row.operation !== "discharging") continue;
-      const cubicCapacity = vessel.cubic > 0 ? vessel.cubic : estimateCubicFromDwt(vessel.dwt);
-      const sf = row.stowageFactor > 0 ? row.stowageFactor : globalStowageFactor;
-      results[row.id] = calculateDraftRestriction({
-        currentDraftM: vessel.draft, dwtMt: vessel.dwt, tpcMtPerCm: vessel.tpcTpi,
-        shipCubicCapacityM3: cubicCapacity, portName: row.port, portMaxDraftM: row.portMaxDraft,
-        ukcPercent: 0, stowageFactorM3PerMt: sf, requestedCargoMt: row.quantity,
-      });
-    }
-    return results;
-  }, [sequence, vessel, globalStowageFactor]);
 
   const handlePortChange = (id: number, port: Port | null) => {
     setSequence(prev => prev.map(row => 
@@ -245,8 +225,8 @@ export function SequenceTable() {
                       {/* Quantity */}
                       <td className={tdClass}>
                         {hasQty ? (() => {
-                          const draftCheck = draftCheckResults[row.id];
-                          const qtyExceedsDraft = row.operation === 'discharging' && draftCheck && draftCheck.status === "NOT ACCESSIBLE";
+                          // Simple draft check: does the vessel's draft at this port exceed the port max draft?
+                          const qtyExceedsDraft = row.operation === 'discharging' && row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
                             <div className="flex items-center gap-0.5">
                               <input type="number" className={`form-input-sm w-16 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
@@ -260,9 +240,7 @@ export function SequenceTable() {
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-[220px] text-[10px]">
                                       <p className="font-semibold">Draft Restriction</p>
-                                      <p>Qty {row.quantity?.toLocaleString()} mt exceeds port draft limit.</p>
-                                      {draftCheck.maxLoadableCargo !== undefined && <p>Max: {Math.round(draftCheck.maxLoadableCargo).toLocaleString()} mt</p>}
-                                      {draftCheck.newDraft !== undefined && <p>Draft: {draftCheck.newDraft.toFixed(2)}m vs limit {draftCheck.effectiveDraft?.toFixed(2)}m</p>}
+                                      <p>Vessel draft {row.draft?.toFixed(2)}m exceeds port limit {row.portMaxDraft}m</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -342,10 +320,7 @@ export function SequenceTable() {
                       {/* Draft (m) */}
                       <td className={tdClass}>
                         {hasQty ? (() => {
-                          const draftExceedsPort = row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
-                          const draftCheck = draftCheckResults[row.id];
-                          const hasRestriction = draftCheck && draftCheck.status === "NOT ACCESSIBLE";
-                          const showWarning = draftExceedsPort || hasRestriction;
+                          const showWarning = row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
                             <input type="number" step="0.01"
                               className={`form-input-sm w-14 font-mono text-right text-[10px] ${showWarning ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
@@ -421,8 +396,9 @@ export function SequenceTable() {
         if (!row) return null;
         const sf = row.stowageFactor > 0 ? row.stowageFactor * 35.3147 : globalStowageFactor * 35.3147;
         
-        const validateAndApply = (qty: number, draft: number | undefined) => {
-          const applyChanges = () => {
+          const validateAndApply = (qty: number, draft: number | undefined) => {
+            // The intake calculator already properly calculates max loadable cargo
+            // accounting for draft, volume, and DWT limits — just apply directly
             updateSequenceRow(intakeRowId, "quantity", qty);
             if (draft !== undefined) {
               updateSequenceRow(intakeRowId, "portMaxDraft", draft);
@@ -430,50 +406,6 @@ export function SequenceTable() {
             }
             setIntakeRowId(null);
           };
-
-          // Find the next discharge port(s) and validate draft restriction
-          const currentIndex = sequence.findIndex(r => r.id === intakeRowId);
-          const warnings: string[] = [];
-
-          for (let i = currentIndex + 1; i < sequence.length; i++) {
-            const dischRow = sequence[i];
-            if (dischRow.operation !== "discharging") continue;
-            if (!dischRow.portMaxDraft || dischRow.portMaxDraft <= 0) continue;
-
-            const cubicCapacity = vessel.cubic > 0 ? vessel.cubic : estimateCubicFromDwt(vessel.dwt);
-            const dischSf = dischRow.stowageFactor > 0 ? dischRow.stowageFactor : globalStowageFactor;
-            const dischCheck = calculateDraftRestriction({
-              currentDraftM: draft ?? vessel.draft,
-              dwtMt: vessel.dwt,
-              tpcMtPerCm: vessel.tpcTpi,
-              shipCubicCapacityM3: cubicCapacity,
-              portName: dischRow.port || `Discharge Port #${i + 1}`,
-              portMaxDraftM: dischRow.portMaxDraft,
-              ukcPercent: 0,
-              stowageFactorM3PerMt: dischSf,
-              requestedCargoMt: qty,
-            });
-
-            if (dischCheck.status === "NOT ACCESSIBLE") {
-              const reasonStr = dischCheck.reasons?.join(", ") || "Draft restriction exceeded";
-              warnings.push(
-                `⚠ ${dischRow.port || "Discharge port"}: ${reasonStr}` +
-                (dischCheck.maxLoadableCargo ? ` (Max loadable: ${Math.round(dischCheck.maxLoadableCargo).toLocaleString()} MT)` : "") +
-                (dischCheck.newDraft ? ` (New draft: ${dischCheck.newDraft.toFixed(2)}m vs limit: ${dischCheck.effectiveDraft?.toFixed(2)}m)` : "")
-              );
-            }
-          }
-
-          if (warnings.length > 0) {
-            setDraftAlert({
-              show: true,
-              messages: warnings,
-              onProceed: applyChanges,
-            });
-          } else {
-            applyChanges();
-          }
-        };
 
         return (
           <IntakeCalculator
@@ -514,41 +446,6 @@ export function SequenceTable() {
         );
       })()}
 
-      {/* Draft Restriction Alert */}
-      <AlertDialog open={!!draftAlert?.show} onOpenChange={(open) => { if (!open) setDraftAlert(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Draft Restriction Warning
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 mt-2">
-                <p className="text-sm font-medium text-foreground">
-                  The cargo quantity may cause draft issues at discharge port(s):
-                </p>
-                {draftAlert?.messages.map((msg, i) => (
-                  <div key={i} className="text-sm bg-destructive/10 text-destructive p-2 rounded border border-destructive/20">
-                    {msg}
-                  </div>
-                ))}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDraftAlert(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                draftAlert?.onProceed();
-                setDraftAlert(null);
-              }}
-            >
-              Apply Anyway
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
