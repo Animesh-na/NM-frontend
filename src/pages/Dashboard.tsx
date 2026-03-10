@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/SheetContext";
-import { listSheets, type SheetListItem } from "@/services/marineApi";
+import { listSheets, deleteSheet, type SheetListItem } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 
 const ITEMS_PER_PAGE = 10;
 
 export default function Dashboard() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { openSheet, createNewSheet } = useSheets();
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +41,19 @@ export default function Dashboard() {
     openSheet(sheet.id, sheet.name);
   };
 
+  const handleDelete = async (sheet: SheetListItem) => {
+    const confirmed = window.confirm(`Delete "${sheet.name}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    const success = await deleteSheet(sheet.id);
+    if (success) {
+      toast.success("Sheet deleted");
+      fetchSheets();
+    } else {
+      toast.error("Failed to delete sheet");
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
@@ -51,13 +64,18 @@ export default function Dashboard() {
           <span className="text-section-header-foreground/50">|</span>
           <span className="text-section-header-foreground/70">Sheet Manager</span>
         </div>
-        <button
-          onClick={logout}
-          className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          <span>Logout</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {user && (
+            <span className="text-section-header-foreground/70">{user.email}</span>
+          )}
+          <button
+            onClick={logout}
+            className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Logout</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -101,7 +119,7 @@ export default function Dashboard() {
                       <th className="text-left px-3 py-2 font-medium">#</th>
                       <th className="text-left px-3 py-2 font-medium">Sheet Name</th>
                       <th className="text-left px-3 py-2 font-medium">Last Updated</th>
-                      <th className="text-right px-3 py-2 font-medium">Action</th>
+                      <th className="text-right px-3 py-2 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -120,12 +138,21 @@ export default function Dashboard() {
                           {new Date(sheet.updated_at || sheet.created_at).toLocaleString()}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          <button
-                            onClick={() => handleOpen(sheet)}
-                            className="btn-primary h-6 px-3 text-[11px]"
-                          >
-                            Open
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpen(sheet)}
+                              className="btn-primary h-6 px-3 text-[11px]"
+                            >
+                              Open
+                            </button>
+                            <button
+                              onClick={() => handleDelete(sheet)}
+                              className="h-6 px-2 text-[11px] text-destructive hover:bg-destructive/10 rounded-sm transition-colors"
+                              title="Delete sheet"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

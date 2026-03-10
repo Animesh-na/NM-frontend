@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-auth-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
 const MARINE_API_BASE = "https://development.effimove.in/marine/api/v1";
@@ -37,17 +38,25 @@ serve(async (req) => {
     
     console.log('Calling Marine API:', req.method, apiUrl);
 
-    // Support both GET and POST methods
-    const fetchOptions: RequestInit = {
-      method: req.method === 'POST' ? 'POST' : 'GET',
-      headers: {
-        'API-Key': MARINE_API_KEY,
-        'Content-Type': 'application/json',
-      },
+    // Support GET, POST, PUT, DELETE methods
+    const fetchHeaders: Record<string, string> = {
+      'API-Key': MARINE_API_KEY,
+      'Content-Type': 'application/json',
     };
 
-    // Forward request body for POST requests
-    if (req.method === 'POST') {
+    // Forward JWT auth token if present
+    const authToken = req.headers.get('X-Auth-Token');
+    if (authToken) {
+      fetchHeaders['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const fetchOptions: RequestInit = {
+      method: req.method,
+      headers: fetchHeaders,
+    };
+
+    // Forward request body for POST/PUT requests
+    if (req.method === 'POST' || req.method === 'PUT') {
       const body = await req.text();
       if (body) {
         fetchOptions.body = body;
