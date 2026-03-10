@@ -288,17 +288,6 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntry
           </select>
         </div>
 
-        <div className="form-field w-24">
-          <label className="form-label">SF (m³/mt)</label>
-          <input
-            type="number"
-            step="0.01"
-            className="form-input-sm w-full font-mono text-right"
-            value={cargo.stowageFactor || ""}
-            onChange={(e) => onUpdate("stowageFactor", parseFloat(e.target.value) || 0)}
-            placeholder="1.40"
-          />
-        </div>
       </div>
     </div>
   );
