@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
+import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/SheetContext";
 import { listSheets, deleteSheet, type SheetListItem } from "@/services/marineApi";
