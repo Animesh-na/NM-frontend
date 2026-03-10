@@ -426,6 +426,7 @@ export function SequenceTable() {
             updateSequenceRow(intakeRowId, "quantity", qty);
             if (draft !== undefined) {
               updateSequenceRow(intakeRowId, "portMaxDraft", draft);
+              updateSequenceRow(intakeRowId, "draft", draft);
             }
             setIntakeRowId(null);
           };
