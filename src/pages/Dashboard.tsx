@@ -9,7 +9,8 @@ const ITEMS_PER_PAGE = 10;
 
 export default function Dashboard() {
   const { logout, user } = useAuth();
-  const { openSheet, createNewSheet } = useSheets();
+  const { openSheet, createNewSheet, setCurrentView } = useSheets();
+  const isAdmin = user?.role === "admin";
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
