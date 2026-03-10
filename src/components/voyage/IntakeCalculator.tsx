@@ -93,7 +93,8 @@ export function IntakeCalculator({
     }
   }, [open, vessel, portDraft, initialSF]);
 
-  const densityFactor = waterOptions.find((w) => w.value === waterType)?.factor ?? 1.0;
+  const waterDensity = waterOptions.find((w) => w.value === waterType)?.density ?? 1.025;
+  const densityFactor = waterDensity / 1.025; // Salt water baseline
 
   const calc = useMemo(() => {
     const _summerDwt = num(summerDwt);
