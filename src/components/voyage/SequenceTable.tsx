@@ -229,9 +229,18 @@ export function SequenceTable() {
                           const qtyExceedsDraft = row.operation === 'discharging' && row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
                             <div className="flex items-center gap-0.5">
-                              <input type="number" className={`form-input-sm w-16 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
-                                value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
-                                onDoubleClick={() => setIntakeRowId(row.id)} title="Double-click for Intake Calculator" />
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <input type="number" className={`form-input-sm w-16 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
+                                      value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
+                                      onDoubleClick={() => setIntakeRowId(row.id)} />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-[10px]">
+                                    <p>Double-click to open Intake Calculator</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               {qtyExceedsDraft && (
                                 <TooltipProvider>
                                   <Tooltip>
