@@ -658,7 +658,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         const updatedRow = { ...row, [field]: value };
         
         // Recalculate port days when relevant fields change
-        if (['quantity', 'productivity', 'terms', 'turnTime', 'extraTime', 'operation'].includes(field)) {
+        if (['quantity', 'productivity', 'terms', 'turnTime', 'extraTime', 'operation', 'coefficientFactor'].includes(field)) {
           updatedRow.calculatedPortDays = calculatePortDays(updatedRow);
         }
         
@@ -673,28 +673,42 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         return updatedRow;
       });
 
-      // Auto-sync: when a loading port quantity changes, update discharge port quantities
+      // Auto-sync: when a loading port quantity changes, distribute to discharge ports
       if (field === 'quantity') {
         const changedRow = updated.find(r => r.id === id);
         if (changedRow && changedRow.operation === 'loading') {
-          // Sum all loading quantities
           const totalLoadQty = updated
             .filter(r => r.operation === 'loading')
             .reduce((sum, r) => sum + (r.quantity || 0), 0);
-          // Apply total to all discharge ports (split equally if multiple, or full if single)
           const dischPorts = updated.filter(r => r.operation === 'discharging');
           if (dischPorts.length > 0) {
             const qtyPerDisch = Math.round(totalLoadQty / dischPorts.length);
-            // Create new object references so React detects the change
+            console.log(`[QtySync] Load qty changed → total: ${totalLoadQty}, per disch port: ${qtyPerDisch}, disch ports: ${dischPorts.length}`);
             return updated.map(row => {
               if (row.operation === 'discharging') {
-                const newRow = { ...row, quantity: qtyPerDisch };
-                newRow.calculatedPortDays = calculatePortDays(newRow);
-                return newRow;
+                return { ...row, quantity: qtyPerDisch, calculatedPortDays: calculatePortDays({ ...row, quantity: qtyPerDisch }) };
               }
               return row;
             });
           }
+        }
+      }
+
+      // Also sync when operation changes — redistribute existing load quantities to new discharge layout
+      if (field === 'operation') {
+        const totalLoadQty = updated
+          .filter(r => r.operation === 'loading')
+          .reduce((sum, r) => sum + (r.quantity || 0), 0);
+        const dischPorts = updated.filter(r => r.operation === 'discharging');
+        if (totalLoadQty > 0 && dischPorts.length > 0) {
+          const qtyPerDisch = Math.round(totalLoadQty / dischPorts.length);
+          console.log(`[QtySync] Operation changed → redistributing ${totalLoadQty} across ${dischPorts.length} disch ports`);
+          return updated.map(row => {
+            if (row.operation === 'discharging') {
+              return { ...row, quantity: qtyPerDisch, calculatedPortDays: calculatePortDays({ ...row, quantity: qtyPerDisch }) };
+            }
+            return row;
+          });
         }
       }
 
