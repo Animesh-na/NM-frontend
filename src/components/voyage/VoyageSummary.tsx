@@ -3,6 +3,7 @@ import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { Button } from "@/components/ui/button";
 import { exportVoyageToExcel } from "@/utils/excelExport";
+import { useAuth } from "@/context/AuthContext";
 
 export function VoyageSummary() {
   const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB } = useVoyageContext();
