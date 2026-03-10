@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Ship, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import loginBg from "@/assets/login-bg.jpg";
 
 const Login = () => {
   const [email, setEmail] = useState("");
