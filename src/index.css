@@ -141,44 +141,63 @@
 }
 
 @layer components {
-  /* Section headers - grey background for clear separation */
+  /* Section headers - clear visual hierarchy */
   .section-header {
-    @apply bg-section-header text-section-header-foreground px-3 py-1 text-sm font-semibold flex items-center gap-2;
+    @apply bg-[hsl(220_14%_96%)] text-[hsl(215_28%_17%)] px-4 py-2.5 text-base font-semibold flex items-center gap-2;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   .section-header-compact {
-    @apply bg-section-header text-section-header-foreground px-3 py-1 text-[11px] font-semibold flex items-center gap-2;
+    @apply bg-[hsl(220_14%_96%)] text-[hsl(215_28%_17%)] px-3 py-2 text-sm font-semibold flex items-center gap-2;
+    font-size: 15px;
+    font-weight: 600;
   }
 
-  /* Subsection headers */
+  /* Subsection headers - medium weight, slightly darker */
   .subsection-header {
-    @apply bg-subsection-header text-foreground px-2 py-1 text-[11px] font-medium;
+    @apply bg-subsection-header text-[hsl(215_25%_27%)] px-3 py-1.5 font-medium;
+    font-size: 14px;
+    font-weight: 500;
   }
 
-  /* Form input styling - white background with borders */
+  /* Form input styling - readable, clean */
   .form-input {
-    @apply h-6 px-2 text-xs border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
+    @apply h-8 px-2.5 border border-[hsl(216_12%_84%)] bg-[hsl(0_0%_100%)] rounded-md focus:outline-none focus:ring-1 focus:ring-ring;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 6px 8px;
   }
 
   .form-input-sm {
-    @apply h-5 px-1.5 text-[10px] border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
+    @apply h-7 px-2 border border-[hsl(216_12%_84%)] bg-[hsl(0_0%_100%)] rounded-md focus:outline-none focus:ring-1 focus:ring-ring;
+    font-size: 13px;
+    font-weight: 400;
+    padding: 4px 6px;
   }
 
   .form-select {
-    @apply h-6 px-2 text-xs border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-8 px-2.5 border border-[hsl(216_12%_84%)] bg-[hsl(0_0%_100%)] rounded-md focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    font-size: 14px;
+    font-weight: 400;
   }
 
   .form-select-sm {
-    @apply h-5 px-1 text-[10px] border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-7 px-2 border border-[hsl(216_12%_84%)] bg-[hsl(0_0%_100%)] rounded-md focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    font-size: 13px;
+    font-weight: 400;
   }
 
   /* Form field group - label + input with spacing */
   .form-field {
-    @apply flex flex-col gap-0.5;
+    @apply flex flex-col gap-1;
   }
 
   .form-label {
-    @apply text-[10px] font-medium text-muted-foreground;
+    @apply font-medium text-muted-foreground;
+    font-size: 12px;
+    font-weight: 500;
   }
 
   /* Input with unit suffix */
@@ -191,34 +210,38 @@
   }
 
   .input-with-unit .unit {
-    @apply h-6 px-1.5 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
+    @apply h-8 px-2 bg-muted border border-[hsl(216_12%_84%)] rounded-r-md flex items-center text-muted-foreground;
+    font-size: 12px;
   }
 
   .input-with-unit-sm .unit {
-    @apply h-5 px-1 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
+    @apply h-7 px-1.5 bg-muted border border-[hsl(216_12%_84%)] rounded-r-md flex items-center text-muted-foreground;
+    font-size: 11px;
   }
 
-  /* Money formatting */
+  /* Money formatting - prominent numeric output */
   .money-positive {
-    @apply text-success font-medium;
+    @apply text-success font-semibold;
+    font-size: 15px;
   }
 
   .money-negative {
-    @apply text-destructive font-medium;
+    @apply text-destructive font-semibold;
+    font-size: 15px;
   }
 
-  /* Card sections - grey background, no visible card borders */
+  /* Card sections */
   .calc-card {
-    @apply bg-background overflow-hidden;
+    @apply bg-background overflow-hidden mb-4;
   }
 
   .calc-card-compact {
-    @apply bg-background overflow-hidden;
+    @apply bg-background overflow-hidden mb-3;
   }
 
   /* Action buttons */
   .btn-action {
-    @apply h-6 px-2 text-[10px] font-medium rounded border transition-colors;
+    @apply h-7 px-3 text-xs font-medium rounded-md border transition-colors;
   }
 
   .btn-primary {
@@ -239,15 +262,16 @@
 
   /* Form layout utilities */
   .form-row {
-    @apply flex flex-wrap gap-2 items-end;
+    @apply flex flex-wrap gap-2.5 items-end;
   }
 
   .form-grid {
-    @apply grid gap-2;
+    @apply grid gap-2.5;
   }
 
   .compact-label {
-    @apply text-[10px] text-muted-foreground font-medium mb-0.5 block;
+    @apply text-muted-foreground font-medium mb-1 block;
+    font-size: 12px;
   }
 
   /* Viewport-fit sections */
@@ -257,5 +281,27 @@
 
   .scrollable-section {
     @apply flex-1 overflow-y-auto;
+  }
+
+  /* Numeric output values */
+  .numeric-output {
+    font-size: 15px;
+    font-weight: 600;
+    color: hsl(215, 28%, 7%);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .numeric-output-positive {
+    font-size: 15px;
+    font-weight: 600;
+    color: hsl(142, 72%, 29%);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .numeric-output-negative {
+    font-size: 15px;
+    font-weight: 600;
+    color: hsl(0, 72%, 51%);
+    font-variant-numeric: tabular-nums;
   }
 }
