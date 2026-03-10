@@ -12,11 +12,11 @@ import { type VesselData } from "@/data/vessels";
 type WaterType = "sw" | "bw" | "fw" | "tfw";
 type SeasonType = "summer" | "winter" | "tropical";
 
-const waterOptions: { value: WaterType; label: string; factor: number }[] = [
-  { value: "sw", label: "Salt Water (SW: 1.0000)", factor: 1.0 },
-  { value: "bw", label: "Brackish Water (BW: 0.9878)", factor: 0.9878 },
-  { value: "fw", label: "Fresh Water (FW: 0.9756)", factor: 0.9756 },
-  { value: "tfw", label: "Tropical Fresh Water (TFW: 0.9717)", factor: 0.9717 },
+const waterOptions: { value: WaterType; label: string; density: number }[] = [
+  { value: "sw", label: "Salt Water (1.025)", density: 1.025 },
+  { value: "bw", label: "Brackish Water (1.0125)", density: 1.0125 },
+  { value: "fw", label: "Fresh Water (1.000)", density: 1.0 },
+  { value: "tfw", label: "Tropical Fresh Water (0.9971)", density: 0.9971 },
 ];
 
 const seasonOptions: { value: SeasonType; label: string }[] = [
