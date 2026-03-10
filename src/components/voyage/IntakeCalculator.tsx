@@ -12,11 +12,11 @@ import { type VesselData } from "@/data/vessels";
 type WaterType = "sw" | "bw" | "fw" | "tfw";
 type SeasonType = "summer" | "winter" | "tropical";
 
-const waterOptions: { value: WaterType; label: string; factor: number }[] = [
-  { value: "sw", label: "Salt Water (SW: 1.0000)", factor: 1.0 },
-  { value: "bw", label: "Brackish Water (BW: 0.9878)", factor: 0.9878 },
-  { value: "fw", label: "Fresh Water (FW: 0.9756)", factor: 0.9756 },
-  { value: "tfw", label: "Tropical Fresh Water (TFW: 0.9717)", factor: 0.9717 },
+const waterOptions: { value: WaterType; label: string; density: number }[] = [
+  { value: "sw", label: "Salt Water (1.025)", density: 1.025 },
+  { value: "bw", label: "Brackish Water (1.0125)", density: 1.0125 },
+  { value: "fw", label: "Fresh Water (1.000)", density: 1.0 },
+  { value: "tfw", label: "Tropical Fresh Water (0.9971)", density: 0.9971 },
 ];
 
 const seasonOptions: { value: SeasonType; label: string }[] = [
@@ -93,7 +93,8 @@ export function IntakeCalculator({
     }
   }, [open, vessel, portDraft, initialSF]);
 
-  const densityFactor = waterOptions.find((w) => w.value === waterType)?.factor ?? 1.0;
+  const waterDensity = waterOptions.find((w) => w.value === waterType)?.density ?? 1.025;
+  const densityFactor = waterDensity / 1.025; // Salt water baseline
 
   const calc = useMemo(() => {
     const _summerDwt = num(summerDwt);
@@ -111,22 +112,36 @@ export function IntakeCalculator({
     if (season === "winter") seasonalDraft = _summerDraft - _summerDraft / 48;
     else if (season === "tropical") seasonalDraft = _summerDraft + _summerDraft / 48;
 
-    const draftReduction = Math.max(0, seasonalDraft - _draft);
-    const draftReductionCm = draftReduction * 100;
-    const dwtReduction = draftReductionCm * _tpc;
+    // Step 1: Draft Difference (can be negative when port allows more draft)
+    const draftDifference = seasonalDraft - _draft;
+    const draftDifferenceCm = draftDifference * 100;
 
-    const correctedDwt = (_summerDwt - dwtReduction) * densityFactor;
-    const dwcc = correctedDwt - _constants - _bob - _freshWater;
+    // Step 2: DWT Reduction (negative = DWT increase when port draft > seasonal draft)
+    const dwtReduction = draftDifferenceCm * _tpc;
 
-    const capacityM3 = _grainCuM > 0 ? _grainCuM : _grainCuFt / 35.3147;
-    const sfM3 = _sf > 0 ? _sf / 35.3147 : 1;
-    const volumeLimit = capacityM3 / sfM3;
+    // Step 3: DWT after draft & density correction
+    const dwtAfterDraftDensity = (_summerDwt - dwtReduction) * densityFactor;
 
-    const dwccCalc = Math.max(0, Math.round(dwcc));
-    const dwccCubic = Math.max(0, Math.round(volumeLimit));
-    const finalIntake = Math.min(dwccCalc, dwccCubic);
+    // Step 4: Total deductions
+    const totalDeductions = _constants + _bob + _freshWater;
 
-    return { seasonalDraft, draftReduction, dwtReduction, correctedDwt, dwccCalc, dwccCubic, finalIntake };
+    // Step 5: DWCC (Dead Weight Cargo Capacity)
+    const dwcc = dwtAfterDraftDensity - totalDeductions;
+
+    // Step 6: Volume-based cargo (cu.ft / SF in cu.ft/mt)
+    const grainCuFtVal = _grainCuFt > 0 ? _grainCuFt : _grainCuM * 35.3147;
+    const volumeBasedCargo = _sf > 0 ? grainCuFtVal / _sf : Infinity;
+
+    // Step 7: Final allowable cargo = min of DWCC and volume
+    const dwccCalc = Math.round(dwcc);
+    const dwccCubic = Math.round(volumeBasedCargo);
+    const finalIntake = Math.max(0, Math.min(dwccCalc, dwccCubic));
+
+    return {
+      seasonalDraft, draftDifference, draftDifferenceCm, dwtReduction,
+      dwtAfterDraftDensity, totalDeductions, dwccCalc, dwccCubic, finalIntake,
+      densityFactor,
+    };
   }, [summerDwt, summerDraft, tpc, draft, season, densityFactor, constants, bob, freshWater, grainCuM, grainCuFt, sf]);
 
   const inputClass = "form-input-sm w-24 text-[11px] font-mono text-right";
@@ -224,32 +239,48 @@ export function IntakeCalculator({
               </Row>
             </div>
 
-            {/* Results panel */}
+            {/* Calculation panel — matches spreadsheet layout */}
             <div>
-              <div className="text-[11px] font-bold text-primary mb-1.5">Results</div>
-              <div className="space-y-1 mt-1">
+              <div className="text-[11px] font-bold text-primary mb-1.5">Calculation</div>
+              <div className="space-y-0.5 mt-1">
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">DWT</span>
-                  <span className="font-mono">{num(summerDwt).toLocaleString()} mt</span>
+                  <span className="text-muted-foreground">Seasonal Draft</span>
+                  <span className="font-mono">{calc.seasonalDraft.toFixed(2)} m</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Draft</span>
-                  <span className="font-mono">{num(summerDraft)} m ({calc.seasonalDraft.toFixed(1)} m)</span>
+                  <span className="text-muted-foreground">Draft Diff (m)</span>
+                  <span className="font-mono">{calc.draftDifference.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">TPC/TPI</span>
-                  <span className="font-mono">{num(tpc)} mt/cm</span>
+                  <span className="text-muted-foreground">Draft Diff (cm)</span>
+                  <span className="font-mono">{calc.draftDifferenceCm.toFixed(0)}</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">DWCC calc</span>
-                  <span className="font-mono">{calc.dwccCalc.toLocaleString()} mt</span>
+                  <span className="text-muted-foreground">DWT Reduction</span>
+                  <span className="font-mono">{Math.round(calc.dwtReduction).toLocaleString()} mt</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">DWCC cubic</span>
+                  <span className="text-muted-foreground">Density Factor</span>
+                  <span className="font-mono">{calc.densityFactor.toFixed(4)}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">DWT After D&D</span>
+                  <span className="font-mono">{Math.round(calc.dwtAfterDraftDensity).toLocaleString()} mt</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">Deductions</span>
+                  <span className="font-mono">{Math.round(calc.totalDeductions).toLocaleString()} mt</span>
+                </div>
+                <div className="flex justify-between text-[11px] pt-0.5 border-t border-border">
+                  <span className="font-medium">DWCC</span>
+                  <span className="font-mono font-semibold">{calc.dwccCalc.toLocaleString()} mt</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">Volume Cargo</span>
                   <span className="font-mono">{calc.dwccCubic.toLocaleString()} mt</span>
                 </div>
                 <div className="flex justify-between text-[11px] pt-1 border-t border-border">
-                  <span className="font-semibold">DWCC</span>
+                  <span className="font-bold">Final Cargo</span>
                   <span className="font-mono font-bold text-primary text-sm">{calc.finalIntake.toLocaleString()} mt</span>
                 </div>
               </div>
