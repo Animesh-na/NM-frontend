@@ -673,11 +673,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         return updatedRow;
       });
 
-      // Auto-sync: when a loading port quantity changes, update the next discharge port quantity
+      // Auto-sync: when a loading port quantity changes, update discharge port quantities
       if (field === 'quantity') {
         const changedRow = updated.find(r => r.id === id);
         if (changedRow && changedRow.operation === 'loading') {
-          const changedIndex = updated.indexOf(changedRow);
           // Sum all loading quantities
           const totalLoadQty = updated
             .filter(r => r.operation === 'loading')
@@ -685,11 +684,16 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
           // Apply total to all discharge ports (split equally if multiple, or full if single)
           const dischPorts = updated.filter(r => r.operation === 'discharging');
           if (dischPorts.length > 0) {
-            const qtyPerDisch = totalLoadQty / dischPorts.length;
-            for (const dp of dischPorts) {
-              dp.quantity = Math.round(qtyPerDisch);
-              dp.calculatedPortDays = calculatePortDays(dp);
-            }
+            const qtyPerDisch = Math.round(totalLoadQty / dischPorts.length);
+            // Create new object references so React detects the change
+            return updated.map(row => {
+              if (row.operation === 'discharging') {
+                const newRow = { ...row, quantity: qtyPerDisch };
+                newRow.calculatedPortDays = calculatePortDays(newRow);
+                return newRow;
+              }
+              return row;
+            });
           }
         }
       }
