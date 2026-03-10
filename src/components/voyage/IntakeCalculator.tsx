@@ -85,13 +85,10 @@ export function IntakeCalculator({
       setConstants("");
       setBob("");
       setFreshWater("");
-      if (vessel.cubicUnit === "cbm") {
-        setGrainCuM(String(vessel.cubic));
-        setGrainCuFt(String(Math.round(vessel.cubic * 35.3147)));
-      } else {
-        setGrainCuFt(String(vessel.cubic));
-        setGrainCuM(String(Math.round(vessel.cubic / 35.3147)));
-      }
+      // Cubic is always stored in m³ — derive cu.ft from it
+      const cubicM3 = vessel.cubic || 0;
+      setGrainCuM(String(cubicM3));
+      setGrainCuFt(String(Math.round(cubicM3 * 35.3147)));
       setSf(initialSF ? String(initialSF) : "53");
     }
   }, [open, vessel, portDraft, initialSF]);
