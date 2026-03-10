@@ -48,7 +48,7 @@ export function SequenceTable() {
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
   const [savedCustomTerms, setSavedCustomTerms] = useState<{ name: string; coefficient: number }[]>([]);
-  const [draftAlert, setDraftAlert] = useState<{ show: boolean; messages: string[]; onProceed: () => void } | null>(null);
+  
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
 
