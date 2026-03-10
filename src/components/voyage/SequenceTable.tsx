@@ -426,6 +426,7 @@ export function SequenceTable() {
             updateSequenceRow(intakeRowId, "quantity", qty);
             if (draft !== undefined) {
               updateSequenceRow(intakeRowId, "portMaxDraft", draft);
+              updateSequenceRow(intakeRowId, "draft", draft);
             }
             setIntakeRowId(null);
           };
@@ -481,7 +482,7 @@ export function SequenceTable() {
             onApply={(qty, draft) => validateAndApply(qty, draft)}
             vessel={vessel}
             portName={row.port}
-            portDraft={row.portMaxDraft}
+            portDraft={row.portMaxDraft || row.draft || 0}
             currentQuantity={row.quantity}
             stowageFactor={Math.round(sf)}
           />
