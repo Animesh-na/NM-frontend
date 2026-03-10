@@ -127,6 +127,7 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', system-ui, sans-serif;
+    font-size: 9px;
   }
 
   /* Hide number input spinners globally */
