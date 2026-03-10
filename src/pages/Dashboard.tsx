@@ -69,6 +69,15 @@ export default function Dashboard() {
           {user && (
             <span className="text-section-header-foreground/70">{user.email}</span>
           )}
+          {isAdmin && (
+            <button
+              onClick={() => setCurrentView("admin")}
+              className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              <span>Admin</span>
+            </button>
+          )}
           <button
             onClick={logout}
             className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
