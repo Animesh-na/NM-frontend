@@ -161,7 +161,7 @@ export function SequenceSummary() {
             <div className="bg-muted/30 rounded p-1.5 space-y-0.5">
               <div className="text-[10px] font-medium text-muted-foreground mb-1 flex items-center">
                 CO₂ Breakdown (MT)
-                <InfoTooltip formula="CO₂ = Fuel × Emission Factor" description="HSFO/VLSFO: 3.114, LSMGO: 3.206 t CO₂/t fuel" />
+                <InfoTooltip formula="CO₂ = Fuel × Emission Factor" description="HSFO: 3.114, VLSFO: 3.151, LSMGO: 3.206 t CO₂/t fuel" />
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Non-ECA CO₂:</span>

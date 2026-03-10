@@ -6,7 +6,7 @@
 // ===========================================
 export const CO2_EMISSION_FACTORS = {
   hsfo: 3.114, // Heavy Fuel Oil
-  vlsfo: 3.114, // Very Low Sulphur Fuel Oil (same as HFO for CO2)
+  vlsfo: 3.151, // Very Low Sulphur Fuel Oil
   lsmgo: 3.206, // Low Sulphur Marine Gas Oil
 } as const;
 

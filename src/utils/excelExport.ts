@@ -819,7 +819,7 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // CO₂ emission factors
   setCalcLabel(r, "CO₂ Factor HSFO (t/t)", false, false, true); setNum(1, r, 3.114, S.envFormula); const R_CFH = r; r++;
-  setCalcLabel(r, "CO₂ Factor VLSFO (t/t)", false, false, true); setNum(1, r, 3.114, S.envFormula); const R_CFV = r; r++;
+  setCalcLabel(r, "CO₂ Factor VLSFO (t/t)", false, false, true); setNum(1, r, 3.151, S.envFormula); const R_CFV = r; r++;
   setCalcLabel(r, "CO₂ Factor LSMGO (t/t)", false, false, true); setNum(1, r, 3.206, S.envFormula); const R_CFL = r; r++;
   r++;
 
