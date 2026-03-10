@@ -181,12 +181,6 @@ export function VesselPanel() {
               <input type="number" step="0.1" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.tpcTpi || ""} onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)} placeholder="0" />
             </div>
             <div className="form-field w-14">
-              <label className="form-label">HSFO</label>
-              <select className="form-select-sm w-full" value={vessel.hsfoCapability ? "Y" : "N"} onChange={(e) => handleFieldChange("hsfoCapability", e.target.value === "Y")}>
-                <option value="N">N</option><option value="Y">Y</option>
-              </select>
-            </div>
-            <div className="form-field w-14">
               <label className="form-label">Scrub</label>
               <select className="form-select-sm w-full" value={vessel.hasScrubber ? "Y" : "N"} onChange={(e) => handleFieldChange("hasScrubber", e.target.value === "Y")}>
                 <option value="N">N</option><option value="Y">Y</option>
