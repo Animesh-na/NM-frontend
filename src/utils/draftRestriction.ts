@@ -67,6 +67,15 @@ export function calculateDraftRestriction(input: DraftCheckInput): DraftCheckRes
 
   console.log(`[DraftCheck] Input:`, input);
 
+  // Guard: if no port max draft is set, skip draft-based checks
+  if (!portMaxDraftM || portMaxDraftM <= 0) {
+    return {
+      portName,
+      status: "ACCESSIBLE",
+      reasons: undefined,
+    };
+  }
+
   // Step 1: Effective Port Draft
   const effectiveDraft = portMaxDraftM - (portMaxDraftM * (ukcPercent / 100));
   console.log(`[DraftCheck] effectiveDraft = ${portMaxDraftM} - (${portMaxDraftM} × ${ukcPercent}/100) = ${effectiveDraft}`);

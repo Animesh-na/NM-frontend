@@ -437,7 +437,7 @@ export function SequenceTable() {
           for (let i = currentIndex + 1; i < sequence.length; i++) {
             const dischRow = sequence[i];
             if (dischRow.operation !== "discharging") continue;
-            if (dischRow.portMaxDraft <= 0) continue;
+            if (!dischRow.portMaxDraft || dischRow.portMaxDraft <= 0) continue;
 
             const cubicCapacity = vessel.cubic > 0 ? vessel.cubic : estimateCubicFromDwt(vessel.dwt);
             const dischSf = dischRow.stowageFactor > 0 ? dischRow.stowageFactor : globalStowageFactor;
