@@ -21,7 +21,7 @@ export function SheetTabs() {
   };
 
   return (
-    <div className="bg-muted border-b border-border flex items-center h-7 text-[11px] px-1 gap-0.5 flex-shrink-0">
+    <div className="bg-card border-b border-border flex items-center h-8 text-[11px] px-2 gap-1 flex-shrink-0">
       {/* Back to Dashboard */}
       <button
         onClick={goToDashboard}
