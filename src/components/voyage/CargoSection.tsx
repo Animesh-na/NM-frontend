@@ -206,7 +206,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntry
           </div>
         </div>
 
-        <div className="form-field w-28">
+        <div className="form-field w-36">
           <label className="form-label flex items-center gap-1">
             Qty (Seq)
             <InfoTooltip formula="Sum of loading quantities from Sequence" description="Auto-calculated" />

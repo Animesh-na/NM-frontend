@@ -78,7 +78,7 @@ export function ConsumptionMatrix({
                 const value = consumptionMatrix[row.key][col.key];
                 
                 return (
-                  <td key={col.key} className="px-0.5 py-0">
+                  <td key={col.key} className="px-1 py-0">
                     {isSpeedNA ? (
                       <div className="h-4 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                     ) : (
