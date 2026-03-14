@@ -49,6 +49,9 @@ const Index = () => {
       if (d.misc) voyage.setMisc(d.misc);
       if (d.hireRate !== undefined) voyage.setHireRate(d.hireRate);
       if (d.vesselCost !== undefined) voyage.setVesselCost(d.vesselCost);
+      if (d.netBB !== undefined) voyage.setNetBB(d.netBB);
+      if (d.applyEuaImpact !== undefined) voyage.setApplyEuaImpact(d.applyEuaImpact);
+      if (d.applyFuelEuImpact !== undefined) voyage.setApplyFuelEuImpact(d.applyFuelEuImpact);
     } else {
       // New empty sheet — reset all state
       resetState();
@@ -65,7 +68,10 @@ const Index = () => {
     misc: voyage.misc,
     hireRate: voyage.hireRate,
     vesselCost: voyage.vesselCost,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost]);
+    netBB: voyage.netBB,
+    applyEuaImpact: voyage.applyEuaImpact,
+    applyFuelEuImpact: voyage.applyFuelEuImpact,
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact]);
 
   // Listen for save events from SheetTabs
   useEffect(() => {
@@ -84,7 +90,7 @@ const Index = () => {
       markDirty();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost]);
+  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact]);
 
   if (activeTab?.isLoading) {
     return (
