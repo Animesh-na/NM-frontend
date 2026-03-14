@@ -115,7 +115,11 @@ export interface CargoEntry {
 }
 
 interface VoyageContextValue {
-  // Vessel state
+  // Regulatory freight impact toggles
+  applyEuaImpact: boolean;
+  setApplyEuaImpact: (v: boolean) => void;
+  applyFuelEuImpact: boolean;
+  setApplyFuelEuImpact: (v: boolean) => void;
   vessel: VesselData;
   setVessel: (vessel: VesselData) => void;
   
@@ -620,6 +624,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [netBB, setNetBB] = useState(0);
   const [vesselCost, setVesselCost] = useState(6500);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
+  const [applyEuaImpact, setApplyEuaImpact] = useState(false);
+  const [applyFuelEuImpact, setApplyFuelEuImpact] = useState(false);
   const [distanceLoading, setDistanceLoading] = useState(false);
 
   // Recalculate port days and sea times whenever relevant fields change
@@ -1220,6 +1226,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   return (
     <VoyageContext.Provider
       value={{
+        applyEuaImpact,
+        setApplyEuaImpact,
+        applyFuelEuImpact,
+        setApplyFuelEuImpact,
         vessel,
         setVessel,
         sequence,
@@ -1272,6 +1282,10 @@ export function useVoyageContext() {
     // Return a safe default to prevent crashes
     console.warn("VoyageContext not available - using defaults. This may occur during hot reload.");
     return {
+      applyEuaImpact: false,
+      setApplyEuaImpact: () => {},
+      applyFuelEuImpact: false,
+      setApplyFuelEuImpact: () => {},
       vessel: defaultVessel,
       setVessel: () => {},
       sequence: [],
@@ -1371,6 +1385,7 @@ export function useVoyageContext() {
           totalPenalty: 0,
         },
         fuelEuTotalPenalty: 0,
+        fuelEuFreightImpact: 0,
       },
     } as VoyageContextValue;
   }

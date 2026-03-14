@@ -2,16 +2,26 @@ import { DollarSign, Clock, TrendingUp, Leaf, Download } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
 import { useAuth } from "@/context/AuthContext";
+import { useMemo } from "react";
 
 export function VoyageSummary() {
-  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB } = useVoyageContext();
+  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact } = useVoyageContext();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
+
+  // Compute adjusted gross rate based on regulatory impact toggles
+  const adjustedGrossRate = useMemo(() => {
+    let rate = results.grossRate;
+    if (applyEuaImpact) rate += results.euaFreightImpact;
+    if (applyFuelEuImpact) rate += results.fuelEuFreightImpact;
+    return rate;
+  }, [results.grossRate, results.euaFreightImpact, results.fuelEuFreightImpact, applyEuaImpact, applyFuelEuImpact]);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -173,7 +183,7 @@ export function VoyageSummary() {
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
-                Gross Rate
+                {(applyEuaImpact || applyFuelEuImpact) ? "Base Gross Rate" : "Gross Rate"}
                 <InfoTooltip 
                   formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
                   description="Breakeven freight rate per MT including hire and commission"
@@ -183,6 +193,20 @@ export function VoyageSummary() {
                 ${formatCurrency(results.grossRate)} /mt
               </span>
             </div>
+            {(applyEuaImpact || applyFuelEuImpact) && (
+              <div className="flex justify-between bg-muted rounded-sm px-1 py-0.5">
+                <span className="font-medium text-regulatory flex items-center">
+                  Adjusted Gross Rate
+                  <InfoTooltip 
+                    formula="Base Gross Rate + (EUA Impact if applied) + (FuelEU Impact if applied)" 
+                    description="Gross Rate adjusted for regulatory freight impacts"
+                  />
+                </span>
+                <span className="font-mono tabular-nums font-bold text-regulatory">
+                  ${formatCurrency(adjustedGrossRate)} /mt
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
                 P&L
@@ -381,9 +405,9 @@ export function VoyageSummary() {
             </div>
           </div>
 
-          {/* EUA Freight Impact */}
-          {results.euaFreightImpact > 0 && (
-            <div className="flex justify-between mt-1 pt-1 border-t border-border">
+          {/* EUA Freight Impact with checkbox */}
+          <div className="mt-1 pt-1 border-t border-border space-y-1">
+            <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center">
                 EUA Freight Impact
                 <InfoTooltip 
@@ -391,11 +415,19 @@ export function VoyageSummary() {
                   description="EU ETS cost per metric ton of cargo"
                 />
               </span>
-              <span className="font-mono tabular-nums font-semibold">
+              <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.euaFreightImpact.toFixed(2)} /mt
               </span>
             </div>
-          )}
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox
+                checked={applyEuaImpact}
+                onCheckedChange={(v) => setApplyEuaImpact(!!v)}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-[9px] text-regulatory font-medium">Apply EUA Freight Impact</span>
+            </label>
+          </div>
         </div>
 
         {/* FuelEU Maritime Section */}
@@ -448,6 +480,30 @@ export function VoyageSummary() {
             <span className="font-mono tabular-nums text-primary">
               ${formatCurrency(results.fuelEuTotalPenalty)}
             </span>
+          </div>
+
+          {/* FuelEU Freight Impact with checkbox */}
+          <div className="mt-1 pt-1 border-t border-border space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center">
+                FuelEU Freight Impact
+                <InfoTooltip 
+                  formula="Total FuelEU Penalty / Cargo Quantity" 
+                  description="FuelEU Maritime penalty cost per metric ton of cargo"
+                />
+              </span>
+              <span className="font-mono tabular-nums font-semibold text-regulatory">
+                ${results.fuelEuFreightImpact.toFixed(2)} /mt
+              </span>
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox
+                checked={applyFuelEuImpact}
+                onCheckedChange={(v) => setApplyFuelEuImpact(!!v)}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-[9px] text-regulatory font-medium">Apply FuelEU Freight Impact</span>
+            </label>
           </div>
         </div>
 

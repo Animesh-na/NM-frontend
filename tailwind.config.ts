@@ -68,6 +68,7 @@ export default {
         "table-header": "hsl(var(--table-header))",
         "table-row-alt": "hsl(var(--table-row-alt))",
         "data-highlight": "hsl(var(--data-highlight))",
+        regulatory: "hsl(var(--regulatory))",
         "money-positive": "hsl(var(--money-positive))",
         "money-negative": "hsl(var(--money-negative))",
         sidebar: {

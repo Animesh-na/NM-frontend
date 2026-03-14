@@ -181,6 +181,9 @@ export interface VoyageResults {
   // FuelEU Maritime penalties
   fuelEuResult: FuelEuResult;
   fuelEuTotalPenalty: number;
+  
+  // FuelEU Freight Impact (FuelEU penalty / cargo quantity)
+  fuelEuFreightImpact: number;
 }
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
@@ -826,6 +829,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       euaFreightImpact,
       fuelEuResult,
       fuelEuTotalPenalty: fuelEuResult.totalPenalty,
+      fuelEuFreightImpact: cargo.quantity > 0 ? fuelEuResult.totalPenalty / cargo.quantity : 0,
     };
   }, [inputs]);
 }
