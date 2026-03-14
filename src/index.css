@@ -123,7 +123,7 @@
 
   body {
     @apply bg-background text-foreground font-sans;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Helvetica Neue', 'Arial Nova Condensed', sans-serif;
     font-size: 9px;
   }
 
