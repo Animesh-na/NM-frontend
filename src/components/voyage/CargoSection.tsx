@@ -185,7 +185,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntry
         <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded self-center">
           #{index + 1}
         </span>
-        <div className="form-field w-28">
+        <div className="form-field w-36">
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">
             <input
