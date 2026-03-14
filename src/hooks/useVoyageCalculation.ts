@@ -181,6 +181,9 @@ export interface VoyageResults {
   // FuelEU Maritime penalties
   fuelEuResult: FuelEuResult;
   fuelEuTotalPenalty: number;
+  
+  // FuelEU Freight Impact (FuelEU penalty / cargo quantity)
+  fuelEuFreightImpact: number;
 }
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
