@@ -48,7 +48,7 @@ export function ConsumptionMatrix({
   onConsumptionChange,
 }: ConsumptionMatrixProps) {
   const speedOnlyColumns: ColumnKey[] = ["ballast", "laden"];
-  const thClass = "px-0.5 py-0 text-[9px] font-semibold text-section-header-foreground text-center bg-table-header";
+  const thClass = "px-0.5 py-0 text-[9px] font-semibold text-foreground text-center bg-table-header";
 
   const getUnit = (rowKey: string): string => {
     if (rowKey === "speed") return "kn";
