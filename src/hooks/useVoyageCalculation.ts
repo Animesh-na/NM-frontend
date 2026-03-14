@@ -705,6 +705,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
     // Calculate EU-covered fuel quantities (proportional to ETS voyage coverage per leg)
     // For each leg, determine what fraction of fuel is EU-covered based on leg coverage
+    // Also include port fuel consumption at EU ports
     let euCoveredHsfo = 0;
     let euCoveredVlsfo = 0;
     let euCoveredLsmgo = 0;
@@ -712,7 +713,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     if (voyageLegs.length > 0 && totalSeaDays > 0) {
       sequence.forEach((leg) => {
         if (leg.portUnloc && leg.seaTime) {
-          // Find matching voyage leg to get coverage
+          // Find matching voyage leg to get coverage for sea fuel
           const matchingLeg = etsResult.legBreakdown.find(
             vl => vl.destination === leg.portUnloc
           );
@@ -722,6 +723,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             euCoveredVlsfo += vlsfoConsumption * legFraction * matchingLeg.coverage;
             euCoveredLsmgo += lsmgoConsumption * legFraction * matchingLeg.coverage;
           }
+        }
+        
+        // Port fuel at EU ports is 100% covered
+        if (leg.portUnloc && isEuPort(leg.portUnloc) && leg.portDays > 0) {
+          // Estimate port fuel for this leg proportionally
+          const totalPortDaysCalc = totalPortDays || 1;
+          const legPortFraction = (leg.portDays || 0) / totalPortDaysCalc;
+          const portHsfo = (hsfoLoading + hsfoDischarging + hsfoIdle) * legPortFraction;
+          const portVlsfo = (vlsfoLoading + vlsfoDischarging + vlsfoIdle) * legPortFraction;
+          const portLsmgo = (lsmgoLoading + lsmgoDischarging + lsmgoIdle) * legPortFraction;
+          euCoveredHsfo += portHsfo;
+          euCoveredVlsfo += portVlsfo;
+          euCoveredLsmgo += portLsmgo;
         }
       });
     }
