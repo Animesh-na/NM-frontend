@@ -405,9 +405,9 @@ export function VoyageSummary() {
             </div>
           </div>
 
-          {/* EUA Freight Impact */}
-          {results.euaFreightImpact > 0 && (
-            <div className="flex justify-between mt-1 pt-1 border-t border-border">
+          {/* EUA Freight Impact with checkbox */}
+          <div className="mt-1 pt-1 border-t border-border space-y-1">
+            <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center">
                 EUA Freight Impact
                 <InfoTooltip 
@@ -415,11 +415,19 @@ export function VoyageSummary() {
                   description="EU ETS cost per metric ton of cargo"
                 />
               </span>
-              <span className="font-mono tabular-nums font-semibold">
+              <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.euaFreightImpact.toFixed(2)} /mt
               </span>
             </div>
-          )}
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox
+                checked={applyEuaImpact}
+                onCheckedChange={(v) => setApplyEuaImpact(!!v)}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-[9px] text-regulatory font-medium">Apply EUA Freight Impact</span>
+            </label>
+          </div>
         </div>
 
         {/* FuelEU Maritime Section */}
