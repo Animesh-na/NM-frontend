@@ -7,6 +7,7 @@ import {
   calculateCiiRating,
   calculateEfoi,
   getEtsVoyageCoverage,
+  getEtsCoverageFromEca,
   getEtsPhaseInPercentage,
   isEuPort,
   validateEmissionInputs,
