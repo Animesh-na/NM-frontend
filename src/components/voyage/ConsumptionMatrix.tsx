@@ -58,12 +58,12 @@ export function ConsumptionMatrix({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[10px] border-collapse">
+      <table className="text-[10px] border-collapse" style={{ width: 'auto' }}>
         <thead>
           <tr>
-            <th className={`${thClass} text-left w-14`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
+            <th className={`${thClass} text-left w-12`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
             {columns.map(col => (
-              <th key={col.key} className={thClass}>{col.label}</th>
+              <th key={col.key} className={`${thClass} px-1`}>{col.label}</th>
             ))}
             <th className={`${thClass} w-8`}>Unit</th>
           </tr>
@@ -71,23 +71,24 @@ export function ConsumptionMatrix({
         <tbody>
           {matrixRows.map((row) => (
             <tr key={row.key}>
-              <td className="px-0.5 py-0 text-[10px] font-bold text-foreground bg-subsection-header">{row.label}</td>
+              <td className="px-1 py-0 text-[10px] font-bold text-foreground bg-subsection-header">{row.label}</td>
               {columns.map(col => {
                 const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
                 const isSpeedNA = row.key === "speed" && !speedOnlyColumns.includes(col.key);
                 const value = consumptionMatrix[row.key][col.key];
                 
                 return (
-                  <td key={col.key} className="px-0 py-0">
+                  <td key={col.key} className="px-0.5 py-0">
                     {isSpeedNA ? (
                       <div className="h-4 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                     ) : (
                       <input
                         type="number"
                         step={row.key === "speed" ? "0.1" : "0.01"}
-                        className={`form-input-sm w-full font-mono tabular-nums text-right h-4 text-[9px] px-0.5 ${isDisabled ? "opacity-50" : ""}`}
+                        className={`form-input-sm w-14 font-mono tabular-nums text-right h-4 text-[9px] px-1 ${isDisabled ? "opacity-50" : ""}`}
                         value={value || ""}
                         onChange={(e) => onConsumptionChange(row.key, col.key, parseFloat(e.target.value) || 0)}
+                        onFocus={(e) => { if (e.target.value === "0") e.target.value = ""; }}
                         placeholder="0"
                         disabled={isDisabled}
                       />
@@ -95,7 +96,7 @@ export function ConsumptionMatrix({
                   </td>
                 );
               })}
-              <td className="px-0.5 py-0 text-[8px] text-muted-foreground text-center">{getUnit(row.key)}</td>
+              <td className="px-1 py-0 text-[8px] text-muted-foreground text-center">{getUnit(row.key)}</td>
             </tr>
           ))}
         </tbody>
