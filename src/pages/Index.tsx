@@ -125,7 +125,7 @@ const Index = () => {
       </div>
       
       {/* Footer */}
-      <footer className="bg-section-header border-t border-border px-3 py-1 text-[10px] text-muted-foreground flex items-center justify-between flex-shrink-0">
+      <footer className="bg-primary border-t border-border px-3 py-1.5 text-[10px] text-primary-foreground flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <span>© 2026 VoyageCalc</span>
           <span className="text-muted-foreground/50">|</span>
