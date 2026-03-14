@@ -29,6 +29,7 @@ interface SheetContextValue {
   markDirty: () => void;
   goToDashboard: () => void;
   renameTab: (index: number, name: string) => void;
+  updateTabData: (index: number, data: Record<string, unknown>) => void;
 }
 
 const SheetContext = createContext<SheetContextValue | null>(null);
