@@ -401,6 +401,10 @@ export function VoyageSummary() {
                 ${formatCurrency(results.totalCo2Cost)}
               </span>
             </div>
+            <div className="flex justify-between text-[9px]">
+              <span className="text-muted-foreground pl-2">ETS Coverage</span>
+              <span className="font-mono">{(results.etsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.etsPhaseIn * 100).toFixed(0)}%)</span>
+            </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
                 EUA CO₂
