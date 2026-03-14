@@ -481,6 +481,30 @@ export function VoyageSummary() {
               ${formatCurrency(results.fuelEuTotalPenalty)}
             </span>
           </div>
+
+          {/* FuelEU Freight Impact with checkbox */}
+          <div className="mt-1 pt-1 border-t border-border space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center">
+                FuelEU Freight Impact
+                <InfoTooltip 
+                  formula="Total FuelEU Penalty / Cargo Quantity" 
+                  description="FuelEU Maritime penalty cost per metric ton of cargo"
+                />
+              </span>
+              <span className="font-mono tabular-nums font-semibold text-regulatory">
+                ${results.fuelEuFreightImpact.toFixed(2)} /mt
+              </span>
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox
+                checked={applyFuelEuImpact}
+                onCheckedChange={(v) => setApplyFuelEuImpact(!!v)}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-[9px] text-regulatory font-medium">Apply FuelEU Freight Impact</span>
+            </label>
+          </div>
         </div>
 
         {/* Export Excel - Admin only */}
