@@ -115,7 +115,11 @@ export interface CargoEntry {
 }
 
 interface VoyageContextValue {
-  // Vessel state
+  // Regulatory freight impact toggles
+  applyEuaImpact: boolean;
+  setApplyEuaImpact: (v: boolean) => void;
+  applyFuelEuImpact: boolean;
+  setApplyFuelEuImpact: (v: boolean) => void;
   vessel: VesselData;
   setVessel: (vessel: VesselData) => void;
   
