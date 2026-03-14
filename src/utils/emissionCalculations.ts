@@ -104,7 +104,7 @@ export function isEuPort(portUnloc: string): boolean {
 }
 
 /**
- * Determine EU ETS voyage coverage based on origin/destination
+ * Determine EU ETS voyage coverage based on origin/destination UNLOC codes
  */
 export function getEtsVoyageCoverage(
   originUnloc: string,
@@ -113,6 +113,36 @@ export function getEtsVoyageCoverage(
   const originIsEu = isEuPort(originUnloc);
   const destinationIsEu = isEuPort(destinationUnloc);
   
+  if (originIsEu && destinationIsEu) {
+    return { type: 'eu_to_eu', percentage: 1.0 };
+  } else if (originIsEu && !destinationIsEu) {
+    return { type: 'eu_to_non_eu', percentage: 0.5 };
+  } else if (!originIsEu && destinationIsEu) {
+    return { type: 'non_eu_to_eu', percentage: 0.5 };
+  } else {
+    return { type: 'non_eu_to_non_eu', percentage: 0.0 };
+  }
+}
+
+/**
+ * Determine EU ETS coverage based on ECA distances of origin and destination legs.
+ * 
+ * Rules:
+ * - Origin ECA > 0 && Destination ECA > 0 → EU→EU = 100%
+ * - Origin ECA = 0 && Destination ECA > 0 → Non-EU→EU = 50%
+ * - Origin ECA > 0 && Destination ECA = 0 → EU→Non-EU = 50%
+ * - Origin ECA = 0 && Destination ECA = 0 → Non-EU→Non-EU = 0%
+ * 
+ * @param originEcaDistance ECA distance (NM) of the leg arriving at the origin port
+ * @param destinationEcaDistance ECA distance (NM) of the leg arriving at the destination port (current leg)
+ */
+export function getEtsCoverageFromEca(
+  originEcaDistance: number,
+  destinationEcaDistance: number
+): { type: EtsVoyageType; percentage: number } {
+  const originIsEu = originEcaDistance > 0;
+  const destinationIsEu = destinationEcaDistance > 0;
+
   if (originIsEu && destinationIsEu) {
     return { type: 'eu_to_eu', percentage: 1.0 };
   } else if (originIsEu && !destinationIsEu) {

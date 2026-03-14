@@ -7,6 +7,7 @@ import {
   calculateCiiRating,
   calculateEfoi,
   getEtsVoyageCoverage,
+  getEtsCoverageFromEca,
   getEtsPhaseInPercentage,
   isEuPort,
   validateEmissionInputs,
@@ -639,35 +640,78 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const efoiResult = calculateEfoi(totalCo2, cargo.quantity, ladenDistance);
     const efoi = efoiResult.efoi;
 
-    // Build voyage legs for ETS calculation
+    // Build voyage legs for ETS calculation using ECA-distance-based coverage
+    // Each sequence row's ecaDistance indicates whether that port is in EU ECA waters
     const voyageLegs: Array<{ originUnloc: string; destinationUnloc: string; co2: number }> = [];
+    const legCoverages: number[] = []; // Store per-leg ECA-based coverage
     let previousPort = '';
+    let previousEcaDistance = 0; // ECA distance of leg arriving at origin port
     let legIndex = 0;
     
-    sequence.forEach((leg) => {
+    sequence.forEach((leg, idx) => {
       if (leg.portUnloc && previousPort) {
         // Calculate CO2 proportion for this leg based on sea time
         const legSeaTime = leg.seaTime || 0;
         const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
+        
+        // Determine ETS coverage from ECA distances:
+        // previousEcaDistance = ECA distance of the leg that arrived at the origin port
+        // leg.ecaDistance = ECA distance of the current leg (arriving at destination)
+        const ecaCoverage = getEtsCoverageFromEca(previousEcaDistance, leg.ecaDistance || 0);
         
         voyageLegs.push({
           originUnloc: previousPort,
           destinationUnloc: leg.portUnloc,
           co2: legCo2,
         });
+        legCoverages.push(ecaCoverage.percentage);
         legIndex++;
       }
       if (leg.portUnloc) {
         previousPort = leg.portUnloc;
+        previousEcaDistance = leg.ecaDistance || 0;
       }
     });
 
-    // Calculate EU ETS cost
-    const etsResult = calculateEtsCost({
-      totalCo2,
-      voyageLegs,
-      co2Price: bunker.co2Price || 0,
+    // Calculate EU ETS cost using ECA-distance-based coverage
+    // Override the UNLOC-based coverage in calculateEtsCost with our ECA-based values
+    const phaseInPercentage = getEtsPhaseInPercentage();
+    let totalChargeableCo2 = 0;
+    const etsLegBreakdown: EtsResult['legBreakdown'] = [];
+    
+    voyageLegs.forEach((leg, i) => {
+      const coverage = legCoverages[i] || 0;
+      const chargeableCo2 = leg.co2 * coverage * phaseInPercentage;
+      totalChargeableCo2 += chargeableCo2;
+      
+      etsLegBreakdown.push({
+        origin: leg.originUnloc,
+        destination: leg.destinationUnloc,
+        coverage,
+        co2: leg.co2,
+        chargeableCo2,
+      });
     });
+
+    // If no legs, use simplified calculation
+    if (voyageLegs.length === 0) {
+      totalChargeableCo2 = totalCo2 * phaseInPercentage;
+    }
+
+    const etsVoyageCoverage = totalCo2 > 0 && etsLegBreakdown.length > 0
+      ? etsLegBreakdown.reduce((sum, leg) => sum + (leg.co2 / totalCo2) * leg.coverage, 0)
+      : 0;
+
+    const etsCost = totalChargeableCo2 * (bunker.co2Price || 0);
+    
+    const etsResult: EtsResult = {
+      totalCo2,
+      etsVoyageCoverage,
+      phaseInPercentage,
+      chargeableCo2: totalChargeableCo2,
+      etsCost,
+      legBreakdown: etsLegBreakdown,
+    };
 
     // Calculate CII rating using IMO methodology
     const ciiResult = calculateCiiRating({
@@ -697,24 +741,22 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Actual CII = totalCO2(${totalCo2}) × 1000000 / (DWT(${vessel.dwt}) × totalDist(${totalDistance})) = ${afrCii} gCO2/dwt-nm
     CII Rating = ${ciiRating}
     
-    --- EU ETS ---
+    --- EU ETS (ECA-distance based) ---
     ETS Chargeable CO2 = ${etsResult.chargeableCo2} mt
     ETS Coverage = ${etsResult.etsVoyageCoverage * 100}%
     ETS Phase-in = ${etsResult.phaseInPercentage * 100}%
     ETS Cost = ${etsResult.etsCost} (CO2 price: $${bunker.co2Price})`);
 
-    // Calculate EU-covered fuel quantities (proportional to ETS voyage coverage per leg)
-    // For each leg, determine what fraction of fuel is EU-covered based on leg coverage
-    // Also include port fuel consumption at EU ports
+    // Calculate EU-covered fuel quantities using ECA-distance-based coverage per leg
     let euCoveredHsfo = 0;
     let euCoveredVlsfo = 0;
     let euCoveredLsmgo = 0;
     
-    if (voyageLegs.length > 0 && totalSeaDays > 0) {
+    if (etsLegBreakdown.length > 0 && totalSeaDays > 0) {
+      // Sea fuel: proportional to leg coverage
       sequence.forEach((leg) => {
         if (leg.portUnloc && leg.seaTime) {
-          // Find matching voyage leg to get coverage for sea fuel
-          const matchingLeg = etsResult.legBreakdown.find(
+          const matchingLeg = etsLegBreakdown.find(
             vl => vl.destination === leg.portUnloc
           );
           if (matchingLeg) {
@@ -725,9 +767,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           }
         }
         
-        // Port fuel at EU ports is 100% covered
-        if (leg.portUnloc && isEuPort(leg.portUnloc) && leg.portDays > 0) {
-          // Estimate port fuel for this leg proportionally
+        // Port fuel at EU ports (ECA > 0 on that leg means port is in EU zone)
+        if (leg.portUnloc && (leg.ecaDistance || 0) > 0 && leg.portDays > 0) {
           const totalPortDaysCalc = totalPortDays || 1;
           const legPortFraction = (leg.portDays || 0) / totalPortDaysCalc;
           const portHsfo = (hsfoLoading + hsfoDischarging + hsfoIdle) * legPortFraction;
