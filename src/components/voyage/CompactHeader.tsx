@@ -1,9 +1,10 @@
-import { Ship, Calculator, FileText, Settings, LogOut } from "lucide-react";
+import { Ship, FileText, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 export function CompactHeader() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   return (
     <header className="bg-primary text-primary-foreground h-8 flex items-center justify-between px-3 text-xs">
@@ -17,24 +18,15 @@ export function CompactHeader() {
 
       {/* Quick Actions */}
       <div className="flex items-center gap-3">
-        <button className="flex items-center gap-1 hover:text-white/80 transition-colors">
-          <Calculator className="h-3 w-3" />
-          <span>New Calc</span>
-        </button>
-        <button className="flex items-center gap-1 hover:text-white/80 transition-colors">
-          <span>Save</span>
-        </button>
-        <Link 
-          to="/calculation-breakdown"
-          className="flex items-center gap-1 hover:text-white/80 transition-colors"
-        >
-          <FileText className="h-3 w-3" />
-          <span>Details</span>
-        </Link>
-        <button className="flex items-center gap-1 hover:text-white/80 transition-colors">
-          <Settings className="h-3 w-3" />
-        </button>
-        <span className="text-primary-foreground/30">|</span>
+        {isAdmin && (
+          <Link 
+            to="/calculation-breakdown"
+            className="flex items-center gap-1 hover:text-white/80 transition-colors"
+          >
+            <FileText className="h-3 w-3" />
+            <span>Details</span>
+          </Link>
+        )}
         <button
           onClick={logout}
           className="flex items-center gap-1 hover:text-white/80 transition-colors"
