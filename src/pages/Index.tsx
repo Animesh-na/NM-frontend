@@ -106,7 +106,7 @@ const Index = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
-        <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
           <VesselPanel />
           <SequenceTable />
           <CargoSection />
@@ -125,7 +125,7 @@ const Index = () => {
       </div>
       
       {/* Footer */}
-      <footer className="bg-section-header border-t border-border px-3 py-1 text-[10px] text-muted-foreground flex items-center justify-between flex-shrink-0">
+      <footer className="bg-primary border-t border-border px-3 py-1.5 text-[10px] text-primary-foreground flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <span>© 2026 VoyageCalc</span>
           <span className="text-muted-foreground/50">|</span>
@@ -133,7 +133,7 @@ const Index = () => {
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            className="btn-success flex items-center gap-1"
+            className="bg-primary/80 text-primary-foreground px-2.5 py-0.5 rounded text-[10px] font-medium hover:bg-primary/70 transition-colors flex items-center gap-1"
             onClick={() => {
               if (activeTab) {
                 window.dispatchEvent(new CustomEvent("sheet-save", { detail: { name: activeTab.name } }));
