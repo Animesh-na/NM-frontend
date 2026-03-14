@@ -215,13 +215,13 @@
     @apply text-destructive font-medium;
   }
 
-  /* Card sections - grey background, no visible card borders */
+  /* Card sections - white cards with subtle shadow */
   .calc-card {
-    @apply bg-background overflow-hidden;
+    @apply bg-card rounded-md shadow-sm overflow-hidden;
   }
 
   .calc-card-compact {
-    @apply bg-background overflow-hidden;
+    @apply bg-card rounded-md shadow-sm overflow-hidden;
   }
 
   /* Action buttons */

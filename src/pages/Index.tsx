@@ -133,7 +133,7 @@ const Index = () => {
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            className="btn-success flex items-center gap-1"
+            className="bg-primary/80 text-primary-foreground px-2.5 py-0.5 rounded text-[10px] font-medium hover:bg-primary/70 transition-colors flex items-center gap-1"
             onClick={() => {
               if (activeTab) {
                 window.dispatchEvent(new CustomEvent("sheet-save", { detail: { name: activeTab.name } }));

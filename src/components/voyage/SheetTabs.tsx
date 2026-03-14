@@ -56,17 +56,18 @@ export function SheetTabs() {
       {/* New Sheet Button */}
       <button
         onClick={createNewSheet}
-        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm hover:bg-background text-muted-foreground transition-colors ml-1"
+        className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/85 transition-colors ml-1 text-[10px] font-medium"
         title="New Sheet"
       >
         <Plus className="h-3 w-3" />
+        <span>New Sheet</span>
       </button>
 
       {/* Save Button */}
       {activeTab && (
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1.5">
           {savingName ? (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <input
                 className="form-input-sm w-32"
                 value={editName}
@@ -74,13 +75,13 @@ export function SheetTabs() {
                 onKeyDown={e => e.key === "Enter" && confirmSave()}
                 autoFocus
               />
-              <button onClick={confirmSave} className="btn-success h-5 px-2 text-[10px]">OK</button>
-              <button onClick={() => setSavingName(false)} className="btn-secondary h-5 px-2 text-[10px]">Cancel</button>
+              <button onClick={confirmSave} className="btn-primary h-5 px-2.5 text-[10px]">OK</button>
+              <button onClick={() => setSavingName(false)} className="btn-secondary h-5 px-2.5 text-[10px]">Cancel</button>
             </div>
           ) : (
             <button
               onClick={handleSave}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-sm hover:bg-primary/10 text-primary transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/85 transition-colors text-[10px] font-medium"
               title="Save Sheet"
             >
               <Save className="h-3 w-3" />

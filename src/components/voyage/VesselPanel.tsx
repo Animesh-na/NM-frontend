@@ -154,7 +154,7 @@ export function VesselPanel() {
       </button>
 
       {isExpanded && (
-        <div className="px-2 py-1 space-y-1">
+        <div className="px-3 py-2.5 space-y-2">
           {/* Row 1: Search + Particulars + Type/Sector/Speed */}
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field min-w-[120px] max-w-[200px] flex-1">
