@@ -57,8 +57,8 @@ export function ConsumptionMatrix({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="text-[10px] border-collapse" style={{ width: 'auto' }}>
+    <div className="overflow-x-auto w-full">
+      <table className="text-[10px] border-collapse w-full">
         <thead>
           <tr>
             <th className={`${thClass} text-left w-12`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
