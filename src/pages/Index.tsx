@@ -68,7 +68,10 @@ const Index = () => {
     misc: voyage.misc,
     hireRate: voyage.hireRate,
     vesselCost: voyage.vesselCost,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost]);
+    netBB: voyage.netBB,
+    applyEuaImpact: voyage.applyEuaImpact,
+    applyFuelEuImpact: voyage.applyFuelEuImpact,
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact]);
 
   // Listen for save events from SheetTabs
   useEffect(() => {
