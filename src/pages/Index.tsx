@@ -49,6 +49,9 @@ const Index = () => {
       if (d.misc) voyage.setMisc(d.misc);
       if (d.hireRate !== undefined) voyage.setHireRate(d.hireRate);
       if (d.vesselCost !== undefined) voyage.setVesselCost(d.vesselCost);
+      if (d.netBB !== undefined) voyage.setNetBB(d.netBB);
+      if (d.applyEuaImpact !== undefined) voyage.setApplyEuaImpact(d.applyEuaImpact);
+      if (d.applyFuelEuImpact !== undefined) voyage.setApplyFuelEuImpact(d.applyFuelEuImpact);
     } else {
       // New empty sheet — reset all state
       resetState();
