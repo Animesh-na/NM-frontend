@@ -2,29 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @layer base {
   :root {
-    --background: 0 0% 91%;
+    --background: 213 14% 85%;
     --foreground: 215 25% 15%;
 
-    --card: 0 0% 91%;
+    --card: 0 0% 100%;
     --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    --primary: 201 70% 35%;
+    --primary: 214 100% 15%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 15% 93%;
+    --secondary: 213 14% 90%;
     --secondary-foreground: 215 25% 25%;
 
-    --muted: 0 0% 90%;
+    --muted: 213 14% 88%;
     --muted-foreground: 215 15% 45%;
 
-    --accent: 201 70% 35%;
+    --accent: 214 100% 15%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -36,23 +34,22 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 20% 82%;
-    --input: 214 20% 82%;
+    --border: 213 14% 78%;
+    --input: 213 14% 78%;
     --input-background: 0 0% 100%;
-    --ring: 201 70% 35%;
+    --ring: 214 100% 15%;
 
-    --radius: 0.375rem;
+    --radius: 0.5rem;
 
     /* Maritime specific tokens */
-    --section-header: 0 0% 80%;
-    --section-header-foreground: 215 25% 15%;
-    --subsection-header: 0 0% 90%;
-    --table-header: 0 0% 90%;
+    --section-header: 213 16% 55%;
+    --section-header-foreground: 0 0% 100%;
+    --subsection-header: 213 14% 88%;
+    --table-header: 213 14% 88%;
     --table-row-alt: 0 0% 100%;
-    --data-highlight: 201 70% 92%;
+    --data-highlight: 213 30% 92%;
     --money-positive: 142 70% 35%;
     --money-negative: 0 72% 51%;
-    
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
