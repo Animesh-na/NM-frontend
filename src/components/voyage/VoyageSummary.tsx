@@ -2,11 +2,13 @@ import { DollarSign, Clock, TrendingUp, Leaf, Download } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
 import { useAuth } from "@/context/AuthContext";
+import { useMemo } from "react";
 
 export function VoyageSummary() {
-  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB } = useVoyageContext();
+  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact } = useVoyageContext();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
