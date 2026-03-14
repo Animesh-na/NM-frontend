@@ -348,6 +348,22 @@ export function VoyageSummary() {
           <div className="flex items-center gap-1 mb-2">
             <span className="font-medium">CO₂ & EU ETS</span>
           </div>
+
+          {/* Validation warnings */}
+          {results.emissionWarnings.length > 0 && (
+            <div className="bg-warning/10 border border-warning/30 rounded-sm p-1.5 space-y-0.5">
+              {results.emissionWarnings.map((w, i) => (
+                <div key={i} className="text-[9px] text-warning font-medium">⚠ {w}</div>
+              ))}
+            </div>
+          )}
+          {results.emissionErrors.length > 0 && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-sm p-1.5 space-y-0.5">
+              {results.emissionErrors.map((e, i) => (
+                <div key={i} className="text-[9px] text-destructive font-medium">✕ {e}</div>
+              ))}
+            </div>
+          )}
           
 
           {/* EU ETS fuel allocation */}
