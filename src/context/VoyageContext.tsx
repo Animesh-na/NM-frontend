@@ -624,6 +624,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [netBB, setNetBB] = useState(0);
   const [vesselCost, setVesselCost] = useState(6500);
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
+  const [applyEuaImpact, setApplyEuaImpact] = useState(false);
+  const [applyFuelEuImpact, setApplyFuelEuImpact] = useState(false);
   const [distanceLoading, setDistanceLoading] = useState(false);
 
   // Recalculate port days and sea times whenever relevant fields change
