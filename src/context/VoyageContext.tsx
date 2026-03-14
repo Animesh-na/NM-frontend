@@ -1226,6 +1226,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   return (
     <VoyageContext.Provider
       value={{
+        applyEuaImpact,
+        setApplyEuaImpact,
+        applyFuelEuImpact,
+        setApplyFuelEuImpact,
         vessel,
         setVessel,
         sequence,
