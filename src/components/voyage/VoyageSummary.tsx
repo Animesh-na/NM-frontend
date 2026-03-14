@@ -348,6 +348,22 @@ export function VoyageSummary() {
           <div className="flex items-center gap-1 mb-2">
             <span className="font-medium">CO₂ & EU ETS</span>
           </div>
+
+          {/* Validation warnings */}
+          {results.emissionWarnings.length > 0 && (
+            <div className="bg-warning/10 border border-warning/30 rounded-sm p-1.5 space-y-0.5">
+              {results.emissionWarnings.map((w, i) => (
+                <div key={i} className="text-[9px] text-warning font-medium">⚠ {w}</div>
+              ))}
+            </div>
+          )}
+          {results.emissionErrors.length > 0 && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-sm p-1.5 space-y-0.5">
+              {results.emissionErrors.map((e, i) => (
+                <div key={i} className="text-[9px] text-destructive font-medium">✕ {e}</div>
+              ))}
+            </div>
+          )}
           
 
           {/* EU ETS fuel allocation */}
@@ -384,6 +400,10 @@ export function VoyageSummary() {
               <span className="font-mono tabular-nums">
                 ${formatCurrency(results.totalCo2Cost)}
               </span>
+            </div>
+            <div className="flex justify-between text-[9px]">
+              <span className="text-muted-foreground pl-2">ETS Coverage</span>
+              <span className="font-mono">{(results.etsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.etsPhaseIn * 100).toFixed(0)}%)</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
@@ -451,18 +471,23 @@ export function VoyageSummary() {
           <div className="space-y-0.5 mt-1">
             {(['hsfo', 'vlsfo', 'lsmgo'] as const).map(fuel => {
               const f = results.fuelEuResult.fuels[fuel];
+              const excessIntensity = f.intensity - results.fuelEuResult.target;
               return (
                 <div key={fuel} className="space-y-0.5">
                   <div className="flex justify-between text-[9px]">
                     <span className="text-muted-foreground uppercase">{fuel} Intensity</span>
                     <span className="font-mono">{f.intensity} gCO₂eq/MJ</span>
                   </div>
+                  <div className="flex justify-between text-[9px]">
+                    <span className="text-muted-foreground pl-2">Energy Used</span>
+                    <span className="font-mono">{f.energyUsed.toLocaleString(undefined, { maximumFractionDigits: 0 })} MJ</span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground flex items-center">
                       {fuel.toUpperCase()} Penalty
                       <InfoTooltip 
-                        formula={`EU Qty (${f.euQuantity.toFixed(1)}t) × $${f.penalty_per_ton}/t`}
-                        description={`$${f.penalty_per_ton} per ton of ${fuel.toUpperCase()} bunker`}
+                        formula={`Energy(${f.energyUsed.toFixed(0)}MJ) × Excess(${excessIntensity.toFixed(2)}) ÷ 41000 × 2400`}
+                        description={`EU Qty: ${f.euQuantity.toFixed(1)}t × LCV: ${f.lcv} MJ/t`}
                       />
                     </span>
                     <span className="font-mono tabular-nums">
