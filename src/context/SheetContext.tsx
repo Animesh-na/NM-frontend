@@ -29,6 +29,7 @@ interface SheetContextValue {
   markDirty: () => void;
   goToDashboard: () => void;
   renameTab: (index: number, name: string) => void;
+  updateTabData: (index: number, data: Record<string, unknown>) => void;
 }
 
 const SheetContext = createContext<SheetContextValue | null>(null);
@@ -157,11 +158,15 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     setTabs(prev => prev.map((t, i) => i === index ? { ...t, name, isDirty: true } : t));
   }, []);
 
+  const updateTabData = useCallback((index: number, data: Record<string, unknown>) => {
+    setTabs(prev => prev.map((t, i) => i === index ? { ...t, data } : t));
+  }, []);
+
   return (
     <SheetContext.Provider value={{
       currentView, setCurrentView,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
-      createNewSheet, openSheet, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab,
+      createNewSheet, openSheet, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
     }}>
       {children}
     </SheetContext.Provider>

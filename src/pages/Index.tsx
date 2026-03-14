@@ -14,12 +14,41 @@ import { useVoyageContext } from "@/context/VoyageContext";
 import { Loader2 } from "lucide-react";
 
 const Index = () => {
-  const { activeTab, saveCurrentSheet, markDirty } = useSheets();
+  const { activeTab, activeTabIndex, saveCurrentSheet, markDirty, updateTabData } = useSheets();
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
 
   // Track which tab id we last loaded to detect tab switches
   const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
+  // Track previous tab index to snapshot data before switching
+  const prevTabIndexRef = useRef<number>(activeTabIndex);
+  // Suppress dirty marking during hydration
+  const isHydratingRef = useRef(false);
+
+  // Gather current voyage data for saving
+  const gatherData = useCallback((): Record<string, unknown> => ({
+    vessel: voyage.vessel,
+    sequence: voyage.sequence,
+    cargos: voyage.cargos,
+    bunker: voyage.bunker,
+    misc: voyage.misc,
+    hireRate: voyage.hireRate,
+    vesselCost: voyage.vesselCost,
+    netBB: voyage.netBB,
+    applyEuaImpact: voyage.applyEuaImpact,
+    applyFuelEuImpact: voyage.applyFuelEuImpact,
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact]);
+
+  // Snapshot current voyage data back to the previous tab when switching tabs
+  useEffect(() => {
+    const prevIdx = prevTabIndexRef.current;
+    if (prevIdx !== activeTabIndex && prevIdx >= 0) {
+      // Save current voyage state into the previous tab's data (without marking dirty)
+      const data = gatherData();
+      updateTabData(prevIdx, data);
+    }
+    prevTabIndexRef.current = activeTabIndex;
+  }, [activeTabIndex, gatherData, updateTabData]);
 
   // Suppress distance API while any tab is loading
   useEffect(() => {
@@ -37,6 +66,8 @@ const Index = () => {
     const tabKey = activeTab.id ?? `new-${activeTab.name}`;
     if (lastLoadedTabRef.current === tabKey) return;
     lastLoadedTabRef.current = tabKey;
+
+    isHydratingRef.current = true;
 
     if (activeTab.data && Object.keys(activeTab.data).length > 0) {
       // Existing sheet with data — hydrate
@@ -56,22 +87,13 @@ const Index = () => {
       // New empty sheet — reset all state
       resetState();
     }
+
+    // Allow React to flush state updates, then stop suppressing dirty
+    requestAnimationFrame(() => {
+      isHydratingRef.current = false;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab?.id, activeTab?.name, activeTab?.isLoading]);
-
-  // Gather current voyage data for saving
-  const gatherData = useCallback((): Record<string, unknown> => ({
-    vessel: voyage.vessel,
-    sequence: voyage.sequence,
-    cargos: voyage.cargos,
-    bunker: voyage.bunker,
-    misc: voyage.misc,
-    hireRate: voyage.hireRate,
-    vesselCost: voyage.vesselCost,
-    netBB: voyage.netBB,
-    applyEuaImpact: voyage.applyEuaImpact,
-    applyFuelEuImpact: voyage.applyFuelEuImpact,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact]);
 
   // Listen for save events from SheetTabs
   useEffect(() => {
@@ -84,9 +106,9 @@ const Index = () => {
     return () => window.removeEventListener("sheet-save", handler);
   }, [gatherData, saveCurrentSheet]);
 
-  // Mark dirty on any voyage change (debounced by React batching)
+  // Mark dirty on any voyage change — but NOT during hydration
   useEffect(() => {
-    if (activeTab && !activeTab.isLoading) {
+    if (activeTab && !activeTab.isLoading && !isHydratingRef.current) {
       markDirty();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
