@@ -90,7 +90,7 @@ const Index = () => {
       markDirty();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost]);
+  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact]);
 
   if (activeTab?.isLoading) {
     return (
