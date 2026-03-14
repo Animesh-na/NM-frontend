@@ -829,6 +829,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       euaFreightImpact,
       fuelEuResult,
       fuelEuTotalPenalty: fuelEuResult.totalPenalty,
+      fuelEuFreightImpact: cargo.quantity > 0 ? fuelEuResult.totalPenalty / cargo.quantity : 0,
     };
   }, [inputs]);
 }
