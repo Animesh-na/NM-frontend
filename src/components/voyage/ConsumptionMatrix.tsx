@@ -85,7 +85,7 @@ export function ConsumptionMatrix({
                       <input
                         type="number"
                         step={row.key === "speed" ? "0.1" : "0.01"}
-                        className={`form-input-sm w-14 font-mono tabular-nums text-right h-4 text-[9px] px-1 ${isDisabled ? "opacity-50" : ""}`}
+                        className={`form-input-sm w-16 font-mono tabular-nums text-right h-4 text-[9px] px-1.5 ${isDisabled ? "opacity-50" : ""}`}
                         value={value || ""}
                         onChange={(e) => onConsumptionChange(row.key, col.key, parseFloat(e.target.value) || 0)}
                         onFocus={(e) => { if (e.target.value === "0") e.target.value = ""; }}
