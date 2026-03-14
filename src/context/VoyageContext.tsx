@@ -1282,6 +1282,10 @@ export function useVoyageContext() {
     // Return a safe default to prevent crashes
     console.warn("VoyageContext not available - using defaults. This may occur during hot reload.");
     return {
+      applyEuaImpact: false,
+      setApplyEuaImpact: () => {},
+      applyFuelEuImpact: false,
+      setApplyFuelEuImpact: () => {},
       vessel: defaultVessel,
       setVessel: () => {},
       sequence: [],
