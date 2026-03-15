@@ -69,14 +69,18 @@ export function CargoSection() {
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 GTC
-                <InfoTooltip formula="(Gross Freight - Voyage Cost) / Total Days" description="Gross Time Charter equivalent" />
+                <InfoTooltip formula="NTC / (1 - TC Comm%). Editing GTC back-calculates Daily Hire." description="Gross Time Charter equivalent" />
               </label>
               <div className="input-with-unit">
                  <input
-                  type="text"
-                  className="form-input-sm w-full font-mono text-right bg-muted/30"
-                  value={((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  readOnly
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={Math.round((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0)}
+                  onChange={(e) => {
+                    const gtc = parseFloat(e.target.value) || 0;
+                    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
+                    setHireRate(Math.round(gtc * (1 - tc)));
+                  }}
                 />
                 <span className="unit">$/d</span>
               </div>
