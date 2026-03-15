@@ -75,11 +75,11 @@ export function CargoSection() {
                  <input
                   type="number"
                   className="form-input-sm w-full font-mono text-right"
-                  value={Math.round((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0)}
+                  value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
                   onChange={(e) => {
                     const gtc = parseFloat(e.target.value) || 0;
                     const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
-                    setHireRate(Math.round(gtc * (1 - tc)));
+                    setHireRate(gtc * (1 - tc));
                   }}
                 />
                 <span className="unit">$/d</span>
