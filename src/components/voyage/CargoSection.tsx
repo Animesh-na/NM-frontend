@@ -41,7 +41,7 @@ export function CargoSection() {
                  <input
                   type="text"
                   className="form-input-sm w-full font-mono text-right bg-muted/30"
-                  value={hireRate.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                  value={hireRate}
                   readOnly
                 />
                 <span className="unit">$/d</span>
