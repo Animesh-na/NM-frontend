@@ -199,7 +199,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let ladenDistance = 0;
     let totalPortDays = 0;
     let portCosts = 0;
-    // isLaden is no longer used — ballast/laden determined by quantity per leg
+    // Ballast/laden is determined by running cargo on board (load adds, discharge subtracts)
     
     // Sea time tracking - use pre-calculated values with sea margin
     let seaDaysBallast = 0;
