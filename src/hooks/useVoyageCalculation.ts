@@ -250,13 +250,16 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const legEcaTime = leg.ecaTime || 0;
       const legNonEcaTime = leg.nonEcaTime || (legSeaTime - legEcaTime);
       
+      // Determine ballast/laden based on quantity: quantity > 0 → laden, quantity = 0 → ballast
+      const legIsLaden = (leg.quantity || 0) > 0;
+      
       console.log(`\n[Step 1] Leg ${leg.id} - "${leg.operation}" at ${leg.port}:
     distance=${leg.distance} nm, ecaDistance=${leg.ecaDistance} nm
     portDays=${leg.portDays} d, expDa=$${leg.expDa}
     seaTime=${legSeaTime} d (total with margin)
     ecaTime=${legEcaTime} d, nonEcaTime=${legNonEcaTime} d
-    isLaden=${isLaden} → assigned as ${isLaden ? 'LADEN' : 'BALLAST'} leg`);
-      if (isLaden) {
+    quantity=${leg.quantity || 0} → assigned as ${legIsLaden ? 'LADEN' : 'BALLAST'} leg`);
+      if (legIsLaden) {
         ladenDistance += leg.distance || 0;
         seaDaysLaden += legSeaTime;
         ecaSeaDaysLaden += legEcaTime;
