@@ -29,13 +29,13 @@ describe("Voyage Time Section", () => {
     expect(result.current.totalEcaDistance).toBe(500);
   });
 
-  it("should split sea days into ballast and laden", () => {
+  it("should split sea days into ballast and laden based on quantity", () => {
     const { result } = renderHook(() => useVoyageCalculation(baseInputs));
-    // Leg 1 is "load" — sea time BEFORE load is ballast
-    // Leg 1 seaTime=3.33 → ballast (ship sails to loading port)
-    // Leg 2 seaTime=18.33 → laden (after loading)
-    expect(result.current.seaDaysBallast).toBeCloseTo(3.33, 1);
-    expect(result.current.seaDaysLaden).toBeCloseTo(18.33, 1);
+    // Both legs have quantity=65000 → both are LADEN (quantity > 0)
+    // Leg 1 seaTime=3.33 → laden (quantity=65000)
+    // Leg 2 seaTime=18.33 → laden (quantity=65000)
+    expect(result.current.seaDaysBallast).toBeCloseTo(0, 1);
+    expect(result.current.seaDaysLaden).toBeCloseTo(21.66, 1);
   });
 
   it("should calculate total sea days", () => {
