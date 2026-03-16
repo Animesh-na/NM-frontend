@@ -761,17 +761,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     const openRow = snapshot.find(r => r.type === "open");
     if (!openRow || !openRow.port || !openRow.portUnloc) {
       // No open port — zero out all distances
-      setSequence(prev => {
+      setSequence((prev) => {
         const currentVessel = vesselRef.current;
-        let isLaden = false;
-        return prev.map(row => {
-          const zeroed = { ...row, distance: 0, ecaDistance: 0 };
-          const seaTimeData = calculateSeaTime(zeroed, isLaden, currentVessel);
-          const finalRow = { ...zeroed, ...seaTimeData };
-          if (row.operation === "loading") isLaden = true;
-          if (row.operation === "discharging") isLaden = false;
-          return finalRow;
-        });
+        const zeroedRows = prev.map((row) => ({ ...row, distance: 0, ecaDistance: 0 }));
+        return recalculateDerivedSequenceRows(zeroedRows, currentVessel);
       });
       setDistanceLoading(false);
       return;
