@@ -1,1 +1,7 @@
 project_id = "yaysbretkwfkufucbybg"
+
+[functions.marine-api]
+verify_jwt = false
+
+[functions.vessel-fuel-api]
+verify_jwt = false
