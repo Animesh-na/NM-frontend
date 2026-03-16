@@ -355,6 +355,41 @@ function calculateSeaTime(
   return { baseSeaTime, seaMarginTime, ecaTime, seaTime, totalLegTime };
 }
 
+function normalizeOperation(operation?: string): string {
+  return (operation || "").toLowerCase();
+}
+
+function updateCargoOnBoard(cargoOnBoard: number, row: Pick<SequenceRowUI, "operation" | "quantity">): number {
+  const quantity = Math.max(0, Number(row.quantity) || 0);
+  const operation = normalizeOperation(row.operation);
+
+  if (operation === "loading" || operation === "load") {
+    return cargoOnBoard + quantity;
+  }
+
+  if (operation === "discharging" || operation === "disch") {
+    return Math.max(0, cargoOnBoard - quantity);
+  }
+
+  return cargoOnBoard;
+}
+
+function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData): SequenceRowUI[] {
+  let cargoOnBoard = 0;
+
+  return rows.map((row) => {
+    const seaTimeData = calculateSeaTime(row, cargoOnBoard > 0, vessel);
+    const recalculatedRow = {
+      ...row,
+      calculatedPortDays: calculatePortDays(row),
+      ...seaTimeData,
+    };
+
+    cargoOnBoard = updateCargoOnBoard(cargoOnBoard, row);
+    return recalculatedRow;
+  });
+}
+
 const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco", defaultCranes: number = 4, hasScrubber: boolean = false): SequenceRowUI => ({
   id: nextId,
   type,
