@@ -355,6 +355,41 @@ function calculateSeaTime(
   return { baseSeaTime, seaMarginTime, ecaTime, seaTime, totalLegTime };
 }
 
+function normalizeOperation(operation?: string): string {
+  return (operation || "").toLowerCase();
+}
+
+function updateCargoOnBoard(cargoOnBoard: number, row: Pick<SequenceRowUI, "operation" | "quantity">): number {
+  const quantity = Math.max(0, Number(row.quantity) || 0);
+  const operation = normalizeOperation(row.operation);
+
+  if (operation === "loading" || operation === "load") {
+    return cargoOnBoard + quantity;
+  }
+
+  if (operation === "discharging" || operation === "disch") {
+    return Math.max(0, cargoOnBoard - quantity);
+  }
+
+  return cargoOnBoard;
+}
+
+function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData): SequenceRowUI[] {
+  let cargoOnBoard = 0;
+
+  return rows.map((row) => {
+    const seaTimeData = calculateSeaTime(row, cargoOnBoard > 0, vessel);
+    const recalculatedRow = {
+      ...row,
+      calculatedPortDays: calculatePortDays(row),
+      ...seaTimeData,
+    };
+
+    cargoOnBoard = updateCargoOnBoard(cargoOnBoard, row);
+    return recalculatedRow;
+  });
+}
+
 const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco", defaultCranes: number = 4, hasScrubber: boolean = false): SequenceRowUI => ({
   id: nextId,
   type,
@@ -628,97 +663,54 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
   const [applyFuelEuImpact, setApplyFuelEuImpact] = useState(false);
   const [distanceLoading, setDistanceLoading] = useState(false);
 
-  // Recalculate port days and sea times whenever relevant fields change
+  // Recalculate derived port days and sea times whenever vessel changes
   useEffect(() => {
-    setSequence(prev => {
-      let isLaden = false;
-      return prev.map(row => {
-        // IMPORTANT: Calculate sea time BEFORE updating isLaden
-        // The leg TO a loading port is BALLAST, the leg FROM loading is LADEN
-        const seaTimeData = calculateSeaTime(row, isLaden, vessel);
-        
-        if (row.operation === "loading") isLaden = true;
-        if (row.operation === "discharging") isLaden = false;
-        
-        return {
-          ...row,
-          calculatedPortDays: calculatePortDays(row),
-          ...seaTimeData,
-        };
-      });
-    });
+    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel));
   }, [vessel]);
 
   const updateSequenceRow = useCallback((id: number, field: keyof SequenceRowUI, value: string | number) => {
-    setSequence(prev => {
-      let isLaden = false;
-      const updated = prev.map(row => {
-        // IMPORTANT: Calculate sea time BEFORE updating isLaden
-        // The leg TO a loading port is BALLAST, the leg FROM loading is LADEN
-        if (row.id !== id) {
-          if (row.operation === "loading") isLaden = true;
-          if (row.operation === "discharging") isLaden = false;
-          return row;
-        }
-        
-        const updatedRow = { ...row, [field]: value };
-        
-        // Recalculate port days when relevant fields change
-        if (['quantity', 'productivity', 'terms', 'turnTime', 'extraTime', 'operation', 'coefficientFactor'].includes(field)) {
-          updatedRow.calculatedPortDays = calculatePortDays(updatedRow);
-        }
-        
-        // Recalculate sea times when distance, eca distance, speed context, or sea margin changes
-        if (['distance', 'ecaDistance', 'distanceSpeedContext', 'ecaDistanceSpeedContext', 'timeOverride', 'seaMargin'].includes(field)) {
-          const seaTimeData = calculateSeaTime(updatedRow, isLaden, vessel);
-          Object.assign(updatedRow, seaTimeData);
-        }
-        
-        if (row.operation === "loading") isLaden = true;
-        if (row.operation === "discharging") isLaden = false;
-        return updatedRow;
-      });
+    setSequence((prev) => {
+      const updated = prev.map((row) => (row.id === id ? { ...row, [field]: value } : row));
+      let syncedRows = updated;
 
       // Auto-sync: when a loading port quantity changes, distribute to discharge ports
-      if (field === 'quantity') {
-        const changedRow = updated.find(r => r.id === id);
-        if (changedRow && changedRow.operation === 'loading') {
+      if (field === "quantity") {
+        const changedRow = updated.find((r) => r.id === id);
+        if (changedRow && changedRow.operation === "loading") {
           const totalLoadQty = updated
-            .filter(r => r.operation === 'loading')
+            .filter((r) => r.operation === "loading")
             .reduce((sum, r) => sum + (r.quantity || 0), 0);
-          const dischPorts = updated.filter(r => r.operation === 'discharging');
+          const dischPorts = updated.filter((r) => r.operation === "discharging");
+
           if (dischPorts.length > 0) {
             const qtyPerDisch = Math.round(totalLoadQty / dischPorts.length);
-            console.log(`[QtySync] Load qty changed → total: ${totalLoadQty}, per disch port: ${qtyPerDisch}, disch ports: ${dischPorts.length}`);
-            return updated.map(row => {
-              if (row.operation === 'discharging') {
-                return { ...row, quantity: qtyPerDisch, calculatedPortDays: calculatePortDays({ ...row, quantity: qtyPerDisch }) };
-              }
-              return row;
-            });
+            console.log(
+              `[QtySync] Load qty changed → total: ${totalLoadQty}, per disch port: ${qtyPerDisch}, disch ports: ${dischPorts.length}`,
+            );
+            syncedRows = updated.map((row) =>
+              row.operation === "discharging" ? { ...row, quantity: qtyPerDisch } : row,
+            );
           }
         }
       }
 
       // Also sync when operation changes — redistribute existing load quantities to new discharge layout
-      if (field === 'operation') {
-        const totalLoadQty = updated
-          .filter(r => r.operation === 'loading')
+      if (field === "operation") {
+        const totalLoadQty = syncedRows
+          .filter((r) => r.operation === "loading")
           .reduce((sum, r) => sum + (r.quantity || 0), 0);
-        const dischPorts = updated.filter(r => r.operation === 'discharging');
+        const dischPorts = syncedRows.filter((r) => r.operation === "discharging");
+
         if (totalLoadQty > 0 && dischPorts.length > 0) {
           const qtyPerDisch = Math.round(totalLoadQty / dischPorts.length);
           console.log(`[QtySync] Operation changed → redistributing ${totalLoadQty} across ${dischPorts.length} disch ports`);
-          return updated.map(row => {
-            if (row.operation === 'discharging') {
-              return { ...row, quantity: qtyPerDisch, calculatedPortDays: calculatePortDays({ ...row, quantity: qtyPerDisch }) };
-            }
-            return row;
-          });
+          syncedRows = syncedRows.map((row) =>
+            row.operation === "discharging" ? { ...row, quantity: qtyPerDisch } : row,
+          );
         }
       }
 
-      return updated;
+      return recalculateDerivedSequenceRows(syncedRows, vessel);
     });
   }, [vessel]);
 
@@ -769,17 +761,10 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     const openRow = snapshot.find(r => r.type === "open");
     if (!openRow || !openRow.port || !openRow.portUnloc) {
       // No open port — zero out all distances
-      setSequence(prev => {
+      setSequence((prev) => {
         const currentVessel = vesselRef.current;
-        let isLaden = false;
-        return prev.map(row => {
-          const zeroed = { ...row, distance: 0, ecaDistance: 0 };
-          const seaTimeData = calculateSeaTime(zeroed, isLaden, currentVessel);
-          const finalRow = { ...zeroed, ...seaTimeData };
-          if (row.operation === "loading") isLaden = true;
-          if (row.operation === "discharging") isLaden = false;
-          return finalRow;
-        });
+        const zeroedRows = prev.map((row) => ({ ...row, distance: 0, ecaDistance: 0 }));
+        return recalculateDerivedSequenceRows(zeroedRows, currentVessel);
       });
       setDistanceLoading(false);
       return;
@@ -840,22 +825,14 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     }
 
     // Apply results using functional update so we never overwrite concurrent changes
-    setSequence(prev => {
+    setSequence((prev) => {
       const currentVessel = vesselRef.current;
-      let isLaden = false;
-      return prev.map(row => {
+      const updatedRows = prev.map((row) => {
         const dist = distanceResults.get(row.id);
-        const updatedRow = dist
-          ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance }
-          : row;
-
-        const seaTimeData = calculateSeaTime(updatedRow, isLaden, currentVessel);
-        const finalRow = { ...updatedRow, ...seaTimeData };
-
-        if (row.operation === "loading") isLaden = true;
-        if (row.operation === "discharging") isLaden = false;
-        return finalRow;
+        return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance } : row;
       });
+
+      return recalculateDerivedSequenceRows(updatedRows, currentVessel);
     });
     setDistanceLoading(false);
   }, []);

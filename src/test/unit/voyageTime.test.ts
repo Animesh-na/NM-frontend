@@ -29,13 +29,101 @@ describe("Voyage Time Section", () => {
     expect(result.current.totalEcaDistance).toBe(500);
   });
 
-  it("should split sea days into ballast and laden based on quantity", () => {
+  it("should split sea days using running cargo on board", () => {
     const { result } = renderHook(() => useVoyageCalculation(baseInputs));
-    // Both legs have quantity=65000 → both are LADEN (quantity > 0)
-    // Leg 1 seaTime=3.33 → laden (quantity=65000)
-    // Leg 2 seaTime=18.33 → laden (quantity=65000)
-    expect(result.current.seaDaysBallast).toBeCloseTo(0, 1);
-    expect(result.current.seaDaysLaden).toBeCloseTo(21.66, 1);
+    // Leg 1 sails TO loading port while empty → ballast
+    // Leg 2 sails after loading operation → laden
+    expect(result.current.seaDaysBallast).toBeCloseTo(3.33, 1);
+    expect(result.current.seaDaysLaden).toBeCloseTo(18.33, 1);
+  });
+
+  it("should keep legs laden until cumulative discharge brings cargo on board to zero", () => {
+    const partialDischargeSequence: VoyageInputs["sequence"] = [
+      {
+        id: 1,
+        operation: "load",
+        port: "Paradip",
+        portUnloc: "INPAV",
+        cgo: "Coal",
+        distance: 300,
+        ecaDistance: 0,
+        portDays: 1,
+        quantity: 41200,
+        expDa: 0,
+        seaTime: 2,
+        ecaTime: 0,
+        nonEcaTime: 2,
+      },
+      {
+        id: 2,
+        operation: "disch",
+        port: "Sagunto",
+        portUnloc: "ESSAG",
+        cgo: "Coal",
+        distance: 600,
+        ecaDistance: 0,
+        portDays: 1,
+        quantity: 2000,
+        expDa: 0,
+        seaTime: 5,
+        ecaTime: 0,
+        nonEcaTime: 5,
+      },
+      {
+        id: 3,
+        operation: "bunkering",
+        port: "Gibraltar",
+        portUnloc: "GIGIB",
+        cgo: "",
+        distance: 120,
+        ecaDistance: 0,
+        portDays: 0.5,
+        quantity: 0,
+        expDa: 0,
+        seaTime: 1,
+        ecaTime: 0,
+        nonEcaTime: 1,
+      },
+      {
+        id: 4,
+        operation: "disch",
+        port: "Rotterdam",
+        portUnloc: "NLRTM",
+        cgo: "Coal",
+        distance: 480,
+        ecaDistance: 0,
+        portDays: 1,
+        quantity: 39200,
+        expDa: 0,
+        seaTime: 4,
+        ecaTime: 0,
+        nonEcaTime: 4,
+      },
+      {
+        id: 5,
+        operation: "repos",
+        port: "Skaw",
+        portUnloc: "DKSKA",
+        cgo: "",
+        distance: 240,
+        ecaDistance: 0,
+        portDays: 0,
+        quantity: 0,
+        expDa: 0,
+        seaTime: 2,
+        ecaTime: 0,
+        nonEcaTime: 2,
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useVoyageCalculation({ ...baseInputs, sequence: partialDischargeSequence }),
+    );
+
+    // Ballast legs: to load (2) + after full discharge (2) = 4
+    // Laden legs: 5 + 1 + 4 = 10 (stays laden through bunkering while cargo onboard > 0)
+    expect(result.current.seaDaysBallast).toBeCloseTo(4, 1);
+    expect(result.current.seaDaysLaden).toBeCloseTo(10, 1);
   });
 
   it("should calculate total sea days", () => {

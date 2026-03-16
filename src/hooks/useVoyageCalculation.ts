@@ -199,7 +199,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let ladenDistance = 0;
     let totalPortDays = 0;
     let portCosts = 0;
-    // isLaden is no longer used — ballast/laden determined by quantity per leg
+    // Ballast/laden is determined by running cargo on board (load adds, discharge subtracts)
     
     // Sea time tracking - use pre-calculated values with sea margin
     let seaDaysBallast = 0;
@@ -225,6 +225,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let bunkeringDays = 0;
     let canalDays = 0;
     const hasScrubber = vessel.hasScrubber === true;
+    let cargoOnBoard = 0;
 
     console.log(`\n========== VOYAGE CALCULATION START ==========`);
     console.log(`[Input] Vessel: ${vessel.name}, DWT: ${vessel.dwt}, Speed Profile: ${vessel.speedProfile}`);
@@ -250,15 +251,18 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const legEcaTime = leg.ecaTime || 0;
       const legNonEcaTime = leg.nonEcaTime || (legSeaTime - legEcaTime);
       
-      // Determine ballast/laden based on quantity: quantity > 0 → laden, quantity = 0 → ballast
-      const legIsLaden = (leg.quantity || 0) > 0;
+      const operation = (leg.operation || "").toLowerCase();
+      const legQuantity = Math.max(0, leg.quantity || 0);
+
+      // Determine ballast/laden using running cargo on board (before current port operation)
+      const legIsLaden = cargoOnBoard > 0;
       
       console.log(`\n[Step 1] Leg ${leg.id} - "${leg.operation}" at ${leg.port}:
     distance=${leg.distance} nm, ecaDistance=${leg.ecaDistance} nm
     portDays=${leg.portDays} d, expDa=$${leg.expDa}
     seaTime=${legSeaTime} d (total with margin)
     ecaTime=${legEcaTime} d, nonEcaTime=${legNonEcaTime} d
-    quantity=${leg.quantity || 0} → assigned as ${legIsLaden ? 'LADEN' : 'BALLAST'} leg`);
+    cargoOnBoardBefore=${cargoOnBoard} mt, portQty=${legQuantity} mt → assigned as ${legIsLaden ? 'LADEN' : 'BALLAST'} leg`);
       if (legIsLaden) {
         ladenDistance += leg.distance || 0;
         seaDaysLaden += legSeaTime;
@@ -309,21 +313,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         else bunkeringDays_lsmgo += days;
       };
       
-      if (leg.operation === "load" || leg.operation === "loading") {
+      if (operation === "load" || operation === "loading") {
         loadingDays += workingDays;
         idleDays += turnExtraDays;
         addPortDays(workingDays, turnExtraDays);
         console.log(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays`);
-      } else if (leg.operation === "disch" || leg.operation === "discharging") {
+      } else if (operation === "disch" || operation === "discharging") {
         dischargingDays += workingDays;
         idleDays += turnExtraDays;
         addDischDays(workingDays, turnExtraDays);
         console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays`);
-      } else if (leg.operation === "waiting" || leg.operation === "idle") {
+      } else if (operation === "waiting" || operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
         console.log(`    → IDLE/WAITING (${legPortFuel}): ${leg.portDays} days added to idleDays`);
-      } else if (leg.operation === "bunkering") {
+      } else if (operation === "bunkering") {
         bunkeringDays += leg.portDays || 0;
         addBunkeringDays(leg.portDays || 0);
         console.log(`    → BUNKERING (${legPortFuel}): ${leg.portDays} days added to bunkeringDays`);
@@ -332,6 +336,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         addIdleDays(leg.portDays || 0);
         console.log(`    → OTHER (${legPortFuel}) with port time: ${leg.portDays} days added to idleDays`);
       }
+
+      if (operation === "load" || operation === "loading") {
+        cargoOnBoard += legQuantity;
+      } else if (operation === "disch" || operation === "discharging") {
+        cargoOnBoard = Math.max(0, cargoOnBoard - legQuantity);
+      }
+
+      console.log(`    cargoOnBoardAfter=${cargoOnBoard} mt`);
     });
 
     console.log(`\n[Step 1 Summary] After sequence loop:
