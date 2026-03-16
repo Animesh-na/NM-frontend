@@ -313,21 +313,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         else bunkeringDays_lsmgo += days;
       };
       
-      if (leg.operation === "load" || leg.operation === "loading") {
+      if (operation === "load" || operation === "loading") {
         loadingDays += workingDays;
         idleDays += turnExtraDays;
         addPortDays(workingDays, turnExtraDays);
         console.log(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays`);
-      } else if (leg.operation === "disch" || leg.operation === "discharging") {
+      } else if (operation === "disch" || operation === "discharging") {
         dischargingDays += workingDays;
         idleDays += turnExtraDays;
         addDischDays(workingDays, turnExtraDays);
         console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays`);
-      } else if (leg.operation === "waiting" || leg.operation === "idle") {
+      } else if (operation === "waiting" || operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
         console.log(`    → IDLE/WAITING (${legPortFuel}): ${leg.portDays} days added to idleDays`);
-      } else if (leg.operation === "bunkering") {
+      } else if (operation === "bunkering") {
         bunkeringDays += leg.portDays || 0;
         addBunkeringDays(leg.portDays || 0);
         console.log(`    → BUNKERING (${legPortFuel}): ${leg.portDays} days added to bunkeringDays`);
@@ -336,6 +336,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         addIdleDays(leg.portDays || 0);
         console.log(`    → OTHER (${legPortFuel}) with port time: ${leg.portDays} days added to idleDays`);
       }
+
+      if (operation === "load" || operation === "loading") {
+        cargoOnBoard += legQuantity;
+      } else if (operation === "disch" || operation === "discharging") {
+        cargoOnBoard = Math.max(0, cargoOnBoard - legQuantity);
+      }
+
+      console.log(`    cargoOnBoardAfter=${cargoOnBoard} mt`);
     });
 
     console.log(`\n[Step 1 Summary] After sequence loop:
