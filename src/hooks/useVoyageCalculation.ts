@@ -199,7 +199,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let ladenDistance = 0;
     let totalPortDays = 0;
     let portCosts = 0;
-    let isLaden = false;
+    // isLaden is no longer used — ballast/laden determined by quantity per leg
     
     // Sea time tracking - use pre-calculated values with sea margin
     let seaDaysBallast = 0;
@@ -250,13 +250,16 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const legEcaTime = leg.ecaTime || 0;
       const legNonEcaTime = leg.nonEcaTime || (legSeaTime - legEcaTime);
       
+      // Determine ballast/laden based on quantity: quantity > 0 → laden, quantity = 0 → ballast
+      const legIsLaden = (leg.quantity || 0) > 0;
+      
       console.log(`\n[Step 1] Leg ${leg.id} - "${leg.operation}" at ${leg.port}:
     distance=${leg.distance} nm, ecaDistance=${leg.ecaDistance} nm
     portDays=${leg.portDays} d, expDa=$${leg.expDa}
     seaTime=${legSeaTime} d (total with margin)
     ecaTime=${legEcaTime} d, nonEcaTime=${legNonEcaTime} d
-    isLaden=${isLaden} → assigned as ${isLaden ? 'LADEN' : 'BALLAST'} leg`);
-      if (isLaden) {
+    quantity=${leg.quantity || 0} → assigned as ${legIsLaden ? 'LADEN' : 'BALLAST'} leg`);
+      if (legIsLaden) {
         ladenDistance += leg.distance || 0;
         seaDaysLaden += legSeaTime;
         ecaSeaDaysLaden += legEcaTime;
@@ -310,14 +313,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         loadingDays += workingDays;
         idleDays += turnExtraDays;
         addPortDays(workingDays, turnExtraDays);
-        isLaden = true;
-        console.log(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now TRUE`);
+        console.log(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays`);
       } else if (leg.operation === "disch" || leg.operation === "discharging") {
         dischargingDays += workingDays;
         idleDays += turnExtraDays;
         addDischDays(workingDays, turnExtraDays);
-        isLaden = false;
-        console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now FALSE`);
+        console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays`);
       } else if (leg.operation === "waiting" || leg.operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
