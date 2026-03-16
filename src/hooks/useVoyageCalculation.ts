@@ -225,6 +225,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let bunkeringDays = 0;
     let canalDays = 0;
     const hasScrubber = vessel.hasScrubber === true;
+    let cargoOnBoard = 0;
 
     console.log(`\n========== VOYAGE CALCULATION START ==========`);
     console.log(`[Input] Vessel: ${vessel.name}, DWT: ${vessel.dwt}, Speed Profile: ${vessel.speedProfile}`);
