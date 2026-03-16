@@ -318,8 +318,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         dischargingDays += workingDays;
         idleDays += turnExtraDays;
         addDischDays(workingDays, turnExtraDays);
-        isLaden = false;
-        console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays. isLaden now FALSE`);
+        console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays`);
       } else if (leg.operation === "waiting" || leg.operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
