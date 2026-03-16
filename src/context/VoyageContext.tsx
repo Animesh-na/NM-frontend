@@ -825,22 +825,14 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     }
 
     // Apply results using functional update so we never overwrite concurrent changes
-    setSequence(prev => {
+    setSequence((prev) => {
       const currentVessel = vesselRef.current;
-      let isLaden = false;
-      return prev.map(row => {
+      const updatedRows = prev.map((row) => {
         const dist = distanceResults.get(row.id);
-        const updatedRow = dist
-          ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance }
-          : row;
-
-        const seaTimeData = calculateSeaTime(updatedRow, isLaden, currentVessel);
-        const finalRow = { ...updatedRow, ...seaTimeData };
-
-        if (row.operation === "loading") isLaden = true;
-        if (row.operation === "discharging") isLaden = false;
-        return finalRow;
+        return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance } : row;
       });
+
+      return recalculateDerivedSequenceRows(updatedRows, currentVessel);
     });
     setDistanceLoading(false);
   }, []);
