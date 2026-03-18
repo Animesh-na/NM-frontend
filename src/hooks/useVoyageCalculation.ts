@@ -42,6 +42,8 @@ export interface SequenceRow {
   extraTimeHours?: number; // Extra time in hours
   // Port fuel type selection
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
+  // EU/EEA flag from port API
+  isEuEea?: boolean;
 }
 
 export interface CargoData {
