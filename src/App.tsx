@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { VoyageProvider } from "@/context/VoyageContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SheetProvider, useSheets } from "@/context/SheetContext";
-import { SessionExpiredDialog } from "@/components/SessionExpiredDialog";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
@@ -18,7 +17,7 @@ const queryClient = new QueryClient();
 
 function SheetRouter() {
   const { currentView, setCurrentView } = useSheets();
-  
+
   if (currentView === "dashboard") {
     return <Dashboard />;
   }
@@ -60,7 +59,6 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-        <SessionExpiredDialog />
         <AppContent />
       </AuthProvider>
     </TooltipProvider>
