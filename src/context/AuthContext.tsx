@@ -86,6 +86,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
+      const data = await response.json();
+      if (data.valid === false) {
+        console.warn("Token expired:", data.reason);
+        handleSessionExpired();
+        return false;
+      }
+
       return true;
     } catch (err) {
       console.error("Token validation error:", err);
