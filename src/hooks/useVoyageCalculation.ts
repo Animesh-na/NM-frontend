@@ -759,7 +759,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Actual CII = totalCO2(${totalCo2}) × 1000000 / (DWT(${vessel.dwt}) × totalDist(${totalDistance})) = ${afrCii} gCO2/dwt-nm
     CII Rating = ${ciiRating}
     
-    --- EU ETS (ECA-distance based) ---
+    --- EU ETS (is_eu_eea flag based) ---
     ETS Chargeable CO2 = ${etsResult.chargeableCo2} mt
     ETS Coverage = ${etsResult.etsVoyageCoverage * 100}%
     ETS Phase-in = ${etsResult.phaseInPercentage * 100}%
