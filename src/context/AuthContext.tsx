@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import { toast } from "sonner";
 
 interface AuthUser {
   id: string;
@@ -14,8 +13,6 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  sessionExpired: boolean;
-  dismissSessionExpired: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,8 +21,6 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   login: async () => ({ success: false }),
   logout: () => {},
-  sessionExpired: false,
-  dismissSessionExpired: () => {},
 });
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -33,6 +28,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const STORAGE_KEY_TOKEN = "voyagecalc_token";
 const STORAGE_KEY_USER = "voyagecalc_user";
+const SESSION_EXPIRED_EVENT = "voyagecalc:session-expired";
 
 const VALIDATE_INTERVAL_MS = 2 * 60 * 1000; // Check every 2 minutes
 
@@ -46,10 +42,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   });
-  const [sessionExpired, setSessionExpired] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const isAuthenticated = !!token && !!user && !sessionExpired;
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionExpiredShownRef = useRef(false);
+
+  const isAuthenticated = !!token && !!user;
 
   const clearSession = useCallback(() => {
     setToken(null);
@@ -58,13 +55,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(STORAGE_KEY_USER);
   }, []);
 
-  const handleSessionExpired = useCallback(() => {
-    setSessionExpired(true);
+  const handleSessionExpired = useCallback((message?: string) => {
+    if (sessionExpiredShownRef.current) return;
+    sessionExpiredShownRef.current = true;
+
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  }, []);
+
+    clearSession();
+    window.alert(message || "Your session is inactive or has expired. Please log in again.");
+  }, [clearSession]);
 
   const validateToken = useCallback(async (currentToken: string) => {
     try {
@@ -81,14 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (!response.ok) {
-        console.warn("Token validation failed:", response.status);
         handleSessionExpired();
         return false;
       }
 
-      const data = await response.json();
-      if (data.valid === false) {
-        console.warn("Token expired:", data.reason);
+      const data = await response.json().catch(() => null);
+      if (data?.valid === false) {
         handleSessionExpired();
         return false;
       }
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return true;
     } catch (err) {
       console.error("Token validation error:", err);
-      // Don't expire on network errors — only on explicit 401
+      // Don't expire on network errors — only on explicit invalid token response
       return true;
     }
   }, [handleSessionExpired]);
@@ -105,10 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!token) return;
 
-    // Validate immediately on mount/login
     validateToken(token);
 
-    // Set up periodic validation
     intervalRef.current = setInterval(() => {
       const currentToken = localStorage.getItem(STORAGE_KEY_TOKEN);
       if (currentToken) {
@@ -123,6 +121,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [token, validateToken]);
+
+  // Handle forced session expiration from API layer on 401
+  useEffect(() => {
+    const onSessionExpired = () => {
+      handleSessionExpired();
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    };
+  }, [handleSessionExpired]);
 
   const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
@@ -144,9 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await response.json();
-      
+
       if (data.token && data.user) {
-        setSessionExpired(false);
+        sessionExpiredShownRef.current = false;
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem(STORAGE_KEY_TOKEN, data.token);
@@ -162,17 +172,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    setSessionExpired(false);
-    clearSession();
-  }, [clearSession]);
-
-  const dismissSessionExpired = useCallback(() => {
-    setSessionExpired(false);
+    sessionExpiredShownRef.current = false;
     clearSession();
   }, [clearSession]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout, sessionExpired, dismissSessionExpired }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -87,6 +87,9 @@ export async function apiRequest<T>(
   );
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("voyagecalc:session-expired"));
+    }
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
 
