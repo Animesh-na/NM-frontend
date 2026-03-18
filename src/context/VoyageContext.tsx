@@ -93,6 +93,9 @@ export interface SequenceRowUI {
   
   // Coefficient factor for terms (editable, default based on terms selection)
   coefficientFactor: number;
+  
+  // EU/EEA flag from port API for EU ETS coverage
+  isEuEea?: boolean;
 }
 
 // Multi-cargo entry structure
@@ -1163,6 +1166,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       turnTimeHours: row.turnTime || 0, // Turn time in hours
       extraTimeHours: row.extraTime || 0, // Extra time in hours
       portFuelType: row.portFuelType, // Port fuel type per leg
+      isEuEea: row.isEuEea, // EU/EEA flag from port API
     })),
     cargo: aggregatedCargo,
     bunker: {

@@ -41,6 +41,7 @@ export interface MarinePort {
   country: string;
   latitude: number;
   longitude: number;
+  is_eu_eea?: boolean;
 }
 
 // Helper for API requests via Edge Function

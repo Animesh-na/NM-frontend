@@ -42,6 +42,8 @@ export interface SequenceRow {
   extraTimeHours?: number; // Extra time in hours
   // Port fuel type selection
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
+  // EU/EEA flag from port API
+  isEuEea?: boolean;
 }
 
 export interface CargoData {
@@ -653,36 +655,39 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const efoiResult = calculateEfoi(totalCo2, cargo.quantity, ladenDistance);
     const efoi = efoiResult.efoi;
 
-    // Build voyage legs for ETS calculation using ECA-distance-based coverage
-    // Each sequence row's ecaDistance indicates whether that port is in EU ECA waters
+    // Build voyage legs for ETS calculation using is_eu_eea port flag
+    // Each port's isEuEea flag determines if it's an EU/EEA port
     const voyageLegs: Array<{ originUnloc: string; destinationUnloc: string; co2: number }> = [];
-    const legCoverages: number[] = []; // Store per-leg ECA-based coverage
+    const legCoverages: number[] = []; // Store per-leg EU coverage
     let previousPort = '';
-    let previousEcaDistance = 0; // ECA distance of leg arriving at origin port
-    let legIndex = 0;
+    let previousIsEuEea = false; // EU/EEA flag of the origin port
     
-    sequence.forEach((leg, idx) => {
+    sequence.forEach((leg) => {
       if (leg.portUnloc && previousPort) {
         // Calculate CO2 proportion for this leg based on sea time
         const legSeaTime = leg.seaTime || 0;
         const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
         
-        // Determine ETS coverage from ECA distances:
-        // previousEcaDistance = ECA distance of the leg that arrived at the origin port
-        // leg.ecaDistance = ECA distance of the current leg (arriving at destination)
-        const ecaCoverage = getEtsCoverageFromEca(previousEcaDistance, leg.ecaDistance || 0);
+        // Determine ETS coverage from is_eu_eea flags:
+        // Both EU → 100%, one EU → 50%, neither EU → 0%
+        const currentIsEuEea = leg.isEuEea === true;
+        let coverage = 0;
+        if (previousIsEuEea && currentIsEuEea) {
+          coverage = 1.0; // EU → EU = 100%
+        } else if (previousIsEuEea || currentIsEuEea) {
+          coverage = 0.5; // EU → Non-EU or Non-EU → EU = 50%
+        }
         
         voyageLegs.push({
           originUnloc: previousPort,
           destinationUnloc: leg.portUnloc,
           co2: legCo2,
         });
-        legCoverages.push(ecaCoverage.percentage);
-        legIndex++;
+        legCoverages.push(coverage);
       }
       if (leg.portUnloc) {
         previousPort = leg.portUnloc;
-        previousEcaDistance = leg.ecaDistance || 0;
+        previousIsEuEea = leg.isEuEea === true;
       }
     });
 
@@ -754,7 +759,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Actual CII = totalCO2(${totalCo2}) × 1000000 / (DWT(${vessel.dwt}) × totalDist(${totalDistance})) = ${afrCii} gCO2/dwt-nm
     CII Rating = ${ciiRating}
     
-    --- EU ETS (ECA-distance based) ---
+    --- EU ETS (is_eu_eea flag based) ---
     ETS Chargeable CO2 = ${etsResult.chargeableCo2} mt
     ETS Coverage = ${etsResult.etsVoyageCoverage * 100}%
     ETS Phase-in = ${etsResult.phaseInPercentage * 100}%
@@ -780,8 +785,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           }
         }
         
-        // Port fuel at EU ports (ECA > 0 on that leg means port is in EU zone)
-        if (leg.portUnloc && (leg.ecaDistance || 0) > 0 && leg.portDays > 0) {
+        // Port fuel at EU ports (isEuEea flag means port is in EU/EEA zone → 100% port coverage)
+        if (leg.portUnloc && leg.isEuEea === true && leg.portDays > 0) {
           const totalPortDaysCalc = totalPortDays || 1;
           const legPortFraction = (leg.portDays || 0) / totalPortDaysCalc;
           const portHsfo = (hsfoLoading + hsfoDischarging + hsfoIdle) * legPortFraction;
