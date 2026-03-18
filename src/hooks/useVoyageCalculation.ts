@@ -785,8 +785,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           }
         }
         
-        // Port fuel at EU ports (ECA > 0 on that leg means port is in EU zone)
-        if (leg.portUnloc && (leg.ecaDistance || 0) > 0 && leg.portDays > 0) {
+        // Port fuel at EU ports (isEuEea flag means port is in EU/EEA zone → 100% port coverage)
+        if (leg.portUnloc && leg.isEuEea === true && leg.portDays > 0) {
           const totalPortDaysCalc = totalPortDays || 1;
           const legPortFraction = (leg.portDays || 0) / totalPortDaysCalc;
           const portHsfo = (hsfoLoading + hsfoDischarging + hsfoIdle) * legPortFraction;
