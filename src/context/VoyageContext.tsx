@@ -1166,6 +1166,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       turnTimeHours: row.turnTime || 0, // Turn time in hours
       extraTimeHours: row.extraTime || 0, // Extra time in hours
       portFuelType: row.portFuelType, // Port fuel type per leg
+      isEuEea: row.isEuEea, // EU/EEA flag from port API
     })),
     cargo: aggregatedCargo,
     bunker: {
