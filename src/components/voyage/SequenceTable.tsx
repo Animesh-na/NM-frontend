@@ -51,7 +51,7 @@ export function SequenceTable() {
 
   const handlePortChange = (id: number, port: Port | null) => {
     setSequence(prev => prev.map(row => 
-      row.id === id ? { ...row, port: port?.name || "", portUnloc: port?.unloc || "", portId: port?.id, coordinates: port?.coordinates } : row
+      row.id === id ? { ...row, port: port?.name || "", portUnloc: port?.unloc || "", portId: port?.id, coordinates: port?.coordinates, isEuEea: port?.isEuEea } : row
     ));
   };
 

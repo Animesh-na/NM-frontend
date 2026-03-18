@@ -93,6 +93,9 @@ export interface SequenceRowUI {
   
   // Coefficient factor for terms (editable, default based on terms selection)
   coefficientFactor: number;
+  
+  // EU/EEA flag from port API for EU ETS coverage
+  isEuEea?: boolean;
 }
 
 // Multi-cargo entry structure
