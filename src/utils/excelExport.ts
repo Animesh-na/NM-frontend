@@ -330,14 +330,20 @@ export function exportVoyageToExcel(data: ExportData) {
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
 
-  // Pre-compute isLaden flags (stateful — cannot be done with pure Excel formulas)
+  // Pre-compute isLaden flags using running cargo-on-board (matches useVoyageCalculation.ts)
+  // Ship is laden as long as cargo remains on board; ballast only when cargo reaches zero
   const ladenFlags: boolean[] = [];
-  let isLaden = false;
+  let cargoOnBoardExcel = 0;
   sequence.forEach((leg) => {
-    ladenFlags.push(isLaden);
+    // Laden state is determined BEFORE the current port operation (same as calculation engine)
+    ladenFlags.push(cargoOnBoardExcel > 0);
     const op = String(leg.operation || "");
-    if (op === "load" || op === "loading") isLaden = true;
-    else if (op === "disch" || op === "discharging") isLaden = false;
+    const legQty = Math.max(0, leg.quantity || 0);
+    if (op === "load" || op === "loading") {
+      cargoOnBoardExcel += legQty;
+    } else if (op === "disch" || op === "discharging") {
+      cargoOnBoardExcel = Math.max(0, cargoOnBoardExcel - legQty);
+    }
   });
 
   const seqStartRow = r;
