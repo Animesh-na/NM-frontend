@@ -306,26 +306,32 @@ export function exportVoyageToExcel(data: ExportData) {
   // Column indices
   const SC = {
     ID: 0, OP: 1, PORT: 2, DIST: 3, ECAD: 4, SEAT: 5, ECAT: 6,
-    PORTD: 7, TURNH: 8, DA: 9, LADEN: 10, PFUEL: 11,
+    PORTD: 7, TURNH: 8, DA: 9, LADEN: 10, PFUEL: 11, EUFLG: 12,
     // Formula columns
-    NECAT: 12, WDAYS: 13, IDAYS: 14,
-    BSEA: 15, LSEA: 16, ECAB: 17, ECAL: 18, NECAB: 19, NECAL: 20,
-    ISLD: 21, ISDC: 22,
-    HLD: 23, VLD: 24, LLD: 25,
-    HDD: 26, VDD: 27, LDD: 28,
-    HID: 29, VID: 30, LID: 31,
+    NECAT: 13, WDAYS: 14, IDAYS: 15,
+    BSEA: 16, LSEA: 17, ECAB: 18, ECAL: 19, NECAB: 20, NECAL: 21,
+    ISLD: 22, ISDC: 23,
+    HLD: 24, VLD: 25, LLD: 26,
+    HDD: 27, VDD: 28, LDD: 29,
+    HID: 30, VID: 31, LID: 32,
+    // EU factor columns
+    EUSEA: 33,  // EU sea factor for this segment (0, 0.5, or 1.0)
+    EUPORT: 34, // EU port factor (0 or 1)
+    TURND: 35,  // Turn time in days
+    EXTRAD: 36, // Extra time in days
   };
 
   // Headers — styled
   const seqHeaders = [
     "ID", "Operation", "Port", "Distance", "ECA Dist", "Sea Time", "ECA Time",
-    "Port Days", "Turn+Extra(h)", "Exp DA", "Is Laden", "Port Fuel",
+    "Port Days", "Turn+Extra(h)", "Exp DA", "Is Laden", "Port Fuel", "EU/EEA",
     "NonECA Time", "Working Days", "Idle Days",
     "Bal Sea", "Lad Sea", "ECA Bal", "ECA Lad", "NECA Bal", "NECA Lad",
     "IsLoad", "IsDisch",
     "HSFO Ld D", "VLSFO Ld D", "LSMGO Ld D",
     "HSFO Dc D", "VLSFO Dc D", "LSMGO Dc D",
     "HSFO Id D", "VLSFO Id D", "LSMGO Id D",
+    "EU Sea F", "EU Port F", "Turn(d)", "Extra(d)",
   ];
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
