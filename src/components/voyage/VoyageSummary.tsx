@@ -462,21 +462,20 @@ export function VoyageSummary() {
               <span className="font-mono">{results.fuelEuResult.rewardFactor.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Target '{new Date().getFullYear().toString().slice(-2)}</span>
-              <span className="font-mono">{results.fuelEuResult.target} gCO₂eq/MJ</span>
+              <span>CO₂ Cost Rate</span>
+              <span className="font-mono">${results.fuelEuResult.co2CostRate} /t</span>
             </div>
           </div>
 
-          {/* GHG Intensities & Penalties */}
+          {/* GHG Shortfall & Costs */}
           <div className="space-y-0.5 mt-1">
             {(['hsfo', 'vlsfo', 'lsmgo'] as const).map(fuel => {
               const f = results.fuelEuResult.fuels[fuel];
-              const excessIntensity = f.intensity - results.fuelEuResult.target;
               return (
                 <div key={fuel} className="space-y-0.5">
                   <div className="flex justify-between text-[9px]">
-                    <span className="text-muted-foreground uppercase">{fuel} Intensity</span>
-                    <span className="font-mono">{f.intensity} gCO₂eq/MJ</span>
+                    <span className="text-muted-foreground uppercase">{fuel} Shortfall</span>
+                    <span className="font-mono">{f.ghgShortfall} kg CO₂/t</span>
                   </div>
                   <div className="flex justify-between text-[9px]">
                     <span className="text-muted-foreground pl-2">Cost/ton</span>
@@ -486,7 +485,7 @@ export function VoyageSummary() {
                     <span className="text-muted-foreground flex items-center">
                       {fuel.toUpperCase()} Cost
                       <InfoTooltip 
-                        formula={`Gap(${f.gap.toFixed(2)}) × LCV(${f.lcv}) × 2400 / 1M = $${f.costPerTon.toFixed(2)}/t × ${f.euQuantity.toFixed(1)}t`}
+                        formula={`(${f.ghgShortfall} / 1000) × ${results.fuelEuResult.co2CostRate} = $${f.costPerTon.toFixed(2)}/t × ${f.euQuantity.toFixed(1)}t`}
                         description={`EU Qty: ${f.euQuantity.toFixed(1)}t × Cost/ton: $${f.costPerTon.toFixed(2)}`}
                       />
                     </span>

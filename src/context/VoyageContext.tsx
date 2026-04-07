@@ -1394,11 +1394,11 @@ export function useVoyageContext() {
         euCoveredFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
         totalCo2Cost: 0, euaCo2Cost: 0, euaFreightImpact: 0,
         fuelEuResult: {
-          target: 89.34, rewardFactor: 1.0,
+          co2CostRate: 73.7, rewardFactor: 1.0,
           fuels: {
-            hsfo: { intensity: 91.74, lcv: 40400, gap: 0, costPerTon: 0, euQuantity: 0, cost: 0 },
-            vlsfo: { intensity: 91.39, lcv: 41500, gap: 0, costPerTon: 0, euQuantity: 0, cost: 0 },
-            lsmgo: { intensity: 90.77, lcv: 42700, gap: 0, costPerTon: 0, euQuantity: 0, cost: 0 },
+            hsfo: { ghgShortfall: 97.2, costPerTon: 0, euQuantity: 0, cost: 0 },
+            vlsfo: { ghgShortfall: 84.05, costPerTon: 0, euQuantity: 0, cost: 0 },
+            lsmgo: { ghgShortfall: 57.915, costPerTon: 0, euQuantity: 0, cost: 0 },
           },
           totalPenalty: 0,
           costPerTon: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
