@@ -427,6 +427,39 @@ export function exportVoyageToExcel(data: ExportData) {
       portFuel === "vlsfo" ? idleVal : 0, fStyle);
     setFormula(SC.LID, rr, `IF(${c(SC.PFUEL)}="lsmgo",${c(SC.IDAYS)},0)`,
       portFuel === "lsmgo" ? idleVal : 0, fStyle);
+
+    // --- EU Factor columns ---
+    // EU Sea Factor: compare previous row's EU flag with current row's EU flag
+    // First row has no previous port → use 0.5 if current is EU (entering EU from unknown)
+    const prevEuCell = idx === 0 ? "0" : cellRef(SC.EUFLG, rr - 1);
+    const curEuCell = c(SC.EUFLG);
+    const euSeaFactorFormula = idx === 0
+      ? `IF(${curEuCell}=1,0.5,0)`
+      : `IF(AND(${prevEuCell}=1,${curEuCell}=1),1,IF(OR(${prevEuCell}=1,${curEuCell}=1),0.5,0))`;
+    
+    // Compute actual value
+    const prevIsEu = idx === 0 ? false : (sequence[idx - 1].isEuEea === true);
+    const curIsEu = leg.isEuEea === true;
+    let euSeaFactorVal = 0;
+    if (idx === 0) {
+      euSeaFactorVal = curIsEu ? 0.5 : 0;
+    } else {
+      if (prevIsEu && curIsEu) euSeaFactorVal = 1.0;
+      else if (prevIsEu || curIsEu) euSeaFactorVal = 0.5;
+    }
+    setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
+
+    // EU Port Factor: 1 if current port is EU, 0 otherwise
+    setFormula(SC.EUPORT, rr, `IF(${curEuCell}=1,1,0)`, curIsEu ? 1 : 0, fStyle);
+
+    // Turn time in days
+    const turnTimeH = leg.turnTime || 0;
+    const extraTimeH = leg.extraTime || 0;
+    setFormula(SC.TURND, rr, `${cellRef(SC.TURNH, rr)}/24`, turnExtraH / 24, fStyle);
+    // Note: TURND is total turn+extra in days. Separate turn/extra:
+    const turnDays = turnTimeH / 24;
+    const extraDays = extraTimeH / 24;
+    setNum(SC.EXTRAD, rr, extraDays, fStyle);
   });
 
   const seqEndRow = seqStartRow + sequence.length - 1;
