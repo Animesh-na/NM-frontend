@@ -827,12 +827,16 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
               euFactor = 0.5; // One port EU
             }
             // else: both non-EU = 0
+            console.log(`    [EU] First segment: ${leg.port}(EU=${currentIsEuEea}) + next=${nextLeg?.port}(EU=${nextIsEuEea}) → factor=${euFactor}`);
           } else if (prevIsEuEea && currentIsEuEea) {
             euFactor = 1.0; // EU → EU
+            console.log(`    [EU] ${leg.port}: prev(EU=true) → curr(EU=true) → factor=1.0`);
           } else if (prevIsEuEea || currentIsEuEea) {
             euFactor = 0.5; // EU ↔ Non-EU
+            console.log(`    [EU] ${leg.port}: prev(EU=${prevIsEuEea}) → curr(EU=${currentIsEuEea}) → factor=0.5`);
+          } else {
+            console.log(`    [EU] ${leg.port}: prev(EU=${prevIsEuEea}) → curr(EU=${currentIsEuEea}) → factor=0`);
           }
-          // else: Non-EU → Non-EU = 0
           
           // Accumulate for weighted average (used for extra sea days)
           const legSeaTimeTotal = leg.seaTime || 0;
