@@ -796,8 +796,15 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const currentIsEuEea = leg.isEuEea === true;
           let euFactor = 0;
           if (!prevPortUnloc) {
-            // First leg: unknown origin → current port
-            euFactor = currentIsEuEea ? 0.5 : 0;
+            // First leg: use current port + next port to determine both endpoints
+            const nextLeg = sequence.find((s, si) => si > sequence.indexOf(leg) && s.portUnloc);
+            const nextIsEuEea = nextLeg?.isEuEea === true;
+            if (currentIsEuEea && nextIsEuEea) {
+              euFactor = 1.0; // Both ports EU
+            } else if (currentIsEuEea || nextIsEuEea) {
+              euFactor = 0.5; // One port EU
+            }
+            // else: both non-EU = 0
           } else if (prevIsEuEea && currentIsEuEea) {
             euFactor = 1.0; // EU → EU
           } else if (prevIsEuEea || currentIsEuEea) {
