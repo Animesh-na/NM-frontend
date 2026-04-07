@@ -985,6 +985,43 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     }
   }, [portCoordsKey, autoDistanceEnabled]);
 
+  // Auto-populate isEuEea flag for ports that are missing it
+  // This handles ports that were selected before the EU flag feature was added,
+  // or ports loaded via JSON import without the flag
+  useEffect(() => {
+    const portsNeedingLookup = sequence.filter(
+      row => row.port && row.portUnloc && row.isEuEea === undefined
+    );
+    if (portsNeedingLookup.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const updates: Record<number, boolean> = {};
+      for (const row of portsNeedingLookup) {
+        if (cancelled) return;
+        try {
+          const results = await searchMarinePorts(row.portUnloc, 5);
+          const match = results.find(
+            p => p.port_code === row.portUnloc || p.port_name === row.port
+          );
+          if (match) {
+            updates[row.id] = match.is_eu_eea === true;
+          } else {
+            updates[row.id] = false;
+          }
+        } catch {
+          updates[row.id] = false;
+        }
+      }
+      if (!cancelled) {
+        setSequence(prev => prev.map(row =>
+          updates[row.id] !== undefined ? { ...row, isEuEea: updates[row.id] } : row
+        ));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sequence.map(r => `${r.id}:${r.portUnloc}:${r.isEuEea}`).join(',')]);
+
   // Multi-cargo management functions
   const addCargo = useCallback(() => {
     setCargos(prev => {
