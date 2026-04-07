@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo, useRef } from "react";
 import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/hooks/useVoyageCalculation";
 import { defaultVessel, type VesselData } from "@/data/vessels";
-import { getSeaRouteDistance } from "@/services/marineApi";
+import { getSeaRouteDistance, searchPorts as searchMarinePorts } from "@/services/marineApi";
 import { type Port } from "@/components/voyage/PortSelect";
 
 // Season options for Open Port
