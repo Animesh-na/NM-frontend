@@ -765,36 +765,129 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     ETS Phase-in = ${etsResult.phaseInPercentage * 100}%
     ETS Cost = ${etsResult.etsCost} (CO2 price: $${bunker.co2Price})`);
 
-    // Calculate EU-covered fuel quantities using ECA-distance-based coverage per leg
+    // ============================================
+    // SEGMENT-WISE EU FUEL CALCULATION
+    // Compute actual fuel per segment using rates × time, then apply EU coverage factor
+    // ============================================
     let euCoveredHsfo = 0;
     let euCoveredVlsfo = 0;
     let euCoveredLsmgo = 0;
     
-    if (etsLegBreakdown.length > 0 && totalSeaDays > 0) {
-      // Sea fuel: proportional to leg coverage
+    {
+      // Re-walk the sequence to compute per-segment fuel with EU factors
+      let prevIsEuEea = false;
+      let prevPortUnloc = '';
+      let segCargoOnBoard = 0; // running cargo tracker for ballast/laden
+      
       sequence.forEach((leg) => {
-        if (leg.portUnloc && leg.seaTime) {
-          const matchingLeg = etsLegBreakdown.find(
-            vl => vl.destination === leg.portUnloc
-          );
-          if (matchingLeg) {
-            const legFraction = (leg.seaTime || 0) / totalSeaDays;
-            euCoveredHsfo += hsfoConsumption * legFraction * matchingLeg.coverage;
-            euCoveredVlsfo += vlsfoConsumption * legFraction * matchingLeg.coverage;
-            euCoveredLsmgo += lsmgoConsumption * legFraction * matchingLeg.coverage;
+        const legOperation = (leg.operation || '').toLowerCase();
+        const legQty = Math.max(0, leg.quantity || 0);
+        const legIsLaden = segCargoOnBoard > 0;
+        
+        // --- SEA FUEL for this segment ---
+        if (leg.portUnloc && prevPortUnloc) {
+          // Determine EU coverage factor for this sea segment
+          const currentIsEuEea = leg.isEuEea === true;
+          let euFactor = 0;
+          if (prevIsEuEea && currentIsEuEea) {
+            euFactor = 1.0; // EU → EU
+          } else if (prevIsEuEea || currentIsEuEea) {
+            euFactor = 0.5; // EU ↔ Non-EU
+          }
+          
+          if (euFactor > 0) {
+            const legNonEcaTime = leg.nonEcaTime || ((leg.seaTime || 0) - (leg.ecaTime || 0));
+            const legEcaTime = leg.ecaTime || 0;
+            
+            // Non-ECA sea fuel for this segment
+            let segHsfoSea = 0;
+            let segVlsfoSea = 0;
+            if (hasScrubber) {
+              const rate = legIsLaden ? (profile.hsfo.laden || 0) : (profile.hsfo.ballast || 0);
+              segHsfoSea = legNonEcaTime * rate * rewardFactor;
+            } else {
+              const rate = legIsLaden ? (profile.vlsfo.laden || 0) : (profile.vlsfo.ballast || 0);
+              segVlsfoSea = legNonEcaTime * rate * rewardFactor;
+            }
+            
+            // ECA sea fuel (LSMGO only)
+            const ecaRate = legIsLaden ? (profile.lsmgo.laden || 0) : (profile.lsmgo.ballast || 0);
+            const segLsmgoEca = legEcaTime * ecaRate * rewardFactor;
+            
+            // AE consumption for this sea segment (always LSMGO)
+            const aeRates = hasScrubber ? profile.aeScrubber : profile.ae;
+            const aeRate = legIsLaden ? (aeRates.laden || 0) : (aeRates.ballast || 0);
+            const segLsmgoAeSea = (leg.seaTime || 0) * aeRate * rewardFactor;
+            
+            euCoveredHsfo += segHsfoSea * euFactor;
+            euCoveredVlsfo += segVlsfoSea * euFactor;
+            euCoveredLsmgo += (segLsmgoEca + segLsmgoAeSea) * euFactor;
           }
         }
         
-        // Port fuel at EU ports (isEuEea flag means port is in EU/EEA zone → 100% port coverage)
+        // --- PORT FUEL for this port (100% if EU port) ---
         if (leg.portUnloc && leg.isEuEea === true && leg.portDays > 0) {
-          const totalPortDaysCalc = totalPortDays || 1;
-          const legPortFraction = (leg.portDays || 0) / totalPortDaysCalc;
-          const portHsfo = (hsfoLoading + hsfoDischarging + hsfoIdle) * legPortFraction;
-          const portVlsfo = (vlsfoLoading + vlsfoDischarging + vlsfoIdle) * legPortFraction;
-          const portLsmgo = (lsmgoLoading + lsmgoDischarging + lsmgoIdle) * legPortFraction;
+          const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
+          const turnExtraDaysLeg = ((leg.turnTimeHours || 0) + (leg.extraTimeHours || 0)) / 24;
+          const workingDaysLeg = Math.max(0, (leg.portDays || 0) - turnExtraDaysLeg);
+          
+          const aeRates = hasScrubber ? profile.aeScrubber : profile.ae;
+          let portHsfo = 0, portVlsfo = 0, portLsmgo = 0;
+          
+          if (legOperation === 'load' || legOperation === 'loading') {
+            const rate = profile[legPortFuel]?.load || 0;
+            if (legPortFuel === 'hsfo') portHsfo += workingDaysLeg * rate;
+            else if (legPortFuel === 'vlsfo') portVlsfo += workingDaysLeg * rate;
+            else portLsmgo += workingDaysLeg * rate;
+            // Idle portion (turn+extra time)
+            const idleRate = profile[legPortFuel]?.idle || 0;
+            if (legPortFuel === 'hsfo') portHsfo += turnExtraDaysLeg * idleRate;
+            else if (legPortFuel === 'vlsfo') portVlsfo += turnExtraDaysLeg * idleRate;
+            else portLsmgo += turnExtraDaysLeg * idleRate;
+            // AE
+            portLsmgo += workingDaysLeg * (aeRates.load || 0) + turnExtraDaysLeg * (aeRates.idle || 0);
+          } else if (legOperation === 'disch' || legOperation === 'discharging') {
+            const rate = profile[legPortFuel]?.discharge || 0;
+            if (legPortFuel === 'hsfo') portHsfo += workingDaysLeg * rate;
+            else if (legPortFuel === 'vlsfo') portVlsfo += workingDaysLeg * rate;
+            else portLsmgo += workingDaysLeg * rate;
+            const idleRate = profile[legPortFuel]?.idle || 0;
+            if (legPortFuel === 'hsfo') portHsfo += turnExtraDaysLeg * idleRate;
+            else if (legPortFuel === 'vlsfo') portVlsfo += turnExtraDaysLeg * idleRate;
+            else portLsmgo += turnExtraDaysLeg * idleRate;
+            portLsmgo += workingDaysLeg * (aeRates.discharge || 0) + turnExtraDaysLeg * (aeRates.idle || 0);
+          } else if (legOperation === 'bunkering') {
+            const idleRate = profile[legPortFuel]?.idle || 0;
+            if (legPortFuel === 'hsfo') portHsfo += (leg.portDays || 0) * idleRate;
+            else if (legPortFuel === 'vlsfo') portVlsfo += (leg.portDays || 0) * idleRate;
+            else portLsmgo += (leg.portDays || 0) * idleRate;
+            portLsmgo += (leg.portDays || 0) * (aeRates.idle || 0);
+          } else {
+            // Idle/waiting/other
+            const idleRate = profile[legPortFuel]?.idle || 0;
+            if (legPortFuel === 'hsfo') portHsfo += (leg.portDays || 0) * idleRate;
+            else if (legPortFuel === 'vlsfo') portVlsfo += (leg.portDays || 0) * idleRate;
+            else portLsmgo += (leg.portDays || 0) * idleRate;
+            portLsmgo += (leg.portDays || 0) * (aeRates.idle || 0);
+          }
+          
+          // Port at EU port → 100% coverage
           euCoveredHsfo += portHsfo;
           euCoveredVlsfo += portVlsfo;
           euCoveredLsmgo += portLsmgo;
+        }
+        
+        // Update cargo tracker
+        if (legOperation === 'load' || legOperation === 'loading') {
+          segCargoOnBoard += legQty;
+        } else if (legOperation === 'disch' || legOperation === 'discharging') {
+          segCargoOnBoard = Math.max(0, segCargoOnBoard - legQty);
+        }
+        
+        // Update previous port tracking
+        if (leg.portUnloc) {
+          prevPortUnloc = leg.portUnloc;
+          prevIsEuEea = leg.isEuEea === true;
         }
       });
     }
