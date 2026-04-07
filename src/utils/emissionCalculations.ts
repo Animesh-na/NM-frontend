@@ -447,60 +447,28 @@ export function requiresCiiCorrectiveAction(rating: string): boolean {
 }
 
 // ===========================================
-// FUEL EU MARITIME COMPLIANCE
+// FUEL EU MARITIME COMPLIANCE (Sheet-Aligned)
 // ===========================================
 
-// Well-to-Wake GHG Intensity by fuel type (gCO₂eq/MJ)
-export const FUEL_EU_GHG_INTENSITY: Record<string, number> = {
-  hsfo: 91.74,
-  vlsfo: 91.39,
-  lsmgo: 90.77,
+// Static CO₂ cost rate ($/t CO₂)
+export const FUEL_EU_CO2_COST_RATE = 73.7;
+
+// GHG shortfall per fuel type (kg CO₂ per ton fuel) — from sheet
+export const FUEL_EU_GHG_SHORTFALL: Record<string, number> = {
+  hsfo: 97.2,
+  vlsfo: 84.05,
+  lsmgo: 57.915,
 };
-
-// Lower Calorific Values by fuel type (MJ/t)
-export const FUEL_LCV: Record<string, number> = {
-  hsfo: 40400, // MJ/t
-  vlsfo: 41500, // MJ/t
-  lsmgo: 42700, // MJ/t
-};
-
-// FuelEU Maritime GHG intensity targets by year (gCO₂eq/MJ)
-export const FUEL_EU_TARGETS: Record<number, number> = {
-  2025: 89.34,
-  2026: 89.34,
-  2030: 80.70,
-  2035: 72.00,
-  2040: 63.40,
-  2045: 54.70,
-  2050: 26.10,
-};
-
-// Reference energy denominator (MJ) and penalty rate ($/GJ excess) from FuelEU regulation
-export const FUEL_EU_REFERENCE_ENERGY = 41000; // MJ
-export const FUEL_EU_PENALTY_RATE = 2400; // $/GJ excess (€2400 ≈ $2400)
-
-export function getFuelEuTarget(year?: number): number {
-  const y = year || new Date().getFullYear();
-  if (y <= 2025) return FUEL_EU_TARGETS[2025] || 89.34;
-  if (y <= 2029) return FUEL_EU_TARGETS[2026] || 89.34;
-  if (y <= 2034) return FUEL_EU_TARGETS[2030] || 80.70;
-  if (y <= 2039) return FUEL_EU_TARGETS[2035] || 72.00;
-  if (y <= 2044) return FUEL_EU_TARGETS[2040] || 63.40;
-  if (y <= 2049) return FUEL_EU_TARGETS[2045] || 54.70;
-  return FUEL_EU_TARGETS[2050] || 26.10;
-}
 
 export interface FuelEuFuelDetail {
-  intensity: number;       // gCO₂eq/MJ actual GHG intensity
-  lcv: number;             // MJ/t lower calorific value
-  gap: number;             // intensity - target (gCO₂eq/MJ)
-  costPerTon: number;      // gap × lcv × penalty_factor / 1,000,000 ($/t)
-  euQuantity: number;      // EU-covered fuel quantity (t)
-  cost: number;            // euQuantity × costPerTon ($)
+  ghgShortfall: number;   // kg CO₂/t fuel
+  costPerTon: number;     // (ghgShortfall / 1000) × co2CostRate  ($/t fuel)
+  euQuantity: number;     // EU-covered fuel quantity (t)
+  cost: number;           // euQuantity × costPerTon ($)
 }
 
 export interface FuelEuResult {
-  target: number;          // gCO₂eq/MJ target for year
+  co2CostRate: number;
   rewardFactor: number;
   fuels: {
     hsfo: FuelEuFuelDetail;
@@ -512,31 +480,22 @@ export interface FuelEuResult {
 }
 
 /**
- * Calculate FuelEU Maritime cost using hybrid static + dynamic model.
+ * Calculate FuelEU Maritime cost using sheet-aligned logic.
  *
- * Formula per fuel type:
- *   gap          = ghg_actual - ghg_target
- *   cost_per_ton = gap × lcv × penalty_factor / 1,000,000
- *   fuel_cost    = EU_fuel_qty × cost_per_ton
- *
- * Total FuelEU cost = sum of all fuel costs.
- * EU fuel quantities are dynamic inputs from the existing EU fuel calculation.
+ * Step 1: cost_per_ton = (ghg_shortfall / 1000) × co2_cost_rate
+ * Step 2: fuelEU_cost  = EU_fuel × cost_per_ton
+ * Step 3: total        = sum of all fuel costs
  */
 export function calculateFuelEuPenalty(
   euCoveredFuel: { hsfo: number; vlsfo: number; lsmgo: number },
   rewardFactor: number = 1.0,
-  year?: number
+  _year?: number
 ): FuelEuResult {
-  const target = getFuelEuTarget(year);
-
   const calc = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo'): FuelEuFuelDetail => {
-    const intensity = FUEL_EU_GHG_INTENSITY[fuelType];
-    const lcv = FUEL_LCV[fuelType];
+    const ghgShortfall = FUEL_EU_GHG_SHORTFALL[fuelType];
+    const costPerTon = (ghgShortfall / 1000) * FUEL_EU_CO2_COST_RATE;
     const qty = euCoveredFuel[fuelType];
-    const gap = Math.max(0, intensity - target);
-    const costPerTon = gap * lcv * FUEL_EU_PENALTY_RATE / 1_000_000;
-    const cost = qty * costPerTon;
-    return { intensity, lcv, gap, costPerTon, euQuantity: qty, cost };
+    return { ghgShortfall, costPerTon, euQuantity: qty, cost: qty * costPerTon };
   };
 
   const hsfo = calc('hsfo');
@@ -544,7 +503,7 @@ export function calculateFuelEuPenalty(
   const lsmgo = calc('lsmgo');
 
   return {
-    target,
+    co2CostRate: FUEL_EU_CO2_COST_RATE,
     rewardFactor,
     fuels: { hsfo, vlsfo, lsmgo },
     totalPenalty: hsfo.cost + vlsfo.cost + lsmgo.cost,
