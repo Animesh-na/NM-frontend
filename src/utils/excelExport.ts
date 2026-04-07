@@ -944,11 +944,19 @@ export function exportVoyageToExcel(data: ExportData) {
       const legIsLaden = segCob > 0;
       const curIsEu = leg.isEuEea === true;
       
-      // Sea fuel
-      if (leg.portUnloc && prevHasPort) {
+      // Sea fuel - use both endpoints for EU factor (including first segment)
+      if (leg.portUnloc) {
         let euF = 0;
-        if (prevIsEu && curIsEu) euF = 1.0;
-        else if (prevIsEu || curIsEu) euF = 0.5;
+        if (!prevHasPort) {
+          // First leg: use current + next port
+          const nextLeg = sequence.find((s, si) => si > idx && s.portUnloc);
+          const nextIsEu = nextLeg?.isEuEea === true;
+          if (curIsEu && nextIsEu) euF = 1.0;
+          else if (curIsEu || nextIsEu) euF = 0.5;
+        } else {
+          if (prevIsEu && curIsEu) euF = 1.0;
+          else if (prevIsEu || curIsEu) euF = 0.5;
+        }
         
         const legST = leg.totalLegTime || 0;
         totalSeaTimeSegs += legST;
