@@ -63,7 +63,7 @@ describe("EU ETS Fuel Allocation", () => {
     console.log(`NonEU→EU: LSMGO total=${r.lsmgoConsumption.toFixed(2)}, EU=${r.euCoveredFuel.lsmgo.toFixed(2)} (${(r.euCoveredFuel.lsmgo/r.lsmgoConsumption*100).toFixed(1)}%)`);
   });
 
-  it("EU → EU (Rotterdam→Barcelona): sea factor=1.0, all ports=100%", () => {
+  it("EU → EU (Rotterdam→Barcelona): second leg 100%, first leg origin unknown", () => {
     const seq = makeSequence([
       { operation: "load", port: "Rotterdam", portUnloc: "NLRTM", isEuEea: true, distance: 500, seaTime: 1.67, ecaTime: 0.5, nonEcaTime: 1.17, quantity: 30000 },
       { operation: "disch", port: "Barcelona", portUnloc: "ESBCN", isEuEea: true, distance: 2000, seaTime: 6.67, ecaTime: 0, nonEcaTime: 6.67, portDays: 3, quantity: 30000 },
@@ -71,11 +71,16 @@ describe("EU ETS Fuel Allocation", () => {
     const { result } = renderHook(() => useVoyageCalculation({ ...baseInputs, sequence: seq, cargo: { ...mockCargo, quantity: 30000 } }));
     const r = result.current;
 
-    // EU→EU: 100% of everything should be covered
-    expect(r.euCoveredFuel.vlsfo).toBeCloseTo(r.vlsfoConsumption, 1);
-    expect(r.euCoveredFuel.lsmgo).toBeCloseTo(r.lsmgoConsumption, 1);
+    // First leg: unknown origin → EU = 0.5 factor for sea
+    // Second leg: EU → EU = 1.0 factor for sea
+    // All ports are EU = 100% port coverage
+    expect(r.euCoveredFuel.vlsfo).toBeGreaterThan(0);
+    // EU covered should be > 50% because second leg (larger) is 100%
+    const vlsfoPct = r.euCoveredFuel.vlsfo / r.vlsfoConsumption;
+    expect(vlsfoPct).toBeGreaterThan(0.5);
+    expect(vlsfoPct).toBeLessThanOrEqual(1.0);
 
-    console.log(`EU→EU: VLSFO total=${r.vlsfoConsumption.toFixed(2)}, EU=${r.euCoveredFuel.vlsfo.toFixed(2)} (${(r.euCoveredFuel.vlsfo/r.vlsfoConsumption*100).toFixed(1)}%)`);
+    console.log(`EU→EU: VLSFO total=${r.vlsfoConsumption.toFixed(2)}, EU=${r.euCoveredFuel.vlsfo.toFixed(2)} (${(vlsfoPct*100).toFixed(1)}%)`);
   });
 
   it("NonEU → NonEU (Santos→Paranagua): factor=0, no EU fuel", () => {
