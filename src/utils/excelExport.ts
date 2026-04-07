@@ -381,8 +381,7 @@ export function exportVoyageToExcel(data: ExportData) {
     setNum(SC.DA, rr, leg.expDa, dStyle);
     setNum(SC.LADEN, rr, isLadenLeg ? 1 : 0, dStyle);
     setText(SC.PFUEL, rr, portFuel, tStyle);
-
-    // --- Formula columns (green tinted) ---
+    setNum(SC.EUFLG, rr, leg.isEuEea ? 1 : 0, dStyle);
     const c = (cn: number) => cellRef(cn, rr);
 
     setFormula(SC.NECAT, rr, `${c(SC.SEAT)}-${c(SC.ECAT)}`, seaTime - ecaTime, fStyle);
