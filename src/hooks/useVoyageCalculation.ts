@@ -792,10 +792,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         const legIsLaden = segCargoOnBoard > 0;
         
         // ── 1. SEA FUEL for this segment ──
-        if (leg.portUnloc && prevPortUnloc) {
+        if (leg.portUnloc) {
           const currentIsEuEea = leg.isEuEea === true;
           let euFactor = 0;
-          if (prevIsEuEea && currentIsEuEea) {
+          if (!prevPortUnloc) {
+            // First leg: unknown origin → current port
+            euFactor = currentIsEuEea ? 0.5 : 0;
+          } else if (prevIsEuEea && currentIsEuEea) {
             euFactor = 1.0; // EU → EU
           } else if (prevIsEuEea || currentIsEuEea) {
             euFactor = 0.5; // EU ↔ Non-EU
