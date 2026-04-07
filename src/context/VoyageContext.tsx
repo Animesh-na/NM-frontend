@@ -1396,11 +1396,12 @@ export function useVoyageContext() {
         fuelEuResult: {
           target: 89.34, rewardFactor: 1.0,
           fuels: {
-            hsfo: { intensity: 91.74, lcv: 40200, energyUsed: 0, euQuantity: 0, penalty: 0 },
-            vlsfo: { intensity: 91.39, lcv: 41000, energyUsed: 0, euQuantity: 0, penalty: 0 },
-            lsmgo: { intensity: 90.77, lcv: 42700, energyUsed: 0, euQuantity: 0, penalty: 0 },
+            hsfo: { intensity: 91.74, lcv: 40400, gap: 0, costPerTon: 0, euQuantity: 0, cost: 0 },
+            vlsfo: { intensity: 91.39, lcv: 41500, gap: 0, costPerTon: 0, euQuantity: 0, cost: 0 },
+            lsmgo: { intensity: 90.77, lcv: 42700, gap: 0, costPerTon: 0, euQuantity: 0, cost: 0 },
           },
           totalPenalty: 0,
+          costPerTon: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
         },
         fuelEuTotalPenalty: 0,
         fuelEuFreightImpact: 0,
