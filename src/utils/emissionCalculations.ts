@@ -457,10 +457,10 @@ export const FUEL_EU_GHG_INTENSITY: Record<string, number> = {
   lsmgo: 90.77,
 };
 
-// Lower Calorific Values by fuel type (MJ/kg → MJ/t = ×1000)
+// Lower Calorific Values by fuel type (MJ/t)
 export const FUEL_LCV: Record<string, number> = {
-  hsfo: 40200, // MJ/t
-  vlsfo: 41000, // MJ/t
+  hsfo: 40400, // MJ/t
+  vlsfo: 41500, // MJ/t
   lsmgo: 42700, // MJ/t
 };
 
