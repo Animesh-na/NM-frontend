@@ -1148,9 +1148,9 @@ export function exportVoyageToExcel(data: ExportData) {
   // FuelEU Maritime
   setSubSectionHeader(r, "FuelEU Maritime"); r++;
   setCalcLabel(r, "GHG Intensity Target (gCO₂eq/MJ)", false, false, true); setNum(1, r, results.fuelEuResult.target, S.envFormula); setNum(2, r, results.fuelEuResult.target, S.envSoftware); r++;
-  setCalcLabel(r, "HSFO Penalty ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.hsfo.penalty, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.hsfo.penalty, S.envSoftware); const R_FEH = r; r++;
-  setCalcLabel(r, "VLSFO Penalty ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.vlsfo.penalty, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.vlsfo.penalty, S.envSoftware); const R_FEV = r; r++;
-  setCalcLabel(r, "LSMGO Penalty ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.lsmgo.penalty, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.lsmgo.penalty, S.envSoftware); const R_FEL = r; r++;
+  setCalcLabel(r, "HSFO Cost ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.hsfo.cost, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.hsfo.cost, S.envSoftware); const R_FEH = r; r++;
+  setCalcLabel(r, "VLSFO Cost ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.vlsfo.cost, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.vlsfo.cost, S.envSoftware); const R_FEV = r; r++;
+  setCalcLabel(r, "LSMGO Cost ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.lsmgo.cost, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.lsmgo.cost, S.envSoftware); const R_FEL = r; r++;
   setCalcLabel(r, "FuelEU Total Penalty ($)", true);
   setCalcFormula(r, `${B(R_FEH)}+${B(R_FEV)}+${B(R_FEL)}`, results.fuelEuTotalPenalty, true);
   r++;

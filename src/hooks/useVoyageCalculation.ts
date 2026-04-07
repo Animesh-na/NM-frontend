@@ -1013,7 +1013,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Total CO2 Cost: ${totalCo2} × $${bunker.co2Price} = $${totalCo2Cost.toFixed(2)}
     EUA CO2: ${etsResult.chargeableCo2.toFixed(2)}t → Cost: $${euaCo2Cost.toFixed(2)}
     EUA Freight Impact: $${euaFreightImpact.toFixed(2)}/mt
-    FuelEU Penalties: HSFO=$${fuelEuResult.fuels.hsfo.penalty.toFixed(2)}, VLSFO=$${fuelEuResult.fuels.vlsfo.penalty.toFixed(2)}, LSMGO=$${fuelEuResult.fuels.lsmgo.penalty.toFixed(2)}
+    FuelEU Costs: HSFO=$${fuelEuResult.fuels.hsfo.cost.toFixed(2)}, VLSFO=$${fuelEuResult.fuels.vlsfo.cost.toFixed(2)}, LSMGO=$${fuelEuResult.fuels.lsmgo.cost.toFixed(2)}
     FuelEU Total: $${fuelEuResult.totalPenalty.toFixed(2)}`);
     
     console.log(`\n========== VOYAGE CALCULATION END ==========\n`);

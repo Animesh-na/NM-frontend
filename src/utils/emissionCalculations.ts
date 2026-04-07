@@ -457,10 +457,10 @@ export const FUEL_EU_GHG_INTENSITY: Record<string, number> = {
   lsmgo: 90.77,
 };
 
-// Lower Calorific Values by fuel type (MJ/kg → MJ/t = ×1000)
+// Lower Calorific Values by fuel type (MJ/t)
 export const FUEL_LCV: Record<string, number> = {
-  hsfo: 40200, // MJ/t
-  vlsfo: 41000, // MJ/t
+  hsfo: 40400, // MJ/t
+  vlsfo: 41500, // MJ/t
   lsmgo: 42700, // MJ/t
 };
 
@@ -490,22 +490,37 @@ export function getFuelEuTarget(year?: number): number {
   return FUEL_EU_TARGETS[2050] || 26.10;
 }
 
+export interface FuelEuFuelDetail {
+  intensity: number;       // gCO₂eq/MJ actual GHG intensity
+  lcv: number;             // MJ/t lower calorific value
+  gap: number;             // intensity - target (gCO₂eq/MJ)
+  costPerTon: number;      // gap × lcv × penalty_factor / 1,000,000 ($/t)
+  euQuantity: number;      // EU-covered fuel quantity (t)
+  cost: number;            // euQuantity × costPerTon ($)
+}
+
 export interface FuelEuResult {
-  target: number; // gCO₂eq/MJ target for year
+  target: number;          // gCO₂eq/MJ target for year
   rewardFactor: number;
   fuels: {
-    hsfo: { intensity: number; lcv: number; energyUsed: number; euQuantity: number; penalty: number };
-    vlsfo: { intensity: number; lcv: number; energyUsed: number; euQuantity: number; penalty: number };
-    lsmgo: { intensity: number; lcv: number; energyUsed: number; euQuantity: number; penalty: number };
+    hsfo: FuelEuFuelDetail;
+    vlsfo: FuelEuFuelDetail;
+    lsmgo: FuelEuFuelDetail;
   };
   totalPenalty: number;
+  costPerTon: { hsfo: number; vlsfo: number; lsmgo: number };
 }
 
 /**
- * Calculate FuelEU Maritime penalties using energy-based formula
- * Penalty = Energy Used × (Actual Intensity − EU Target) ÷ 41000 × 2400
- * Where Energy Used = Fuel Consumption (t) × Lower Calorific Value (MJ/t)
- * Penalties apply only to EU-covered fuel quantities
+ * Calculate FuelEU Maritime cost using hybrid static + dynamic model.
+ *
+ * Formula per fuel type:
+ *   gap          = ghg_actual - ghg_target
+ *   cost_per_ton = gap × lcv × penalty_factor / 1,000,000
+ *   fuel_cost    = EU_fuel_qty × cost_per_ton
+ *
+ * Total FuelEU cost = sum of all fuel costs.
+ * EU fuel quantities are dynamic inputs from the existing EU fuel calculation.
  */
 export function calculateFuelEuPenalty(
   euCoveredFuel: { hsfo: number; vlsfo: number; lsmgo: number },
@@ -514,29 +529,25 @@ export function calculateFuelEuPenalty(
 ): FuelEuResult {
   const target = getFuelEuTarget(year);
 
-  const calcPenalty = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
+  const calc = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo'): FuelEuFuelDetail => {
     const intensity = FUEL_EU_GHG_INTENSITY[fuelType];
     const lcv = FUEL_LCV[fuelType];
     const qty = euCoveredFuel[fuelType];
-    const energyUsed = qty * lcv; // MJ
-    
-    // Penalty only applies if intensity exceeds target
-    // Formula: Energy Used × (Actual Intensity − EU Target) ÷ 41000 × 2400
-    const penalty = intensity > target
-      ? energyUsed * (intensity - target) / FUEL_EU_REFERENCE_ENERGY * FUEL_EU_PENALTY_RATE
-      : 0;
-    
-    return { intensity, lcv, energyUsed, euQuantity: qty, penalty };
+    const gap = Math.max(0, intensity - target);
+    const costPerTon = gap * lcv * FUEL_EU_PENALTY_RATE / 1_000_000;
+    const cost = qty * costPerTon;
+    return { intensity, lcv, gap, costPerTon, euQuantity: qty, cost };
   };
 
-  const hsfo = calcPenalty('hsfo');
-  const vlsfo = calcPenalty('vlsfo');
-  const lsmgo = calcPenalty('lsmgo');
+  const hsfo = calc('hsfo');
+  const vlsfo = calc('vlsfo');
+  const lsmgo = calc('lsmgo');
 
   return {
     target,
     rewardFactor,
     fuels: { hsfo, vlsfo, lsmgo },
-    totalPenalty: hsfo.penalty + vlsfo.penalty + lsmgo.penalty,
+    totalPenalty: hsfo.cost + vlsfo.cost + lsmgo.cost,
+    costPerTon: { hsfo: hsfo.costPerTon, vlsfo: vlsfo.costPerTon, lsmgo: lsmgo.costPerTon },
   };
 }

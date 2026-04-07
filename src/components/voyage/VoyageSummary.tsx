@@ -479,19 +479,19 @@ export function VoyageSummary() {
                     <span className="font-mono">{f.intensity} gCO₂eq/MJ</span>
                   </div>
                   <div className="flex justify-between text-[9px]">
-                    <span className="text-muted-foreground pl-2">Energy Used</span>
-                    <span className="font-mono">{f.energyUsed.toLocaleString(undefined, { maximumFractionDigits: 0 })} MJ</span>
+                    <span className="text-muted-foreground pl-2">Cost/ton</span>
+                    <span className="font-mono">${f.costPerTon.toFixed(2)} /t</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground flex items-center">
-                      {fuel.toUpperCase()} Penalty
+                      {fuel.toUpperCase()} Cost
                       <InfoTooltip 
-                        formula={`Energy(${f.energyUsed.toFixed(0)}MJ) × Excess(${excessIntensity.toFixed(2)}) ÷ 41000 × 2400`}
-                        description={`EU Qty: ${f.euQuantity.toFixed(1)}t × LCV: ${f.lcv} MJ/t`}
+                        formula={`Gap(${f.gap.toFixed(2)}) × LCV(${f.lcv}) × 2400 / 1M = $${f.costPerTon.toFixed(2)}/t × ${f.euQuantity.toFixed(1)}t`}
+                        description={`EU Qty: ${f.euQuantity.toFixed(1)}t × Cost/ton: $${f.costPerTon.toFixed(2)}`}
                       />
                     </span>
                     <span className="font-mono tabular-nums">
-                      ${formatCurrency(f.penalty)}
+                      ${formatCurrency(f.cost)}
                     </span>
                   </div>
                 </div>
