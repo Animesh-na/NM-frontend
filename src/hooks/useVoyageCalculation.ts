@@ -663,31 +663,53 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let previousIsEuEea = false; // EU/EEA flag of the origin port
     
     sequence.forEach((leg) => {
-      if (leg.portUnloc && previousPort) {
-        // Calculate CO2 proportion for this leg based on sea time
-        const legSeaTime = leg.seaTime || 0;
-        const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
-        
-        // Determine ETS coverage from is_eu_eea flags:
-        // Both EU → 100%, one EU → 50%, neither EU → 0%
+      if (leg.portUnloc) {
         const currentIsEuEea = leg.isEuEea === true;
-        let coverage = 0;
-        if (previousIsEuEea && currentIsEuEea) {
-          coverage = 1.0; // EU → EU = 100%
-        } else if (previousIsEuEea || currentIsEuEea) {
-          coverage = 0.5; // EU → Non-EU or Non-EU → EU = 50%
+        
+        if (previousPort) {
+          // Normal segment: previousPort → currentPort
+          const legSeaTime = leg.seaTime || 0;
+          const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
+          
+          let coverage = 0;
+          if (previousIsEuEea && currentIsEuEea) {
+            coverage = 1.0;
+          } else if (previousIsEuEea || currentIsEuEea) {
+            coverage = 0.5;
+          }
+          
+          voyageLegs.push({
+            originUnloc: previousPort,
+            destinationUnloc: leg.portUnloc,
+            co2: legCo2,
+          });
+          legCoverages.push(coverage);
+        } else {
+          // First segment: use current port + next port to determine both endpoints
+          const nextLeg = sequence.find((s, si) => si > sequence.indexOf(leg) && s.portUnloc);
+          const nextIsEuEea = nextLeg?.isEuEea === true;
+          const legSeaTime = leg.seaTime || 0;
+          const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
+          
+          let coverage = 0;
+          if (currentIsEuEea && nextIsEuEea) {
+            coverage = 1.0;
+          } else if (currentIsEuEea || nextIsEuEea) {
+            coverage = 0.5;
+          }
+          
+          if (legSeaTime > 0) {
+            voyageLegs.push({
+              originUnloc: leg.portUnloc,
+              destinationUnloc: nextLeg?.portUnloc || leg.portUnloc,
+              co2: legCo2,
+            });
+            legCoverages.push(coverage);
+          }
         }
         
-        voyageLegs.push({
-          originUnloc: previousPort,
-          destinationUnloc: leg.portUnloc,
-          co2: legCo2,
-        });
-        legCoverages.push(coverage);
-      }
-      if (leg.portUnloc) {
         previousPort = leg.portUnloc;
-        previousIsEuEea = leg.isEuEea === true;
+        previousIsEuEea = currentIsEuEea;
       }
     });
 
@@ -805,12 +827,16 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
               euFactor = 0.5; // One port EU
             }
             // else: both non-EU = 0
+            console.log(`    [EU] First segment: ${leg.port}(EU=${currentIsEuEea}) + next=${nextLeg?.port}(EU=${nextIsEuEea}) → factor=${euFactor}`);
           } else if (prevIsEuEea && currentIsEuEea) {
             euFactor = 1.0; // EU → EU
+            console.log(`    [EU] ${leg.port}: prev(EU=true) → curr(EU=true) → factor=1.0`);
           } else if (prevIsEuEea || currentIsEuEea) {
             euFactor = 0.5; // EU ↔ Non-EU
+            console.log(`    [EU] ${leg.port}: prev(EU=${prevIsEuEea}) → curr(EU=${currentIsEuEea}) → factor=0.5`);
+          } else {
+            console.log(`    [EU] ${leg.port}: prev(EU=${prevIsEuEea}) → curr(EU=${currentIsEuEea}) → factor=0`);
           }
-          // else: Non-EU → Non-EU = 0
           
           // Accumulate for weighted average (used for extra sea days)
           const legSeaTimeTotal = leg.seaTime || 0;
