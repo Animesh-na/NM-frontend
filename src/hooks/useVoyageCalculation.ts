@@ -1010,6 +1010,26 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       bunker?.rewardFactor ?? 1.0
     );
     
+    // Regulatory cost adjustments — add to voyage costs excl hire so P&L reflects them
+    let regulatoryCost = 0;
+    if (inputs.applyEuaImpact) regulatoryCost += euaCo2Cost;
+    if (inputs.applyFuelEuImpact) regulatoryCost += fuelEuResult.totalPenalty;
+
+    const adjustedVoyageCostExclHire = voyageCostExclHire + regulatoryCost;
+    const adjustedVoyageCostInclHire = voyageCostInclHire + regulatoryCost;
+
+    // Recalculate financials with regulatory costs
+    const adjustedVoyageResult = netFreight - (totalVoyageCosts + regulatoryCost) + cargo.demurrage - cargo.despatch;
+    const adjustedPAndL = adjustedVoyageResult - hireCost;
+    const adjustedNtce = totalVoyageDays > 0
+      ? (netFreight - (totalVoyageCosts + regulatoryCost)) / totalVoyageDays
+      : 0;
+    const adjustedGtce = tcCommissionPct < 1 ? adjustedNtce / (1 - tcCommissionPct) : 0;
+    const adjustedTce = adjustedGtce;
+    const adjustedBaseRatePerMt = cargo.quantity > 0 ? adjustedVoyageCostInclHire / cargo.quantity : 0;
+    const voyageCommissionPct2 = cargo.voyageCommission / 100;
+    const adjustedGrossRate = voyageCommissionPct2 < 1 ? adjustedBaseRatePerMt / (1 - voyageCommissionPct2) : 0;
+
     console.log(`\n[Step 12] EU COVERED FUEL & FUEL EU:
     EU Covered: HSFO=${euCoveredHsfo.toFixed(2)}t, VLSFO=${euCoveredVlsfo.toFixed(2)}t, LSMGO=${euCoveredLsmgo.toFixed(2)}t
     Total CO2 Cost: ${totalCo2} × $${bunker.co2Price} = $${totalCo2Cost.toFixed(2)}
