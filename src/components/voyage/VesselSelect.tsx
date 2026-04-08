@@ -77,7 +77,7 @@ function buildMatrixFromFuel(fc: FuelConsumptionResult, hasScrubber: boolean): C
   };
 
   return {
-    speed: { ballast: 0, laden: 0, canal: 0, load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0 },
+    speed: { ballast: 13, laden: 12.5, canal: 0, load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0 },
     hsfo, vlsfo, lsmgo, ae, aeScrubber,
   };
 }

@@ -357,7 +357,7 @@ export function SequenceTable() {
                       {/* Exp DA */}
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
-                          <input type="number" className="form-input-sm w-16 font-mono text-right text-[10px]"
+                          <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
                             value={row.expDa || ""} onChange={(e) => updateSequenceRow(row.id, "expDa", parseFloat(e.target.value) || 0)} placeholder="0" />
                         )}
                       </td>

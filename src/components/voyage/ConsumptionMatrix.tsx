@@ -87,7 +87,11 @@ export function ConsumptionMatrix({
                         step={row.key === "speed" ? "0.1" : "0.01"}
                         className={`form-input-sm w-full font-mono tabular-nums text-right h-4 text-[9px] px-1.5 ${isDisabled ? "opacity-50" : ""}`}
                         value={value || ""}
-                        onChange={(e) => onConsumptionChange(row.key, col.key, parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          let raw = e.target.value;
+                          if (raw.startsWith('.')) raw = '0' + raw;
+                          onConsumptionChange(row.key, col.key, parseFloat(raw) || 0);
+                        }}
                         onFocus={(e) => { if (e.target.value === "0") e.target.value = ""; }}
                         placeholder="0"
                         disabled={isDisabled}
