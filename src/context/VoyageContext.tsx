@@ -1237,6 +1237,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         : misc.extraTime.atSea.value / 24,
       atSeaSpeedContext: misc.extraTime.atSea.mode,
     },
+    applyEuaImpact,
+    applyFuelEuImpact,
   };
 
   const results = useVoyageCalculation(voyageInputs);

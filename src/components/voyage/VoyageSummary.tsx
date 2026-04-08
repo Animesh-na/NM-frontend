@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
 import { useAuth } from "@/context/AuthContext";
-import { useMemo } from "react";
+
 
 export function VoyageSummary() {
   const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact } = useVoyageContext();
@@ -15,13 +15,6 @@ export function VoyageSummary() {
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
 
-  // Compute adjusted gross rate based on regulatory impact toggles
-  const adjustedGrossRate = useMemo(() => {
-    let rate = results.grossRate;
-    if (applyEuaImpact) rate += results.euaFreightImpact;
-    if (applyFuelEuImpact) rate += results.fuelEuFreightImpact;
-    return rate;
-  }, [results.grossRate, results.euaFreightImpact, results.fuelEuFreightImpact, applyEuaImpact, applyFuelEuImpact]);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -183,7 +176,7 @@ export function VoyageSummary() {
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
-                {(applyEuaImpact || applyFuelEuImpact) ? "Base Gross Rate" : "Gross Rate"}
+                Gross Rate
                 <InfoTooltip 
                   formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
                   description="Breakeven freight rate per MT including hire and commission"
@@ -193,20 +186,6 @@ export function VoyageSummary() {
                 ${formatCurrency(results.grossRate)} /mt
               </span>
             </div>
-            {(applyEuaImpact || applyFuelEuImpact) && (
-              <div className="flex justify-between bg-muted rounded-sm px-1 py-0.5">
-                <span className="font-medium text-regulatory flex items-center">
-                  Adjusted Gross Rate
-                  <InfoTooltip 
-                    formula="Base Gross Rate + (EUA Impact if applied) + (FuelEU Impact if applied)" 
-                    description="Gross Rate adjusted for regulatory freight impacts"
-                  />
-                </span>
-                <span className="font-mono tabular-nums font-bold text-regulatory">
-                  ${formatCurrency(adjustedGrossRate)} /mt
-                </span>
-              </div>
-            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
                 P&L
