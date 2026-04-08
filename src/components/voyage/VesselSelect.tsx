@@ -77,7 +77,7 @@ function buildMatrixFromFuel(fc: FuelConsumptionResult, hasScrubber: boolean): C
   };
 
   return {
-    speed: { ballast: 0, laden: 0, canal: 0, load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0 },
+    speed: { ballast: 13, laden: 12.5, canal: 0, load: 0, discharge: 0, idle: 0, misc1: 0, misc2: 0 },
     hsfo, vlsfo, lsmgo, ae, aeScrubber,
   };
 }
@@ -241,6 +241,7 @@ export function VesselSelect({
                     <div className="text-[10px] text-muted-foreground flex gap-2 flex-wrap">
                       <span className="text-primary/80">{v.type}</span>
                       {v.imo && <span>IMO: {v.imo}</span>}
+                      {v.dwt > 0 && <span>DWT: {v.dwt.toLocaleString()}</span>}
                       {v.builtyear > 0 && <span>Built: {v.builtyear}</span>}
                       {v.scrubber_indicator && <span className="text-green-500">Scrubber</span>}
                     </div>

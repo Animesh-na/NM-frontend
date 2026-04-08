@@ -83,7 +83,7 @@ export function SequenceTable() {
     return days.toFixed(2);
   };
 
-  const thClass = "px-0.5 py-0.5 text-[9px] font-semibold text-foreground whitespace-nowrap text-center bg-table-header";
+  const thClass = "px-0 py-0.5 text-[8px] font-semibold text-foreground whitespace-nowrap text-center bg-table-header";
 
   return (
     <div className="calc-card-compact">
@@ -112,7 +112,7 @@ export function SequenceTable() {
               <thead>
                 <tr>
                   <th className={thClass}>Type</th>
-                  <th className={`${thClass} text-left min-w-[140px]`}>Port</th>
+                  <th className={`${thClass} text-left min-w-[120px]`}>Port</th>
                   <th className={thClass}>Dist nm</th>
                   <th className={thClass}>ECA nm</th>
                   <th className={thClass}>Sea (d)</th>
@@ -136,7 +136,7 @@ export function SequenceTable() {
                   const hasQty = showQuantityFields(row);
                   const hasBunkering = showBunkeringFields(row);
                   const typeLabel = getTypeLabel(row);
-                  const tdClass = "px-0.5 py-0";
+                  const tdClass = "px-0 py-0";
 
                   return (
                     <tr key={row.id} className="group">
@@ -148,7 +148,7 @@ export function SequenceTable() {
                           <span className="text-[10px] font-semibold text-muted-foreground px-1">Repos</span>
                         ) : (
                           <select
-                            className="form-select-sm w-16 text-[10px]"
+                            className="form-select-sm w-14 text-[10px]"
                             value={typeLabel}
                             onChange={(e) => handleTypeChange(row.id, e.target.value)}
                           >
@@ -183,7 +183,7 @@ export function SequenceTable() {
                               >
                                 {distanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                               </select>
-                              <input type="number" className="form-input-sm w-16 font-mono text-right text-[10px]"
+                              <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
                                 value={row.distance || ""} onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)} placeholder="0" />
                             </div>
                           )
@@ -198,7 +198,7 @@ export function SequenceTable() {
                               onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value)}>
                               {ecaDistanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
-                            <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
+                            <input type="number" className="form-input-sm w-12 font-mono text-right text-[10px]"
                               value={row.ecaDistance || ""} onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)} placeholder="0" />
                           </div>
                         )}
@@ -207,7 +207,7 @@ export function SequenceTable() {
                       {/* Sea Time */}
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
-                          <input type="number" step="0.01" className="form-input-sm w-16 font-mono text-right text-[10px]"
+                          <input type="number" step="0.01" className="form-input-sm w-14 font-mono text-right text-[10px]"
                             value={row.timeOverride !== undefined ? row.timeOverride : (row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "")}
                             onChange={(e) => { const val = parseFloat(e.target.value); updateSequenceRow(row.id, "timeOverride", val > 0 ? val : undefined); }}
                             placeholder={row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "0"} />
@@ -232,7 +232,7 @@ export function SequenceTable() {
                               <TooltipProvider delayDuration={300}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <input type="number" className={`form-input-sm w-16 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
+                                    <input type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
                                       value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
                                       onDoubleClick={() => setIntakeRowId(row.id)} />
                                   </TooltipTrigger>
@@ -266,7 +266,7 @@ export function SequenceTable() {
                       {/* Productivity */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
+                          <input type="number" className="form-input-sm w-12 font-mono text-right text-[10px]"
                             value={row.productivity || ""} onChange={(e) => updateSequenceRow(row.id, "productivity", parseFloat(e.target.value) || 0)} placeholder="0" />
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
@@ -274,7 +274,7 @@ export function SequenceTable() {
                       {/* Terms */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <select className="form-select-sm w-16 text-[10px]" 
+                          <select className="form-select-sm w-14 text-[10px]" 
                             value={row.terms === "custom" ? `custom:${row.customTermsName}` : (row.terms || "shinc")}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -345,7 +345,7 @@ export function SequenceTable() {
                       {/* Port Fuel */}
                       <td className={tdClass}>
                         {!isOpen && isPort ? (
-                          <select className="form-select-sm w-16 text-[10px]" value={row.portFuelType || "vlsfo"}
+                          <select className="form-select-sm w-14 text-[10px]" value={row.portFuelType || "vlsfo"}
                             onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}>
                             {vessel.hasScrubber && <option value="hsfo">HSFO</option>}
                             <option value="vlsfo">VLSFO</option>
@@ -357,7 +357,7 @@ export function SequenceTable() {
                       {/* Exp DA */}
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
-                          <input type="number" className="form-input-sm w-16 font-mono text-right text-[10px]"
+                          <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
                             value={row.expDa || ""} onChange={(e) => updateSequenceRow(row.id, "expDa", parseFloat(e.target.value) || 0)} placeholder="0" />
                         )}
                       </td>
