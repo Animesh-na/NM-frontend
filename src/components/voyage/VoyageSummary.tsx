@@ -15,13 +15,6 @@ export function VoyageSummary() {
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
 
-  // Compute adjusted gross rate based on regulatory impact toggles
-  const adjustedGrossRate = useMemo(() => {
-    let rate = results.grossRate;
-    if (applyEuaImpact) rate += results.euaFreightImpact;
-    if (applyFuelEuImpact) rate += results.fuelEuFreightImpact;
-    return rate;
-  }, [results.grossRate, results.euaFreightImpact, results.fuelEuFreightImpact, applyEuaImpact, applyFuelEuImpact]);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
