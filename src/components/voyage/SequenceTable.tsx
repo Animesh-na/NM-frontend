@@ -198,7 +198,7 @@ export function SequenceTable() {
                               onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value)}>
                               {ecaDistanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
-                            <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
+                            <input type="number" className="form-input-sm w-12 font-mono text-right text-[10px]"
                               value={row.ecaDistance || ""} onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)} placeholder="0" />
                           </div>
                         )}
