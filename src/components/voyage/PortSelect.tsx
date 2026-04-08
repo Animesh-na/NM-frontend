@@ -13,6 +13,7 @@ export interface Port {
   country: string;
   coordinates?: [number, number];
   isEuEea?: boolean;
+  ecaZone?: boolean;
 }
 
 interface PortSelectProps {
