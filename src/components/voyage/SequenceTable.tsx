@@ -183,7 +183,7 @@ export function SequenceTable() {
                               >
                                 {distanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                               </select>
-                              <input type="number" className="form-input-sm w-16 font-mono text-right text-[10px]"
+                              <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
                                 value={row.distance || ""} onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)} placeholder="0" />
                             </div>
                           )
