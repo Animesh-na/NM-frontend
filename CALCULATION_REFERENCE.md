@@ -1,6 +1,6 @@
 # Voyage Calculation Reference — Full Mathematical Breakdown
 
-> **Scope:** From vessel search → fuel consumption API → voyage time → bunker consumption → bunker cost → freight → profitability → emissions.  
+> **Scope:** From vessel search → fuel consumption API → voyage time → bunker consumption → bunker cost → freight → profitability → emissions → regulatory costs.  
 > All units are explicitly stated. All formulas match the codebase implementation.
 
 ---
@@ -13,8 +13,10 @@
 4. [Bunker Cost](#4-bunker-cost)
 5. [Cargo & Freight Revenue](#5-cargo--freight-revenue)
 6. [Voyage Costs](#6-voyage-costs)
-7. [Profitability Metrics (TCE, NTCE, P&L)](#7-profitability-metrics)
+7. [Profitability Metrics (TCE, NTCE, GTCE, P&L)](#7-profitability-metrics)
 8. [Environmental / Emissions](#8-environmental--emissions)
+9. [EU-Covered Fuel & FuelEU Maritime](#9-eu-covered-fuel--fueleu-maritime)
+10. [Regulatory Cost Adjustments](#10-regulatory-cost-adjustments)
 
 ---
 
@@ -50,10 +52,6 @@ When a vessel is searched, the API reads engine data from the upstream marine da
 ME_Fuel (t/day) = (MCR [kW] × ME_Load [fraction] × SFOC [g/kWh] × 24 [h/day]) / 1,000,000
 ```
 
-**Example (Full Speed):**
-- MCR = 15,000 kW, SFOC = 170 g/kWh
-- ME_Fuel = (15000 × 0.85 × 170 × 24) / 1,000,000 = **52.02 t/day**
-
 ### 1.4 Auxiliary Engine Fuel (TPD)
 
 ```
@@ -62,14 +60,6 @@ AE_Fuel (t/day) = (AE_kW [kW] × AE_SFOC [g/kWh] × 24 [h/day]) / 1,000,000
 ```
 
 Where `AE_SFOC = 181 g/kWh` (constant).
-
-**AE at Sea (Full Speed):**
-- AE_kW = 15000 × 0.04 = 600 kW
-- AE_Fuel = (600 × 181 × 24) / 1,000,000 = **2.61 t/day**
-
-**AE in Port (Full Speed):**
-- AE_kW = 15000 × 0.06 = 900 kW
-- AE_Fuel = (900 × 181 × 24) / 1,000,000 = **3.91 t/day**
 
 ### 1.5 Fuel Type Selection by Zone
 
@@ -84,13 +74,7 @@ Where `AE_SFOC = 181 g/kWh` (constant).
 Scrubber_Penalty (t/day) = (ME_Fuel + AE_Sea_Fuel) × Scrubber_Penalty_Rate
 ```
 
-- Full Speed: Scrubber_Penalty_Rate = 0.015
-- Eco: Scrubber_Penalty_Rate = 0.012
-
 **HSFO and VLSFO are never mixed.** If scrubber → HSFO only. No scrubber → VLSFO only.
-
-Also:
-- `hsfo_allowed = true` if `scrubber_indicator = true`, else `false`
 
 #### Inside ECA
 
@@ -124,49 +108,87 @@ Main engine is **not running** in port.
 
 ## 2. Voyage Time Calculations
 
-**Source:** `src/hooks/useVoyageCalculation.ts` (lines 159–243), `VoyageContext.tsx`
+**Source:** `src/context/VoyageContext.tsx` (`calculateSeaTime`, `calculatePortDays`), `src/hooks/useVoyageCalculation.ts`
 
-### 2.1 Sea Time per Leg
+### 2.1 Speed Selection (Dual Speed Context)
+
+Each leg has two speed contexts:
+- **Non-ECA** (`distanceSpeedContext`): EV (Eco Voyage) or FV (Full Voyage)
+- **ECA** (`ecaDistanceSpeedContext`): EL (Eco Local) or FL (Full Local)
+
+Speed is selected from the vessel's consumption matrix based on context and laden/ballast state:
 
 ```
-Base_Sea_Time (days) = (Non_ECA_Distance [nm] / Sea_Speed [kn] + ECA_Distance [nm] / ECA_Speed [kn]) / 24 [h/day]
+Speed = Matrix[eco|full].speed.[ballast|laden]
+```
+
+### 2.2 Sea Time per Leg
+
+```
+Base_Non_ECA_Time (days) = Non_ECA_Distance [nm] / (Non_ECA_Speed [kn] × 24)
+Base_ECA_Time (days) = ECA_Distance [nm] / (ECA_Speed [kn] × 24)
+Base_Sea_Time (days) = Base_Non_ECA_Time + Base_ECA_Time
 ```
 
 With sea margin applied:
 
 ```
-Adjusted_Sea_Time (days) = Base_Sea_Time × (1 + Sea_Margin [%] / 100)
-Sea_Margin_Time (days) = Adjusted_Sea_Time - Base_Sea_Time
+Sea_Margin_Multiplier = 1 + Sea_Margin [%] / 100
+Sea_Margin_Time (days) = Base_Sea_Time × (Sea_Margin [%] / 100)
+Sea_Time (days) = Base_Non_ECA_Time × Sea_Margin_Multiplier   (non-ECA with margin)
+ECA_Time (days) = Base_ECA_Time × Sea_Margin_Multiplier        (ECA with margin)
+Total_Leg_Time (days) = Base_Sea_Time + Sea_Margin_Time
 ```
 
-### 2.2 ECA / Non-ECA Time Split
+### 2.3 Ballast / Laden Assignment
+
+Determined by **running cargo on board** before the current port operation:
+- `cargoOnBoard > 0` → leg is **Laden**
+- `cargoOnBoard = 0` → leg is **Ballast**
+- Loading adds quantity, Discharging subtracts quantity (tracked sequentially)
+
+### 2.4 Port Time per Leg
 
 ```
-Non_ECA_Time (days) = (Non_ECA_Distance [nm] / Sea_Speed [kn]) / 24 × (1 + SM%)
-ECA_Time (days) = (ECA_Distance [nm] / ECA_Speed [kn]) / 24 × (1 + SM%)
+Base_Port_Days = Cargo_Quantity [mt] / Productivity_Rate [mt/day]
+Port_Days_With_Terms = Base_Port_Days × Coefficient_Factor
+Total_Port_Days = Port_Days_With_Terms + (Turn_Time [h] + Extra_Time [h]) / 24
 ```
 
-### 2.3 Port Time per Leg
+**Terms Coefficient (editable, defaults):**
 
-```
-Working_Days = Cargo_Quantity [mt] / Productivity_Rate [mt/day] × Terms_Multiplier
-Total_Port_Days = Working_Days + (Turn_Time [h] + Extra_Time [h]) / 24
-```
+| Terms | Default Coefficient |
+|---|---|
+| SHINC | 1.0 |
+| SSHEX | 1.5 |
+| FHEX | 1.25 |
+| SATPN | 1.33 |
+| Custom | User-defined |
 
-### 2.4 Total Voyage Duration
+For PSSG/Bunkering operations: `Port_Days = (Turn_Time + Extra_Time) / 24`
+
+### 2.5 Port Time Split (Consumption Context)
+
+Port time is split into:
+- **Working Days** = `Total_Port_Days - (Turn_Time + Extra_Time) / 24`
+- **Idle/Turn/Extra Days** = `(Turn_Time + Extra_Time) / 24`
+
+Working days use Load/Discharge fuel rates; Turn/Extra time uses **Idle** consumption rate.
+
+### 2.6 Total Voyage Duration
 
 ```
 Total_Sea_Days = Sea_Days_Ballast + Sea_Days_Laden + Extra_Sea_Days
-Total_Voyage_Days (days) = Total_Sea_Days + Total_Port_Days + Extra_Port_Days + Extra_Canal_Days
+Total_Voyage_Days = Total_Sea_Days + Total_Port_Days + Extra_Port_Days + Extra_Canal_Days
 ```
 
 ---
 
 ## 3. Bunker Consumption (Voyage Engine)
 
-**Source:** `src/hooks/useVoyageCalculation.ts` (lines 244–349)
+**Source:** `src/hooks/useVoyageCalculation.ts`
 
-The voyage engine uses the vessel's **Consumption Matrix** (MT/day rates per mode) multiplied by time.
+Uses the vessel's **Consumption Matrix** (MT/day rates per mode) multiplied by time.
 
 ### 3.1 Core Formula
 
@@ -178,61 +200,70 @@ Consumption (MT) = Daily_Rate (MT/day) × Time (days) × Reward_Factor
 
 ### 3.2 Sea Consumption — Non-ECA Zones
 
-HSFO/VLSFO burn at their normal matrix rates. **LSMGO is NOT used outside ECA zones** (ME LSMGO = 0).
+**Scrubber logic:** Scrubber → HSFO only (VLSFO = 0). No scrubber → VLSFO only (HSFO = 0).
 
 ```
-HSFO_Sea = (Non_ECA_Ballast_Days × HSFO_Ballast_Rate + Non_ECA_Laden_Days × HSFO_Laden_Rate + Extra_Sea_Days × HSFO_Laden_Rate) × Reward_Factor
-```
+HSFO_Sea = (NonECA_Ballast_Days × HSFO_Ballast_Rate
+          + NonECA_Laden_Days × HSFO_Laden_Rate
+          + Extra_Sea_Days × HSFO_Laden_Rate) × Reward_Factor     [only if scrubber]
 
-```
-VLSFO_Sea = (Non_ECA_Ballast_Days × VLSFO_Ballast_Rate + Non_ECA_Laden_Days × VLSFO_Laden_Rate + Extra_Sea_Days × VLSFO_Laden_Rate) × Reward_Factor
-```
+VLSFO_Sea = (NonECA_Ballast_Days × VLSFO_Ballast_Rate
+           + NonECA_Laden_Days × VLSFO_Laden_Rate
+           + Extra_Sea_Days × VLSFO_Laden_Rate) × Reward_Factor   [only if no scrubber]
 
-```
-LSMGO_Sea_NonECA = 0
+LSMGO_Sea_NonECA = 0   (LSMGO is NOT used outside ECA zones for ME)
 ```
 
 ### 3.3 Sea Consumption — ECA Zones
 
-In ECA, **HSFO = 0, VLSFO = 0**. Vessel burns LSMGO at the **LSMGO matrix rate directly** (not a combined rate):
+In ECA, **HSFO = 0, VLSFO = 0**. Vessel burns LSMGO at the LSMGO matrix rate:
 
 ```
-LSMGO_ECA = (ECA_Ballast_Days × LSMGO_Ballast_Rate + ECA_Laden_Days × LSMGO_Laden_Rate) × Reward_Factor
+LSMGO_ECA = (ECA_Ballast_Days × LSMGO_Ballast_Rate
+           + ECA_Laden_Days × LSMGO_Laden_Rate) × Reward_Factor
 ```
 
-### 3.4 Total LSMGO Sea
+### 3.4 Port Consumption (by operation, per-leg fuel type)
+
+Each port leg has a **selectable fuel type** (`portFuelType`: hsfo, vlsfo, or lsmgo). Port days are tracked separately by fuel type.
 
 ```
-LSMGO_Sea_Total (MT) = LSMGO_ECA   (Non-ECA LSMGO = 0)
+[Fuel]_Loading (MT) = Loading_Days_[fuel] × [Fuel]_Load_Rate
+[Fuel]_Discharging (MT) = Discharging_Days_[fuel] × [Fuel]_Discharge_Rate
+[Fuel]_Idle (MT) = (Idle_Days_[fuel] + Bunkering_Days_[fuel] + Extra_Port_Days_[fuel]) × [Fuel]_Idle_Rate
 ```
 
-### 3.5 Port Consumption (by operation)
+**Turn time and Extra time** at load/discharge ports are added to **idle** consumption (not working consumption).
+
+**Extra Port Days** (from Misc section) use default fuel: Scrubber → HSFO idle rate, else → VLSFO idle rate.
+
+### 3.5 Canal Consumption
 
 ```
-[Fuel]_Loading (MT) = Loading_Days × [Fuel]_Load_Rate
-[Fuel]_Discharging (MT) = Discharging_Days × [Fuel]_Discharge_Rate
-[Fuel]_Idle (MT) = (Idle_Days + Bunkering_Days + Extra_Port_Days) × [Fuel]_Idle_Rate
-[Fuel]_Canal (MT) = (Canal_Days + Extra_Canal_Days) × [Fuel]_Canal_Rate
+HSFO_Canal = Canal_Days × HSFO_Canal_Rate    [only if scrubber]
+VLSFO_Canal = Canal_Days × VLSFO_Canal_Rate  [only if no scrubber]
+LSMGO_Canal = 0   (LSMGO canal only via AE, but AE is excluded during canal)
 ```
 
-Where `[Fuel]` = HSFO, VLSFO, or LSMGO.
+### 3.6 AE (Auxiliary Engine) Consumption
 
-### 3.6 AE (Auxiliary Engine) Consumption (added to LSMGO)
+AE always runs on LSMGO. If scrubber is fitted, uses **aeScrubber** rates; otherwise uses **ae** rates.
 
-AE always runs on LSMGO across **all operations EXCEPT canal**.
-
+**AE at Sea** (all zones — both ECA and non-ECA):
 ```
-AE_Sea (MT) = (Total_Ballast_Days × AE_Ballast_Rate + Total_Laden_Days × AE_Laden_Rate + Extra_Sea_Days × AE_Laden_Rate) × Reward_Factor
+AE_Sea (MT) = ((NonECA_Ballast + ECA_Ballast) × AE_Ballast_Rate
+             + (NonECA_Laden + ECA_Laden) × AE_Laden_Rate
+             + Extra_Sea_Days × AE_Laden_Rate) × Reward_Factor
 ```
 
-Where `Total_Ballast_Days = Non_ECA_Ballast + ECA_Ballast` and `Total_Laden_Days = Non_ECA_Laden + ECA_Laden`.
-
+**AE in Port:**
 ```
 AE_Port (MT) = Loading_Days × AE_Load_Rate
              + Discharging_Days × AE_Discharge_Rate
              + (Idle_Days + Bunkering_Days + Extra_Port_Days) × AE_Idle_Rate
 ```
 
+**AE during Canal:**
 ```
 AE_Canal = 0   (AE is NOT counted during canal transit)
 ```
@@ -246,14 +277,14 @@ LSMGO_AE_Total (MT) = AE_Sea + AE_Port
 ```
 HSFO_Total (MT) = HSFO_Sea + HSFO_Loading + HSFO_Discharging + HSFO_Idle + HSFO_Canal
 VLSFO_Total (MT) = VLSFO_Sea + VLSFO_Loading + VLSFO_Discharging + VLSFO_Idle + VLSFO_Canal
-LSMGO_Total (MT) = LSMGO_Sea_Total + LSMGO_Loading + LSMGO_Discharging + LSMGO_Idle + LSMGO_Canal + LSMGO_AE_Total
+LSMGO_Total (MT) = LSMGO_Sea + LSMGO_Loading + LSMGO_Discharging + LSMGO_Idle + LSMGO_Canal + LSMGO_AE_Total
 ```
 
 ---
 
 ## 4. Bunker Cost
 
-**Source:** `src/hooks/useVoyageCalculation.ts` (lines 352–365)
+**Source:** `src/hooks/useVoyageCalculation.ts`
 
 ```
 HSFO_Cost ($) = HSFO_Total (MT) × HSFO_Price ($/MT)
@@ -269,7 +300,7 @@ Prices are user-input in the Bunker Section (USD/MT).
 
 ## 5. Cargo & Freight Revenue
 
-**Source:** `src/hooks/useVoyageCalculation.ts` (lines 367–377)
+**Source:** `src/hooks/useVoyageCalculation.ts`
 
 ### 5.1 Gross Freight
 
@@ -278,24 +309,25 @@ If rate_type = "mt":     Gross_Freight ($) = Freight_Rate ($/MT) × Cargo_Quanti
 If rate_type = "lumpsum": Gross_Freight ($) = Freight_Rate ($)
 ```
 
-### 5.2 Commissions
+### 5.2 Voyage Commission
 
 ```
 Voyage_Commission ($) = Gross_Freight × (Voyage_Commission_% / 100)
-TC_Commission_on_Freight ($) = Gross_Freight × (TC_Commission_% / 100)
 ```
+
+> **TC Commission does NOT reduce freight.** It only reduces hire (see §6.1).
 
 ### 5.3 Net Freight
 
 ```
-Net_Freight ($) = Gross_Freight - Voyage_Commission - TC_Commission_on_Freight
+Net_Freight ($) = Gross_Freight - Voyage_Commission
 ```
 
 ---
 
 ## 6. Voyage Costs
 
-**Source:** `src/hooks/useVoyageCalculation.ts` (lines 379–394)
+**Source:** `src/hooks/useVoyageCalculation.ts`
 
 ```
 Misc_Costs ($) = Misc_Cost + Extra_Fees + Extra_Insurance
@@ -305,25 +337,37 @@ Port_Costs ($) = Σ (Expected DA per port)
 Total_Voyage_Costs ($) = Total_Bunker_Cost + Port_Costs + Misc_Costs + Canal_Costs
 ```
 
-> **Note:** Commissions are NOT included in voyage costs. They reduce freight revenue.
+> **Note:** Commissions are NOT included in voyage costs. Voyage commission reduces freight; TC commission reduces hire.
 
 ### 6.1 Hire Calculations
 
 ```
 Gross_Hire_Rate ($/day) = User input
-Net_Hire_Rate ($/day) = Gross_Hire_Rate × (1 - TC_Commission_%)
-Hire_Cost ($) = Gross_Hire_Rate × Total_Voyage_Days
-Net_Hire_Cost ($) = Net_Hire_Rate × Total_Voyage_Days
+TC_Commission_Pct = TC_Commission_% / 100
+Net_Hire_Rate ($/day) = Gross_Hire_Rate × (1 - TC_Commission_Pct)
+
+Hire_Cost ($) = Gross_Hire_Rate × Total_Voyage_Days + Net_BB
+Net_Hire_Cost ($) = Net_Hire_Rate × Total_Voyage_Days + Net_BB
+TC_Commission_Amount ($) = (Gross_Hire_Rate × Total_Voyage_Days) × TC_Commission_Pct
 
 Voyage_Cost_Incl_Hire ($) = Total_Voyage_Costs + Hire_Cost
 Voyage_Cost_Excl_Hire ($) = Total_Voyage_Costs
+```
+
+Where `Net_BB` = Net Ballast Bonus (lumpsum, default 0).
+
+### 6.2 Gross Rate
+
+```
+Base_Rate_Per_MT = Voyage_Cost_Incl_Hire / Cargo_Quantity
+Gross_Rate ($/MT) = Base_Rate_Per_MT / (1 - Voyage_Commission_%)
 ```
 
 ---
 
 ## 7. Profitability Metrics
 
-**Source:** `src/hooks/useVoyageCalculation.ts` (lines 396–417)
+**Source:** `src/hooks/useVoyageCalculation.ts`
 
 ### 7.1 Voyage Result
 
@@ -331,22 +375,22 @@ Voyage_Cost_Excl_Hire ($) = Total_Voyage_Costs
 Voyage_Result ($) = Net_Freight - Total_Voyage_Costs + Demurrage - Despatch
 ```
 
-### 7.2 TCE (Time Charter Equivalent)
+### 7.2 NTCE (Net Time Charter Equivalent)
 
 ```
-TCE ($/day) = Voyage_Result / Total_Voyage_Days
+NTCE ($/day) = (Net_Freight - Total_Voyage_Costs) / Total_Voyage_Days
 ```
 
-### 7.3 NTCE (Net TCE)
+### 7.3 GTCE (Gross Time Charter Equivalent)
 
 ```
-NTCE ($/day) = (Net_Freight - Total_Voyage_Costs + Demurrage - Despatch - Net_Hire_Cost) / Total_Voyage_Days
+GTCE ($/day) = NTCE / (1 - TC_Commission_Pct)
 ```
 
-### 7.4 GTCE (Gross TCE)
+### 7.4 TCE (Time Charter Equivalent)
 
 ```
-GTCE ($/day) = (Gross_Freight - Voyage_Cost_Excl_Hire) / Total_Voyage_Days
+TCE ($/day) = GTCE   (functionally equivalent)
 ```
 
 ### 7.5 P&L (Profit & Loss)
@@ -366,20 +410,27 @@ P&L ($) = Voyage_Result - Hire_Cost
 | Fuel | Factor | Unit |
 |---|---|---|
 | HSFO | 3.114 | t CO₂ / t fuel |
-| VLSFO | 3.114 | t CO₂ / t fuel |
+| VLSFO | 3.151 | t CO₂ / t fuel |
 | LSMGO | 3.206 | t CO₂ / t fuel |
 
 ### 8.2 Total CO₂
 
 ```
 CO₂_HSFO (t) = HSFO_Total (MT) × 3.114
-CO₂_VLSFO (t) = VLSFO_Total (MT) × 3.114
+CO₂_VLSFO (t) = VLSFO_Total (MT) × 3.151
 CO₂_LSMGO (t) = LSMGO_Total (MT) × 3.206
 
 Total_CO₂ (t) = CO₂_HSFO + CO₂_VLSFO + CO₂_LSMGO
 ```
 
-### 8.3 CII Rating (IMO Methodology)
+### 8.3 CO₂ Split (Ballast / Laden)
+
+```
+CO₂_Ballast = Total_CO₂ × (Sea_Days_Ballast / Total_Sea_Days)
+CO₂_Laden = Total_CO₂ × (Sea_Days_Laden / Total_Sea_Days)
+```
+
+### 8.4 CII Rating (IMO Methodology)
 
 ```
 Actual_CII (gCO₂/dwt·nm) = (Total_CO₂ [t] × 1,000,000) / (DWT [t] × Total_Distance [nm])
@@ -408,16 +459,21 @@ CII_Ratio = Actual_CII / Required_CII
 | D | 1.08 – 1.20 |
 | E | > 1.20 |
 
-### 8.4 EFOI (Energy Efficiency Operational Indicator)
+### 8.5 EFOI (Energy Efficiency Operational Indicator)
 
 ```
 EFOI (gCO₂/t·nm) = (Total_CO₂ [t] × 1,000,000) / (Cargo_Carried [t] × Laden_Distance [nm])
 ```
 
-### 8.5 EU ETS Cost
+### 8.6 EU ETS Cost
+
+EU ETS coverage is determined using **is_eu_eea port flags** (not ECA distance). Each segment's coverage is based on origin and destination port flags.
 
 ```
-Chargeable_CO₂ (t) = Σ (Leg_CO₂ × Coverage_% × Phase_In_%)
+Leg_Coverage = based on origin/destination EU/EEA flags (see table)
+Leg_CO₂ = Total_CO₂ × (Leg_Sea_Time / Total_Sea_Days)
+Chargeable_CO₂ (t) = Σ (Leg_CO₂ × Leg_Coverage × Phase_In_%)
+
 ETS_Cost ($) = Chargeable_CO₂ × CO₂_Price ($/t)
 ```
 
@@ -430,47 +486,74 @@ ETS_Cost ($) = Chargeable_CO₂ × CO₂_Price ($/t)
 
 Phase-in: 2024 = 40%, 2025 = 70%, 2026+ = 100%
 
----
-
-## End-to-End Example
-
-**Given:**
-- MCR = 10,000 kW, SFOC = 165 g/kWh, Scrubber = true, Mode = Eco
-- Distance = 3,000 nm (Non-ECA: 2,500 nm, ECA: 500 nm), Speed = 12 kn
-- Cargo = 50,000 MT @ $15/MT, Voy Commission = 3.75%, TC Commission = 2.5%
-- HSFO Price = $500/MT, VLSFO Price = $600/MT, LSMGO Price = $750/MT
-- Hire Rate = $15,000/day
-
-**Step 1 — API Fuel Rates (Eco):**
-- ME_Fuel = (10000 × 0.70 × 165 × 24) / 1,000,000 = **27.72 t/day**
-- AE_Sea = (10000 × 0.035 × 181 × 24) / 1,000,000 = **1.52 t/day**
-- AE_Port = (10000 × 0.06 × 181 × 24) / 1,000,000 = **2.61 t/day**
-- Outside ECA (HSFO): Base = 27.72 + 1.52 = 29.24, Penalty = 29.24 × 0.012 = 0.35, **Total = 29.59 t/day**
-- Inside ECA (LSMGO): **29.24 t/day**
-- In Port (LSMGO): **2.61 t/day**
-
-**Step 2 — Sea Time:**
-- Non-ECA: 2500 / (12 × 24) = 8.68 days
-- ECA: 500 / (12 × 24) = 1.74 days
-- Total (with 5% SM): (8.68 + 1.74) × 1.05 = **10.94 days**
-
-**Step 3 — Consumption (using vessel matrix rates):**
-- HSFO Sea (Non-ECA only) = 8.68 × 1.05 × HSFO_Rate
-- LSMGO ECA = 1.74 × 1.05 × Combined_Rate
-- *(Actual values depend on vessel consumption matrix populated from DWT estimates)*
-
-**Step 4 — Bunker Cost:**
-- Total_Bunker_Cost = HSFO_MT × 500 + VLSFO_MT × 600 + LSMGO_MT × 750
-
-**Step 5 — Freight:**
-- Gross Freight = 50,000 × 15 = $750,000
-- Voy Commission = 750,000 × 0.0375 = $28,125
-- TC Commission = 750,000 × 0.025 = $18,750
-- Net Freight = 750,000 - 28,125 - 18,750 = **$703,125**
-
-**Step 6 — TCE:**
-- TCE = (Net_Freight - Total_Voyage_Costs) / Total_Voyage_Days
+**Derived metrics:**
+```
+Total_CO₂_Cost ($) = Total_CO₂ × CO₂_Price
+EUA_CO₂_Cost ($) = Chargeable_CO₂ × CO₂_Price   (same as ETS_Cost)
+EUA_Freight_Impact ($/MT) = EUA_CO₂_Cost / Cargo_Quantity
+```
 
 ---
 
-*Generated from codebase on 2026-02-20. All formulas verified against source files.*
+## 9. EU-Covered Fuel & FuelEU Maritime
+
+**Source:** `src/hooks/useVoyageCalculation.ts`, `src/utils/emissionCalculations.ts`
+
+### 9.1 EU-Covered Fuel Calculation
+
+EU-covered fuel is calculated **segment-wise** for each voyage leg:
+
+**Sea segments:**
+- EU factor: 1.0 (EU→EU), 0.5 (EU↔Non-EU), 0.0 (Non-EU→Non-EU)
+- Covered fuel = Segment fuel consumption × EU factor
+
+**Port segments:**
+- EU factor: 1.0 if port is EU/EEA, 0.0 otherwise
+- Port fuel split into: Working time (load/discharge rate) + Turn time (idle rate) + Extra time (idle rate)
+- AE fuel at port is also EU-covered if EU port
+
+**Extra time (from Misc section):**
+- Extra sea days: weighted average EU sea factor across all segments
+- Extra port days: proportion of EU ports to total ports
+- Extra canal days: weighted average EU sea factor
+
+### 9.2 FuelEU Maritime Cost
+
+Uses a simplified static-rate model:
+
+```
+FuelEU_Cost ($) = Σ (EU_Covered_Fuel[type] × Static_Rate[type])
+```
+
+| Fuel | Static Rate ($/ton) |
+|---|---|
+| HSFO | 71.64 |
+| VLSFO | 61.94 |
+| LSMGO | 45.37 |
+
+```
+FuelEU_Freight_Impact ($/MT) = FuelEU_Total_Penalty / Cargo_Quantity
+```
+
+---
+
+## 10. Regulatory Cost Adjustments
+
+**Source:** `src/hooks/useVoyageCalculation.ts`
+
+When regulatory impact toggles are enabled, costs are added to voyage expenses:
+
+```
+Regulatory_Cost ($) = 0
+If applyEuaImpact:    Regulatory_Cost += EUA_CO₂_Cost
+If applyFuelEuImpact: Regulatory_Cost += FuelEU_Total_Penalty
+
+Adjusted_Voyage_Cost_Excl_Hire = Voyage_Cost_Excl_Hire + Regulatory_Cost
+Adjusted_Voyage_Cost_Incl_Hire = Voyage_Cost_Incl_Hire + Regulatory_Cost
+```
+
+All profitability metrics (NTCE, GTCE, TCE, P&L, Gross Rate) are **recalculated** using adjusted voyage costs when toggles are active.
+
+---
+
+*Generated from codebase on 2026-04-08. All formulas verified against source files.*
