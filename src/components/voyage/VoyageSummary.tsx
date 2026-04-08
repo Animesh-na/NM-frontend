@@ -176,7 +176,7 @@ export function VoyageSummary() {
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
-                {(applyEuaImpact || applyFuelEuImpact) ? "Base Gross Rate" : "Gross Rate"}
+                Gross Rate
                 <InfoTooltip 
                   formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
                   description="Breakeven freight rate per MT including hire and commission"
@@ -186,20 +186,6 @@ export function VoyageSummary() {
                 ${formatCurrency(results.grossRate)} /mt
               </span>
             </div>
-            {(applyEuaImpact || applyFuelEuImpact) && (
-              <div className="flex justify-between bg-muted rounded-sm px-1 py-0.5">
-                <span className="font-medium text-regulatory flex items-center">
-                  Adjusted Gross Rate
-                  <InfoTooltip 
-                    formula="Base Gross Rate + (EUA Impact if applied) + (FuelEU Impact if applied)" 
-                    description="Gross Rate adjusted for regulatory freight impacts"
-                  />
-                </span>
-                <span className="font-mono tabular-nums font-bold text-regulatory">
-                  ${formatCurrency(adjustedGrossRate)} /mt
-                </span>
-              </div>
-            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
                 P&L
