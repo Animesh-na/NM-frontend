@@ -148,7 +148,7 @@ export function SequenceTable() {
                           <span className="text-[10px] font-semibold text-muted-foreground px-1">Repos</span>
                         ) : (
                           <select
-                            className="form-select-sm w-16 text-[10px]"
+                            className="form-select-sm w-14 text-[10px]"
                             value={typeLabel}
                             onChange={(e) => handleTypeChange(row.id, e.target.value)}
                           >
