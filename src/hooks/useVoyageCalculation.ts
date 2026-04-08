@@ -91,6 +91,8 @@ export interface VoyageInputs {
   netBB?: number; // Net Ballast Bonus (lumpsum added to hire)
   misc?: MiscCostsData;
   extraTime?: ExtraTimeData;
+  applyEuaImpact?: boolean;
+  applyFuelEuImpact?: boolean;
 }
 
 export interface VoyageResults {
