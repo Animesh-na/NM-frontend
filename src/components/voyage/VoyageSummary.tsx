@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
 import { useAuth } from "@/context/AuthContext";
-import { useMemo } from "react";
+
 
 export function VoyageSummary() {
   const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact } = useVoyageContext();
