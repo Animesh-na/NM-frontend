@@ -1,5 +1,5 @@
+import { useState } from "react";
 import { type SpeedProfile, type ConsumptionMatrix as ConsumptionMatrixType } from "@/data/vessels";
-import { InfoTooltip } from "./InfoTooltip";
 
 interface ConsumptionMatrixProps {
   speedProfile: SpeedProfile;
@@ -47,6 +47,7 @@ export function ConsumptionMatrix({
   loadDischIdleSame,
   onConsumptionChange,
 }: ConsumptionMatrixProps) {
+  const [draftValues, setDraftValues] = useState<Record<string, string>>({});
   const speedOnlyColumns: ColumnKey[] = ["ballast", "laden"];
   const thClass = "px-0.5 py-0 text-[9px] font-semibold text-foreground text-center bg-table-header";
 
@@ -54,6 +55,69 @@ export function ConsumptionMatrix({
     if (rowKey === "speed") return "kn";
     if (rowKey === "ae" || rowKey === "aeScrubber") return "mt/d";
     return "mt/d";
+  };
+
+  const getCellKey = (rowKey: keyof ConsumptionMatrixType, colKey: ColumnKey) => `${rowKey}:${colKey}`;
+
+  const getDisplayValue = (
+    rowKey: keyof ConsumptionMatrixType,
+    colKey: ColumnKey,
+    numericValue: number,
+  ): string => {
+    const draftValue = draftValues[getCellKey(rowKey, colKey)];
+    if (draftValue !== undefined) return draftValue;
+    return numericValue === 0 ? "" : String(numericValue);
+  };
+
+  const handleInputFocus = (
+    rowKey: keyof ConsumptionMatrixType,
+    colKey: ColumnKey,
+    numericValue: number,
+  ) => {
+    setDraftValues((prev) => ({
+      ...prev,
+      [getCellKey(rowKey, colKey)]: numericValue === 0 ? "" : String(numericValue),
+    }));
+  };
+
+  const handleInputChange = (
+    rowKey: keyof ConsumptionMatrixType,
+    colKey: ColumnKey,
+    rawValue: string,
+  ) => {
+    let nextValue = rawValue.replace(/,/g, ".");
+
+    if (nextValue.startsWith(".")) {
+      nextValue = `0${nextValue}`;
+    }
+
+    if (!/^\d*\.?\d*$/.test(nextValue)) {
+      return;
+    }
+
+    setDraftValues((prev) => ({
+      ...prev,
+      [getCellKey(rowKey, colKey)]: nextValue,
+    }));
+
+    onConsumptionChange(rowKey, colKey, parseFloat(nextValue) || 0);
+  };
+
+  const handleInputBlur = (
+    rowKey: keyof ConsumptionMatrixType,
+    colKey: ColumnKey,
+  ) => {
+    const key = getCellKey(rowKey, colKey);
+    const rawValue = draftValues[key] ?? "";
+    const normalizedValue = rawValue.endsWith(".") ? rawValue.slice(0, -1) : rawValue;
+
+    setDraftValues((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+
+    onConsumptionChange(rowKey, colKey, parseFloat(normalizedValue) || 0);
   };
 
   return (
@@ -83,21 +147,13 @@ export function ConsumptionMatrix({
                       <div className="h-4 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                     ) : (
                       <input
-                        type="number"
-                        step={row.key === "speed" ? "0.1" : "0.01"}
+                        type="text"
+                        inputMode="decimal"
                         className={`form-input-sm w-full font-mono tabular-nums text-right h-4 text-[9px] px-1.5 ${isDisabled ? "opacity-50" : ""}`}
-                        value={value || ""}
-                        onChange={(e) => {
-                          onConsumptionChange(row.key, col.key, parseFloat(e.target.value) || 0);
-                        }}
-                        onFocus={(e) => { if (e.target.value === "0") e.target.value = ""; }}
-                        onBlur={(e) => {
-                          const raw = e.target.value;
-                          if (raw.startsWith('.')) {
-                            const corrected = parseFloat('0' + raw) || 0;
-                            onConsumptionChange(row.key, col.key, corrected);
-                          }
-                        }}
+                        value={getDisplayValue(row.key, col.key, value)}
+                        onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
+                        onFocus={() => handleInputFocus(row.key, col.key, value)}
+                        onBlur={() => handleInputBlur(row.key, col.key)}
                         placeholder="0"
                         disabled={isDisabled}
                       />
