@@ -36,12 +36,14 @@ export interface MarineVessel {
 
 export interface MarinePort {
   id: number;
-  port_code: string;
+  port_code?: string;
   port_name: string;
   country: string;
   latitude: number;
   longitude: number;
   is_eu_eea?: boolean;
+  eca_zone?: boolean;
+  source_table?: string;
 }
 
 // Helper for API requests via Edge Function
