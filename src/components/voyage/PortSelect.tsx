@@ -13,6 +13,7 @@ export interface Port {
   country: string;
   coordinates?: [number, number];
   isEuEea?: boolean;
+  ecaZone?: boolean;
 }
 
 interface PortSelectProps {
@@ -26,12 +27,13 @@ interface PortSelectProps {
 function marinePortToPort(port: MarinePort): Port {
   return {
     id: port.id,
-    unloc: port.port_code,
+    unloc: port.port_code || "",
     name: port.port_name,
     city: port.port_name,
     country: port.country,
     coordinates: [port.longitude, port.latitude],
     isEuEea: port.is_eu_eea === true,
+    ecaZone: port.eca_zone === true,
   };
 }
 

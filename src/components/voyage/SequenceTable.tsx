@@ -50,9 +50,15 @@ export function SequenceTable() {
 
 
   const handlePortChange = (id: number, port: Port | null) => {
-    setSequence(prev => prev.map(row => 
-      row.id === id ? { ...row, port: port?.name || "", portUnloc: port?.unloc || "", portId: port?.id, coordinates: port?.coordinates, isEuEea: port?.isEuEea } : row
-    ));
+    setSequence(prev => prev.map(row => {
+      if (row.id !== id) return row;
+      const updated = { ...row, port: port?.name || "", portUnloc: port?.unloc || "", portId: port?.id, coordinates: port?.coordinates, isEuEea: port?.isEuEea };
+      // Auto-set port fuel to LSMGO if port is in ECA zone
+      if (port?.ecaZone) {
+        updated.portFuelType = "lsmgo";
+      }
+      return updated;
+    }));
   };
 
   const getTypeLabel = (row: SequenceRowUI): string => {

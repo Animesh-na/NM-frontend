@@ -1031,12 +1031,12 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       for (const row of portsNeedingLookup) {
         if (cancelled) return;
         try {
-          const results = await searchMarinePorts(row.portUnloc, 5);
+          const results = await searchMarinePorts(row.port || row.portUnloc, 5);
           const match = results.find(
-            p => p.port_code === row.portUnloc || p.port_name === row.port
+            p => p.port_name === row.port || (p.port_code && p.port_code === row.portUnloc)
           );
           if (match) {
-            updates[row.id] = match.is_eu_eea === true;
+            updates[row.id] = match.is_eu_eea === true || match.eca_zone === true;
           } else {
             updates[row.id] = false;
           }

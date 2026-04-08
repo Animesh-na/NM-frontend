@@ -36,12 +36,14 @@ export interface MarineVessel {
 
 export interface MarinePort {
   id: number;
-  port_code: string;
+  port_code?: string;
   port_name: string;
   country: string;
   latitude: number;
   longitude: number;
   is_eu_eea?: boolean;
+  eca_zone?: boolean;
+  source_table?: string;
 }
 
 // Helper for API requests via Edge Function
@@ -130,7 +132,7 @@ export async function searchVessels(
 // 3. Search Ports
 export async function searchPorts(query: string, limit: number = 10): Promise<MarinePort[]> {
   try {
-    const data = await apiRequest<{ ports: MarinePort[] }>("/ports/search", { q: query, limit }, { authenticated: false });
+    const data = await apiRequest<{ ports: MarinePort[] }>("/final-ports/search", { q: query, limit }, { authenticated: false });
     return data.ports || [];
   } catch (error) {
     console.error("Failed to search ports:", error);
