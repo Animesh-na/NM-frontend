@@ -1108,7 +1108,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       emissionErrors: validation.errors,
       // Additional
       ladenDistance,
-      grossRate,
+      grossRate: adjustedGrossRate,
       // EU-covered fuel & FuelEU
       euCoveredFuel,
       totalCo2Cost,
