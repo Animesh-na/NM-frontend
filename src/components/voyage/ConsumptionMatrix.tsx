@@ -88,11 +88,16 @@ export function ConsumptionMatrix({
                         className={`form-input-sm w-full font-mono tabular-nums text-right h-4 text-[9px] px-1.5 ${isDisabled ? "opacity-50" : ""}`}
                         value={value || ""}
                         onChange={(e) => {
-                          let raw = e.target.value;
-                          if (raw.startsWith('.')) raw = '0' + raw;
-                          onConsumptionChange(row.key, col.key, parseFloat(raw) || 0);
+                          onConsumptionChange(row.key, col.key, parseFloat(e.target.value) || 0);
                         }}
                         onFocus={(e) => { if (e.target.value === "0") e.target.value = ""; }}
+                        onBlur={(e) => {
+                          const raw = e.target.value;
+                          if (raw.startsWith('.')) {
+                            const corrected = parseFloat('0' + raw) || 0;
+                            onConsumptionChange(row.key, col.key, corrected);
+                          }
+                        }}
                         placeholder="0"
                         disabled={isDisabled}
                       />
