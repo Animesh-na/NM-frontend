@@ -83,7 +83,7 @@ export function SequenceTable() {
     return days.toFixed(2);
   };
 
-  const thClass = "px-0.5 py-0.5 text-[9px] font-semibold text-foreground whitespace-nowrap text-center bg-table-header";
+  const thClass = "px-0 py-0.5 text-[8px] font-semibold text-foreground whitespace-nowrap text-center bg-table-header";
 
   return (
     <div className="calc-card-compact">
