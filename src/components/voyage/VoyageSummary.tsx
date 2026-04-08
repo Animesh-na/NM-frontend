@@ -461,10 +461,6 @@ export function VoyageSummary() {
               <span>Reward Factor</span>
               <span className="font-mono">{results.fuelEuResult.rewardFactor.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>CO₂ Cost Rate</span>
-              <span className="font-mono">${results.fuelEuResult.co2CostRate} /t</span>
-            </div>
            </div>
 
           {/* Static Cost Per Ton & Costs */}
