@@ -450,14 +450,11 @@ export function requiresCiiCorrectiveAction(rating: string): boolean {
 // FUEL EU MARITIME COMPLIANCE (Sheet-Aligned)
 // ===========================================
 
-// Static CO₂ cost rate ($/t CO₂)
-export const FUEL_EU_CO2_COST_RATE = 73.7;
-
-// GHG shortfall per fuel type (kg CO₂ per ton fuel) — from sheet
-export const FUEL_EU_GHG_SHORTFALL: Record<string, number> = {
-  hsfo: 97.2,
-  vlsfo: 84.05,
-  lsmgo: 57.915,
+// Static FuelEU cost per ton of bunker ($/ton) — from sheet
+export const FUEL_EU_COST_PER_TON: Record<string, number> = {
+  hsfo: 71.64,
+  vlsfo: 61.94,
+  lsmgo: 45.37,
 };
 
 export interface FuelEuFuelDetail {
