@@ -465,27 +465,23 @@ export function VoyageSummary() {
               <span>CO₂ Cost Rate</span>
               <span className="font-mono">${results.fuelEuResult.co2CostRate} /t</span>
             </div>
-          </div>
+           </div>
 
-          {/* GHG Shortfall & Costs */}
+          {/* Static Cost Per Ton & Costs */}
           <div className="space-y-0.5 mt-1">
             {(['hsfo', 'vlsfo', 'lsmgo'] as const).map(fuel => {
               const f = results.fuelEuResult.fuels[fuel];
               return (
                 <div key={fuel} className="space-y-0.5">
                   <div className="flex justify-between text-[9px]">
-                    <span className="text-muted-foreground uppercase">{fuel} Shortfall</span>
-                    <span className="font-mono">{f.ghgShortfall} kg CO₂/t</span>
-                  </div>
-                  <div className="flex justify-between text-[9px]">
-                    <span className="text-muted-foreground pl-2">Cost/ton</span>
+                    <span className="text-muted-foreground pl-2">$/ton</span>
                     <span className="font-mono">${f.costPerTon.toFixed(2)} /t</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground flex items-center">
                       {fuel.toUpperCase()} Cost
                       <InfoTooltip 
-                        formula={`(${f.ghgShortfall} / 1000) × ${results.fuelEuResult.co2CostRate} = $${f.costPerTon.toFixed(2)}/t × ${f.euQuantity.toFixed(1)}t`}
+                        formula={`${f.euQuantity.toFixed(1)}t × $${f.costPerTon.toFixed(2)}/t`}
                         description={`EU Qty: ${f.euQuantity.toFixed(1)}t × Cost/ton: $${f.costPerTon.toFixed(2)}`}
                       />
                     </span>
