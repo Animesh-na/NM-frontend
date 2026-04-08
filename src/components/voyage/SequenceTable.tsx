@@ -266,7 +266,7 @@ export function SequenceTable() {
                       {/* Productivity */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
+                          <input type="number" className="form-input-sm w-12 font-mono text-right text-[10px]"
                             value={row.productivity || ""} onChange={(e) => updateSequenceRow(row.id, "productivity", parseFloat(e.target.value) || 0)} placeholder="0" />
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
