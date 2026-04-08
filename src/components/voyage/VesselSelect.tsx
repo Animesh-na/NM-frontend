@@ -241,6 +241,7 @@ export function VesselSelect({
                     <div className="text-[10px] text-muted-foreground flex gap-2 flex-wrap">
                       <span className="text-primary/80">{v.type}</span>
                       {v.imo && <span>IMO: {v.imo}</span>}
+                      {v.dwt > 0 && <span>DWT: {v.dwt.toLocaleString()}</span>}
                       {v.builtyear > 0 && <span>Built: {v.builtyear}</span>}
                       {v.scrubber_indicator && <span className="text-green-500">Scrubber</span>}
                     </div>
