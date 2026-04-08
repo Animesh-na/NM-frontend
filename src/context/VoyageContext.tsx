@@ -676,7 +676,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       const updated = prev.map((row) => (row.id === id ? { ...row, [field]: value } : row));
       let syncedRows = updated;
 
-      // Auto-sync: when a loading port quantity changes, distribute to discharge ports
+      // Auto-sync: when a loading port quantity changes, distribute remaining to discharge ports
       if (field === "quantity") {
         const changedRow = updated.find((r) => r.id === id);
         if (changedRow && changedRow.operation === "loading") {
@@ -686,18 +686,33 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
           const dischPorts = updated.filter((r) => r.operation === "discharging");
 
           if (dischPorts.length > 0) {
-            const qtyPerDisch = Math.round(totalLoadQty / dischPorts.length);
-            console.log(
-              `[QtySync] Load qty changed → total: ${totalLoadQty}, per disch port: ${qtyPerDisch}, disch ports: ${dischPorts.length}`,
-            );
-            syncedRows = updated.map((row) =>
-              row.operation === "discharging" ? { ...row, quantity: qtyPerDisch } : row,
-            );
+            // Preserve manually entered quantities, only assign remaining to ports with 0 qty
+            const manuallySetQty = dischPorts
+              .filter((r) => r.quantity > 0)
+              .reduce((sum, r) => sum + r.quantity, 0);
+            const emptyPorts = dischPorts.filter((r) => !r.quantity || r.quantity === 0);
+            const remaining = Math.max(0, totalLoadQty - manuallySetQty);
+
+            if (emptyPorts.length > 0) {
+              const qtyPerEmpty = Math.round(remaining / emptyPorts.length);
+              const emptyIds = new Set(emptyPorts.map((r) => r.id));
+              console.log(
+                `[QtySync] Load qty changed → total: ${totalLoadQty}, already assigned: ${manuallySetQty}, remaining: ${remaining}, empty ports: ${emptyPorts.length}`,
+              );
+              syncedRows = updated.map((row) =>
+                row.operation === "discharging" && emptyIds.has(row.id) ? { ...row, quantity: qtyPerEmpty } : row,
+              );
+            } else if (dischPorts.length === 1) {
+              // Single discharge port always gets full load qty
+              syncedRows = updated.map((row) =>
+                row.operation === "discharging" ? { ...row, quantity: totalLoadQty } : row,
+              );
+            }
           }
         }
       }
 
-      // Also sync when operation changes — redistribute existing load quantities to new discharge layout
+      // Also sync when operation changes — assign remaining load qty to new discharge port
       if (field === "operation") {
         const totalLoadQty = syncedRows
           .filter((r) => r.operation === "loading")
@@ -705,11 +720,27 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         const dischPorts = syncedRows.filter((r) => r.operation === "discharging");
 
         if (totalLoadQty > 0 && dischPorts.length > 0) {
-          const qtyPerDisch = Math.round(totalLoadQty / dischPorts.length);
-          console.log(`[QtySync] Operation changed → redistributing ${totalLoadQty} across ${dischPorts.length} disch ports`);
-          syncedRows = syncedRows.map((row) =>
-            row.operation === "discharging" ? { ...row, quantity: qtyPerDisch } : row,
-          );
+          // Find the row that just became a discharge port (the one being changed)
+          const changedRow = syncedRows.find((r) => r.id === id);
+          const otherDischPorts = dischPorts.filter((r) => r.id !== id);
+          const alreadyAssigned = otherDischPorts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+          const remaining = Math.max(0, totalLoadQty - alreadyAssigned);
+
+          if (changedRow && String(value) === "discharging") {
+            // New discharge port gets remaining quantity
+            console.log(`[QtySync] Operation changed to discharging → assigning remaining ${remaining} to new port`);
+            syncedRows = syncedRows.map((row) =>
+              row.id === id ? { ...row, quantity: remaining } : row,
+            );
+          } else {
+            // Operation changed away from discharging — redistribute remaining among remaining discharge ports
+            const remainingDisch = syncedRows.filter((r) => r.operation === "discharging");
+            if (remainingDisch.length === 1) {
+              syncedRows = syncedRows.map((row) =>
+                row.operation === "discharging" ? { ...row, quantity: totalLoadQty } : row,
+              );
+            }
+          }
         }
       }
 
