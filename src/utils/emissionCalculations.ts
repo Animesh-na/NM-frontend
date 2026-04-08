@@ -450,25 +450,20 @@ export function requiresCiiCorrectiveAction(rating: string): boolean {
 // FUEL EU MARITIME COMPLIANCE (Sheet-Aligned)
 // ===========================================
 
-// Static CO₂ cost rate ($/t CO₂)
-export const FUEL_EU_CO2_COST_RATE = 73.7;
-
-// GHG shortfall per fuel type (kg CO₂ per ton fuel) — from sheet
-export const FUEL_EU_GHG_SHORTFALL: Record<string, number> = {
-  hsfo: 97.2,
-  vlsfo: 84.05,
-  lsmgo: 57.915,
+// Static FuelEU cost per ton of bunker ($/ton) — from sheet
+export const FUEL_EU_COST_PER_TON: Record<string, number> = {
+  hsfo: 71.64,
+  vlsfo: 61.94,
+  lsmgo: 45.37,
 };
 
 export interface FuelEuFuelDetail {
-  ghgShortfall: number;   // kg CO₂/t fuel
-  costPerTon: number;     // (ghgShortfall / 1000) × co2CostRate  ($/t fuel)
+  costPerTon: number;     // static $/ton from sheet
   euQuantity: number;     // EU-covered fuel quantity (t)
   cost: number;           // euQuantity × costPerTon ($)
 }
 
 export interface FuelEuResult {
-  co2CostRate: number;
   rewardFactor: number;
   fuels: {
     hsfo: FuelEuFuelDetail;
@@ -480,11 +475,10 @@ export interface FuelEuResult {
 }
 
 /**
- * Calculate FuelEU Maritime cost using sheet-aligned logic.
+ * Calculate FuelEU Maritime cost using sheet-aligned static $/ton values.
  *
- * Step 1: cost_per_ton = (ghg_shortfall / 1000) × co2_cost_rate
- * Step 2: fuelEU_cost  = EU_fuel × cost_per_ton
- * Step 3: total        = sum of all fuel costs
+ * FuelEU cost = EU_fuel × static_cost_per_ton
+ * Total = sum of all fuel costs
  */
 export function calculateFuelEuPenalty(
   euCoveredFuel: { hsfo: number; vlsfo: number; lsmgo: number },
@@ -492,10 +486,9 @@ export function calculateFuelEuPenalty(
   _year?: number
 ): FuelEuResult {
   const calc = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo'): FuelEuFuelDetail => {
-    const ghgShortfall = FUEL_EU_GHG_SHORTFALL[fuelType];
-    const costPerTon = (ghgShortfall / 1000) * FUEL_EU_CO2_COST_RATE;
+    const costPerTon = FUEL_EU_COST_PER_TON[fuelType];
     const qty = euCoveredFuel[fuelType];
-    return { ghgShortfall, costPerTon, euQuantity: qty, cost: qty * costPerTon };
+    return { costPerTon, euQuantity: qty, cost: qty * costPerTon };
   };
 
   const hsfo = calc('hsfo');
@@ -503,7 +496,6 @@ export function calculateFuelEuPenalty(
   const lsmgo = calc('lsmgo');
 
   return {
-    co2CostRate: FUEL_EU_CO2_COST_RATE,
     rewardFactor,
     fuels: { hsfo, vlsfo, lsmgo },
     totalPenalty: hsfo.cost + vlsfo.cost + lsmgo.cost,
