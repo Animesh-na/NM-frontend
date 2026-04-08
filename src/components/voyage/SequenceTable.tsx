@@ -274,7 +274,7 @@ export function SequenceTable() {
                       {/* Terms */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <select className="form-select-sm w-16 text-[10px]" 
+                          <select className="form-select-sm w-14 text-[10px]" 
                             value={row.terms === "custom" ? `custom:${row.customTermsName}` : (row.terms || "shinc")}
                             onChange={(e) => {
                               const val = e.target.value;
