@@ -112,7 +112,7 @@ export function SequenceTable() {
               <thead>
                 <tr>
                   <th className={thClass}>Type</th>
-                  <th className={`${thClass} text-left min-w-[140px]`}>Port</th>
+                  <th className={`${thClass} text-left min-w-[120px]`}>Port</th>
                   <th className={thClass}>Dist nm</th>
                   <th className={thClass}>ECA nm</th>
                   <th className={thClass}>Sea (d)</th>
