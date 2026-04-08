@@ -345,7 +345,7 @@ export function SequenceTable() {
                       {/* Port Fuel */}
                       <td className={tdClass}>
                         {!isOpen && isPort ? (
-                          <select className="form-select-sm w-16 text-[10px]" value={row.portFuelType || "vlsfo"}
+                          <select className="form-select-sm w-14 text-[10px]" value={row.portFuelType || "vlsfo"}
                             onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}>
                             {vessel.hasScrubber && <option value="hsfo">HSFO</option>}
                             <option value="vlsfo">VLSFO</option>
