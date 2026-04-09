@@ -14,6 +14,7 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
   // Calculate totals
   const totalDistance = sequence.reduce((sum, row) => sum + row.distance, 0);
   const totalEcaDistance = sequence.reduce((sum, row) => sum + row.ecaDistance, 0);
+  const grandTotalDistance = totalDistance + totalEcaDistance;
   const totalSeaTime = sequence.reduce((sum, row) => sum + row.totalLegTime, 0);
   const totalPortDays = sequence.reduce((sum, row) => sum + row.calculatedPortDays, 0);
 
@@ -27,7 +28,7 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-muted/50 rounded-lg p-3 text-center">
           <div className="text-xs text-muted-foreground">Total Distance</div>
-          <div className="font-mono font-semibold text-lg">{totalDistance.toLocaleString()} nm</div>
+          <div className="font-mono font-semibold text-lg">{grandTotalDistance.toLocaleString()} nm</div>
         </div>
         <div className="bg-muted/50 rounded-lg p-3 text-center">
           <div className="text-xs text-muted-foreground">ECA Distance</div>

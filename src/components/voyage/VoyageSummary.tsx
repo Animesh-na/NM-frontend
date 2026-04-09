@@ -123,7 +123,7 @@ export function VoyageSummary() {
                 description="Sum of all leg distances via sea route"
               />
             </span>
-            <span className="font-mono text-right">{results.totalDistance.toLocaleString()} nm</span>
+            <span className="font-mono text-right">{(results.totalDistance + results.totalEcaDistance).toLocaleString()} nm</span>
             <span className="flex items-center">
               ECA distance
               <InfoTooltip 
