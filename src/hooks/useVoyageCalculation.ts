@@ -1046,7 +1046,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const validation = validateEmissionInputs(
       fuelConsumption,
       vessel.dwt,
-      totalDistance,
+      totalDistance + totalEcaDistance,
       cargo.quantity,
       bunker.co2Price
     );
