@@ -96,6 +96,8 @@ export interface SequenceRowUI {
   
   // EU/EEA flag from port API for EU ETS coverage
   isEuEea?: boolean;
+  // Country name for EU/EEA fallback detection
+  portCountry?: string;
 }
 
 // Multi-cargo entry structure

@@ -33,7 +33,7 @@ function marinePortToPort(port: MarinePort): Port {
     city: port.port_name,
     country: port.country,
     coordinates: [port.longitude, port.latitude],
-    isEuEea: port.is_eu_eea === true || port.eca_zone === true,
+    isEuEea: isPortEuEea({ isEuEea: port.is_eu_eea, ecaZone: port.eca_zone, country: port.country }),
     ecaZone: port.eca_zone === true,
   };
 }
