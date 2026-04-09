@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Search, MapPin, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchPorts as searchMarinePorts, type MarinePort } from "@/services/marineApi";
+import { isPortEuEea } from "@/utils/euCountries";
 
 // Extended Port interface to include coordinates from API
 export interface Port {
