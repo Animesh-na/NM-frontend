@@ -152,7 +152,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
           </div>
           <div className="space-y-1">
             <div className="font-medium text-muted-foreground">Voyage</div>
-            <div>Distance: <span className="font-mono">{results.totalDistance.toLocaleString()} nm</span></div>
+            <div>Distance: <span className="font-mono">{(results.totalDistance + results.totalEcaDistance).toLocaleString()} nm</span></div>
             <div>Laden Dist: <span className="font-mono">{results.ladenDistance?.toLocaleString() || 0} nm</span></div>
             <div>Sea Days: <span className="font-mono">{results.totalSeaDays.toFixed(2)} d</span></div>
           </div>
