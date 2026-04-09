@@ -848,9 +848,15 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         const [prevLon, prevLat] = prevRow.coordinates!;
         const [currLon, currLat] = currRow.coordinates!;
         const result = await getSeaRouteDistance(prevLat, prevLon, currLat, currLon);
+        const totalDist = result.total_distance_nm ?? 0;
+        const ecaDist = result.eca_distance_nm ?? 0;
+        // non-ECA = total minus ECA; use explicit subtraction to avoid JS falsy-zero bug
+        const nonEcaDist = result.non_eca_distance_nm != null
+          ? result.non_eca_distance_nm
+          : Math.max(0, totalDist - ecaDist);
         distanceResults.set(currRow.id, {
-          distance: Math.round(result.non_eca_distance_nm || result.total_distance_nm || 0),
-          ecaDistance: Math.round(result.eca_distance_nm || 0),
+          distance: Math.round(nonEcaDist),
+          ecaDistance: Math.round(ecaDist),
         });
       } catch (error) {
         console.error(`Searoute API error for leg ${i}:`, error);
