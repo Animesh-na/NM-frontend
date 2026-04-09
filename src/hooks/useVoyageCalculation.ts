@@ -992,11 +992,41 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     
     const euCoveredFuel = { hsfo: euCoveredHsfo, vlsfo: euCoveredVlsfo, lsmgo: euCoveredLsmgo };
     
+    // ============================================
+    // CHARGEABLE CO₂ EUA — BOTTOM-UP CALCULATION
+    // Per EU MRV/ETS regulations: CO₂ is calculated from actual EU-covered fuel,
+    // NOT by prorating total CO₂ with an aggregated coverage %.
+    // Formula: (HSFO_EU × 3.114 + VLSFO_EU × 3.151 + LSMGO_EU × 3.206) × PhaseIn
+    // ============================================
+    const euCo2FromFuel = 
+      euCoveredHsfo * CO2_EMISSION_FACTORS.hsfo +
+      euCoveredVlsfo * CO2_EMISSION_FACTORS.vlsfo +
+      euCoveredLsmgo * CO2_EMISSION_FACTORS.lsmgo;
+    
+    totalChargeableCo2 = euCo2FromFuel * phaseInPercentage;
+    etsCost = totalChargeableCo2 * (bunker.co2Price || 0);
+    
+    // Finalize ETS result with bottom-up values
+    etsResult = {
+      totalCo2,
+      etsVoyageCoverage,
+      phaseInPercentage,
+      chargeableCo2: totalChargeableCo2,
+      etsCost,
+      legBreakdown: etsLegBreakdown,
+    };
+    
+    console.log(`\n[Step 12] CHARGEABLE CO₂ EUA (bottom-up):
+    EU Fuel: HSFO=${euCoveredHsfo.toFixed(2)}t, VLSFO=${euCoveredVlsfo.toFixed(2)}t, LSMGO=${euCoveredLsmgo.toFixed(2)}t
+    EU CO₂ from fuel = (${euCoveredHsfo.toFixed(2)}×${CO2_EMISSION_FACTORS.hsfo}) + (${euCoveredVlsfo.toFixed(2)}×${CO2_EMISSION_FACTORS.vlsfo}) + (${euCoveredLsmgo.toFixed(2)}×${CO2_EMISSION_FACTORS.lsmgo}) = ${euCo2FromFuel.toFixed(2)} mt
+    Chargeable CO₂ EUA = ${euCo2FromFuel.toFixed(2)} × ${phaseInPercentage} (phase-in) = ${totalChargeableCo2.toFixed(2)} mt
+    ETS Cost = ${totalChargeableCo2.toFixed(2)} × $${bunker.co2Price} = $${etsCost.toFixed(2)}`);
+    
     // Total CO2 cost (all CO2 × price)
     const totalCo2Cost = totalCo2 * (bunker.co2Price || 0);
     
-    // EUA CO2 cost = chargeable CO2 × price (same as etsCost)
-    const euaCo2Cost = etsResult.etsCost;
+    // EUA CO2 cost = chargeable CO2 × price
+    const euaCo2Cost = etsCost;
     
     // EUA Freight Impact = ETS cost / cargo quantity
     const euaFreightImpact = cargo.quantity > 0 ? euaCo2Cost / cargo.quantity : 0;
