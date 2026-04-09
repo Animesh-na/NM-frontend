@@ -1055,11 +1055,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageCommissionPct2 = cargo.voyageCommission / 100;
     const adjustedGrossRate = voyageCommissionPct2 < 1 ? adjustedBaseRatePerMt / (1 - voyageCommissionPct2) : 0;
 
-    console.log(`\n[Step 12] EU COVERED FUEL & FUEL EU:
-    EU Covered: HSFO=${euCoveredHsfo.toFixed(2)}t, VLSFO=${euCoveredVlsfo.toFixed(2)}t, LSMGO=${euCoveredLsmgo.toFixed(2)}t
-    Total CO2 Cost: ${totalCo2} × $${bunker.co2Price} = $${totalCo2Cost.toFixed(2)}
-    EUA CO2: ${etsResult.chargeableCo2.toFixed(2)}t → Cost: $${euaCo2Cost.toFixed(2)}
-    EUA Freight Impact: $${euaFreightImpact.toFixed(2)}/mt
+    console.log(`\n[Step 13] REGULATORY COSTS & FUEL EU:
     FuelEU Costs: HSFO=$${fuelEuResult.fuels.hsfo.cost.toFixed(2)}, VLSFO=$${fuelEuResult.fuels.vlsfo.cost.toFixed(2)}, LSMGO=$${fuelEuResult.fuels.lsmgo.cost.toFixed(2)}
     FuelEU Total: $${fuelEuResult.totalPenalty.toFixed(2)}`);
     
