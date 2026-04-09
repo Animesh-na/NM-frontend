@@ -1036,7 +1036,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     (async () => {
-      const updates: Record<number, boolean> = {};
+      const updates: Record<number, { isEuEea: boolean; portCountry?: string }> = {};
       for (const row of portsNeedingLookup) {
         if (cancelled) return;
         try {
@@ -1045,17 +1045,29 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
             p => p.port_name === row.port || (p.port_code && p.port_code === row.portUnloc)
           );
           if (match) {
-            updates[row.id] = match.is_eu_eea === true || match.eca_zone === true;
+            updates[row.id] = {
+              isEuEea: isPortEuEea({ isEuEea: match.is_eu_eea, ecaZone: match.eca_zone, country: match.country }),
+              portCountry: match.country,
+            };
           } else {
-            updates[row.id] = false;
+            // No API match — try country-based fallback from portCountry if available
+            updates[row.id] = {
+              isEuEea: isPortEuEea({ country: row.portCountry }),
+              portCountry: row.portCountry,
+            };
           }
         } catch {
-          updates[row.id] = false;
+          updates[row.id] = {
+            isEuEea: isPortEuEea({ country: row.portCountry }),
+            portCountry: row.portCountry,
+          };
         }
       }
       if (!cancelled) {
         setSequence(prev => prev.map(row =>
-          updates[row.id] !== undefined ? { ...row, isEuEea: updates[row.id] } : row
+          updates[row.id] !== undefined
+            ? { ...row, isEuEea: updates[row.id].isEuEea, portCountry: updates[row.id].portCountry || row.portCountry }
+            : row
         ));
       }
     })();
