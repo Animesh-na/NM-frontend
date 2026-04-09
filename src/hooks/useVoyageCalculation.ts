@@ -95,6 +95,32 @@ export interface VoyageInputs {
   applyFuelEuImpact?: boolean;
 }
 
+// Per-leg ETS detail for UI breakdown table
+export interface EtsLegDetail {
+  legIndex: number;
+  originPort: string;
+  originUnloc: string;
+  originIsEu: boolean;
+  destPort: string;
+  destUnloc: string;
+  destIsEu: boolean;
+  coveragePct: number; // 0, 50, or 100
+  coverageLabel: string; // e.g. "NonEU → EU: 50%"
+  // Total fuel consumed on this leg (sea + port at destination)
+  seaVlsfo: number;
+  seaLsmgo: number;
+  seaHsfo: number;
+  portVlsfo: number;
+  portLsmgo: number;
+  portHsfo: number;
+  // EU-chargeable fuel
+  chargeableVlsfo: number;
+  chargeableLsmgo: number;
+  chargeableHsfo: number;
+  // CO₂ from chargeable fuel
+  chargeableCo2: number;
+}
+
 export interface VoyageResults {
   // Time calculations
   totalDistance: number;
@@ -160,6 +186,9 @@ export interface VoyageResults {
   chargeableCo2: number;
   etsVoyageCoverage: number;
   etsPhaseIn: number;
+  
+  // Leg-by-leg ETS breakdown
+  etsLegDetails: EtsLegDetail[];
   
   // Validation
   emissionWarnings: string[];
