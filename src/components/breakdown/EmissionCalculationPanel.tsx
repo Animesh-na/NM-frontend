@@ -290,7 +290,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
               inputs={[
                 { label: "Total CO₂", value: `${results.totalCo2.toFixed(2)} t`, source: "Calc" },
                 { label: "DWT", value: `${vessel.dwt.toLocaleString()} t`, source: "Vessel" },
-                { label: "Distance", value: `${results.totalDistance.toLocaleString()} nm`, source: "Seq" },
+                { label: "Distance", value: `${(results.totalDistance + results.totalEcaDistance).toLocaleString()} nm`, source: "Seq" },
               ]}
               result={{ label: "Actual CII", value: `${results.afrCii.toFixed(2)} gCO₂/dwt-nm` }}
             />
