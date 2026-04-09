@@ -761,7 +761,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const ciiResult = calculateCiiRating({
       totalCo2,
       dwt: vessel.dwt,
-      distanceTravelled: totalDistance,
+      distanceTravelled: totalDistance + totalEcaDistance,
       shipType: vessel.type || 'bulk_carrier',
     });
     
