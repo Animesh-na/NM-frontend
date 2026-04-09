@@ -3,6 +3,7 @@ import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/h
 import { defaultVessel, type VesselData } from "@/data/vessels";
 import { getSeaRouteDistance, searchPorts as searchMarinePorts } from "@/services/marineApi";
 import { type Port } from "@/components/voyage/PortSelect";
+import { isPortEuEea } from "@/utils/euCountries";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
