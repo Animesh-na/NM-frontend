@@ -717,16 +717,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       }
     });
 
-    // Calculate EU ETS cost using ECA-distance-based coverage
-    // Override the UNLOC-based coverage in calculateEtsCost with our ECA-based values
+    // Store leg-level EU coverage info for breakdown display
     const phaseInPercentage = getEtsPhaseInPercentage();
-    let totalChargeableCo2 = 0;
     const etsLegBreakdown: EtsResult['legBreakdown'] = [];
     
     voyageLegs.forEach((leg, i) => {
       const coverage = legCoverages[i] || 0;
+      // Per-leg CO2 stored for informational breakdown only
       const chargeableCo2 = leg.co2 * coverage * phaseInPercentage;
-      totalChargeableCo2 += chargeableCo2;
       
       etsLegBreakdown.push({
         origin: leg.originUnloc,
@@ -737,23 +735,20 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       });
     });
 
-    // If no legs, use simplified calculation
-    if (voyageLegs.length === 0) {
-      totalChargeableCo2 = totalCo2 * phaseInPercentage;
-    }
-
     const etsVoyageCoverage = totalCo2 > 0 && etsLegBreakdown.length > 0
       ? etsLegBreakdown.reduce((sum, leg) => sum + (leg.co2 / totalCo2) * leg.coverage, 0)
       : 0;
 
-    const etsCost = totalChargeableCo2 * (bunker.co2Price || 0);
-    
-    const etsResult: EtsResult = {
+    // NOTE: Chargeable CO2 EUA is computed AFTER EU fuel allocation below (bottom-up approach).
+    // Placeholder ETS result — will be finalized after EU fuel calc.
+    let totalChargeableCo2 = 0;
+    let etsCost = 0;
+    let etsResult: EtsResult = {
       totalCo2,
       etsVoyageCoverage,
       phaseInPercentage,
-      chargeableCo2: totalChargeableCo2,
-      etsCost,
+      chargeableCo2: 0,
+      etsCost: 0,
       legBreakdown: etsLegBreakdown,
     };
 
