@@ -3,9 +3,10 @@ import { AlertTriangle, Leaf, RefreshCw, Ship, Anchor, Navigation } from "lucide
 import { BreakdownCard, FormulaBlock, ValueRow } from "./BreakdownCard";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
-import { CO2_EMISSION_FACTORS, isEuPort, getEtsPhaseInPercentage } from "@/utils/emissionCalculations";
+import { CO2_EMISSION_FACTORS, getEtsPhaseInPercentage } from "@/utils/emissionCalculations";
 
 interface BunkerState {
   hsfo: { price: number; robStart: number };
@@ -53,7 +54,6 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  // Get CII rating color
   const getCiiColor = (rating: string) => {
     switch (rating) {
       case 'A': return 'bg-green-600';
@@ -65,33 +65,24 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
     }
   };
 
-  // Check for warnings
   const hasWarnings = results.emissionWarnings?.length > 0;
   const hasErrors = results.emissionErrors?.length > 0;
   const requiresAction = results.ciiRating === 'D' || results.ciiRating === 'E';
 
-  // Build voyage legs info for display
-  const voyageLegs = sequence.reduce((legs, row, idx) => {
-    if (idx > 0 && row.portUnloc) {
-      const prevPort = sequence[idx - 1]?.portUnloc || '';
-      legs.push({
-        origin: sequence[idx - 1]?.port || prevPort,
-        originUnloc: prevPort,
-        destination: row.port || row.portUnloc,
-        destinationUnloc: row.portUnloc,
-        isOriginEu: isEuPort(prevPort),
-        isDestEu: isEuPort(row.portUnloc),
-      });
-    }
-    return legs;
-  }, [] as Array<{ origin: string; originUnloc: string; destination: string; destinationUnloc: string; isOriginEu: boolean; isDestEu: boolean }>);
-
   const currentYear = new Date().getFullYear();
   const phaseInPercent = getEtsPhaseInPercentage(currentYear) * 100;
+  const phaseInDecimal = phaseInPercent / 100;
+
+  // Totals from leg details
+  const legDetails = results.etsLegDetails || [];
+  const totalChargeableVlsfo = legDetails.reduce((s, l) => s + l.chargeableVlsfo, 0);
+  const totalChargeableLsmgo = legDetails.reduce((s, l) => s + l.chargeableLsmgo, 0);
+  const totalChargeableHsfo = legDetails.reduce((s, l) => s + l.chargeableHsfo, 0);
+  const totalChargeableCo2PrePhaseIn = legDetails.reduce((s, l) => s + l.chargeableCo2, 0);
 
   return (
     <BreakdownCard 
-      title="CO₂ Emission & Compliance" 
+      title="CO₂ Emission & EU ETS Compliance" 
       icon={<Leaf className="h-5 w-5" />}
       badge={`CII: ${results.ciiRating}`}
     >
@@ -165,13 +156,11 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
         </div>
       </div>
 
-      {/* Calculation Flow Panel */}
+      {/* Step 1: Fuel → CO₂ */}
       <div className="grid grid-cols-2 gap-6">
-        {/* Left Column: CO2 Calculation */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium border-b border-border pb-2">Step 1: Fuel → CO₂</h3>
+          <h3 className="text-sm font-medium border-b border-border pb-2">Step 1: Total Voyage Fuel → CO₂</h3>
           
-          {/* Emission Factors */}
           <div className="space-y-2">
             <div className="text-xs font-medium text-muted-foreground">IMO Emission Factors</div>
             <ValueRow label="HSFO Factor" value={`${CO2_EMISSION_FACTORS.hsfo} t CO₂/t`} source="IMO" />
@@ -179,9 +168,8 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
             <ValueRow label="LSMGO Factor" value={`${CO2_EMISSION_FACTORS.lsmgo} t CO₂/t`} source="IMO" />
           </div>
 
-          {/* Fuel Consumption */}
           <FormulaBlock
-            name="Fuel Consumption (from voyage)"
+            name="Total Voyage Fuel Consumption"
             formula="Daily Rate × Time × Reward Factor"
             inputs={[
               { label: "HSFO", value: `${results.hsfoConsumption.toFixed(2)} MT`, source: "Calc" },
@@ -190,9 +178,8 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
             ]}
           />
 
-          {/* CO2 by Fuel */}
           <FormulaBlock
-            name="CO₂ Emissions"
+            name="Total Voyage CO₂"
             formula="Fuel × Emission Factor"
             inputs={[
               { label: "HSFO CO₂", value: `${results.co2ByFuel.hsfo.toFixed(2)} t`, source: "Calc" },
@@ -203,73 +190,174 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
           />
         </div>
 
-        {/* Right Column: ETS & CII */}
+        {/* Step 2: EU Chargeable Fuel Summary */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium border-b border-border pb-2">Step 2: EU ETS Cost</h3>
+          <h3 className="text-sm font-medium border-b border-border pb-2">Step 2: EU Chargeable Fuel (Bottom-Up)</h3>
           
-          {/* ETS Coverage */}
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-            <div className="font-medium text-sm">EU ETS Voyage Coverage</div>
-            <div className="text-xs text-muted-foreground mb-2">
-              EU-EU: 100% | EU-NonEU: 50% | NonEU-EU: 50% | NonEU-NonEU: 0%
-            </div>
-            
-            {voyageLegs.length > 0 ? (
-              <div className="space-y-1 max-h-24 overflow-y-auto">
-                {voyageLegs.map((leg, i) => {
-                  let coverage = 0;
-                  if (leg.isOriginEu && leg.isDestEu) coverage = 100;
-                  else if (leg.isOriginEu || leg.isDestEu) coverage = 50;
-                  
-                  return (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1">
-                        <span className={leg.isOriginEu ? 'text-blue-500' : 'text-muted-foreground'}>
-                          {leg.origin.substring(0, 10)}
-                        </span>
-                        <Navigation className="h-3 w-3" />
-                        <span className={leg.isDestEu ? 'text-blue-500' : 'text-muted-foreground'}>
-                          {leg.destination.substring(0, 10)}
-                        </span>
-                      </div>
-                      <span className="font-mono">{coverage}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground">No voyage legs defined</div>
-            )}
-            
-            <div className="pt-2 border-t border-border text-xs">
-              <div className="flex justify-between">
-                <span>Weighted Coverage</span>
-                <span className="font-mono">{(results.etsVoyageCoverage * 100).toFixed(0)}%</span>
-              </div>
+            <div className="font-medium text-sm">EU ETS Allocation Rules</div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div>• EU → EU: <span className="font-mono font-medium">100%</span> of sea fuel chargeable</div>
+              <div>• EU ↔ Non-EU: <span className="font-mono font-medium">50%</span> of sea fuel chargeable</div>
+              <div>• Non-EU → Non-EU: <span className="font-mono font-medium">0%</span></div>
+              <div>• Port at EU: <span className="font-mono font-medium">100%</span> of port fuel chargeable</div>
             </div>
           </div>
 
-          {/* Phase-in */}
           <FormulaBlock
-            name="ETS Phase-In ({currentYear})"
-            formula="Chargeable CO₂ = Total × Coverage × Phase-In"
+            name="EU Chargeable Fuel Totals"
+            formula="Sum of per-leg chargeable fuel"
             inputs={[
-              { label: "Total CO₂", value: `${results.totalCo2.toFixed(2)} t`, source: "Calc" },
-              { label: "Voyage Coverage", value: `${(results.etsVoyageCoverage * 100).toFixed(0)}%`, source: "Route" },
-              { label: `Phase-In (${currentYear})`, value: `${phaseInPercent}%`, source: "IMO" },
+              { label: "EU HSFO", value: `${totalChargeableHsfo.toFixed(2)} MT`, source: "Legs" },
+              { label: "EU VLSFO", value: `${totalChargeableVlsfo.toFixed(2)} MT`, source: "Legs" },
+              { label: "EU LSMGO", value: `${totalChargeableLsmgo.toFixed(2)} MT`, source: "Legs" },
             ]}
-            result={{ label: "Chargeable CO₂", value: `${results.chargeableCo2.toFixed(2)} t` }}
           />
 
-          {/* ETS Cost */}
+          {/* Fuel comparison: Total vs EU */}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+            <div className="text-xs font-medium text-muted-foreground">Total Voyage vs EU Chargeable</div>
+            {results.vlsfoConsumption > 0 && (
+              <div className="flex justify-between text-xs">
+                <span>VLSFO</span>
+                <span className="font-mono">
+                  {results.vlsfoConsumption.toFixed(2)} → <span className="text-primary font-medium">{totalChargeableVlsfo.toFixed(2)} MT</span>
+                  {' '}({results.vlsfoConsumption > 0 ? ((totalChargeableVlsfo / results.vlsfoConsumption) * 100).toFixed(1) : 0}%)
+                </span>
+              </div>
+            )}
+            {results.lsmgoConsumption > 0 && (
+              <div className="flex justify-between text-xs">
+                <span>LSMGO</span>
+                <span className="font-mono">
+                  {results.lsmgoConsumption.toFixed(2)} → <span className="text-primary font-medium">{totalChargeableLsmgo.toFixed(2)} MT</span>
+                  {' '}({results.lsmgoConsumption > 0 ? ((totalChargeableLsmgo / results.lsmgoConsumption) * 100).toFixed(1) : 0}%)
+                </span>
+              </div>
+            )}
+            {results.hsfoConsumption > 0 && (
+              <div className="flex justify-between text-xs">
+                <span>HSFO</span>
+                <span className="font-mono">
+                  {results.hsfoConsumption.toFixed(2)} → <span className="text-primary font-medium">{totalChargeableHsfo.toFixed(2)} MT</span>
+                  {' '}({results.hsfoConsumption > 0 ? ((totalChargeableHsfo / results.hsfoConsumption) * 100).toFixed(1) : 0}%)
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Leg-by-Leg ETS Breakdown Table */}
+      <div className="mt-6 pt-4 border-t border-border">
+        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+          <Navigation className="h-4 w-4" />
+          Step 3: Leg-by-Leg ETS Responsibility
+        </h3>
+        
+        {legDetails.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Leg</TableHead>
+                  <TableHead className="text-xs">Origin</TableHead>
+                  <TableHead className="text-xs">Destination</TableHead>
+                  <TableHead className="text-xs text-right">Sea Coverage</TableHead>
+                  <TableHead className="text-xs text-right">Sea VLSFO</TableHead>
+                  <TableHead className="text-xs text-right">Sea LSMGO</TableHead>
+                  <TableHead className="text-xs text-right">Port Fuel</TableHead>
+                  <TableHead className="text-xs text-right">EU VLSFO</TableHead>
+                  <TableHead className="text-xs text-right">EU LSMGO</TableHead>
+                  <TableHead className="text-xs text-right">EU CO₂</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {legDetails.map((leg) => (
+                  <TableRow key={leg.legIndex}>
+                    <TableCell className="font-mono text-xs py-2">Leg {leg.legIndex + 1}</TableCell>
+                    <TableCell className="text-xs py-2">
+                      <span className={leg.originIsEu ? 'text-blue-500 font-medium' : 'text-muted-foreground'}>
+                        {leg.originPort?.substring(0, 12) || leg.originUnloc}
+                      </span>
+                      {leg.originIsEu && <span className="ml-1 text-[10px] bg-blue-500/10 text-blue-500 px-1 rounded">EU</span>}
+                    </TableCell>
+                    <TableCell className="text-xs py-2">
+                      <span className={leg.destIsEu ? 'text-blue-500 font-medium' : 'text-muted-foreground'}>
+                        {leg.destPort?.substring(0, 12) || leg.destUnloc}
+                      </span>
+                      {leg.destIsEu && <span className="ml-1 text-[10px] bg-blue-500/10 text-blue-500 px-1 rounded">EU</span>}
+                    </TableCell>
+                    <TableCell className="text-xs text-right py-2">
+                      <span className={`font-mono font-medium ${leg.coveragePct === 100 ? 'text-green-600' : leg.coveragePct === 50 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                        {leg.coveragePct}%
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2">{(leg.seaVlsfo + leg.seaHsfo).toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2">{leg.seaLsmgo.toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2">
+                      {(leg.portVlsfo + leg.portHsfo + leg.portLsmgo).toFixed(2)}
+                      {leg.destIsEu && <span className="ml-1 text-[10px] text-blue-500">EU</span>}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2 text-primary font-medium">{(leg.chargeableVlsfo + leg.chargeableHsfo).toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2 text-primary font-medium">{leg.chargeableLsmgo.toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2 font-medium">{leg.chargeableCo2.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+                {/* Totals Row */}
+                <TableRow className="border-t-2 border-border font-semibold">
+                  <TableCell className="text-xs py-2" colSpan={4}>TOTAL</TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2">
+                    {legDetails.reduce((s, l) => s + l.seaVlsfo + l.seaHsfo, 0).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2">
+                    {legDetails.reduce((s, l) => s + l.seaLsmgo, 0).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2">
+                    {legDetails.reduce((s, l) => s + l.portVlsfo + l.portHsfo + l.portLsmgo, 0).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2 text-primary">
+                    {(totalChargeableVlsfo + totalChargeableHsfo).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2 text-primary">
+                    {totalChargeableLsmgo.toFixed(2)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2 font-bold">
+                    {totalChargeableCo2PrePhaseIn.toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-4 text-center">
+            No voyage legs defined — add ports to the sequence to see leg-by-leg ETS breakdown.
+          </div>
+        )}
+      </div>
+
+      {/* Step 4: Phase-in & Final EUA Calculation */}
+      <div className="mt-6 pt-4 border-t border-border">
+        <h3 className="text-sm font-medium mb-3">Step 4: Phase-In & Final EUA Liability</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <FormulaBlock
+            name={`Chargeable CO₂ EUA (${currentYear})`}
+            formula="(EU HSFO×3.114 + EU VLSFO×3.151 + EU LSMGO×3.206) × Phase-In%"
+            inputs={[
+              { label: "EU CO₂ (pre phase-in)", value: `${totalChargeableCo2PrePhaseIn.toFixed(2)} t`, source: "Legs" },
+              { label: `Phase-In (${currentYear})`, value: `${phaseInPercent}%`, source: "IMO" },
+            ]}
+            result={{ label: "Final EUA Liability", value: `${results.chargeableCo2.toFixed(2)} t CO₂` }}
+          />
+
           <FormulaBlock
             name="EU ETS Cost"
-            formula="Chargeable CO₂ × CO₂ Price"
+            formula="Final EUA Liability × Carbon Price"
             inputs={[
-              { label: "Chargeable CO₂", value: `${results.chargeableCo2.toFixed(2)} t`, source: "Calc" },
-              { label: "CO₂ Price", value: `€${bunker.co2Price}/t`, source: "Bunker" },
+              { label: "EUA Liability", value: `${results.chargeableCo2.toFixed(2)} t`, source: "Calc" },
+              { label: "Carbon Price", value: `€${bunker.co2Price}/t`, source: "Bunker" },
             ]}
-            result={{ label: "ETS Cost", value: `€${results.etsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }}
+            result={{ label: "Total ETS Cost", value: `€${results.etsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }}
           />
         </div>
       </div>
@@ -278,11 +366,10 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
       <div className="mt-6 pt-4 border-t border-border">
         <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
           <Anchor className="h-4 w-4" />
-          Step 3: CII Efficiency Rating
+          Step 5: CII Efficiency Rating
         </h3>
         
         <div className="grid grid-cols-2 gap-6">
-          {/* CII Calculation */}
           <div className="space-y-4">
             <FormulaBlock
               name="Actual CII (Attained)"
@@ -306,9 +393,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
             />
           </div>
 
-          {/* CII Rating Display */}
           <div className="space-y-4">
-            {/* Rating Scale */}
             <div className="bg-muted/50 rounded-lg p-3">
               <div className="text-xs font-medium text-muted-foreground mb-2">CII Rating Boundaries</div>
               <div className="h-8 rounded-full overflow-hidden flex mb-2">
@@ -327,7 +412,6 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
               </div>
             </div>
 
-            {/* Current Rating */}
             <div className="bg-card border border-border rounded-lg p-4 text-center">
               <div className="text-xs text-muted-foreground mb-2">Current Rating</div>
               <div className={`inline-block px-6 py-2 rounded-full font-bold text-lg text-white ${getCiiColor(results.ciiRating)}`}>
@@ -357,7 +441,6 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
             result={{ label: "EFOI", value: `${results.efoi.toFixed(2)} gCO₂/tnm` }}
           />
 
-          {/* CO2 Distribution */}
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
             <div className="font-medium text-sm">CO₂ Distribution</div>
             <div className="h-6 rounded-full overflow-hidden flex bg-muted">
@@ -395,7 +478,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
             <div className="font-mono font-semibold text-lg">{results.totalCo2.toFixed(1)} t</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <div className="text-xs text-muted-foreground">Chargeable CO₂</div>
+            <div className="text-xs text-muted-foreground">Chargeable CO₂ EUA</div>
             <div className="font-mono font-semibold text-lg">{results.chargeableCo2.toFixed(1)} t</div>
           </div>
           <div className="bg-primary/10 rounded-lg p-3 text-center">
