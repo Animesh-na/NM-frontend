@@ -28,7 +28,7 @@ interface PortSelectProps {
 function marinePortToPort(port: MarinePort): Port {
   return {
     id: port.id,
-    unloc: port.port_code || "",
+    unloc: port.port_code?.trim() || `PORT-${port.id}`,
     name: port.port_name,
     city: port.port_name,
     country: port.country,
