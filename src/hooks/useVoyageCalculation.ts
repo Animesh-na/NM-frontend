@@ -837,6 +837,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       let totalSeaTimeInSegments = 0;
       let weightedEuSeaFactor = 0;
       
+      console.log(`\n[EU ETS DEBUG] Sequence isEuEea flags:`, sequence.map(s => ({ port: s.port, unloc: s.portUnloc, isEuEea: s.isEuEea, ecaDist: s.ecaDistance })));
+      
       sequence.forEach((leg) => {
         const legOperation = (leg.operation || '').toLowerCase();
         const legQty = Math.max(0, leg.quantity || 0);
