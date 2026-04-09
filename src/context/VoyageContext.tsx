@@ -1025,32 +1025,47 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     }
   }, [portCoordsKey, autoDistanceEnabled]);
 
-  // Auto-populate isEuEea flag for ports that are missing it
-  // This handles ports that were selected before the EU flag feature was added,
-  // or ports loaded via JSON import without the flag
+  // Auto-populate missing port metadata so ETS logic still works for
+  // JSON-imported rows and API results that do not include a port code.
   useEffect(() => {
     const portsNeedingLookup = sequence.filter(
-      row => row.port && row.portUnloc && row.isEuEea === undefined
+      (row) => row.port && (
+        row.isEuEea === undefined ||
+        !row.portUnloc ||
+        !row.portCountry ||
+        !row.coordinates ||
+        row.portId === undefined
+      )
     );
     if (portsNeedingLookup.length === 0) return;
 
     let cancelled = false;
     (async () => {
-      const updates: Record<number, { isEuEea: boolean; portCountry?: string }> = {};
+      const updates: Record<number, Partial<Pick<SequenceRowUI, "portId" | "portUnloc" | "coordinates" | "isEuEea" | "portCountry">>> = {};
       for (const row of portsNeedingLookup) {
         if (cancelled) return;
         try {
           const results = await searchMarinePorts(row.port || row.portUnloc, 5);
           const match = results.find(
-            p => p.port_name === row.port || (p.port_code && p.port_code === row.portUnloc)
+            (p) =>
+              (row.portId !== undefined && p.id === row.portId) ||
+              p.port_name === row.port ||
+              (!!row.portUnloc && !!p.port_code && p.port_code === row.portUnloc)
           );
           if (match) {
             updates[row.id] = {
+              portId: row.portId ?? match.id,
+              portUnloc: row.portUnloc || match.port_code || `PORT-${match.id}`,
+              coordinates:
+                row.coordinates ||
+                (match.longitude != null && match.latitude != null
+                  ? [match.longitude, match.latitude]
+                  : undefined),
               isEuEea: isPortEuEea({ isEuEea: match.is_eu_eea, ecaZone: match.eca_zone, country: match.country }),
               portCountry: match.country,
             };
           } else {
-            // No API match — try country-based fallback from portCountry if available
+            // No API match — keep what we have and fall back to country detection.
             updates[row.id] = {
               isEuEea: isPortEuEea({ country: row.portCountry }),
               portCountry: row.portCountry,
@@ -1066,13 +1081,20 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
       if (!cancelled) {
         setSequence(prev => prev.map(row =>
           updates[row.id] !== undefined
-            ? { ...row, isEuEea: updates[row.id].isEuEea, portCountry: updates[row.id].portCountry || row.portCountry }
+            ? {
+                ...row,
+                ...updates[row.id],
+                portCountry: updates[row.id].portCountry || row.portCountry,
+                portUnloc: updates[row.id].portUnloc || row.portUnloc,
+                coordinates: updates[row.id].coordinates || row.coordinates,
+                portId: updates[row.id].portId ?? row.portId,
+              }
             : row
         ));
       }
     })();
     return () => { cancelled = true; };
-  }, [sequence.map(r => `${r.id}:${r.portUnloc}:${r.isEuEea}`).join(',')]);
+  }, [sequence.map(r => `${r.id}:${r.port}:${r.portUnloc}:${r.portId ?? ""}:${r.isEuEea}:${r.portCountry ?? ""}:${r.coordinates?.[0] ?? ""}:${r.coordinates?.[1] ?? ""}`).join(',')]);
 
   // Multi-cargo management functions
   const addCargo = useCallback(() => {

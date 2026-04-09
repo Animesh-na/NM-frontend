@@ -688,15 +688,24 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const efoiResult = calculateEfoi(totalCo2, cargo.quantity, ladenDistance);
     const efoi = efoiResult.efoi;
 
+    const getLegPortKey = (leg: Pick<SequenceRow, "port" | "portUnloc">): string =>
+      (leg.portUnloc || leg.port || "").trim();
+
+    const getLegPortLabel = (leg: Pick<SequenceRow, "port" | "portUnloc">): string =>
+      (leg.port || leg.portUnloc || "").trim();
+
     // Build voyage legs for ETS calculation using is_eu_eea port flag
     // Each port's isEuEea flag determines if it's an EU/EEA port
-    const voyageLegs: Array<{ originUnloc: string; destinationUnloc: string; co2: number }> = [];
+    const voyageLegs: Array<{ origin: string; destination: string; co2: number }> = [];
     const legCoverages: number[] = []; // Store per-leg EU coverage
     let previousPort = '';
     let previousIsEuEea = false; // EU/EEA flag of the origin port
     
-    sequence.forEach((leg) => {
-      if (leg.portUnloc) {
+    sequence.forEach((leg, index) => {
+      const currentPortKey = getLegPortKey(leg);
+      const currentPortLabel = getLegPortLabel(leg);
+
+      if (currentPortKey) {
         const currentIsEuEea = leg.isEuEea === true;
         
         if (previousPort) {
@@ -712,14 +721,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           }
           
           voyageLegs.push({
-            originUnloc: previousPort,
-            destinationUnloc: leg.portUnloc,
+            origin: previousPort,
+            destination: currentPortLabel || currentPortKey,
             co2: legCo2,
           });
           legCoverages.push(coverage);
         } else {
           // First segment: use current port + next port to determine both endpoints
-          const nextLeg = sequence.find((s, si) => si > sequence.indexOf(leg) && s.portUnloc);
+          const nextLeg = sequence.find((s, si) => si > index && getLegPortKey(s));
           const nextIsEuEea = nextLeg?.isEuEea === true;
           const legSeaTime = leg.seaTime || 0;
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
@@ -733,15 +742,15 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           
           if (legSeaTime > 0) {
             voyageLegs.push({
-              originUnloc: leg.portUnloc,
-              destinationUnloc: nextLeg?.portUnloc || leg.portUnloc,
+              origin: currentPortLabel || currentPortKey,
+              destination: nextLeg ? (getLegPortLabel(nextLeg) || getLegPortKey(nextLeg)) : (currentPortLabel || currentPortKey),
               co2: legCo2,
             });
             legCoverages.push(coverage);
           }
         }
         
-        previousPort = leg.portUnloc;
+        previousPort = currentPortLabel || currentPortKey;
         previousIsEuEea = currentIsEuEea;
       }
     });
@@ -756,8 +765,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const chargeableCo2 = leg.co2 * coverage * phaseInPercentage;
       
       etsLegBreakdown.push({
-        origin: leg.originUnloc,
-        destination: leg.destinationUnloc,
+        origin: leg.origin,
+        destination: leg.destination,
         coverage,
         co2: leg.co2,
         chargeableCo2,
@@ -839,10 +848,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       
       console.log(`\n[EU ETS] Sequence isEuEea flags:`, sequence.map(s => ({ port: s.port, isEuEea: s.isEuEea })));
       
-      sequence.forEach((leg) => {
+      sequence.forEach((leg, index) => {
         const legOperation = (leg.operation || '').toLowerCase();
         const legQty = Math.max(0, leg.quantity || 0);
         const legIsLaden = segCargoOnBoard > 0;
+        const currentPortKey = getLegPortKey(leg);
+        const currentPortName = getLegPortLabel(leg);
         
         // Per-leg fuel accumulators
         let legSeaHsfo = 0, legSeaVlsfo = 0, legSeaLsmgo = 0;
@@ -854,18 +865,18 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         let originIsEu = prevIsEuEea;
         
         // ── 1. SEA FUEL for this segment ──
-        if (leg.portUnloc) {
+        if (currentPortKey) {
           const currentIsEuEea = leg.isEuEea === true;
           if (!prevPortUnloc) {
-            const nextLeg = sequence.find((s, si) => si > sequence.indexOf(leg) && s.portUnloc);
+            const nextLeg = sequence.find((s, si) => si > index && getLegPortKey(s));
             const nextIsEuEea = nextLeg?.isEuEea === true;
             if (currentIsEuEea && nextIsEuEea) {
               seaEuFactor = 1.0;
             } else if (currentIsEuEea || nextIsEuEea) {
               seaEuFactor = 0.5;
             }
-            originPortName = leg.port;
-            originUnloc = leg.portUnloc;
+            originPortName = currentPortName;
+            originUnloc = currentPortKey;
             originIsEu = currentIsEuEea;
           } else if (prevIsEuEea && currentIsEuEea) {
             seaEuFactor = 1.0;
@@ -911,7 +922,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
         const portEuFactor = (leg.isEuEea === true) ? 1.0 : 0.0;
         
-        if (leg.portUnloc && leg.portDays > 0) {
+        if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
           const aeRates = hasScrubber ? profile.aeScrubber : profile.ae;
           
@@ -966,7 +977,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         
         // Build leg detail for UI (skip first port if no sea time — it's origin only)
         const hasSeaOrPort = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
-        if (leg.portUnloc && hasSeaOrPort && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
+        if (currentPortKey && hasSeaOrPort && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
           const coveragePct = seaEuFactor * 100;
           let coverageLabel = '';
           if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
@@ -987,8 +998,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             originPort: originPortName,
             originUnloc,
             originIsEu,
-            destPort: leg.port,
-            destUnloc: leg.portUnloc,
+            destPort: currentPortName,
+            destUnloc: currentPortKey,
             destIsEu: leg.isEuEea === true,
             coveragePct,
             coverageLabel: coverageLabel + portLabel,
@@ -1013,9 +1024,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // Update previous port tracking
-        if (leg.portUnloc) {
-          prevPortUnloc = leg.portUnloc;
-          prevPortName = leg.port;
+        if (currentPortKey) {
+          prevPortUnloc = currentPortKey;
+          prevPortName = currentPortName;
           prevIsEuEea = leg.isEuEea === true;
         }
       });
@@ -1035,8 +1046,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       }
       
       if (extraPortDays > 0) {
-        const euPortCount = sequence.filter(r => r.portUnloc && r.isEuEea === true && r.portDays > 0).length;
-        const totalPortCount = sequence.filter(r => r.portUnloc && r.portDays > 0).length;
+        const euPortCount = sequence.filter(r => getLegPortKey(r) && r.isEuEea === true && r.portDays > 0).length;
+        const totalPortCount = sequence.filter(r => getLegPortKey(r) && r.portDays > 0).length;
         const avgPortEuFactor = totalPortCount > 0 ? euPortCount / totalPortCount : 0;
         if (avgPortEuFactor > 0) {
           const extraPortFuelType = hasScrubber ? 'hsfo' : 'vlsfo';

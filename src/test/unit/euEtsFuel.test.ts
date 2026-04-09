@@ -136,4 +136,16 @@ describe("EU ETS Fuel Allocation", () => {
 
     console.log(`Port coverage: VLSFO EU%=${(vlsfoPct*100).toFixed(1)}%, LSMGO EU%=${(lsmgoPct*100).toFixed(1)}%`);
   });
+
+  it("ECA/EU ports without port code still count in ETS fuel allocation", () => {
+    const seq = makeSequence([
+      { operation: "load", port: "Santos", portUnloc: "BRSSZ", isEuEea: false, distance: 1000, seaTime: 3.33, ecaTime: 0, nonEcaTime: 3.33, quantity: 65000 },
+      { operation: "disch", port: "Antwerpen", portUnloc: "", isEuEea: true, distance: 5500, ecaDistance: 500, seaTime: 18.33, ecaTime: 1.67, nonEcaTime: 16.66, portDays: 4, turnTimeHours: 8, extraTimeHours: 4, quantity: 65000 },
+    ]);
+    const { result } = renderHook(() => useVoyageCalculation({ ...baseInputs, sequence: seq }));
+    const r = result.current;
+
+    expect(r.euCoveredFuel.vlsfo).toBeGreaterThan(0);
+    expect(r.euCoveredFuel.lsmgo).toBeGreaterThan(0);
+  });
 });
