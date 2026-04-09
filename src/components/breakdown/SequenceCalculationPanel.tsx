@@ -14,6 +14,7 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
   // Calculate totals
   const totalDistance = sequence.reduce((sum, row) => sum + row.distance, 0);
   const totalEcaDistance = sequence.reduce((sum, row) => sum + row.ecaDistance, 0);
+  const grandTotalDistance = totalDistance + totalEcaDistance;
   const totalSeaTime = sequence.reduce((sum, row) => sum + row.totalLegTime, 0);
   const totalPortDays = sequence.reduce((sum, row) => sum + row.calculatedPortDays, 0);
 
