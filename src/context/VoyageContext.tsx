@@ -1444,6 +1444,7 @@ export function useVoyageContext() {
         },
         fuelEuTotalPenalty: 0,
         fuelEuFreightImpact: 0,
+        etsLegDetails: [],
       },
     } as VoyageContextValue;
   }
