@@ -28,7 +28,7 @@ export function SequenceCalculationPanel({ sequence, vessel }: SequenceCalculati
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-muted/50 rounded-lg p-3 text-center">
           <div className="text-xs text-muted-foreground">Total Distance</div>
-          <div className="font-mono font-semibold text-lg">{totalDistance.toLocaleString()} nm</div>
+          <div className="font-mono font-semibold text-lg">{grandTotalDistance.toLocaleString()} nm</div>
         </div>
         <div className="bg-muted/50 rounded-lg p-3 text-center">
           <div className="text-xs text-muted-foreground">ECA Distance</div>
