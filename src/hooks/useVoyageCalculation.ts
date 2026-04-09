@@ -530,7 +530,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       lsmgo: lsmgoEcaFromHsfoVlsfo,
       total: lsmgoEcaFromHsfoVlsfo,
     };
-    const nonEcaDistance = totalDistance - totalEcaDistance;
+    // totalDistance = sum of V column (non-ECA), totalEcaDistance = sum of L column (ECA)
+    // nonEcaDistance IS totalDistance since V column already represents non-ECA distances
+    const nonEcaDistance = totalDistance;
 
     // ============================================
     // 5. BUNKER COST CALCULATION (Price × Consumption)
