@@ -780,11 +780,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Actual CII = totalCO2(${totalCo2}) × 1000000 / (DWT(${vessel.dwt}) × totalDist(${totalDistance})) = ${afrCii} gCO2/dwt-nm
     CII Rating = ${ciiRating}
     
-    --- EU ETS (is_eu_eea flag based) ---
-    ETS Chargeable CO2 = ${etsResult.chargeableCo2} mt
-    ETS Coverage = ${etsResult.etsVoyageCoverage * 100}%
-    ETS Phase-in = ${etsResult.phaseInPercentage * 100}%
-    ETS Cost = ${etsResult.etsCost} (CO2 price: $${bunker.co2Price})`);
+    --- EU ETS (preliminary - final chargeable CO2 computed after EU fuel allocation) ---
+    ETS Coverage (informational) = ${etsVoyageCoverage * 100}%
+    ETS Phase-in = ${phaseInPercentage * 100}%`);
 
     // ============================================
     // SEGMENT-WISE EU FUEL CALCULATION
