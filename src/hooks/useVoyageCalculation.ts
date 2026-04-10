@@ -694,6 +694,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const getLegPortLabel = (leg: Pick<SequenceRow, "port" | "portUnloc">): string =>
       (leg.port || leg.portUnloc || "").trim();
 
+    // If port fuel is LSMGO, treat the port as ECA/EU for ETS purposes
+    const isLegEuEea = (leg: SequenceRow): boolean =>
+      leg.isEuEea === true || leg.portFuelType === "lsmgo";
+
     // Build voyage legs for ETS calculation using is_eu_eea port flag
     // Each port's isEuEea flag determines if it's an EU/EEA port
     const voyageLegs: Array<{ origin: string; destination: string; co2: number }> = [];
