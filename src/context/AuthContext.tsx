@@ -66,7 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     clearSession();
-    window.alert(message || "Your session is inactive or has expired. Please log in again.");
+    toast({
+      title: "Session Expired",
+      description: message || "Your session is inactive or has expired. Please log in again.",
+      variant: "destructive",
+    });
   }, [clearSession]);
 
   const validateToken = useCallback(async (currentToken: string) => {
