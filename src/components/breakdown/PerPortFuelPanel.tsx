@@ -11,7 +11,7 @@ interface PerPortFuelPanelProps {
 type FuelKey = "hsfo" | "vlsfo" | "lsmgo";
 
 interface PortFuelRow {
-  id: string;
+  id: string | number;
   port: string;
   operation: string;
   workingDays: number;
