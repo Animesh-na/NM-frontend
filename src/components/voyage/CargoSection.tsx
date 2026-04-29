@@ -189,18 +189,18 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntry
         <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded self-center">
           #{index + 1}
         </span>
-        <div className="form-field w-36">
+        <div className="form-field w-48">
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">
             <input
               type="number"
               step="0.1"
-              className="form-input-sm flex-1 font-mono text-right"
+              className="form-input-sm min-w-0 flex-1 font-mono text-right"
               value={cargo.rate}
               onChange={(e) => onUpdate("rate", parseFloat(e.target.value) || 0)}
             />
-            <select 
-              className="form-select-sm w-16"
+            <select
+              className="form-select-sm w-[72px] flex-shrink-0"
               value={cargo.rateType}
               onChange={(e) => onUpdate("rateType", e.target.value)}
             >
