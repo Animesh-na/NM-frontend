@@ -8,6 +8,7 @@ import { CargoCalculationPanel } from "@/components/breakdown/CargoCalculationPa
 import { BunkerCalculationPanel } from "@/components/breakdown/BunkerCalculationPanel";
 import { PortTimeCalculationPanel } from "@/components/breakdown/PortTimeCalculationPanel";
 import { PerPortFuelPanel } from "@/components/breakdown/PerPortFuelPanel";
+import { PerLegSeaFuelPanel } from "@/components/breakdown/PerLegSeaFuelPanel";
 import { MiscCalculationPanel } from "@/components/breakdown/MiscCalculationPanel";
 import { EmissionCalculationPanel } from "@/components/breakdown/EmissionCalculationPanel";
 import { FinancialSummaryPanel } from "@/components/breakdown/FinancialSummaryPanel";
@@ -108,6 +109,7 @@ export default function CalculationBreakdown() {
           <CargoCalculationPanel cargos={cargos} results={results} sequence={sequence} />
           <BunkerCalculationPanel bunker={bunker} results={results} vessel={vessel} sequence={sequence} />
           <PortTimeCalculationPanel sequence={sequence} misc={misc} results={results} />
+          <PerLegSeaFuelPanel sequence={sequence} vessel={vessel} />
           <PerPortFuelPanel sequence={sequence} vessel={vessel} />
           <MiscCalculationPanel misc={misc} results={results} />
           <EmissionCalculationPanel 
