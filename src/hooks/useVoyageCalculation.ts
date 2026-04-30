@@ -1002,20 +1002,20 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         const hasSeaOrPort = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
         if (currentPortKey && hasSeaOrPort && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
           const coveragePct = seaEuFactor * 100;
-          // Coverage label reflects the bracketing LOAD↔DISCHARGE pair
-          // (cargo movement), not the adjacent passing/bunkering ports.
-          const loadEu = bracketLoadIsEu[index];
-          const dischEu = bracketDischIsEu[index];
+          // Coverage label reflects the bracketing cargo-operation pair
+          // (load/discharge to next cargo call), not passing/bunkering ports.
+          const originEu = bracketOriginIsEu[index];
+          const destEu = bracketDestIsEu[index];
           let coverageLabel = '';
-          if (seaEuFactor === 1.0) coverageLabel = 'Load(EU) → Disch(EU): 100%';
+          if (seaEuFactor === 1.0) coverageLabel = 'Cargo(EU) → Cargo(EU): 100%';
           else if (seaEuFactor === 0.5) {
-            coverageLabel = loadEu
-              ? 'Load(EU) → Disch(Non-EU): 50%'
-              : 'Load(Non-EU) → Disch(EU): 50%';
-          } else if (loadEu === null || dischEu === null) {
+            coverageLabel = originEu
+              ? 'Cargo(EU) → Cargo(Non-EU): 50%'
+              : 'Cargo(Non-EU) → Cargo(EU): 50%';
+          } else if (originEu === null || destEu === null) {
             coverageLabel = 'No cargo bracket: 0%';
           } else {
-            coverageLabel = 'Load(Non-EU) → Disch(Non-EU): 0%';
+            coverageLabel = 'Cargo(Non-EU) → Cargo(Non-EU): 0%';
           }
           
           // Port coverage label
