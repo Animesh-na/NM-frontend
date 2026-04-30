@@ -883,21 +883,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // ── 1. SEA FUEL for this segment ──
         if (currentPortKey) {
           const currentIsEuEea = leg.isEuEea === true;
+          // Sea EU factor uses the bracketing LOAD↔DISCHARGE ports, NOT
+          // adjacent ports. Passing/bunkering ports inherit the factor of
+          // the surrounding cargo movement.
+          seaEuFactor = computeSeaEuFactor(index);
           if (!prevPortUnloc) {
-            const nextLeg = sequence.find((s, si) => si > index && getLegPortKey(s));
-            const nextIsEuEea = nextLeg?.isEuEea === true;
-            if (currentIsEuEea && nextIsEuEea) {
-              seaEuFactor = 1.0;
-            } else if (currentIsEuEea || nextIsEuEea) {
-              seaEuFactor = 0.5;
-            }
             originPortName = currentPortName;
             originUnloc = currentPortKey;
             originIsEu = currentIsEuEea;
-          } else if (prevIsEuEea && currentIsEuEea) {
-            seaEuFactor = 1.0;
-          } else if (prevIsEuEea || currentIsEuEea) {
-            seaEuFactor = 0.5;
           }
           
           const legSeaTimeTotal = leg.seaTime || 0;
