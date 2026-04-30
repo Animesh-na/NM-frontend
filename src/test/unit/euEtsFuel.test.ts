@@ -148,4 +148,36 @@ describe("EU ETS Fuel Allocation", () => {
     expect(r.euCoveredFuel.vlsfo).toBeGreaterThan(0);
     expect(r.euCoveredFuel.lsmgo).toBeGreaterThan(0);
   });
+
+  it("Passing and bunkering ports inherit the Load→Discharge ETS bracket", () => {
+    const seq = makeSequence([
+      { operation: "load", port: "Santos", portUnloc: "BRSSZ", isEuEea: false, seaTime: 0, nonEcaTime: 0, quantity: 65000 },
+      { operation: "pssg", port: "Tenerife", portUnloc: "ESTCI", isEuEea: false, distance: 2500, seaTime: 8.33, nonEcaTime: 8.33, portDays: 0, quantity: 0 },
+      { operation: "bunkering", port: "Gibraltar", portUnloc: "GIGIB", isEuEea: false, distance: 700, seaTime: 2.33, nonEcaTime: 2.33, portDays: 1, quantity: 0 },
+      { operation: "disch", port: "Rotterdam", portUnloc: "NLRTM", isEuEea: true, distance: 1200, seaTime: 4, nonEcaTime: 3, ecaTime: 1, portDays: 3, quantity: 65000 },
+    ]);
+
+    const { result } = renderHook(() => useVoyageCalculation({ ...baseInputs, sequence: seq }));
+    const details = result.current.etsLegDetails;
+
+    expect(details.find(d => d.destPort === "Tenerife")?.coveragePct).toBe(50);
+    expect(details.find(d => d.destPort === "Gibraltar")?.coveragePct).toBe(50);
+    expect(details.find(d => d.destPort === "Rotterdam")?.coveragePct).toBe(50);
+  });
+
+  it("Sea legs between two EU discharge ports are 100% even after a NonEU load", () => {
+    const seq = makeSequence([
+      { operation: "load", port: "Santos", portUnloc: "BRSSZ", isEuEea: false, seaTime: 0, nonEcaTime: 0, quantity: 65000 },
+      { operation: "disch", port: "Rotterdam", portUnloc: "NLRTM", isEuEea: true, distance: 5000, seaTime: 16.67, nonEcaTime: 15.67, ecaTime: 1, portDays: 3, quantity: 30000 },
+      { operation: "pssg", port: "North Sea", portUnloc: "PASS1", isEuEea: true, distance: 150, seaTime: 0.5, nonEcaTime: 0, ecaTime: 0.5, portDays: 0, quantity: 0 },
+      { operation: "disch", port: "Hamburg", portUnloc: "DEHAM", isEuEea: true, distance: 300, seaTime: 1, nonEcaTime: 0.5, ecaTime: 0.5, portDays: 3, quantity: 35000 },
+    ]);
+
+    const { result } = renderHook(() => useVoyageCalculation({ ...baseInputs, sequence: seq, cargo: { ...mockCargo, quantity: 65000 } }));
+    const details = result.current.etsLegDetails;
+
+    expect(details.find(d => d.destPort === "Rotterdam")?.coveragePct).toBe(50);
+    expect(details.find(d => d.destPort === "North Sea")?.coveragePct).toBe(100);
+    expect(details.find(d => d.destPort === "Hamburg")?.coveragePct).toBe(100);
+  });
 });
