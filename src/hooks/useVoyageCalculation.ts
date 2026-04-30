@@ -700,9 +700,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const legCoverages: number[] = []; // Store per-leg EU coverage
     let previousPort = '';
 
-    // EU ETS sea-leg coverage is determined by the bracketing LOAD port
-    // (most recent load operation) and DISCHARGE port (next discharge),
-    // NOT by intermediate passing/bunkering ports.
+    // EU ETS sea-leg coverage is determined by the adjacent cargo ports of call
+    // that bracket the sea segment. Passing/bunkering/open/repositioning rows do
+    // not create a new ETS bracket; they inherit the nearest cargo-operation ports.
     const isLoadOp = (op?: string) => {
       const o = (op || '').toLowerCase();
       return o === 'load' || o === 'loading';
@@ -711,26 +711,40 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const o = (op || '').toLowerCase();
       return o === 'disch' || o === 'discharging';
     };
-    const bracketLoadIsEu: (boolean | null)[] = sequence.map(() => null);
-    const bracketDischIsEu: (boolean | null)[] = sequence.map(() => null);
+    const isCargoPortCall = (op?: string) => isLoadOp(op) || isDischargeOp(op);
+    const isEtsCoveredPort = (leg: SequenceRow): boolean =>
+      leg.isEuEea === true || isEuPort(leg.portUnloc || '') || (leg.ecaDistance || 0) > 0;
+
+    const bracketOriginIsEu: (boolean | null)[] = sequence.map(() => null);
+    const bracketDestIsEu: (boolean | null)[] = sequence.map(() => null);
     {
-      let lastLoadEu: boolean | null = null;
-      sequence.forEach((leg, i) => {
-        if (isLoadOp(leg.operation)) lastLoadEu = leg.isEuEea === true;
-        bracketLoadIsEu[i] = lastLoadEu;
-      });
-      let nextDischEu: boolean | null = null;
-      for (let i = sequence.length - 1; i >= 0; i--) {
-        if (isDischargeOp(sequence[i].operation)) nextDischEu = sequence[i].isEuEea === true;
-        bracketDischIsEu[i] = nextDischEu;
+      const cargoPortIndexes = sequence
+        .map((leg, i) => (isCargoPortCall(leg.operation) ? i : -1))
+        .filter(i => i >= 0);
+      let cargoOnBoardBeforeLeg = 0;
+
+      for (let i = 0; i < sequence.length; i++) {
+        if (cargoOnBoardBeforeLeg > 0) {
+          const originIdx = [...cargoPortIndexes].reverse().find(idx => idx < i);
+          const destIdx = cargoPortIndexes.find(idx => idx >= i);
+
+          if (originIdx !== undefined && destIdx !== undefined && originIdx !== destIdx) {
+            bracketOriginIsEu[i] = isEtsCoveredPort(sequence[originIdx]);
+            bracketDestIsEu[i] = isEtsCoveredPort(sequence[destIdx]);
+          }
+        }
+
+        const qty = Math.max(0, sequence[i].quantity || 0);
+        if (isLoadOp(sequence[i].operation)) cargoOnBoardBeforeLeg += qty;
+        else if (isDischargeOp(sequence[i].operation)) cargoOnBoardBeforeLeg = Math.max(0, cargoOnBoardBeforeLeg - qty);
       }
     }
     const computeSeaEuFactor = (legIdx: number): number => {
-      const loadEu = bracketLoadIsEu[legIdx];
-      const dischEu = bracketDischIsEu[legIdx];
-      if (loadEu === null || dischEu === null) return 0;
-      if (loadEu && dischEu) return 1.0;
-      if (loadEu || dischEu) return 0.5;
+      const originEu = bracketOriginIsEu[legIdx];
+      const destEu = bracketDestIsEu[legIdx];
+      if (originEu === null || destEu === null) return 0;
+      if (originEu && destEu) return 1.0;
+      if (originEu || destEu) return 0.5;
       return 0;
     };
 
