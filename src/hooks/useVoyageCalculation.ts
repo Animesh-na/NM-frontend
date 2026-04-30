@@ -988,11 +988,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         const hasSeaOrPort = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
         if (currentPortKey && hasSeaOrPort && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
           const coveragePct = seaEuFactor * 100;
+          // Coverage label reflects the bracketing LOAD↔DISCHARGE pair
+          // (cargo movement), not the adjacent passing/bunkering ports.
+          const loadEu = bracketLoadIsEu[index];
+          const dischEu = bracketDischIsEu[index];
           let coverageLabel = '';
-          if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
+          if (seaEuFactor === 1.0) coverageLabel = 'Load(EU) → Disch(EU): 100%';
           else if (seaEuFactor === 0.5) {
-            coverageLabel = originIsEu ? 'EU → Non-EU: 50%' : 'Non-EU → EU: 50%';
-          } else coverageLabel = 'Non-EU → Non-EU: 0%';
+            coverageLabel = loadEu
+              ? 'Load(EU) → Disch(Non-EU): 50%'
+              : 'Load(Non-EU) → Disch(EU): 50%';
+          } else if (loadEu === null || dischEu === null) {
+            coverageLabel = 'No cargo bracket: 0%';
+          } else {
+            coverageLabel = 'Load(Non-EU) → Disch(Non-EU): 0%';
+          }
           
           // Port coverage label
           const portLabel = (leg.isEuEea === true) ? ' | Port: EU 100%' : (leg.portDays > 0 ? ' | Port: Non-EU 0%' : '');
