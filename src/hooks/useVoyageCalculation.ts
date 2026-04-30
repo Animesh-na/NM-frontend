@@ -699,27 +699,52 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageLegs: Array<{ origin: string; destination: string; co2: number }> = [];
     const legCoverages: number[] = []; // Store per-leg EU coverage
     let previousPort = '';
-    let previousIsEuEea = false; // EU/EEA flag of the origin port
-    
+
+    // EU ETS sea-leg coverage is determined by the bracketing LOAD port
+    // (most recent load operation) and DISCHARGE port (next discharge),
+    // NOT by intermediate passing/bunkering ports.
+    const isLoadOp = (op?: string) => {
+      const o = (op || '').toLowerCase();
+      return o === 'load' || o === 'loading';
+    };
+    const isDischargeOp = (op?: string) => {
+      const o = (op || '').toLowerCase();
+      return o === 'disch' || o === 'discharging';
+    };
+    const bracketLoadIsEu: (boolean | null)[] = sequence.map(() => null);
+    const bracketDischIsEu: (boolean | null)[] = sequence.map(() => null);
+    {
+      let lastLoadEu: boolean | null = null;
+      sequence.forEach((leg, i) => {
+        if (isLoadOp(leg.operation)) lastLoadEu = leg.isEuEea === true;
+        bracketLoadIsEu[i] = lastLoadEu;
+      });
+      let nextDischEu: boolean | null = null;
+      for (let i = sequence.length - 1; i >= 0; i--) {
+        if (isDischargeOp(sequence[i].operation)) nextDischEu = sequence[i].isEuEea === true;
+        bracketDischIsEu[i] = nextDischEu;
+      }
+    }
+    const computeSeaEuFactor = (legIdx: number): number => {
+      const loadEu = bracketLoadIsEu[legIdx];
+      const dischEu = bracketDischIsEu[legIdx];
+      if (loadEu === null || dischEu === null) return 0;
+      if (loadEu && dischEu) return 1.0;
+      if (loadEu || dischEu) return 0.5;
+      return 0;
+    };
+
     sequence.forEach((leg, index) => {
       const currentPortKey = getLegPortKey(leg);
       const currentPortLabel = getLegPortLabel(leg);
 
       if (currentPortKey) {
-        const currentIsEuEea = leg.isEuEea === true;
-        
         if (previousPort) {
           // Normal segment: previousPort → currentPort
           const legSeaTime = leg.seaTime || 0;
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
-          
-          let coverage = 0;
-          if (previousIsEuEea && currentIsEuEea) {
-            coverage = 1.0;
-          } else if (previousIsEuEea || currentIsEuEea) {
-            coverage = 0.5;
-          }
-          
+          const coverage = computeSeaEuFactor(index);
+
           voyageLegs.push({
             origin: previousPort,
             destination: currentPortLabel || currentPortKey,
@@ -727,19 +752,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           });
           legCoverages.push(coverage);
         } else {
-          // First segment: use current port + next port to determine both endpoints
           const nextLeg = sequence.find((s, si) => si > index && getLegPortKey(s));
-          const nextIsEuEea = nextLeg?.isEuEea === true;
           const legSeaTime = leg.seaTime || 0;
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
-          
-          let coverage = 0;
-          if (currentIsEuEea && nextIsEuEea) {
-            coverage = 1.0;
-          } else if (currentIsEuEea || nextIsEuEea) {
-            coverage = 0.5;
-          }
-          
+          const coverage = computeSeaEuFactor(index);
+
           if (legSeaTime > 0) {
             voyageLegs.push({
               origin: currentPortLabel || currentPortKey,
@@ -749,9 +766,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             legCoverages.push(coverage);
           }
         }
-        
+
         previousPort = currentPortLabel || currentPortKey;
-        previousIsEuEea = currentIsEuEea;
       }
     });
 
@@ -867,21 +883,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // ── 1. SEA FUEL for this segment ──
         if (currentPortKey) {
           const currentIsEuEea = leg.isEuEea === true;
+          // Sea EU factor uses the bracketing LOAD↔DISCHARGE ports, NOT
+          // adjacent ports. Passing/bunkering ports inherit the factor of
+          // the surrounding cargo movement.
+          seaEuFactor = computeSeaEuFactor(index);
           if (!prevPortUnloc) {
-            const nextLeg = sequence.find((s, si) => si > index && getLegPortKey(s));
-            const nextIsEuEea = nextLeg?.isEuEea === true;
-            if (currentIsEuEea && nextIsEuEea) {
-              seaEuFactor = 1.0;
-            } else if (currentIsEuEea || nextIsEuEea) {
-              seaEuFactor = 0.5;
-            }
             originPortName = currentPortName;
             originUnloc = currentPortKey;
             originIsEu = currentIsEuEea;
-          } else if (prevIsEuEea && currentIsEuEea) {
-            seaEuFactor = 1.0;
-          } else if (prevIsEuEea || currentIsEuEea) {
-            seaEuFactor = 0.5;
           }
           
           const legSeaTimeTotal = leg.seaTime || 0;
@@ -979,11 +988,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         const hasSeaOrPort = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
         if (currentPortKey && hasSeaOrPort && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
           const coveragePct = seaEuFactor * 100;
+          // Coverage label reflects the bracketing LOAD↔DISCHARGE pair
+          // (cargo movement), not the adjacent passing/bunkering ports.
+          const loadEu = bracketLoadIsEu[index];
+          const dischEu = bracketDischIsEu[index];
           let coverageLabel = '';
-          if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
+          if (seaEuFactor === 1.0) coverageLabel = 'Load(EU) → Disch(EU): 100%';
           else if (seaEuFactor === 0.5) {
-            coverageLabel = originIsEu ? 'EU → Non-EU: 50%' : 'Non-EU → EU: 50%';
-          } else coverageLabel = 'Non-EU → Non-EU: 0%';
+            coverageLabel = loadEu
+              ? 'Load(EU) → Disch(Non-EU): 50%'
+              : 'Load(Non-EU) → Disch(EU): 50%';
+          } else if (loadEu === null || dischEu === null) {
+            coverageLabel = 'No cargo bracket: 0%';
+          } else {
+            coverageLabel = 'Load(Non-EU) → Disch(Non-EU): 0%';
+          }
           
           // Port coverage label
           const portLabel = (leg.isEuEea === true) ? ' | Port: EU 100%' : (leg.portDays > 0 ? ' | Port: Non-EU 0%' : '');
