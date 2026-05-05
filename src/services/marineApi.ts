@@ -1,13 +1,8 @@
 // Marine API Service - calls via Edge Function proxy to avoid CORS
+import { dispatchSessionExpired, getStoredAuthToken } from "@/utils/authToken";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-const STORAGE_KEY_TOKEN = "voyagecalc_token";
-
-function getAuthToken(): string | null {
-  return localStorage.getItem(STORAGE_KEY_TOKEN);
-}
 
 // Types
 export interface VesselType {
@@ -69,10 +64,12 @@ export async function apiRequest<T>(
 
   // Add JWT auth token for authenticated endpoints
   if (options?.authenticated !== false) {
-    const token = getAuthToken();
-    if (token) {
-      headers['X-Auth-Token'] = token;
+    const token = getStoredAuthToken();
+    if (!token) {
+      dispatchSessionExpired();
+      throw new Error("Session expired");
     }
+    headers['X-Auth-Token'] = token;
   }
 
   const fetchOptions: RequestInit = {
@@ -91,7 +88,7 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     if (response.status === 401 && typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("voyagecalc:session-expired"));
+      dispatchSessionExpired();
     }
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
