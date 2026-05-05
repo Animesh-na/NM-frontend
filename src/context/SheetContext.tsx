@@ -23,6 +23,7 @@ interface SheetContextValue {
   
   // Actions
   createNewSheet: () => void;
+  copyCurrentSheet: () => void;
   openSheet: (id: string, name: string) => void;
   closeTab: (index: number) => boolean; // returns false if user cancels
   saveCurrentSheet: (name: string, data: Record<string, unknown>) => Promise<void>;
@@ -53,6 +54,21 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     setActiveTabIndex(tabs.length); // will be the new last index
     setCurrentView("editor");
   }, [tabs.length]);
+
+  const copyCurrentSheet = useCallback(() => {
+    const current = tabs[activeTabIndex];
+    if (!current) return;
+    const copiedTab: SheetTab = {
+      id: null,
+      name: `${current.name} (Copy)`,
+      data: JSON.parse(JSON.stringify(current.data)),
+      isDirty: true,
+      isLoading: false,
+    };
+    setTabs(prev => [...prev, copiedTab]);
+    setActiveTabIndex(tabs.length);
+    setCurrentView("editor");
+  }, [tabs, activeTabIndex]);
 
   const openSheet = useCallback(async (id: string, name: string) => {
     // Check if already open
@@ -166,7 +182,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     <SheetContext.Provider value={{
       currentView, setCurrentView,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
-      createNewSheet, openSheet, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
+      createNewSheet, copyCurrentSheet, openSheet, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
     }}>
       {children}
     </SheetContext.Provider>

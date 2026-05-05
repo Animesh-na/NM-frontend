@@ -1,9 +1,9 @@
-import { X, ArrowLeft, Save, Plus } from "lucide-react";
+import { X, ArrowLeft, Save, Plus, Copy } from "lucide-react";
 import { useSheets } from "@/context/SheetContext";
 import { useState } from "react";
 
 export function SheetTabs() {
-  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, createNewSheet } = useSheets();
+  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, createNewSheet, copyCurrentSheet } = useSheets();
   const [savingName, setSavingName] = useState(false);
   const [editName, setEditName] = useState("");
 
@@ -52,6 +52,18 @@ export function SheetTabs() {
           </button>
         </div>
       ))}
+
+      {/* Copy Sheet Button */}
+      {activeTab && (
+        <button
+          onClick={copyCurrentSheet}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/85 transition-colors ml-1 text-[10px] font-medium"
+          title="Copy Sheet"
+        >
+          <Copy className="h-3 w-3" />
+          <span>Copy Sheet</span>
+        </button>
+      )}
 
       {/* New Sheet Button */}
       <button
