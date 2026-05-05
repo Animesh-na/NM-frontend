@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
+import { clearStoredAuthSession, getStoredAuthToken, isAuthTokenExpired, SESSION_EXPIRED_EVENT } from "@/utils/authToken";
 
 interface AuthUser {
   id: string;
@@ -29,14 +30,14 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const STORAGE_KEY_TOKEN = "voyagecalc_token";
 const STORAGE_KEY_USER = "voyagecalc_user";
-const SESSION_EXPIRED_EVENT = "voyagecalc:session-expired";
 
 const VALIDATE_INTERVAL_MS = 2 * 60 * 1000; // Check every 2 minutes
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(STORAGE_KEY_TOKEN));
+  const [token, setToken] = useState<string | null>(() => getStoredAuthToken());
   const [user, setUser] = useState<AuthUser | null>(() => {
     try {
+      if (!getStoredAuthToken()) return null;
       const stored = localStorage.getItem(STORAGE_KEY_USER);
       return stored ? JSON.parse(stored) : null;
     } catch {
@@ -52,8 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearSession = useCallback(() => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem(STORAGE_KEY_TOKEN);
-    localStorage.removeItem(STORAGE_KEY_USER);
+    clearStoredAuthSession();
   }, []);
 
   const handleSessionExpired = useCallback((message?: string) => {
@@ -74,6 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearSession]);
 
   const validateToken = useCallback(async (currentToken: string) => {
+    if (isAuthTokenExpired(currentToken)) {
+      handleSessionExpired();
+      return false;
+    }
+
     try {
       const response = await fetch(
         `${SUPABASE_URL}/functions/v1/marine-api?endpoint=/auth/validate`,
@@ -129,8 +134,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Handle forced session expiration from API layer on 401
   useEffect(() => {
-    const onSessionExpired = () => {
-      handleSessionExpired();
+    const onSessionExpired = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      handleSessionExpired(detail?.message);
     };
 
     window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
