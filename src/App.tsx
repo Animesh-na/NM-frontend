@@ -16,8 +16,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function SheetRouter() {
-  const { currentView, setCurrentView } = useSheets();
-  const { activeTab } = useSheets();
+  const { currentView, setCurrentView, activeTab } = useSheets();
 
   if (currentView === "dashboard") {
     return <Dashboard />;
