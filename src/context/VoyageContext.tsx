@@ -866,8 +866,8 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         console.error(`Searoute API error for leg ${i}:`, error);
         // Fallback: use client-side searoute-js library
         try {
-          const prevPort: Port = { name: prevRow.port || '', coordinates: prevRow.coordinates };
-          const currPort: Port = { name: currRow.port || '', coordinates: currRow.coordinates };
+          const prevPort: Port = { id: 0, unloc: '', name: prevRow.port || '', city: '', country: '', coordinates: prevRow.coordinates };
+          const currPort: Port = { id: 0, unloc: '', name: currRow.port || '', city: '', country: '', coordinates: currRow.coordinates };
           const fallback = calculateSeaRouteDistance(prevPort, currPort);
           if (fallback.success && fallback.distance > 0) {
             console.log(`Fallback searoute-js for leg ${i}: ${fallback.distance} nm (no ECA breakdown)`);
