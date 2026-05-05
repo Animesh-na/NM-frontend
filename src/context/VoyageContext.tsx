@@ -3,6 +3,7 @@ import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/h
 import { defaultVessel, type VesselData } from "@/data/vessels";
 import { getSeaRouteDistance, searchPorts as searchMarinePorts } from "@/services/marineApi";
 import { type Port } from "@/components/voyage/PortSelect";
+import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
 import { isPortEuEea } from "@/utils/euCountries";
 
 // Season options for Open Port
@@ -863,7 +864,21 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
         });
       } catch (error) {
         console.error(`Searoute API error for leg ${i}:`, error);
-        distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+        // Fallback: use client-side searoute-js library
+        try {
+          const prevPort: Port = { id: 0, unloc: '', name: prevRow.port || '', city: '', country: '', coordinates: prevRow.coordinates };
+          const currPort: Port = { id: 0, unloc: '', name: currRow.port || '', city: '', country: '', coordinates: currRow.coordinates };
+          const fallback = calculateSeaRouteDistance(prevPort, currPort);
+          if (fallback.success && fallback.distance > 0) {
+            console.log(`Fallback searoute-js for leg ${i}: ${fallback.distance} nm (no ECA breakdown)`);
+            distanceResults.set(currRow.id, { distance: fallback.distance, ecaDistance: 0 });
+          } else {
+            distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+          }
+        } catch (fallbackErr) {
+          console.error(`Fallback searoute-js also failed for leg ${i}:`, fallbackErr);
+          distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+        }
       }
     }
 
