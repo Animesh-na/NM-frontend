@@ -26,6 +26,11 @@ function SheetRouter() {
     return <AdminPanel onBack={() => setCurrentView("dashboard")} />;
   }
 
+  // Wait for sheet data to load before mounting VoyageProvider
+  if (activeTab?.isLoading) {
+    return <div className="flex items-center justify-center h-screen text-muted-foreground">Loading sheet...</div>;
+  }
+
   return (
     <VoyageProvider key={activeTab?.id || 'new'} initialData={activeTab?.data && Object.keys(activeTab.data).length > 0 ? activeTab.data : null}>
       <BrowserRouter>
