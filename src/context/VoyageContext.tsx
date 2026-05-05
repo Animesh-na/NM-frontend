@@ -642,8 +642,13 @@ const initialMisc: MiscState = {
 
 const VoyageContext = createContext<VoyageContextValue | null>(null);
 
-export function VoyageProvider({ children }: { children: ReactNode }) {
-  const [vessel, setVessel] = useState<VesselData>({
+export interface VoyageProviderProps {
+  children: ReactNode;
+  initialData?: Record<string, unknown> | null;
+}
+
+export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
+  const [vessel, setVessel] = useState<VesselData>(() => (initialData?.vessel as VesselData) || ({
     ...defaultVessel,
     name: "",
     type: "",
@@ -656,18 +661,36 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
     hsfoCapability: false,
     hasScrubber: false,
     scrubberCount: 0,
-  });
+  }));
 
-  const [sequence, setSequence] = useState<SequenceRowUI[]>(initialSequence);
-  const [cargos, setCargos] = useState<CargoEntry[]>(initialCargos);
-  const [bunker, setBunker] = useState<BunkerState>(initialBunker);
-  const [misc, setMisc] = useState<MiscState>(initialMisc);
-  const [hireRate, setHireRate] = useState(8542);
-  const [netBB, setNetBB] = useState(0);
-  const [vesselCost, setVesselCost] = useState(6500);
+  const [sequence, setSequence] = useState<SequenceRowUI[]>(() =>
+    (initialData?.sequence as SequenceRowUI[]) || initialSequence
+  );
+  const [cargos, setCargos] = useState<CargoEntry[]>(() =>
+    (initialData?.cargos as CargoEntry[]) || initialCargos
+  );
+  const [bunker, setBunker] = useState<BunkerState>(() =>
+    initialData?.bunker ? { ...initialBunker, ...(initialData.bunker as Partial<BunkerState>) } : initialBunker
+  );
+  const [misc, setMisc] = useState<MiscState>(() =>
+    initialData?.misc ? { ...initialMisc, ...(initialData.misc as Partial<MiscState>) } : initialMisc
+  );
+  const [hireRate, setHireRate] = useState(() =>
+    initialData?.hireRate != null ? Number(initialData.hireRate) : 8542
+  );
+  const [netBB, setNetBB] = useState(() =>
+    initialData?.netBB != null ? Number(initialData.netBB) : 0
+  );
+  const [vesselCost, setVesselCost] = useState(() =>
+    initialData?.vesselCost != null ? Number(initialData.vesselCost) : 6500
+  );
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
-  const [applyEuaImpact, setApplyEuaImpact] = useState(false);
-  const [applyFuelEuImpact, setApplyFuelEuImpact] = useState(false);
+  const [applyEuaImpact, setApplyEuaImpact] = useState(() =>
+    initialData?.applyEuaImpact === true
+  );
+  const [applyFuelEuImpact, setApplyFuelEuImpact] = useState(() =>
+    initialData?.applyFuelEuImpact === true
+  );
   const [distanceLoading, setDistanceLoading] = useState(false);
 
   // Recalculate derived port days and sea times whenever vessel changes
@@ -907,7 +930,7 @@ export function VoyageProvider({ children }: { children: ReactNode }) {
 
   // Persistent flag to suppress distance recalculation (used when loading sheet data)
   // Using a ref so setting it doesn't re-trigger the distance effect
-  const distanceSuppressedRef = useRef(false);
+  const distanceSuppressedRef = useRef(!!initialData?.sequence);
   
   const setDistanceSuppressed = useCallback((suppressed: boolean) => {
     distanceSuppressedRef.current = suppressed;
