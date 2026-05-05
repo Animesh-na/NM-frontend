@@ -930,7 +930,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   // Persistent flag to suppress distance recalculation (used when loading sheet data)
   // Using a ref so setting it doesn't re-trigger the distance effect
-  const distanceSuppressedRef = useRef(false);
+  const distanceSuppressedRef = useRef(!!initialData?.sequence);
   
   const setDistanceSuppressed = useCallback((suppressed: boolean) => {
     distanceSuppressedRef.current = suppressed;
