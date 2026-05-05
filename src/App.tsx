@@ -17,6 +17,7 @@ const queryClient = new QueryClient();
 
 function SheetRouter() {
   const { currentView, setCurrentView } = useSheets();
+  const { activeTab } = useSheets();
 
   if (currentView === "dashboard") {
     return <Dashboard />;
@@ -27,7 +28,7 @@ function SheetRouter() {
   }
 
   return (
-    <VoyageProvider>
+    <VoyageProvider key={activeTab?.id || 'new'} initialData={activeTab?.data && Object.keys(activeTab.data).length > 0 ? activeTab.data : null}>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
