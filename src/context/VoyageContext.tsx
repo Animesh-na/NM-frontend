@@ -868,6 +868,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
        const previousLegKey = lastComputedLegsRef.current.get(currRow.id);
        if (previousLegKey === legKey) {
          // Keep existing distance — don't add to distanceResults so it stays unchanged
+        console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): CACHED, skipping API call`);
         continue;
       }
 
@@ -887,6 +888,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
       // All checks passed — call the API
       try {
+        console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): calling API`);
         const [prevLon, prevLat] = prevRow.coordinates!;
         const [currLon, currLat] = currRow.coordinates!;
          const result = await getSeaRouteDistance(
