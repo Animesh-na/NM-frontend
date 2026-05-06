@@ -933,16 +933,16 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     }
 
     // Merge computed leg keys into the persistent cache (don't replace entirely)
-    for (const [rowId, key] of newComputedLegs) {
+    newComputedLegs.forEach((key, rowId) => {
       lastComputedLegsRef.current.set(rowId, key);
-    }
+    });
     // Remove entries for row IDs no longer in the sequence
     const currentRowIds = new Set(snapshot.map(r => r.id));
-    for (const k of lastComputedLegsRef.current.keys()) {
+    Array.from(lastComputedLegsRef.current.keys()).forEach(k => {
       if (!currentRowIds.has(k)) {
         lastComputedLegsRef.current.delete(k);
       }
-    }
+    });
 
     // Apply results using functional update so we never overwrite concurrent changes
     setSequence((prev) => {
