@@ -153,9 +153,14 @@ export async function getSeaRouteDistance(
   destPortCode?: string
 ): Promise<SeaRouteResponse> {
   // Build the ports parameter: use valid port codes if available, otherwise lat,lon format
-  // Invalid codes: "NaN", empty, fallback "PORT-xxxxx" or "COORD-xxxxx" IDs
+  // Valid codes: from port search API, formatted as country+code (e.g. EGGUOS, EGSUZ, ZARCB)
+  // Invalid: "NaN", empty, fallback "PORT-*"/"COORD-*", or legacy sea-ports short codes (<=4 chars)
   const isValidCode = (code?: string) =>
-    !!code && code !== "NaN" && !code.startsWith("PORT-") && !code.startsWith("COORD-");
+    !!code &&
+    code !== "NaN" &&
+    !code.startsWith("PORT-") &&
+    !code.startsWith("COORD-") &&
+    code.length >= 5; // Port search API codes are 5+ chars (country prefix + port)
 
   const bothValid = isValidCode(originPortCode) && isValidCode(destPortCode);
 
