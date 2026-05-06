@@ -811,6 +811,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
    // Track the last computed port key per leg to avoid redundant API calls
    const lastComputedLegsRef = useRef<Map<number, string>>(new Map());
+    const recalcRunIdRef = useRef(0);
 
   const recalculateDistances = useCallback(async () => {
     setDistanceLoading(true);
@@ -835,6 +836,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       setDistanceLoading(false);
       return;
     }
+
+    // Claim a run ID to detect if a newer recalculation supersedes this one
+    const runId = ++recalcRunIdRef.current;
 
     // Collect distance results for legs that have valid coordinates
     const distanceResults: Map<number, { distance: number; ecaDistance: number }> = new Map();
@@ -864,6 +868,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
        const previousLegKey = lastComputedLegsRef.current.get(currRow.id);
        if (previousLegKey === legKey) {
          // Keep existing distance — don't add to distanceResults so it stays unchanged
+        console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): CACHED, skipping API call`);
         continue;
       }
 
@@ -883,6 +888,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
       // All checks passed — call the API
       try {
+        console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): calling API`);
         const [prevLon, prevLat] = prevRow.coordinates!;
         const [currLon, currLat] = currRow.coordinates!;
          const result = await getSeaRouteDistance(
@@ -920,7 +926,23 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     }
 
      // Update the tracked leg keys
-     lastComputedLegsRef.current = newComputedLegs;
+    // If a newer run started while we were fetching, abort
+    if (runId !== recalcRunIdRef.current) {
+      setDistanceLoading(false);
+      return;
+    }
+
+    // Merge computed leg keys into the persistent cache (don't replace entirely)
+    newComputedLegs.forEach((key, rowId) => {
+      lastComputedLegsRef.current.set(rowId, key);
+    });
+    // Remove entries for row IDs no longer in the sequence
+    const currentRowIds = new Set(snapshot.map(r => r.id));
+    Array.from(lastComputedLegsRef.current.keys()).forEach(k => {
+      if (!currentRowIds.has(k)) {
+        lastComputedLegsRef.current.delete(k);
+      }
+    });
 
     // Apply results using functional update so we never overwrite concurrent changes
     setSequence((prev) => {
