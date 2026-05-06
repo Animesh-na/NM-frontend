@@ -803,10 +803,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     });
   }, []);
 
-  // Recalculate all distances using searoute API, then update sea times
+   // Recalculate distances using fleetgo/distbl API, then update sea times
+   // Only calls API for legs whose ports have changed since last calculation
   // Uses a ref to current vessel to avoid stale closures
   const vesselRef = useRef(vessel);
   vesselRef.current = vessel;
+
+   // Track the last computed port key per leg to avoid redundant API calls
+   const lastComputedLegsRef = useRef<Map<number, string>>(new Map());
 
   const recalculateDistances = useCallback(async () => {
     setDistanceLoading(true);
@@ -827,16 +831,22 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         const zeroedRows = prev.map((row) => ({ ...row, distance: 0, ecaDistance: 0 }));
         return recalculateDerivedSequenceRows(zeroedRows, currentVessel);
       });
+       lastComputedLegsRef.current.clear();
       setDistanceLoading(false);
       return;
     }
 
     // Collect distance results for legs that have valid coordinates
     const distanceResults: Map<number, { distance: number; ecaDistance: number }> = new Map();
+     const newComputedLegs = new Map<number, string>();
 
     for (let i = 1; i < snapshot.length; i++) {
       const prevRow = snapshot[i - 1];
       const currRow = snapshot[i];
+
+       // Build a key that uniquely identifies this leg's port pair
+       const legKey = `${prevRow.portUnloc || ''}:${prevRow.coordinates?.[0]},${prevRow.coordinates?.[1]}_${currRow.portUnloc || ''}:${currRow.coordinates?.[0]},${currRow.coordinates?.[1]}`;
+       newComputedLegs.set(currRow.id, legKey);
 
       // Rule: Skip if current port is not selected
       if (!currRow.port || !currRow.portUnloc) {
@@ -850,9 +860,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         continue;
       }
 
-      // Rule: Skip if previous and current port are the same
-      if (prevRow.portUnloc === currRow.portUnloc) {
-        distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+       // Skip if this leg hasn't changed since last calculation
+       const previousLegKey = lastComputedLegsRef.current.get(currRow.id);
+       if (previousLegKey === legKey) {
+         // Keep existing distance — don't add to distanceResults so it stays unchanged
         continue;
       }
 
@@ -874,10 +885,13 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       try {
         const [prevLon, prevLat] = prevRow.coordinates!;
         const [currLon, currLat] = currRow.coordinates!;
-        const result = await getSeaRouteDistance(prevLat, prevLon, currLat, currLon);
+         const result = await getSeaRouteDistance(
+           prevLat, prevLon, currLat, currLon,
+           prevRow.portUnloc || undefined,
+           currRow.portUnloc || undefined
+         );
         const totalDist = result.total_distance_nm ?? 0;
         const ecaDist = result.eca_distance_nm ?? 0;
-        // non-ECA = total minus ECA; use explicit subtraction to avoid JS falsy-zero bug
         const nonEcaDist = result.non_eca_distance_nm != null
           ? result.non_eca_distance_nm
           : Math.max(0, totalDist - ecaDist);
@@ -886,14 +900,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
           ecaDistance: Math.round(ecaDist),
         });
       } catch (error) {
-        console.error(`Searoute API error for leg ${i}:`, error);
-        // Fallback: use client-side searoute-js library
+         console.error(`Distance API error for leg ${i}:`, error);
+         // Fallback: use client-side searoute-js library (no ECA breakdown)
         try {
           const prevPort: Port = { id: 0, unloc: '', name: prevRow.port || '', city: '', country: '', coordinates: prevRow.coordinates };
           const currPort: Port = { id: 0, unloc: '', name: currRow.port || '', city: '', country: '', coordinates: currRow.coordinates };
           const fallback = calculateSeaRouteDistance(prevPort, currPort);
           if (fallback.success && fallback.distance > 0) {
-            console.log(`Fallback searoute-js for leg ${i}: ${fallback.distance} nm (no ECA breakdown)`);
+             console.log(`Fallback for leg ${i}: ${fallback.distance} nm (no ECA breakdown)`);
             distanceResults.set(currRow.id, { distance: fallback.distance, ecaDistance: 0 });
           } else {
             distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
@@ -904,6 +918,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         }
       }
     }
+
+     // Update the tracked leg keys
+     lastComputedLegsRef.current = newComputedLegs;
 
     // Apply results using functional update so we never overwrite concurrent changes
     setSequence((prev) => {
