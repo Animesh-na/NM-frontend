@@ -159,20 +159,34 @@ export async function getSeaRouteDistance(
 
   const bothValid = isValidCode(originPortCode) && isValidCode(destPortCode);
 
-  // API requires consistent format: either both port codes or both lat,lon
-  const originPart = bothValid
-    ? originPortCode!
-    : `:${originLat},${originLon}`;
-  const destPart = bothValid
-    ? destPortCode!
-    : `:${destLat},${destLon}`;
-  const portsParam = `${originPart}_${destPart}`;
+  const latLonOrigin = `:${originLat},${originLon}`;
+  const latLonDest = `:${destLat},${destLon}`;
 
+  // Try port codes first if both look valid, fall back to lat/lon on failure
+  if (bothValid) {
+    try {
+      const data = await apiRequest<{
+        total_distance: number;
+        eca_distance: number;
+        non_eca_distance: number;
+      }>("/fleetgo/distbl", { ports: `${originPortCode}_${destPortCode}` }, { authenticated: true });
+      return {
+        total_distance_nm: data.total_distance ?? 0,
+        eca_distance_nm: data.eca_distance ?? 0,
+        non_eca_distance_nm: data.non_eca_distance ?? 0,
+      };
+    } catch {
+      // Port codes rejected — fall through to lat/lon
+      console.warn(`Port codes ${originPortCode}_${destPortCode} rejected, falling back to lat/lon`);
+    }
+  }
+
+  // Use lat/lon format (always works)
   const data = await apiRequest<{
     total_distance: number;
     eca_distance: number;
     non_eca_distance: number;
-  }>("/fleetgo/distbl", { ports: portsParam }, { authenticated: true });
+  }>("/fleetgo/distbl", { ports: `${latLonOrigin}_${latLonDest}` }, { authenticated: true });
 
   return {
     total_distance_nm: data.total_distance ?? 0,
