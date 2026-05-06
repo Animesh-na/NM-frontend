@@ -142,23 +142,32 @@ export interface SeaRouteResponse {
   total_distance_nm: number;
   eca_distance_nm: number;
   non_eca_distance_nm: number;
-  eca_percentage: number;
-  route_geojson?: unknown;
 }
 
 export async function getSeaRouteDistance(
   originLat: number,
   originLon: number,
   destLat: number,
-  destLon: number
+  destLon: number,
+  originPortCode?: string,
+  destPortCode?: string
 ): Promise<SeaRouteResponse> {
-  const data = await apiRequest<SeaRouteResponse>("/searoute", {
-    origin_lat: originLat,
-    origin_lon: originLon,
-    dest_lat: destLat,
-    dest_lon: destLon,
-  }, { authenticated: false });
-  return data;
+  // Build the ports parameter: use port codes if available, otherwise lat,lon format
+  const originPart = originPortCode ? originPortCode : `:${originLat},${originLon}`;
+  const destPart = destPortCode ? destPortCode : `:${destLat},${destLon}`;
+  const portsParam = `${originPart}_${destPart}`;
+
+  const data = await apiRequest<{
+    total_distance: number;
+    eca_distance: number;
+    non_eca_distance: number;
+  }>("/fleetgo/distbl", { ports: portsParam }, { authenticated: true });
+
+  return {
+    total_distance_nm: data.total_distance ?? 0,
+    eca_distance_nm: data.eca_distance ?? 0,
+    non_eca_distance_nm: data.non_eca_distance ?? 0,
+  };
 }
 
 // ============= Sheet Management APIs (Authenticated) =============
