@@ -157,10 +157,13 @@ export async function getSeaRouteDistance(
   const isValidCode = (code?: string) =>
     !!code && code !== "NaN" && !code.startsWith("PORT-");
 
-  const originPart = isValidCode(originPortCode)
+  const bothValid = isValidCode(originPortCode) && isValidCode(destPortCode);
+
+  // API requires consistent format: either both port codes or both lat,lon
+  const originPart = bothValid
     ? originPortCode!
     : `:${originLat},${originLon}`;
-  const destPart = isValidCode(destPortCode)
+  const destPart = bothValid
     ? destPortCode!
     : `:${destLat},${destLon}`;
   const portsParam = `${originPart}_${destPart}`;
