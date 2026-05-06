@@ -1108,9 +1108,15 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
               (!!row.portUnloc && !!p.port_code && p.port_code === row.portUnloc)
           );
           if (match) {
+            const rawCode = match.port_code?.trim();
+            const validCode = rawCode && rawCode !== "NaN" && rawCode !== "0"
+              ? rawCode
+              : undefined;
             updates[row.id] = {
               portId: row.portId ?? match.id,
-              portUnloc: row.portUnloc || match.port_code || `PORT-${match.id}`,
+              portUnloc: row.portUnloc && !row.portUnloc.startsWith("PORT-") && !row.portUnloc.startsWith("COORD-")
+                ? row.portUnloc
+                : validCode || `COORD-${match.latitude?.toFixed(4)},${match.longitude?.toFixed(4)}`,
               coordinates:
                 row.coordinates ||
                 (match.longitude != null && match.latitude != null

@@ -26,9 +26,15 @@ interface PortSelectProps {
 
 // Convert MarinePort to Port interface
 function marinePortToPort(port: MarinePort): Port {
+  // Treat "NaN", empty, or whitespace-only port_code as missing
+  const rawCode = port.port_code?.trim();
+  const validCode = rawCode && rawCode !== "NaN" && rawCode !== "0"
+    ? rawCode
+    : undefined;
+
   return {
     id: port.id,
-    unloc: port.port_code?.trim() || `PORT-${port.id}`,
+    unloc: validCode || `COORD-${port.latitude.toFixed(4)},${port.longitude.toFixed(4)}`,
     name: port.port_name,
     city: port.port_name,
     country: port.country,
