@@ -105,6 +105,9 @@ export interface SequenceRowUI {
   weatherDelayHours?: number;
   // ETA from distance API
   eta?: string;
+  // Cascading leg departure/arrival UTC (computed from cumulative time)
+  legDepartureUtc?: string;
+  legArrivalUtc?: string;
 }
 
 // Multi-cargo entry structure
