@@ -997,7 +997,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     setSequence((prev) => {
       const currentVessel = vesselRef.current;
       const updatedRows = prev.map((row) => {
-        const dist = distanceResults.get(row.id) as { distance: number; ecaDistance: number; weatherDelayHours?: number; eta?: string } | undefined;
+        const dist = distanceResults.get(row.id);
         return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance, weatherDelayHours: dist.weatherDelayHours, eta: dist.eta } : row;
       });
 
