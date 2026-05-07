@@ -323,7 +323,8 @@ function getSpeedForContext(
 function calculateSeaTime(
   row: SequenceRowUI, 
   isLaden: boolean, 
-  vessel: VesselData
+  vessel: VesselData,
+  useWeatherDelay?: boolean
 ): { baseSeaTime: number; seaMarginTime: number; ecaTime: number; seaTime: number; totalLegTime: number } {
   if (row.type === "open") {
     return { baseSeaTime: 0, seaMarginTime: 0, ecaTime: 0, seaTime: 0, totalLegTime: 0 };
@@ -347,7 +348,19 @@ function calculateSeaTime(
   // Total base sea time (before margin)
   const baseSeaTime = baseNonEcaTime + baseEcaTime;
   
-  // Calculate sea margin time: Sea Margin Time = Base Time × (Sea Margin / 100)
+    // When auto-distance with weather delay: use delayHours from API instead of sea margin %
+    if (useWeatherDelay && row.weatherDelayHours !== undefined) {
+      const weatherDelayDays = Math.max(0, row.weatherDelayHours) / 24;
+      const seaMarginTime = weatherDelayDays;
+      const ecaFraction = baseSeaTime > 0 ? baseEcaTime / baseSeaTime : 0;
+      const nonEcaFraction = baseSeaTime > 0 ? baseNonEcaTime / baseSeaTime : 0;
+      const seaTime = baseNonEcaTime + weatherDelayDays * nonEcaFraction;
+      const ecaTime = baseEcaTime + weatherDelayDays * ecaFraction;
+      const totalLegTime = baseSeaTime + weatherDelayDays;
+      return { baseSeaTime, seaMarginTime, ecaTime, seaTime, totalLegTime };
+    }
+
+    // Manual mode: use sea margin percentage
   const seaMarginPercent = row.seaMargin || 0;
   const seaMarginTime = baseSeaTime * (seaMarginPercent / 100);
   
@@ -390,11 +403,11 @@ function updateCargoOnBoard(cargoOnBoard: number, row: Pick<SequenceRowUI, "oper
   return cargoOnBoard;
 }
 
-function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData): SequenceRowUI[] {
+function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData, useWeatherDelay?: boolean): SequenceRowUI[] {
   let cargoOnBoard = 0;
 
   return rows.map((row) => {
-    const seaTimeData = calculateSeaTime(row, cargoOnBoard > 0, vessel);
+    const seaTimeData = calculateSeaTime(row, cargoOnBoard > 0, vessel, useWeatherDelay);
     const recalculatedRow = {
       ...row,
       calculatedPortDays: calculatePortDays(row),
@@ -701,11 +714,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     initialData?.applyFuelEuImpact === true
   );
   const [distanceLoading, setDistanceLoading] = useState(false);
+  const [departureUtc, setDepartureUtc] = useState(() =>
+    (initialData?.departureUtc as string) || ""
+  );
 
   // Recalculate derived port days and sea times whenever vessel changes
   useEffect(() => {
-    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel));
-  }, [vessel]);
+    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel, autoDistanceEnabled));
+  }, [vessel, autoDistanceEnabled]);
 
   const updateSequenceRow = useCallback((id: number, field: keyof SequenceRowUI, value: string | number) => {
     setSequence((prev) => {
@@ -780,9 +796,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         }
       }
 
-      return recalculateDerivedSequenceRows(syncedRows, vessel);
+      return recalculateDerivedSequenceRows(syncedRows, vessel, autoDistanceEnabled);
     });
-  }, [vessel]);
+  }, [vessel, autoDistanceEnabled]);
 
   const addPort = useCallback((operation: PortOperation) => {
     setSequence(prev => {
@@ -900,11 +916,33 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): calling API`);
         const [prevLon, prevLat] = prevRow.coordinates!;
         const [currLon, currLat] = currRow.coordinates!;
-         const result = await getSeaRouteDistance(
-           prevLat, prevLon, currLat, currLon,
-           prevRow.portUnloc || undefined,
-           currRow.portUnloc || undefined
-         );
+
+        // Determine speed for this leg based on laden/ballast state
+        let cargoOnBoardForLeg = 0;
+        for (let j = 0; j < i; j++) {
+          cargoOnBoardForLeg = updateCargoOnBoard(cargoOnBoardForLeg, snapshot[j]);
+        }
+        const isLadenForLeg = cargoOnBoardForLeg > 0;
+        const { seaSpeed: legSpeed } = getSpeedForContext(currRow.distanceSpeedContext, isLadenForLeg, vesselRef.current);
+
+        // For departure_utc: use ETA from previous leg or global departure
+        let legDepartureUtc = "";
+        if (i === 1) {
+          legDepartureUtc = departureUtc;
+        } else {
+          const prevRowInSeq = snapshot[i - 1];
+          if (prevRowInSeq.eta) {
+            legDepartureUtc = prevRowInSeq.eta;
+          }
+        }
+
+        const result = await getSeaRouteDistance(
+          prevLat, prevLon, currLat, currLon,
+          prevRow.portUnloc || undefined,
+          currRow.portUnloc || undefined,
+          legSpeed > 0 ? legSpeed : undefined,
+          legDepartureUtc || undefined
+        );
         const totalDist = result.total_distance_nm ?? 0;
         const ecaDist = result.eca_distance_nm ?? 0;
         const nonEcaDist = result.non_eca_distance_nm != null
@@ -913,6 +951,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         distanceResults.set(currRow.id, {
           distance: Math.round(nonEcaDist),
           ecaDistance: Math.round(ecaDist),
+          weatherDelayHours: result.delayHours,
+          eta: result.eta,
         });
       } catch (error) {
          console.error(`Distance API error for leg ${i}:`, error);
@@ -957,14 +997,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     setSequence((prev) => {
       const currentVessel = vesselRef.current;
       const updatedRows = prev.map((row) => {
-        const dist = distanceResults.get(row.id);
-        return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance } : row;
+        const dist = distanceResults.get(row.id) as { distance: number; ecaDistance: number; weatherDelayHours?: number; eta?: string } | undefined;
+        return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance, weatherDelayHours: dist.weatherDelayHours, eta: dist.eta } : row;
       });
 
-      return recalculateDerivedSequenceRows(updatedRows, currentVessel);
+      return recalculateDerivedSequenceRows(updatedRows, currentVessel, true);
     });
     setDistanceLoading(false);
-  }, []);
+  }, [departureUtc]);
 
   // Track port identity + coordinates to only trigger API on actual port changes
   const portCoordsKey = useMemo(() => 
@@ -1454,6 +1494,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         results,
         suppressDistanceRecalc,
         setDistanceSuppressed,
+        departureUtc,
+        setDepartureUtc,
       }}
     >
       {children}
@@ -1486,6 +1528,8 @@ export function useVoyageContext() {
       distanceLoading: false,
       suppressDistanceRecalc: () => {},
       setDistanceSuppressed: () => {},
+      departureUtc: "",
+      setDepartureUtc: () => {},
       cargos: [],
       setCargos: () => {},
       addCargo: () => {},
