@@ -408,18 +408,45 @@ function updateCargoOnBoard(cargoOnBoard: number, row: Pick<SequenceRowUI, "oper
 
 function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData, useWeatherDelay?: boolean): SequenceRowUI[] {
   let cargoOnBoard = 0;
+  let currentDepartureMs: number | null = null;
 
   return rows.map((row) => {
     const seaTimeData = calculateSeaTime(row, cargoOnBoard > 0, vessel, useWeatherDelay);
+    const portDays = calculatePortDays(row);
+
+    let legDepartureUtc: string | undefined;
+    let legArrivalUtc: string | undefined;
+
+    if (currentDepartureMs !== null) {
+      if (row.type === "open") {
+        legDepartureUtc = fmtDTLocal(currentDepartureMs);
+        currentDepartureMs += portDays * 86400000;
+      } else {
+        legDepartureUtc = fmtDTLocal(currentDepartureMs);
+        const seaMs = (seaTimeData.totalLegTime || 0) * 86400000;
+        const arrMs = currentDepartureMs + seaMs;
+        legArrivalUtc = fmtDTLocal(arrMs);
+        currentDepartureMs = arrMs + portDays * 86400000;
+      }
+    }
+
     const recalculatedRow = {
       ...row,
-      calculatedPortDays: calculatePortDays(row),
+      calculatedPortDays: portDays,
       ...seaTimeData,
+      legDepartureUtc,
+      legArrivalUtc,
     };
 
     cargoOnBoard = updateCargoOnBoard(cargoOnBoard, row);
     return recalculatedRow;
   });
+}
+
+function fmtDTLocal(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
 }
 
 const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco", defaultCranes: number = 4, hasScrubber: boolean = false): SequenceRowUI => ({
