@@ -100,6 +100,11 @@ export interface SequenceRowUI {
   isEuEea?: boolean;
   // Country name for EU/EEA fallback detection
   portCountry?: string;
+  
+  // Weather delay from API (hours) - used when auto distance is ON
+  weatherDelayHours?: number;
+  // ETA from distance API
+  eta?: string;
 }
 
 // Multi-cargo entry structure
@@ -143,6 +148,10 @@ interface VoyageContextValue {
   distanceLoading: boolean;
    suppressDistanceRecalc: () => void;
    setDistanceSuppressed: (suppressed: boolean) => void;
+   
+   // Departure UTC for weather routing
+   departureUtc: string;
+   setDepartureUtc: (value: string) => void;
    
    // Multi-cargo state
   cargos: CargoEntry[];
