@@ -174,6 +174,15 @@ export function SequenceTable() {
                           onChange={(port) => handlePortChange(row.id, port)}
                           placeholder="Select port..."
                         />
+                        {(row.legDepartureUtc || row.legArrivalUtc) && (
+                          <div className="flex gap-1.5 px-1 text-[8px] text-muted-foreground font-mono leading-tight">
+                            {row.legArrivalUtc && <span title="Arrival">A:{row.legArrivalUtc.replace("T"," ")}</span>}
+                            {row.legDepartureUtc && row.type !== "open" && row.calculatedPortDays > 0 && (
+                              <span title="Departure after port ops">D:{fmtDTShort(row.legArrivalUtc || row.legDepartureUtc, row.calculatedPortDays)}</span>
+                            )}
+                            {row.type === "open" && row.legDepartureUtc && <span title="Departure">D:{row.legDepartureUtc.replace("T"," ")}</span>}
+                          </div>
+                        )}
                       </td>
 
                       {/* Distance (V) */}
