@@ -9,6 +9,7 @@ import { MiscSection } from "@/components/voyage/MiscSection";
 import { SheetNotes } from "@/components/voyage/SheetNotes";
 import { JsonImportSection } from "@/components/voyage/JsonImportSection";
 import { VoyageSummary } from "@/components/voyage/VoyageSummary";
+import { VoyageTimeline } from "@/components/voyage/VoyageTimeline";
 import { useSheets } from "@/context/sheetContextCore";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { Loader2 } from "lucide-react";
@@ -150,6 +151,9 @@ const Index = () => {
         <div className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background">
           <div className="p-2">
             <VoyageSummary />
+            <div className="mt-2">
+              <VoyageTimeline />
+            </div>
           </div>
         </div>
       </div>
