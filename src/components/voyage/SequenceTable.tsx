@@ -38,6 +38,7 @@ export function SequenceTable() {
   const { 
     sequence, setSequence, updateSequenceRow, addPort, addRepositioning, removeSequence,
     recalculateDistances, autoDistanceEnabled, setAutoDistanceEnabled, distanceLoading, vessel,
+    departureUtc, setDepartureUtc,
   } = useVoyageContext();
   
   const [isExpanded, setIsExpanded] = useState(true);
@@ -122,7 +123,7 @@ export function SequenceTable() {
                   <th className={thClass}>Dist nm</th>
                   <th className={thClass}>ECA nm</th>
                   <th className={thClass}>Sea (d)</th>
-                  <th className={thClass}>SM %</th>
+                  <th className={thClass}>{autoDistanceEnabled ? "WD h" : "SM %"}</th>
                   <th className={thClass}>Qty mt</th>
                   <th className={thClass}>mt/d</th>
                   <th className={thClass}>Terms</th>
@@ -222,7 +223,11 @@ export function SequenceTable() {
 
                       {/* Sea Margin */}
                       <td className={tdClass}>
-                        {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
+                        {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : autoDistanceEnabled ? (
+                          <span className="text-[10px] font-mono text-right w-12 inline-block px-1 text-muted-foreground">
+                            {row.weatherDelayHours !== undefined ? Math.max(0, row.weatherDelayHours).toFixed(1) : "—"}
+                          </span>
+                        ) : (
                           <input type="number" min="0" max="100" step="0.5" className="form-input-sm w-12 font-mono text-right text-[10px]"
                             value={row.seaMargin || ""} onChange={(e) => updateSequenceRow(row.id, "seaMargin", parseFloat(e.target.value) || 0)} placeholder="0" />
                         )}
@@ -396,6 +401,17 @@ export function SequenceTable() {
               <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-3.5 w-3.5" />
               <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">Auto dist</label>
             </div>
+            {autoDistanceEnabled && (
+              <div className="flex items-center gap-1">
+                <label className="text-[10px] text-muted-foreground">Dep:</label>
+                <input
+                  type="datetime-local"
+                  className="form-input-sm text-[10px] font-mono w-36"
+                  value={departureUtc}
+                  onChange={(e) => setDepartureUtc(e.target.value)}
+                />
+              </div>
+            )}
             <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled}>
               <RefreshCw className="h-3 w-3" /> Distances
             </button>
