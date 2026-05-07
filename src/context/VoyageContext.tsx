@@ -959,16 +959,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         const isLadenForLeg = cargoOnBoardForLeg > 0;
         const { seaSpeed: legSpeed } = getSpeedForContext(currRow.distanceSpeedContext, isLadenForLeg, vesselRef.current);
 
-        // For departure_utc: use ETA from previous leg or global departure
-        let legDepartureUtc = "";
-        if (i === 1) {
-          legDepartureUtc = departureUtc;
-        } else {
-          const prevRowInSeq = snapshot[i - 1];
-          if (prevRowInSeq.eta) {
-            legDepartureUtc = prevRowInSeq.eta;
-          }
-        }
+        // Use cascading leg departure from sequence row
+        const legDepartureUtc = currRow.legDepartureUtc
+          ? currRow.legDepartureUtc.replace("T", " ")
+          : (i === 1 ? departureUtc.replace("T", " ") : "");
 
         const result = await getSeaRouteDistance(
           prevLat, prevLon, currLat, currLon,
