@@ -866,7 +866,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     const runId = ++recalcRunIdRef.current;
 
     // Collect distance results for legs that have valid coordinates
-    const distanceResults: Map<number, { distance: number; ecaDistance: number }> = new Map();
+    const distanceResults: Map<number, { distance: number; ecaDistance: number; weatherDelayHours?: number; eta?: string }> = new Map();
      const newComputedLegs = new Map<number, string>();
 
     for (let i = 1; i < snapshot.length; i++) {
