@@ -411,17 +411,15 @@ export function SequenceTable() {
               <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-3.5 w-3.5" />
               <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">Auto dist</label>
             </div>
-            {autoDistanceEnabled && (
-              <div className="flex items-center gap-1">
-                <label className="text-[10px] text-muted-foreground">Dep:</label>
-                <input
-                  type="datetime-local"
-                  className="form-input-sm text-[10px] font-mono w-36"
-                  value={departureUtc}
-                  onChange={(e) => setDepartureUtc(e.target.value)}
-                />
-              </div>
-            )}
+            <div className="flex items-center gap-1">
+              <label className="text-[10px] text-muted-foreground">Dep:</label>
+              <input
+                type="datetime-local"
+                className="form-input-sm text-[10px] font-mono w-36"
+                value={departureUtc}
+                onChange={(e) => setDepartureUtc(e.target.value)}
+              />
+            </div>
             <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled}>
               <RefreshCw className="h-3 w-3" /> Distances
             </button>
