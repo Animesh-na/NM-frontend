@@ -157,8 +157,3 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useSheets() {
-  const ctx = useContext(SheetContext);
-  if (!ctx) throw new Error("useSheets must be used within SheetProvider");
-  return ctx;
-}
