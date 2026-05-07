@@ -72,7 +72,7 @@ export function VoyageTimeline() {
                     {row.type === "open" && (
                       <span className="ml-1 text-[9px] font-normal text-muted-foreground">(Open)</span>
                     )}
-                    {row.type === "repositioning" && (
+                    {row.type === "repos" && (
                       <span className="ml-1 text-[9px] font-normal text-muted-foreground">(Repo)</span>
                     )}
                     {row.operation && row.type === "port" && (
@@ -95,12 +95,12 @@ export function VoyageTimeline() {
                       </>
                     )}
                   </div>
-                  {/* Sea time to next port */}
-                  {!isLast && row.type !== "open" && (row.seaTimeData?.totalLegTime ?? 0) > 0 && (
+                  {/* Sea time info */}
+                  {!isLast && row.type !== "open" && (row.totalLegTime ?? 0) > 0 && (
                     <div className="text-[8px] text-muted-foreground mt-0.5 italic">
-                      ⛵ {(row.seaTimeData?.totalLegTime ?? 0).toFixed(2)}d sailing
-                      {(row.seaTimeData?.weatherDelayDays ?? 0) > 0 && (
-                        <span className="text-warning"> (+{(row.seaTimeData?.weatherDelayDays ?? 0).toFixed(2)}d weather)</span>
+                      ⛵ {(row.totalLegTime ?? 0).toFixed(2)}d sailing
+                      {(row.weatherDelayHours ?? 0) > 0 && (
+                        <span className="text-warning"> (+{((row.weatherDelayHours ?? 0) / 24).toFixed(2)}d weather)</span>
                       )}
                     </div>
                   )}
