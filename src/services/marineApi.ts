@@ -150,8 +150,10 @@ export async function getSeaRouteDistance(
   destLat: number,
   destLon: number,
   originPortCode?: string,
-  destPortCode?: string
-): Promise<SeaRouteResponse> {
+  destPortCode?: string,
+  vesselSpeed?: number,
+  departureUtc?: string
+): Promise<SeaRouteResponse & { delayHours?: number; eta?: string }> {
   // Build the ports parameter: use valid port codes if available, otherwise lat,lon format
   // Valid codes: from port search API, formatted as country+code (e.g. EGGUOS, EGSUZ, ZARCB)
   // Invalid: "NaN", empty, fallback "PORT-*"/"COORD-*", or legacy sea-ports short codes (<=4 chars)
@@ -167,6 +169,11 @@ export async function getSeaRouteDistance(
   const latLonOrigin = `:${originLat},${originLon}`;
   const latLonDest = `:${destLat},${destLon}`;
 
+  // Build extra params for weather routing
+  const extraParams: Record<string, string | number> = {};
+  if (vesselSpeed && vesselSpeed > 0) extraParams.vessel_speed = vesselSpeed;
+  if (departureUtc) extraParams.departure_utc = departureUtc;
+
   // Try port codes first if both look valid, fall back to lat/lon on failure
   if (bothValid) {
     try {
@@ -174,11 +181,16 @@ export async function getSeaRouteDistance(
         total_distance: number;
         eca_distance: number;
         non_eca_distance: number;
-      }>("/fleetgo/distbl", { ports: `${originPortCode}_${destPortCode}` }, { authenticated: true });
+        delayHours?: number[];
+        totalDelayHours?: number;
+        ETA?: string[];
+      }>("/fleetgo/distbl", { ports: `${originPortCode}_${destPortCode}`, ...extraParams }, { authenticated: true });
       return {
         total_distance_nm: data.total_distance ?? 0,
         eca_distance_nm: data.eca_distance ?? 0,
         non_eca_distance_nm: data.non_eca_distance ?? 0,
+        delayHours: data.totalDelayHours ?? (data.delayHours?.[0] ?? undefined),
+        eta: data.ETA?.[0] ?? undefined,
       };
     } catch {
       // Port codes rejected — fall through to lat/lon
@@ -191,12 +203,17 @@ export async function getSeaRouteDistance(
     total_distance: number;
     eca_distance: number;
     non_eca_distance: number;
-  }>("/fleetgo/distbl", { ports: `${latLonOrigin}_${latLonDest}` }, { authenticated: true });
+    delayHours?: number[];
+    totalDelayHours?: number;
+    ETA?: string[];
+  }>("/fleetgo/distbl", { ports: `${latLonOrigin}_${latLonDest}`, ...extraParams }, { authenticated: true });
 
   return {
     total_distance_nm: data.total_distance ?? 0,
     eca_distance_nm: data.eca_distance ?? 0,
     non_eca_distance_nm: data.non_eca_distance ?? 0,
+    delayHours: data.totalDelayHours ?? (data.delayHours?.[0] ?? undefined),
+    eta: data.ETA?.[0] ?? undefined,
   };
 }
 
