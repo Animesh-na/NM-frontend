@@ -174,6 +174,16 @@ export function SequenceTable() {
                           onChange={(port) => handlePortChange(row.id, port)}
                           placeholder="Select port..."
                         />
+                        {(row.legDepartureUtc || row.legArrivalUtc) && (
+                          <div className="flex gap-1.5 px-1 text-[8px] text-muted-foreground font-mono leading-tight">
+                            {row.type === "open" && row.legDepartureUtc && (
+                              <span title="Departure">Dep: {row.legDepartureUtc.replace("T"," ")}</span>
+                            )}
+                            {row.type !== "open" && row.legArrivalUtc && (
+                              <span title="Arrival at port">Arr: {row.legArrivalUtc.replace("T"," ")}</span>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Distance (V) */}
@@ -401,17 +411,15 @@ export function SequenceTable() {
               <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-3.5 w-3.5" />
               <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">Auto dist</label>
             </div>
-            {autoDistanceEnabled && (
-              <div className="flex items-center gap-1">
-                <label className="text-[10px] text-muted-foreground">Dep:</label>
-                <input
-                  type="datetime-local"
-                  className="form-input-sm text-[10px] font-mono w-36"
-                  value={departureUtc}
-                  onChange={(e) => setDepartureUtc(e.target.value)}
-                />
-              </div>
-            )}
+            <div className="flex items-center gap-1">
+              <label className="text-[10px] text-muted-foreground">Dep:</label>
+              <input
+                type="datetime-local"
+                className="form-input-sm text-[10px] font-mono w-36"
+                value={departureUtc}
+                onChange={(e) => setDepartureUtc(e.target.value)}
+              />
+            </div>
             <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled}>
               <RefreshCw className="h-3 w-3" /> Distances
             </button>

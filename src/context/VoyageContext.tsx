@@ -105,6 +105,9 @@ export interface SequenceRowUI {
   weatherDelayHours?: number;
   // ETA from distance API
   eta?: string;
+  // Cascading leg departure/arrival UTC (computed from cumulative time)
+  legDepartureUtc?: string;
+  legArrivalUtc?: string;
 }
 
 // Multi-cargo entry structure
@@ -403,20 +406,51 @@ function updateCargoOnBoard(cargoOnBoard: number, row: Pick<SequenceRowUI, "oper
   return cargoOnBoard;
 }
 
-function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData, useWeatherDelay?: boolean): SequenceRowUI[] {
+function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData, useWeatherDelay?: boolean, globalDepartureUtc?: string): SequenceRowUI[] {
   let cargoOnBoard = 0;
+  let currentDepartureMs: number | null = (() => {
+    if (!globalDepartureUtc) return null;
+    const parsed = new Date(globalDepartureUtc);
+    return isNaN(parsed.getTime()) ? null : parsed.getTime();
+  })();
 
   return rows.map((row) => {
     const seaTimeData = calculateSeaTime(row, cargoOnBoard > 0, vessel, useWeatherDelay);
+    const portDays = calculatePortDays(row);
+
+    let legDepartureUtc: string | undefined;
+    let legArrivalUtc: string | undefined;
+
+    if (currentDepartureMs !== null) {
+      if (row.type === "open") {
+        legDepartureUtc = fmtDTLocal(currentDepartureMs);
+        currentDepartureMs += portDays * 86400000;
+      } else {
+        legDepartureUtc = fmtDTLocal(currentDepartureMs);
+        const seaMs = (seaTimeData.totalLegTime || 0) * 86400000;
+        const arrMs = currentDepartureMs + seaMs;
+        legArrivalUtc = fmtDTLocal(arrMs);
+        currentDepartureMs = arrMs + portDays * 86400000;
+      }
+    }
+
     const recalculatedRow = {
       ...row,
-      calculatedPortDays: calculatePortDays(row),
+      calculatedPortDays: portDays,
       ...seaTimeData,
+      legDepartureUtc,
+      legArrivalUtc,
     };
 
     cargoOnBoard = updateCargoOnBoard(cargoOnBoard, row);
     return recalculatedRow;
   });
+}
+
+function fmtDTLocal(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
 }
 
 const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation?: PortOperation, speedProfile: "eco" | "full" = "eco", defaultCranes: number = 4, hasScrubber: boolean = false): SequenceRowUI => ({
@@ -720,8 +754,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   // Recalculate derived port days and sea times whenever vessel changes
   useEffect(() => {
-    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel, autoDistanceEnabled));
-  }, [vessel, autoDistanceEnabled]);
+    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel, autoDistanceEnabled, departureUtc));
+  }, [vessel, autoDistanceEnabled, departureUtc]);
 
   const updateSequenceRow = useCallback((id: number, field: keyof SequenceRowUI, value: string | number) => {
     setSequence((prev) => {
@@ -796,9 +830,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         }
       }
 
-      return recalculateDerivedSequenceRows(syncedRows, vessel, autoDistanceEnabled);
+      return recalculateDerivedSequenceRows(syncedRows, vessel, autoDistanceEnabled, departureUtc);
     });
-  }, [vessel, autoDistanceEnabled]);
+  }, [vessel, autoDistanceEnabled, departureUtc]);
 
   const addPort = useCallback((operation: PortOperation) => {
     setSequence(prev => {
@@ -855,7 +889,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       setSequence((prev) => {
         const currentVessel = vesselRef.current;
         const zeroedRows = prev.map((row) => ({ ...row, distance: 0, ecaDistance: 0 }));
-        return recalculateDerivedSequenceRows(zeroedRows, currentVessel);
+        return recalculateDerivedSequenceRows(zeroedRows, currentVessel, false, departureUtc);
       });
        lastComputedLegsRef.current.clear();
       setDistanceLoading(false);
@@ -925,16 +959,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         const isLadenForLeg = cargoOnBoardForLeg > 0;
         const { seaSpeed: legSpeed } = getSpeedForContext(currRow.distanceSpeedContext, isLadenForLeg, vesselRef.current);
 
-        // For departure_utc: use ETA from previous leg or global departure
-        let legDepartureUtc = "";
-        if (i === 1) {
-          legDepartureUtc = departureUtc;
-        } else {
-          const prevRowInSeq = snapshot[i - 1];
-          if (prevRowInSeq.eta) {
-            legDepartureUtc = prevRowInSeq.eta;
-          }
-        }
+        // Use cascading leg departure from sequence row
+        const legDepartureUtc = currRow.legDepartureUtc
+          ? currRow.legDepartureUtc.replace("T", " ")
+          : (i === 1 ? departureUtc.replace("T", " ") : "");
 
         const result = await getSeaRouteDistance(
           prevLat, prevLon, currLat, currLon,
@@ -1001,7 +1029,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance, weatherDelayHours: dist.weatherDelayHours, eta: dist.eta } : row;
       });
 
-      return recalculateDerivedSequenceRows(updatedRows, currentVessel, true);
+      return recalculateDerivedSequenceRows(updatedRows, currentVessel, true, departureUtc);
     });
     setDistanceLoading(false);
   }, [departureUtc]);
