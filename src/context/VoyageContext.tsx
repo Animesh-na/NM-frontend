@@ -832,7 +832,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
       return recalculateDerivedSequenceRows(syncedRows, vessel, autoDistanceEnabled, departureUtc);
     });
-  }, [vessel, autoDistanceEnabled]);
+  }, [vessel, autoDistanceEnabled, departureUtc]);
 
   const addPort = useCallback((operation: PortOperation) => {
     setSequence(prev => {
