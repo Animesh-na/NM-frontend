@@ -754,8 +754,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   // Recalculate derived port days and sea times whenever vessel changes
   useEffect(() => {
-    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel, autoDistanceEnabled));
-  }, [vessel, autoDistanceEnabled]);
+    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel, autoDistanceEnabled, departureUtc));
+  }, [vessel, autoDistanceEnabled, departureUtc]);
 
   const updateSequenceRow = useCallback((id: number, field: keyof SequenceRowUI, value: string | number) => {
     setSequence((prev) => {
@@ -830,7 +830,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         }
       }
 
-      return recalculateDerivedSequenceRows(syncedRows, vessel, autoDistanceEnabled);
+      return recalculateDerivedSequenceRows(syncedRows, vessel, autoDistanceEnabled, departureUtc);
     });
   }, [vessel, autoDistanceEnabled]);
 
@@ -889,7 +889,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       setSequence((prev) => {
         const currentVessel = vesselRef.current;
         const zeroedRows = prev.map((row) => ({ ...row, distance: 0, ecaDistance: 0 }));
-        return recalculateDerivedSequenceRows(zeroedRows, currentVessel);
+        return recalculateDerivedSequenceRows(zeroedRows, currentVessel, false, departureUtc);
       });
        lastComputedLegsRef.current.clear();
       setDistanceLoading(false);
@@ -1035,7 +1035,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance, weatherDelayHours: dist.weatherDelayHours, eta: dist.eta } : row;
       });
 
-      return recalculateDerivedSequenceRows(updatedRows, currentVessel, true);
+      return recalculateDerivedSequenceRows(updatedRows, currentVessel, true, departureUtc);
     });
     setDistanceLoading(false);
   }, [departureUtc]);
