@@ -174,7 +174,8 @@ export async function getSeaRouteDistance(
   // API requires both vessel_speed AND departure_utc together — send neither if one is missing
   if (vesselSpeed && vesselSpeed > 0 && departureUtc) {
     extraParams.vessel_speed = vesselSpeed;
-    extraParams.departure_utc = departureUtc;
+    // API expects "YYYY-MM-DD HH:mm" format; HTML datetime-local gives "YYYY-MM-DDTHH:mm"
+    extraParams.departure_utc = departureUtc.replace("T", " ");
   }
 
   // Try port codes first if both look valid, fall back to lat/lon on failure
