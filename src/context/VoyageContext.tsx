@@ -406,9 +406,13 @@ function updateCargoOnBoard(cargoOnBoard: number, row: Pick<SequenceRowUI, "oper
   return cargoOnBoard;
 }
 
-function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData, useWeatherDelay?: boolean): SequenceRowUI[] {
+function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselData, useWeatherDelay?: boolean, globalDepartureUtc?: string): SequenceRowUI[] {
   let cargoOnBoard = 0;
-  let currentDepartureMs: number | null = null;
+  let currentDepartureMs: number | null = (() => {
+    if (!globalDepartureUtc) return null;
+    const parsed = new Date(globalDepartureUtc);
+    return isNaN(parsed.getTime()) ? null : parsed.getTime();
+  })();
 
   return rows.map((row) => {
     const seaTimeData = calculateSeaTime(row, cargoOnBoard > 0, vessel, useWeatherDelay);
