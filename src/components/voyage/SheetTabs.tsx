@@ -1,5 +1,5 @@
 import { X, ArrowLeft, Save, Plus, Copy } from "lucide-react";
-import { useSheets } from "@/context/SheetContext";
+import { useSheets } from "@/context/sheetContextCore";
 import { useState } from "react";
 
 export function SheetTabs() {

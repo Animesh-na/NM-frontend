@@ -4,7 +4,7 @@ import {
   Plus, UserX, UserCheck, ArrowLeft, Eye
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useSheets } from "@/context/SheetContext";
+import { useSheets } from "@/context/sheetContextCore";
 import {
   adminListUsers, adminCreateUser, adminDeactivateUser, adminUpdateUser,
   adminListSheets,
