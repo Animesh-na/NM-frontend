@@ -171,8 +171,11 @@ export async function getSeaRouteDistance(
 
   // Build extra params for weather routing
   const extraParams: Record<string, string | number> = {};
-  if (vesselSpeed && vesselSpeed > 0) extraParams.vessel_speed = vesselSpeed;
-  if (departureUtc) extraParams.departure_utc = departureUtc;
+  // API requires both vessel_speed AND departure_utc together — send neither if one is missing
+  if (vesselSpeed && vesselSpeed > 0 && departureUtc) {
+    extraParams.vessel_speed = vesselSpeed;
+    extraParams.departure_utc = departureUtc;
+  }
 
   // Try port codes first if both look valid, fall back to lat/lon on failure
   if (bothValid) {
