@@ -176,11 +176,12 @@ export function SequenceTable() {
                         />
                         {(row.legDepartureUtc || row.legArrivalUtc) && (
                           <div className="flex gap-1.5 px-1 text-[8px] text-muted-foreground font-mono leading-tight">
-                            {row.legArrivalUtc && <span title="Arrival">A:{row.legArrivalUtc.replace("T"," ")}</span>}
-                            {row.legDepartureUtc && row.type !== "open" && row.calculatedPortDays > 0 && (
-                              <span title="Departure after port ops">D:{fmtDTShort(row.legArrivalUtc || row.legDepartureUtc, row.calculatedPortDays)}</span>
+                            {row.type === "open" && row.legDepartureUtc && (
+                              <span title="Departure">Dep: {row.legDepartureUtc.replace("T"," ")}</span>
                             )}
-                            {row.type === "open" && row.legDepartureUtc && <span title="Departure">D:{row.legDepartureUtc.replace("T"," ")}</span>}
+                            {row.type !== "open" && row.legArrivalUtc && (
+                              <span title="Arrival at port">Arr: {row.legArrivalUtc.replace("T"," ")}</span>
+                            )}
                           </div>
                         )}
                       </td>
