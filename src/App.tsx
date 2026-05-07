@@ -52,20 +52,18 @@ function AppContent() {
     return <Login />;
   }
 
-  return (
-    <SheetProvider>
-      <SheetRouter />
-    </SheetProvider>
-  );
+  return <SheetRouter />;
 }
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <AppContent />
+        <SheetProvider>
+          <Toaster />
+          <Sonner />
+          <AppContent />
+        </SheetProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
