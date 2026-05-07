@@ -9,7 +9,7 @@ import { MiscSection } from "@/components/voyage/MiscSection";
 import { SheetNotes } from "@/components/voyage/SheetNotes";
 import { JsonImportSection } from "@/components/voyage/JsonImportSection";
 import { VoyageSummary } from "@/components/voyage/VoyageSummary";
-import { useSheets } from "@/context/SheetContext";
+import { useSheets } from "@/context/sheetContextCore";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { Loader2 } from "lucide-react";
 

@@ -1,39 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
+import { SheetContext, type SheetTab } from "@/context/sheetContextCore";
 import { getSheet, saveSheet, updateSheet, type SheetDetail } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
-
-export interface SheetTab {
-  id: string | null; // null = unsaved new sheet
-  name: string;
-  data: Record<string, unknown>;
-  isDirty: boolean;
-  isLoading: boolean;
-}
-
-interface SheetContextValue {
-  // Navigation
-  currentView: "dashboard" | "editor" | "admin";
-  setCurrentView: (view: "dashboard" | "editor" | "admin") => void;
-  
-  // Tabs
-  tabs: SheetTab[];
-  activeTabIndex: number;
-  setActiveTabIndex: (index: number) => void;
-  activeTab: SheetTab | null;
-  
-  // Actions
-  createNewSheet: () => void;
-  copyCurrentSheet: () => void;
-  openSheet: (id: string, name: string) => void;
-  closeTab: (index: number) => boolean; // returns false if user cancels
-  saveCurrentSheet: (name: string, data: Record<string, unknown>) => Promise<void>;
-  markDirty: () => void;
-  goToDashboard: () => void;
-  renameTab: (index: number, name: string) => void;
-  updateTabData: (index: number, data: Record<string, unknown>) => void;
-}
-
-const SheetContext = createContext<SheetContextValue | null>(null);
 
 export function SheetProvider({ children }: { children: ReactNode }) {
   const [currentView, setCurrentView] = useState<"dashboard" | "editor" | "admin">("dashboard");
@@ -189,8 +157,3 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useSheets() {
-  const ctx = useContext(SheetContext);
-  if (!ctx) throw new Error("useSheets must be used within SheetProvider");
-  return ctx;
-}

@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { VoyageProvider } from "@/context/VoyageContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { SheetProvider, useSheets } from "@/context/SheetContext";
+import { SheetProvider } from "@/context/SheetContext";
+import { useSheets } from "@/context/sheetContextCore";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
@@ -51,20 +52,18 @@ function AppContent() {
     return <Login />;
   }
 
-  return (
-    <SheetProvider>
-      <SheetRouter />
-    </SheetProvider>
-  );
+  return <SheetRouter />;
 }
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <AppContent />
+        <SheetProvider>
+          <Toaster />
+          <Sonner />
+          <AppContent />
+        </SheetProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
