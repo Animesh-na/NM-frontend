@@ -1153,17 +1153,30 @@ export function exportVoyageToExcel(data: ExportData) {
   const R_EU_LSMGO_PORT_AE = r; r++;
   r++;
 
+  setCalcLabel(r, "HSFO EU Extra Time (mt)", false, false, true);
+  setCalcFormula(r, `${sv_euHsfoExtra}`, sv_euHsfoExtra, false, false, true);
+  const R_EU_HSFO_EXTRA = r; r++;
+
+  setCalcLabel(r, "VLSFO EU Extra Time (mt)", false, false, true);
+  setCalcFormula(r, `${sv_euVlsfoExtra}`, sv_euVlsfoExtra, false, false, true);
+  const R_EU_VLSFO_EXTRA = r; r++;
+
+  setCalcLabel(r, "LSMGO EU Extra Time (mt)", false, false, true);
+  setCalcFormula(r, `${sv_euLsmgoExtra}`, sv_euLsmgoExtra, false, false, true);
+  const R_EU_LSMGO_EXTRA = r; r++;
+  r++;
+
   // EU-Covered Fuel Totals
   setCalcLabel(r, "HSFO EU Total (mt)", true);
-  setCalcFormula(r, `${B(R_EU_HSFO_SEA)}+${B(R_EU_HSFO_PORT)}`, sv_euHsfo, true);
+  setCalcFormula(r, `${B(R_EU_HSFO_SEA)}+${B(R_EU_HSFO_PORT)}+${B(R_EU_HSFO_EXTRA)}`, sv_euHsfo, true);
   const R_EU_HSFOT = r; r++;
 
   setCalcLabel(r, "VLSFO EU Total (mt)", true);
-  setCalcFormula(r, `${B(R_EU_VLSFO_SEA)}+${B(R_EU_VLSFO_PORT)}`, sv_euVlsfo, true);
+  setCalcFormula(r, `${B(R_EU_VLSFO_SEA)}+${B(R_EU_VLSFO_PORT)}+${B(R_EU_VLSFO_EXTRA)}`, sv_euVlsfo, true);
   const R_EU_VLSFOT = r; r++;
 
   setCalcLabel(r, "LSMGO EU Total (mt)", true);
-  setCalcFormula(r, `${B(R_EU_LSMGO_SEA_ME)}+${B(R_EU_LSMGO_SEA_AE)}+${B(R_EU_LSMGO_PORT)}+${B(R_EU_LSMGO_PORT_AE)}`, sv_euLsmgo, true);
+  setCalcFormula(r, `${B(R_EU_LSMGO_SEA_ME)}+${B(R_EU_LSMGO_SEA_AE)}+${B(R_EU_LSMGO_PORT)}+${B(R_EU_LSMGO_PORT_AE)}+${B(R_EU_LSMGO_EXTRA)}`, sv_euLsmgo, true);
   const R_EU_LSMGOT = r; r++;
 
   // EU coverage percentages
