@@ -353,10 +353,15 @@ export function exportVoyageToExcel(data: ExportData) {
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
 
-  // Pre-compute isLaden flags using running cargo-on-board (matches useVoyageCalculation.ts)
+  // Pre-compute isLaden flags and ETS cargo brackets (matches useVoyageCalculation.ts)
   // Ship is laden as long as cargo remains on board; ballast only when cargo reaches zero
   const ladenFlags: boolean[] = [];
+  const bracketOriginIsEu: (boolean | null)[] = sequence.map(() => null);
+  const bracketDestIsEu: (boolean | null)[] = sequence.map(() => null);
   let cargoOnBoardExcel = 0;
+  const cargoPortIndexes = sequence
+    .map((leg, i) => (isCargoPortCall(leg.operation) ? i : -1))
+    .filter(i => i >= 0);
   sequence.forEach((leg) => {
     // Laden state is determined BEFORE the current port operation (same as calculation engine)
     ladenFlags.push(cargoOnBoardExcel > 0);
@@ -368,6 +373,30 @@ export function exportVoyageToExcel(data: ExportData) {
       cargoOnBoardExcel = Math.max(0, cargoOnBoardExcel - legQty);
     }
   });
+  let cargoOnBoardBeforeLeg = 0;
+  sequence.forEach((leg, i) => {
+    if (cargoOnBoardBeforeLeg > 0) {
+      const originIdx = [...cargoPortIndexes].reverse().find(idx => idx < i);
+      const destIdx = cargoPortIndexes.find(idx => idx >= i);
+
+      if (originIdx !== undefined && destIdx !== undefined && originIdx !== destIdx) {
+        bracketOriginIsEu[i] = isEtsCoveredPort(sequence[originIdx]);
+        bracketDestIsEu[i] = isEtsCoveredPort(sequence[destIdx]);
+      }
+    }
+
+    const qty = Math.max(0, leg.quantity || 0);
+    if (isLoadOp(leg.operation)) cargoOnBoardBeforeLeg += qty;
+    else if (isDischargeOp(leg.operation)) cargoOnBoardBeforeLeg = Math.max(0, cargoOnBoardBeforeLeg - qty);
+  });
+  const computeSeaEuFactor = (legIdx: number): number => {
+    const originEu = bracketOriginIsEu[legIdx];
+    const destEu = bracketDestIsEu[legIdx];
+    if (originEu === null || destEu === null) return 0;
+    if (originEu && destEu) return 1.0;
+    if (originEu || destEu) return 0.5;
+    return 0;
+  };
 
   const seqStartRow = r;
   sequence.forEach((leg, idx) => {
