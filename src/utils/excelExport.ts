@@ -967,6 +967,9 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // Pre-compute EU-covered fuel using same logic as useVoyageCalculation.ts
   let sv_euHsfo = 0, sv_euVlsfo = 0, sv_euLsmgo = 0;
+  let sv_euHsfoSea = 0, sv_euVlsfoSea = 0, sv_euLsmgoSeaMe = 0, sv_euLsmgoSeaAe = 0;
+  let sv_euHsfoPort = 0, sv_euVlsfoPort = 0, sv_euLsmgoPort = 0, sv_euLsmgoPortAe = 0;
+  let sv_euHsfoExtra = 0, sv_euVlsfoExtra = 0, sv_euLsmgoExtra = 0;
   let totalSeaTimeSegs = 0, weightedEuSeaF = 0;
   {
     let segCob = 0;
@@ -991,17 +994,25 @@ export function exportVoyageToExcel(data: ExportData) {
           
           if (hasScrubber) {
             const rate = legIsLaden ? (profile.hsfo.laden || 0) : (profile.hsfo.ballast || 0);
-            sv_euHsfo += legNET * rate * rewardFactor * euF;
+            const amt = legNET * rate * rewardFactor * euF;
+            sv_euHsfo += amt;
+            sv_euHsfoSea += amt;
           } else {
             const rate = legIsLaden ? (profile.vlsfo.laden || 0) : (profile.vlsfo.ballast || 0);
-            sv_euVlsfo += legNET * rate * rewardFactor * euF;
+            const amt = legNET * rate * rewardFactor * euF;
+            sv_euVlsfo += amt;
+            sv_euVlsfoSea += amt;
           }
           const ecaRate = legIsLaden ? (profile.lsmgo.laden || 0) : (profile.lsmgo.ballast || 0);
-          sv_euLsmgo += legET * ecaRate * rewardFactor * euF;
+          const lsmgoMeAmt = legET * ecaRate * rewardFactor * euF;
+          sv_euLsmgo += lsmgoMeAmt;
+          sv_euLsmgoSeaMe += lsmgoMeAmt;
           
           const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
           const aeR2 = legIsLaden ? (aeRs.laden || 0) : (aeRs.ballast || 0);
-          sv_euLsmgo += legST * aeR2 * rewardFactor * euF;
+          const lsmgoAeAmt = legST * aeR2 * rewardFactor * euF;
+          sv_euLsmgo += lsmgoAeAmt;
+          sv_euLsmgoSeaAe += lsmgoAeAmt;
         }
       }
       
