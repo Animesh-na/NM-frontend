@@ -1111,46 +1111,45 @@ export function exportVoyageToExcel(data: ExportData) {
   // For HSFO sea EU:
   setCalcLabel(r, "HSFO EU Sea (mt)", false, false, true);
   const hsfoEuSeaF = `IF(${scrCell}=1,SUMPRODUCT((${seqRange(SC.NECAB)}*${hBal}+${seqRange(SC.NECAL)}*${hLad})*${seqRange(SC.EUSEA)})*${rfCell},0)`;
-  setCalcFormula(r, hsfoEuSeaF, hasScrubber ? sv_euHsfo : 0, false, false, true);
-  // Note: sv_euHsfo includes port+extra, formula only sea here — we'll show software total below
+  setCalcFormula(r, hsfoEuSeaF, sv_euHsfoSea, false, false, true);
   const R_EU_HSFO_SEA = r; r++;
 
   setCalcLabel(r, "VLSFO EU Sea (mt)", false, false, true);
   const vlsfoEuSeaF = `IF(${scrCell}=0,SUMPRODUCT((${seqRange(SC.NECAB)}*${vBal}+${seqRange(SC.NECAL)}*${vLad})*${seqRange(SC.EUSEA)})*${rfCell},0)`;
-  setCalcFormula(r, vlsfoEuSeaF, !hasScrubber ? sv_euVlsfo : 0, false, false, true);
+  setCalcFormula(r, vlsfoEuSeaF, sv_euVlsfoSea, false, false, true);
   const R_EU_VLSFO_SEA = r; r++;
 
   setCalcLabel(r, "LSMGO EU Sea ME (mt)", false, false, true);
   const lsmgoEuSeaMeF = `SUMPRODUCT((${seqRange(SC.ECAB)}*${lBal}+${seqRange(SC.ECAL)}*${lLad})*${seqRange(SC.EUSEA)})*${rfCell}`;
-  setCalcFormula(r, lsmgoEuSeaMeF, 0, false, false, true);
+  setCalcFormula(r, lsmgoEuSeaMeF, sv_euLsmgoSeaMe, false, false, true);
   const R_EU_LSMGO_SEA_ME = r; r++;
 
   setCalcLabel(r, "LSMGO EU Sea AE (mt)", false, false, true);
   const lsmgoEuSeaAeF = `SUMPRODUCT((${seqRange(SC.BSEA)}*(${aeBal})+${seqRange(SC.LSEA)}*(${aeLad}))*${seqRange(SC.EUSEA)})*${rfCell}`;
-  setCalcFormula(r, lsmgoEuSeaAeF, 0, false, false, true);
+  setCalcFormula(r, lsmgoEuSeaAeF, sv_euLsmgoSeaAe, false, false, true);
   const R_EU_LSMGO_SEA_AE = r; r++;
   r++;
 
   // Port EU fuel — uses EUPORT factor column (1 for EU port, 0 for non-EU)
   setCalcLabel(r, "HSFO EU Port (mt)", false, false, true);
   const hsfoEuPortF = `SUMPRODUCT((${seqRange(SC.HLD)}*${hLoad}+${seqRange(SC.HDD)}*${hDisch}+${seqRange(SC.HID)}*${hIdle})*${seqRange(SC.EUPORT)})`;
-  setCalcFormula(r, hsfoEuPortF, 0, false, false, true);
+  setCalcFormula(r, hsfoEuPortF, sv_euHsfoPort, false, false, true);
   const R_EU_HSFO_PORT = r; r++;
 
   setCalcLabel(r, "VLSFO EU Port (mt)", false, false, true);
   const vlsfoEuPortF = `SUMPRODUCT((${seqRange(SC.VLD)}*${vLoad}+${seqRange(SC.VDD)}*${vDisch}+${seqRange(SC.VID)}*${vIdle})*${seqRange(SC.EUPORT)})`;
-  setCalcFormula(r, vlsfoEuPortF, 0, false, false, true);
+  setCalcFormula(r, vlsfoEuPortF, sv_euVlsfoPort, false, false, true);
   const R_EU_VLSFO_PORT = r; r++;
 
   setCalcLabel(r, "LSMGO EU Port (mt)", false, false, true);
   const lsmgoEuPortF = `SUMPRODUCT((${seqRange(SC.LLD)}*${lLoad}+${seqRange(SC.LDD)}*${lDisch}+${seqRange(SC.LID)}*${lIdle})*${seqRange(SC.EUPORT)})`;
-  setCalcFormula(r, lsmgoEuPortF, 0, false, false, true);
+  setCalcFormula(r, lsmgoEuPortF, sv_euLsmgoPort, false, false, true);
   const R_EU_LSMGO_PORT = r; r++;
 
   // AE Port EU
   setCalcLabel(r, "LSMGO EU Port AE (mt)", false, false, true);
   const lsmgoEuPortAeF = `SUMPRODUCT((${seqRange(SC.ISLD)}*${seqRange(SC.WDAYS)}*(${aeLoad})+${seqRange(SC.ISDC)}*${seqRange(SC.WDAYS)}*(${aeDisch})+${seqRange(SC.IDAYS)}*(${aeIdle}))*${seqRange(SC.EUPORT)})`;
-  setCalcFormula(r, lsmgoEuPortAeF, 0, false, false, true);
+  setCalcFormula(r, lsmgoEuPortAeF, sv_euLsmgoPortAe, false, false, true);
   const R_EU_LSMGO_PORT_AE = r; r++;
   r++;
 
