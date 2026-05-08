@@ -1027,26 +1027,30 @@ export function exportVoyageToExcel(data: ExportData) {
         const turnD = turnH / 24;
         const extraD = extraH / 24;
         
-        let pH = 0, pV = 0, pL = 0;
+        let pH = 0, pV = 0, pL = 0, pAeL = 0;
         const addF = (ft: string, amt: number) => { if (ft === 'hsfo') pH += amt; else if (ft === 'vlsfo') pV += amt; else pL += amt; };
         
         if (legOp === 'load' || legOp === 'loading') {
           addF(pf, wdL * (profile[pf]?.load || 0));
           addF(pf, turnD * (profile[pf]?.idle || 0));
           addF(pf, extraD * (profile[pf]?.idle || 0));
-          pL += wdL * (aeRs.load || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
+          pAeL += wdL * (aeRs.load || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
         } else if (legOp === 'disch' || legOp === 'discharging') {
           addF(pf, wdL * (profile[pf]?.discharge || 0));
           addF(pf, turnD * (profile[pf]?.idle || 0));
           addF(pf, extraD * (profile[pf]?.idle || 0));
-          pL += wdL * (aeRs.discharge || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
+          pAeL += wdL * (aeRs.discharge || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
         } else {
           addF(pf, pd * (profile[pf]?.idle || 0));
-          pL += pd * (aeRs.idle || 0);
+          pAeL += pd * (aeRs.idle || 0);
         }
         sv_euHsfo += pH;
         sv_euVlsfo += pV;
-        sv_euLsmgo += pL;
+        sv_euLsmgo += pL + pAeL;
+        sv_euHsfoPort += pH;
+        sv_euVlsfoPort += pV;
+        sv_euLsmgoPort += pL;
+        sv_euLsmgoPortAe += pAeL;
       }
       
       if (legOp === 'load' || legOp === 'loading') segCob += legQty;
