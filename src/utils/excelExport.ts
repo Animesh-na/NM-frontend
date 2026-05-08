@@ -1169,7 +1169,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // ETS Coverage % = informational weighted avg by sea time (display only — NOT used in chargeable CO₂)
   setCalcLabel(r, "ETS Coverage (%) — informational", false, false, true);
   setCalcFormula(r,
-    `IF(SUM(${seqRange(SC.SEAT)})>0,SUMPRODUCT(${seqRange(SC.EUSEA)},${seqRange(SC.SEAT)})/SUM(${seqRange(SC.SEAT)})*100,0)`,
+    `IF(${B(R_TSEA)}>0,SUMPRODUCT(${seqRange(SC.EUSEA)},${seqRange(SC.SEAT)})/${B(R_TSEA)}*100,0)`,
     results.etsVoyageCoverage * 100, false, false, true);
   r++;
 
