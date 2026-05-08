@@ -475,29 +475,10 @@ export function exportVoyageToExcel(data: ExportData) {
       portFuel === "lsmgo" ? idleVal : 0, fStyle);
 
     // --- EU Factor columns ---
-    // EU Sea Factor: compare previous row's EU flag with current row's EU flag
-    // First row: use current port + next port to determine both endpoints (consistent with useVoyageCalculation)
-    const prevEuCell = idx === 0 ? "0" : cellRef(SC.EUFLG, rr - 1);
+    // EU Sea Factor uses bracketing cargo-operation ports (LOAD↔DISCHARGE), not adjacent passing/bunkering rows.
     const curEuCell = c(SC.EUFLG);
-    const nextEuCell = idx === 0 && sequence.length > 1 ? cellRef(SC.EUFLG, rr + 1) : null;
-    const euSeaFactorFormula = idx === 0
-      ? (nextEuCell
-        ? `IF(AND(${curEuCell}=1,${nextEuCell}=1),1,IF(OR(${curEuCell}=1,${nextEuCell}=1),0.5,0))`
-        : `IF(${curEuCell}=1,0.5,0)`)
-      : `IF(AND(${prevEuCell}=1,${curEuCell}=1),1,IF(OR(${prevEuCell}=1,${curEuCell}=1),0.5,0))`;
-    
-    // Compute actual value
-    const curIsEu = leg.isEuEea === true;
-    let euSeaFactorVal = 0;
-    if (idx === 0) {
-      const nextIsEu = sequence.length > 1 ? (sequence[1].isEuEea === true) : false;
-      if (curIsEu && nextIsEu) euSeaFactorVal = 1.0;
-      else if (curIsEu || nextIsEu) euSeaFactorVal = 0.5;
-    } else {
-      const prevIsEu = sequence[idx - 1].isEuEea === true;
-      if (prevIsEu && curIsEu) euSeaFactorVal = 1.0;
-      else if (prevIsEu || curIsEu) euSeaFactorVal = 0.5;
-    }
+    const euSeaFactorVal = computeSeaEuFactor(idx);
+    const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
     // EU Port Factor: 1 if current port is EU, 0 otherwise
