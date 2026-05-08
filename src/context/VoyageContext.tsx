@@ -352,8 +352,10 @@ function calculateSeaTime(
   const baseSeaTime = baseNonEcaTime + baseEcaTime;
   
     // When auto-distance with weather delay: use delayHours from API instead of sea margin %
+    // API returns negative delayHours when weather helps (faster). We convert to positive and add as weather delay.
     if (useWeatherDelay && row.weatherDelayHours !== undefined) {
-      const weatherDelayDays = Math.max(0, row.weatherDelayHours) / 24;
+      const weatherDelayHours = Math.abs(row.weatherDelayHours);
+      const weatherDelayDays = weatherDelayHours / 24;
       const seaMarginTime = weatherDelayDays;
       const ecaFraction = baseSeaTime > 0 ? baseEcaTime / baseSeaTime : 0;
       const nonEcaFraction = baseSeaTime > 0 ? baseNonEcaTime / baseSeaTime : 0;

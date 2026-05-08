@@ -99,8 +99,8 @@ export function VoyageTimeline() {
                   {!isLast && row.type !== "open" && (row.totalLegTime ?? 0) > 0 && (
                     <div className="text-[8px] text-muted-foreground mt-0.5 italic">
                       ⛵ {(row.totalLegTime ?? 0).toFixed(2)}d sailing
-                      {(row.weatherDelayHours ?? 0) > 0 && (
-                        <span className="text-warning"> (+{((row.weatherDelayHours ?? 0) / 24).toFixed(2)}d weather)</span>
+                      {Math.abs(row.weatherDelayHours ?? 0) > 0 && (
+                        <span className="text-warning"> (+{(Math.abs(row.weatherDelayHours ?? 0) / 24).toFixed(2)}d weather)</span>
                       )}
                     </div>
                   )}

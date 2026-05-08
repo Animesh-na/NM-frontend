@@ -235,7 +235,7 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : autoDistanceEnabled ? (
                           <span className="text-[10px] font-mono text-right w-12 inline-block px-1 text-muted-foreground">
-                            {row.weatherDelayHours !== undefined ? Math.max(0, row.weatherDelayHours).toFixed(1) : "—"}
+                            {row.weatherDelayHours !== undefined ? Math.abs(row.weatherDelayHours).toFixed(1) : "—"}
                           </span>
                         ) : (
                           <input type="number" min="0" max="100" step="0.5" className="form-input-sm w-12 font-mono text-right text-[10px]"
