@@ -15,11 +15,21 @@ export function SequenceSummary() {
         acc.seaMarginTime += row.seaMarginTime;
         acc.totalSeaTime += row.totalLegTime;
         acc.portDays += row.wdaysPortOverride ?? row.calculatedPortDays;
+        acc.weatherDelayDays += Math.abs(row.weatherDelayHours ?? 0) / 24;
       }
       return acc;
     },
-    { baseSeaTime: 0, seaMarginTime: 0, totalSeaTime: 0, portDays: 0 }
+    { baseSeaTime: 0, seaMarginTime: 0, totalSeaTime: 0, portDays: 0, weatherDelayDays: 0 }
   );
+
+  const fmtDT = (s?: string) => {
+    if (!s) return "—";
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleString(undefined, {
+      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+  };
 
   return (
     <div className="mt-1 pt-1 border-t">
@@ -50,8 +60,11 @@ export function SequenceSummary() {
                     <th className="text-right font-medium pb-0.5">SM%</th>
                     <th className="text-right font-medium pb-0.5">Base</th>
                     <th className="text-right font-medium pb-0.5">+Margin</th>
+                    <th className="text-right font-medium pb-0.5">Wx</th>
                     <th className="text-right font-medium pb-0.5">Sea</th>
                     <th className="text-right font-medium pb-0.5">Port</th>
+                    <th className="text-right font-medium pb-0.5">Arr</th>
+                    <th className="text-right font-medium pb-0.5">Dep</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -69,11 +82,22 @@ export function SequenceSummary() {
                       <td className="py-0.5 text-right font-mono tabular-nums text-warning">
                         {row.seaMarginTime > 0 ? `+${row.seaMarginTime.toFixed(2)}d` : "—"}
                       </td>
+                      <td className="py-0.5 text-right font-mono tabular-nums text-blue-600">
+                        {Math.abs(row.weatherDelayHours ?? 0) > 0
+                          ? `+${(Math.abs(row.weatherDelayHours ?? 0) / 24).toFixed(2)}d`
+                          : "—"}
+                      </td>
                       <td className="py-0.5 text-right font-mono tabular-nums">
                         {row.totalLegTime.toFixed(2)}d
                       </td>
                       <td className="py-0.5 text-right font-mono tabular-nums">
                         {(row.wdaysPortOverride ?? row.calculatedPortDays).toFixed(2)}d
+                      </td>
+                      <td className="py-0.5 text-right font-mono tabular-nums text-[10px] text-muted-foreground">
+                        {fmtDT(row.legArrivalUtc)}
+                      </td>
+                      <td className="py-0.5 text-right font-mono tabular-nums text-[10px] text-muted-foreground">
+                        {fmtDT(row.legDepartureUtc)}
                       </td>
                     </tr>
                   ))}
@@ -89,6 +113,10 @@ export function SequenceSummary() {
               <div className="flex justify-between text-xs text-warning">
                 <span>+ Sea margin:</span>
                 <span className="font-mono tabular-nums">+{totals.seaMarginTime.toFixed(2)}d</span>
+              </div>
+              <div className="flex justify-between text-xs text-blue-600">
+                <span>+ Weather delay:</span>
+                <span className="font-mono tabular-nums">+{totals.weatherDelayDays.toFixed(2)}d</span>
               </div>
               <div className="flex justify-between text-xs border-t pt-0.5 mt-0.5">
                 <span className="text-muted-foreground">Total at sea:</span>

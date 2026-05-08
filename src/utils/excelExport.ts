@@ -319,6 +319,9 @@ export function exportVoyageToExcel(data: ExportData) {
     EUPORT: 34, // EU port factor (0 or 1)
     TURND: 35,  // Turn time in days
     EXTRAD: 36, // Extra time in days
+    WXDLY: 37,  // Weather delay (days)
+    DEPUTC: 38, // Leg departure (UTC)
+    ARRUTC: 39, // Leg arrival (UTC)
   };
 
   // Headers — styled
@@ -332,6 +335,7 @@ export function exportVoyageToExcel(data: ExportData) {
     "HSFO Dc D", "VLSFO Dc D", "LSMGO Dc D",
     "HSFO Id D", "VLSFO Id D", "LSMGO Id D",
     "EU Sea F", "EU Port F", "Turn(d)", "Extra(d)",
+    "Wx Delay (d)", "Leg Dep (UTC)", "Leg Arr (UTC)",
   ];
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
@@ -465,6 +469,12 @@ export function exportVoyageToExcel(data: ExportData) {
     const turnDays = turnTimeH / 24;
     const extraDays = extraTimeH / 24;
     setNum(SC.EXTRAD, rr, extraDays, fStyle);
+
+    // Weather delay (days) and cascading leg timestamps
+    const wxHours = Math.abs(leg.weatherDelayHours ?? 0);
+    setNum(SC.WXDLY, rr, wxHours / 24, dStyle);
+    setText(SC.DEPUTC, rr, leg.legDepartureUtc ? leg.legDepartureUtc.replace("T", " ") : "", tStyle);
+    setText(SC.ARRUTC, rr, leg.legArrivalUtc ? leg.legArrivalUtc.replace("T", " ") : "", tStyle);
   });
 
   const seqEndRow = seqStartRow + sequence.length - 1;
