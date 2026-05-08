@@ -1179,8 +1179,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     FuelEU Costs: HSFO=$${fuelEuResult.fuels.hsfo.cost.toFixed(2)}, VLSFO=$${fuelEuResult.fuels.vlsfo.cost.toFixed(2)}, LSMGO=$${fuelEuResult.fuels.lsmgo.cost.toFixed(2)}
     FuelEU Total: $${fuelEuResult.totalPenalty.toFixed(2)}`);
     
-    vlog(`\n========== VOYAGE CALCULATION END ==========\n`);
-
     // Validate emission inputs
     const validation = validateEmissionInputs(
       fuelConsumption,
@@ -1190,7 +1188,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       bunker.co2Price
     );
 
-    return {
+    const result = {
       totalDistance,
       totalEcaDistance,
       seaDaysBallast,
@@ -1260,6 +1258,34 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       fuelEuFreightImpact: cargo.quantity > 0 ? fuelEuResult.totalPenalty / cargo.quantity : 0,
       etsLegDetails,
     };
+
+    // Final compact summary table — easy to scan in DevTools.
+    vlogEnd({
+      vessel: vessel.name,
+      totalDistance,
+      totalSeaDays,
+      totalPortDays,
+      totalVoyageDays,
+      hsfo: hsfoConsumption,
+      vlsfo: vlsfoConsumption,
+      lsmgo: lsmgoConsumption,
+      bunkerCost: totalBunkerCost,
+      grossFreight,
+      netFreight,
+      hireCost,
+      totalVoyageCosts: totalVoyageCosts + regulatoryCost,
+      pAndL: adjustedPAndL,
+      tce: adjustedTce,
+      totalCo2,
+      ciiRating,
+      etsCost: etsResult.etsCost,
+      fuelEuCost: fuelEuResult.totalPenalty,
+    });
+
+    // Inspector hook: in the browser console try `__voyage.result.tce` etc.
+    exposeVoyageDebug({ inputs, result });
+
+    return result;
   }, [inputs]);
 }
 
