@@ -1237,12 +1237,33 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // FuelEU Maritime
   setSubSectionHeader(r, "FuelEU Maritime"); r++;
-  setCalcLabel(r, "HSFO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.hsfo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.hsfo, S.envSoftware); r++;
-  setCalcLabel(r, "VLSFO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.vlsfo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.vlsfo, S.envSoftware); r++;
-  setCalcLabel(r, "LSMGO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.lsmgo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.lsmgo, S.envSoftware); r++;
-  setCalcLabel(r, "HSFO Cost ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.hsfo.cost, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.hsfo.cost, S.envSoftware); const R_FEH = r; r++;
-  setCalcLabel(r, "VLSFO Cost ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.vlsfo.cost, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.vlsfo.cost, S.envSoftware); const R_FEV = r; r++;
-  setCalcLabel(r, "LSMGO Cost ($)", false, false, true); setNum(1, r, results.fuelEuResult.fuels.lsmgo.cost, S.envFormula); setNum(2, r, results.fuelEuResult.fuels.lsmgo.cost, S.envSoftware); const R_FEL = r; r++;
+  // Static $/ton rates (sheet-aligned)
+  setCalcLabel(r, "HSFO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.hsfo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.hsfo, S.envSoftware); const R_FE_HR = r; r++;
+  setCalcLabel(r, "VLSFO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.vlsfo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.vlsfo, S.envSoftware); const R_FE_VR = r; r++;
+  setCalcLabel(r, "LSMGO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.lsmgo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.lsmgo, S.envSoftware); const R_FE_LR = r; r++;
+
+  // EU-covered fuel quantities (link back to EU fuel totals)
+  setCalcLabel(r, "HSFO EU Fuel (mt)", false, false, true);
+  setCalcFormula(r, `${B(R_EU_HSFOT)}`, sv_euHsfo, false, false, true);
+  const R_FE_HQ = r; r++;
+  setCalcLabel(r, "VLSFO EU Fuel (mt)", false, false, true);
+  setCalcFormula(r, `${B(R_EU_VLSFOT)}`, sv_euVlsfo, false, false, true);
+  const R_FE_VQ = r; r++;
+  setCalcLabel(r, "LSMGO EU Fuel (mt)", false, false, true);
+  setCalcFormula(r, `${B(R_EU_LSMGOT)}`, sv_euLsmgo, false, false, true);
+  const R_FE_LQ = r; r++;
+
+  // Per-fuel costs = EU fuel × $/ton
+  setCalcLabel(r, "HSFO Cost ($) = EU Fuel × $/ton", false, false, true);
+  setCalcFormula(r, `${B(R_FE_HQ)}*${B(R_FE_HR)}`, results.fuelEuResult.fuels.hsfo.cost, false, false, true);
+  const R_FEH = r; r++;
+  setCalcLabel(r, "VLSFO Cost ($) = EU Fuel × $/ton", false, false, true);
+  setCalcFormula(r, `${B(R_FE_VQ)}*${B(R_FE_VR)}`, results.fuelEuResult.fuels.vlsfo.cost, false, false, true);
+  const R_FEV = r; r++;
+  setCalcLabel(r, "LSMGO Cost ($) = EU Fuel × $/ton", false, false, true);
+  setCalcFormula(r, `${B(R_FE_LQ)}*${B(R_FE_LR)}`, results.fuelEuResult.fuels.lsmgo.cost, false, false, true);
+  const R_FEL = r; r++;
+
   setCalcLabel(r, "FuelEU Total Penalty ($)", true);
   setCalcFormula(r, `${B(R_FEH)}+${B(R_FEV)}+${B(R_FEL)}`, results.fuelEuTotalPenalty, true);
   r++;
