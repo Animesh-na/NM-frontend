@@ -1142,9 +1142,25 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // EU ETS
   setSubSectionHeader(r, "EU ETS"); r++;
-  setCalcLabel(r, "Chargeable CO₂ EUA (mt)", false, false, true); setNum(1, r, results.chargeableCo2, S.envFormula); setNum(2, r, results.chargeableCo2, S.envSoftware); const R_CHCO2 = r; r++;
-  setCalcLabel(r, "ETS Coverage (%)", false, false, true); setNum(1, r, results.etsVoyageCoverage * 100, S.envFormula); setNum(2, r, results.etsVoyageCoverage * 100, S.envSoftware); r++;
-  setCalcLabel(r, "ETS Phase-in (%)", false, false, true); setNum(1, r, results.etsPhaseIn * 100, S.envFormula); setNum(2, r, results.etsPhaseIn * 100, S.envSoftware); r++;
+  // ETS Coverage % = weighted average of per-leg coverage (EUSEA column: 1.0 EU→EU, 0.5 mixed, 0 non-EU→non-EU)
+  // weighted by per-leg CO₂ ≈ weighted by per-leg sea time (SEAT column) since CO₂ scales with sea time
+  setCalcLabel(r, "ETS Coverage (%)", false, false, true);
+  setCalcFormula(r,
+    `IF(SUM(${seqRange(SC.SEAT)})>0,SUMPRODUCT(${seqRange(SC.EUSEA)},${seqRange(SC.SEAT)})/SUM(${seqRange(SC.SEAT)})*100,0)`,
+    results.etsVoyageCoverage * 100, false, false, true);
+  const R_ETSCOV = r; r++;
+
+  setCalcLabel(r, "ETS Phase-in (%)", false, false, true);
+  setNum(1, r, results.etsPhaseIn * 100, S.envFormula);
+  setNum(2, r, results.etsPhaseIn * 100, S.envSoftware);
+  const R_ETSPHASE = r; r++;
+
+  // Chargeable CO₂ = Total CO₂ × Coverage% × Phase-in%
+  setCalcLabel(r, "Chargeable CO₂ EUA (mt)", false, false, true);
+  setCalcFormula(r,
+    `${B(R_TCO2)}*${B(R_ETSCOV)}/100*${B(R_ETSPHASE)}/100`,
+    results.chargeableCo2, false, false, true);
+  const R_CHCO2 = r; r++;
 
   setCalcLabel(r, "EUA CO₂ Cost ($)", false, false, true);
   setCalcFormula(r, `${B(R_CHCO2)}*${B(R_CO2P)}`, results.euaCo2Cost, false, false, true);
