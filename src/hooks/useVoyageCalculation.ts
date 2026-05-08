@@ -17,6 +17,7 @@ import {
   type Co2BreakdownByFuel,
   type FuelEuResult,
 } from "@/utils/emissionCalculations";
+import { vlog, vlogBegin, vlogEnd, exposeVoyageDebug } from "@/utils/voyageLogger";
 
 // Types for voyage calculation inputs
 export interface SequenceRow {
@@ -260,7 +261,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const hasScrubber = vessel.hasScrubber === true;
     let cargoOnBoard = 0;
 
-    vlog(`\n========== VOYAGE CALCULATION START ==========`);
+    vlogBegin(`Voyage Calculation — ${vessel.name} (${vessel.speedProfile})`);
     vlog(`[Input] Vessel: ${vessel.name}, DWT: ${vessel.dwt}, Speed Profile: ${vessel.speedProfile}`);
     vlog(`[Input] Hire Rate: $${hireRate}/day`);
     vlog(`[Input] Cargo: rate=${cargo.rate} ${cargo.rateType}, qty=${cargo.quantity}, voyComm=${cargo.voyageCommission}%, tcComm=${cargo.tcCommission}%`);
