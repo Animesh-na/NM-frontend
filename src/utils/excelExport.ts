@@ -319,6 +319,9 @@ export function exportVoyageToExcel(data: ExportData) {
     EUPORT: 34, // EU port factor (0 or 1)
     TURND: 35,  // Turn time in days
     EXTRAD: 36, // Extra time in days
+    WXDLY: 37,  // Weather delay (days)
+    DEPUTC: 38, // Leg departure (UTC)
+    ARRUTC: 39, // Leg arrival (UTC)
   };
 
   // Headers — styled
@@ -332,6 +335,7 @@ export function exportVoyageToExcel(data: ExportData) {
     "HSFO Dc D", "VLSFO Dc D", "LSMGO Dc D",
     "HSFO Id D", "VLSFO Id D", "LSMGO Id D",
     "EU Sea F", "EU Port F", "Turn(d)", "Extra(d)",
+    "Wx Delay (d)", "Leg Dep (UTC)", "Leg Arr (UTC)",
   ];
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
