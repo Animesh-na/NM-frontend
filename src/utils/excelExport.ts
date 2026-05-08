@@ -469,6 +469,12 @@ export function exportVoyageToExcel(data: ExportData) {
     const turnDays = turnTimeH / 24;
     const extraDays = extraTimeH / 24;
     setNum(SC.EXTRAD, rr, extraDays, fStyle);
+
+    // Weather delay (days) and cascading leg timestamps
+    const wxHours = Math.abs(leg.weatherDelayHours ?? 0);
+    setNum(SC.WXDLY, rr, wxHours / 24, dStyle);
+    setText(SC.DEPUTC, rr, leg.legDepartureUtc ? leg.legDepartureUtc.replace("T", " ") : "", tStyle);
+    setText(SC.ARRUTC, rr, leg.legArrivalUtc ? leg.legArrivalUtc.replace("T", " ") : "", tStyle);
   });
 
   const seqEndRow = seqStartRow + sequence.length - 1;
