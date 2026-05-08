@@ -477,6 +477,7 @@ export function exportVoyageToExcel(data: ExportData) {
     // --- EU Factor columns ---
     // EU Sea Factor uses bracketing cargo-operation ports (LOAD↔DISCHARGE), not adjacent passing/bunkering rows.
     const curEuCell = c(SC.EUFLG);
+    const curIsEu = leg.isEuEea === true;
     const euSeaFactorVal = computeSeaEuFactor(idx);
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
