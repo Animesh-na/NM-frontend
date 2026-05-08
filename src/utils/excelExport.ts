@@ -2,6 +2,7 @@ import * as XLSX from "xlsx-js-style";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
+import { isEuPort } from "@/utils/emissionCalculations";
 
 interface ExportData {
   vessel: VesselData;
@@ -159,6 +160,18 @@ export function exportVoyageToExcel(data: ExportData) {
   );
   const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
   const hasScrubber = vessel.hasScrubber === true;
+
+  const isLoadOp = (op?: string) => {
+    const o = (op || "").toLowerCase();
+    return o === "load" || o === "loading";
+  };
+  const isDischargeOp = (op?: string) => {
+    const o = (op || "").toLowerCase();
+    return o === "disch" || o === "discharging";
+  };
+  const isCargoPortCall = (op?: string) => isLoadOp(op) || isDischargeOp(op);
+  const isEtsCoveredPort = (leg: SequenceRowUI): boolean =>
+    leg.isEuEea === true || isEuPort(leg.portUnloc || "") || (leg.ecaDistance || 0) > 0;
 
   // ---- Styled Cell writing helpers ----
   function setText(c: number, r: number, v: string, style?: any) {
@@ -340,10 +353,15 @@ export function exportVoyageToExcel(data: ExportData) {
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
 
-  // Pre-compute isLaden flags using running cargo-on-board (matches useVoyageCalculation.ts)
+  // Pre-compute isLaden flags and ETS cargo brackets (matches useVoyageCalculation.ts)
   // Ship is laden as long as cargo remains on board; ballast only when cargo reaches zero
   const ladenFlags: boolean[] = [];
+  const bracketOriginIsEu: (boolean | null)[] = sequence.map(() => null);
+  const bracketDestIsEu: (boolean | null)[] = sequence.map(() => null);
   let cargoOnBoardExcel = 0;
+  const cargoPortIndexes = sequence
+    .map((leg, i) => (isCargoPortCall(leg.operation) ? i : -1))
+    .filter(i => i >= 0);
   sequence.forEach((leg) => {
     // Laden state is determined BEFORE the current port operation (same as calculation engine)
     ladenFlags.push(cargoOnBoardExcel > 0);
@@ -355,6 +373,30 @@ export function exportVoyageToExcel(data: ExportData) {
       cargoOnBoardExcel = Math.max(0, cargoOnBoardExcel - legQty);
     }
   });
+  let cargoOnBoardBeforeLeg = 0;
+  sequence.forEach((leg, i) => {
+    if (cargoOnBoardBeforeLeg > 0) {
+      const originIdx = [...cargoPortIndexes].reverse().find(idx => idx < i);
+      const destIdx = cargoPortIndexes.find(idx => idx >= i);
+
+      if (originIdx !== undefined && destIdx !== undefined && originIdx !== destIdx) {
+        bracketOriginIsEu[i] = isEtsCoveredPort(sequence[originIdx]);
+        bracketDestIsEu[i] = isEtsCoveredPort(sequence[destIdx]);
+      }
+    }
+
+    const qty = Math.max(0, leg.quantity || 0);
+    if (isLoadOp(leg.operation)) cargoOnBoardBeforeLeg += qty;
+    else if (isDischargeOp(leg.operation)) cargoOnBoardBeforeLeg = Math.max(0, cargoOnBoardBeforeLeg - qty);
+  });
+  const computeSeaEuFactor = (legIdx: number): number => {
+    const originEu = bracketOriginIsEu[legIdx];
+    const destEu = bracketDestIsEu[legIdx];
+    if (originEu === null || destEu === null) return 0;
+    if (originEu && destEu) return 1.0;
+    if (originEu || destEu) return 0.5;
+    return 0;
+  };
 
   const seqStartRow = r;
   sequence.forEach((leg, idx) => {
@@ -433,29 +475,12 @@ export function exportVoyageToExcel(data: ExportData) {
       portFuel === "lsmgo" ? idleVal : 0, fStyle);
 
     // --- EU Factor columns ---
-    // EU Sea Factor: compare previous row's EU flag with current row's EU flag
-    // First row: use current port + next port to determine both endpoints (consistent with useVoyageCalculation)
-    const prevEuCell = idx === 0 ? "0" : cellRef(SC.EUFLG, rr - 1);
+    // EU Sea Factor uses bracketing cargo-operation ports (LOAD↔DISCHARGE), not adjacent passing/bunkering rows.
     const curEuCell = c(SC.EUFLG);
-    const nextEuCell = idx === 0 && sequence.length > 1 ? cellRef(SC.EUFLG, rr + 1) : null;
-    const euSeaFactorFormula = idx === 0
-      ? (nextEuCell
-        ? `IF(AND(${curEuCell}=1,${nextEuCell}=1),1,IF(OR(${curEuCell}=1,${nextEuCell}=1),0.5,0))`
-        : `IF(${curEuCell}=1,0.5,0)`)
-      : `IF(AND(${prevEuCell}=1,${curEuCell}=1),1,IF(OR(${prevEuCell}=1,${curEuCell}=1),0.5,0))`;
-    
-    // Compute actual value
     const curIsEu = leg.isEuEea === true;
-    let euSeaFactorVal = 0;
-    if (idx === 0) {
-      const nextIsEu = sequence.length > 1 ? (sequence[1].isEuEea === true) : false;
-      if (curIsEu && nextIsEu) euSeaFactorVal = 1.0;
-      else if (curIsEu || nextIsEu) euSeaFactorVal = 0.5;
-    } else {
-      const prevIsEu = sequence[idx - 1].isEuEea === true;
-      if (prevIsEu && curIsEu) euSeaFactorVal = 1.0;
-      else if (prevIsEu || curIsEu) euSeaFactorVal = 0.5;
-    }
+    const curPortKey = (leg.portUnloc || leg.port || "").trim();
+    const euSeaFactorVal = curPortKey ? computeSeaEuFactor(idx) : 0;
+    const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
     // EU Port Factor: 1 if current port is EU, 0 otherwise
@@ -942,10 +967,11 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // Pre-compute EU-covered fuel using same logic as useVoyageCalculation.ts
   let sv_euHsfo = 0, sv_euVlsfo = 0, sv_euLsmgo = 0;
+  let sv_euHsfoSea = 0, sv_euVlsfoSea = 0, sv_euLsmgoSeaMe = 0, sv_euLsmgoSeaAe = 0;
+  let sv_euHsfoPort = 0, sv_euVlsfoPort = 0, sv_euLsmgoPort = 0, sv_euLsmgoPortAe = 0;
+  let sv_euHsfoExtra = 0, sv_euVlsfoExtra = 0, sv_euLsmgoExtra = 0;
   let totalSeaTimeSegs = 0, weightedEuSeaF = 0;
   {
-    let prevIsEu = false;
-    let prevHasPort = false;
     let segCob = 0;
     
     sequence.forEach((leg, idx) => {
@@ -953,21 +979,11 @@ export function exportVoyageToExcel(data: ExportData) {
       const legQty = Math.max(0, leg.quantity || 0);
       const legIsLaden = segCob > 0;
       const curIsEu = leg.isEuEea === true;
+      const curPortKey = (leg.portUnloc || leg.port || "").trim();
       
-      // Sea fuel - use both endpoints for EU factor (including first segment)
-      if (leg.portUnloc) {
-        let euF = 0;
-        if (!prevHasPort) {
-          // First leg: use current + next port
-          const nextLeg = sequence.find((s, si) => si > idx && s.portUnloc);
-          const nextIsEu = nextLeg?.isEuEea === true;
-          if (curIsEu && nextIsEu) euF = 1.0;
-          else if (curIsEu || nextIsEu) euF = 0.5;
-        } else {
-          if (prevIsEu && curIsEu) euF = 1.0;
-          else if (prevIsEu || curIsEu) euF = 0.5;
-        }
-        
+      // Sea fuel - EU factor uses bracketing cargo-operation ports (same as software engine)
+      if (curPortKey) {
+        const euF = computeSeaEuFactor(idx);
         const legST = leg.totalLegTime || 0;
         totalSeaTimeSegs += legST;
         weightedEuSeaF += legST * euF;
@@ -978,22 +994,30 @@ export function exportVoyageToExcel(data: ExportData) {
           
           if (hasScrubber) {
             const rate = legIsLaden ? (profile.hsfo.laden || 0) : (profile.hsfo.ballast || 0);
-            sv_euHsfo += legNET * rate * rewardFactor * euF;
+            const amt = legNET * rate * rewardFactor * euF;
+            sv_euHsfo += amt;
+            sv_euHsfoSea += amt;
           } else {
             const rate = legIsLaden ? (profile.vlsfo.laden || 0) : (profile.vlsfo.ballast || 0);
-            sv_euVlsfo += legNET * rate * rewardFactor * euF;
+            const amt = legNET * rate * rewardFactor * euF;
+            sv_euVlsfo += amt;
+            sv_euVlsfoSea += amt;
           }
           const ecaRate = legIsLaden ? (profile.lsmgo.laden || 0) : (profile.lsmgo.ballast || 0);
-          sv_euLsmgo += legET * ecaRate * rewardFactor * euF;
+          const lsmgoMeAmt = legET * ecaRate * rewardFactor * euF;
+          sv_euLsmgo += lsmgoMeAmt;
+          sv_euLsmgoSeaMe += lsmgoMeAmt;
           
           const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
           const aeR2 = legIsLaden ? (aeRs.laden || 0) : (aeRs.ballast || 0);
-          sv_euLsmgo += legST * aeR2 * rewardFactor * euF;
+          const lsmgoAeAmt = legST * aeR2 * rewardFactor * euF;
+          sv_euLsmgo += lsmgoAeAmt;
+          sv_euLsmgoSeaAe += lsmgoAeAmt;
         }
       }
       
       // Port fuel (only if EU port)
-      if (leg.portUnloc && curIsEu && (leg.calculatedPortDays || 0) > 0) {
+      if (curPortKey && curIsEu && (leg.calculatedPortDays || 0) > 0) {
         const pf = (leg as any).portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
         const turnH = leg.turnTime || 0;
@@ -1003,41 +1027,50 @@ export function exportVoyageToExcel(data: ExportData) {
         const turnD = turnH / 24;
         const extraD = extraH / 24;
         
-        let pH = 0, pV = 0, pL = 0;
+        let pH = 0, pV = 0, pL = 0, pAeL = 0;
         const addF = (ft: string, amt: number) => { if (ft === 'hsfo') pH += amt; else if (ft === 'vlsfo') pV += amt; else pL += amt; };
         
         if (legOp === 'load' || legOp === 'loading') {
           addF(pf, wdL * (profile[pf]?.load || 0));
           addF(pf, turnD * (profile[pf]?.idle || 0));
           addF(pf, extraD * (profile[pf]?.idle || 0));
-          pL += wdL * (aeRs.load || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
+          pAeL += wdL * (aeRs.load || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
         } else if (legOp === 'disch' || legOp === 'discharging') {
           addF(pf, wdL * (profile[pf]?.discharge || 0));
           addF(pf, turnD * (profile[pf]?.idle || 0));
           addF(pf, extraD * (profile[pf]?.idle || 0));
-          pL += wdL * (aeRs.discharge || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
+          pAeL += wdL * (aeRs.discharge || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
         } else {
           addF(pf, pd * (profile[pf]?.idle || 0));
-          pL += pd * (aeRs.idle || 0);
+          pAeL += pd * (aeRs.idle || 0);
         }
         sv_euHsfo += pH;
         sv_euVlsfo += pV;
-        sv_euLsmgo += pL;
+        sv_euLsmgo += pL + pAeL;
+        sv_euHsfoPort += pH;
+        sv_euVlsfoPort += pV;
+        sv_euLsmgoPort += pL;
+        sv_euLsmgoPortAe += pAeL;
       }
       
       if (legOp === 'load' || legOp === 'loading') segCob += legQty;
       else if (legOp === 'disch' || legOp === 'discharging') segCob = Math.max(0, segCob - legQty);
-      if (leg.portUnloc) { prevHasPort = true; prevIsEu = curIsEu; }
     });
     
     // Extra sea/port/canal days
     if (extraSeaDays > 0 && totalSeaTimeSegs > 0) {
       const avgF = weightedEuSeaF / totalSeaTimeSegs;
       if (avgF > 0) {
-        if (hasScrubber) sv_euHsfo += extraSeaDays * (profile.hsfo.laden || 0) * rewardFactor * avgF;
-        else sv_euVlsfo += extraSeaDays * (profile.vlsfo.laden || 0) * rewardFactor * avgF;
+        if (hasScrubber) {
+          sv_euHsfoExtra += extraSeaDays * (profile.hsfo.laden || 0) * rewardFactor * avgF;
+          sv_euHsfo += sv_euHsfoExtra;
+        } else {
+          sv_euVlsfoExtra += extraSeaDays * (profile.vlsfo.laden || 0) * rewardFactor * avgF;
+          sv_euVlsfo += sv_euVlsfoExtra;
+        }
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
-        sv_euLsmgo += extraSeaDays * (aeRs.laden || 0) * rewardFactor * avgF;
+        sv_euLsmgoExtra += extraSeaDays * (aeRs.laden || 0) * rewardFactor * avgF;
+        sv_euLsmgo += sv_euLsmgoExtra;
       }
     }
     if (extraPortDays > 0) {
@@ -1047,17 +1080,28 @@ export function exportVoyageToExcel(data: ExportData) {
       if (avgPF > 0) {
         const epft = hasScrubber ? 'hsfo' : 'vlsfo';
         const epir = profile[epft]?.idle || 0;
-        if (epft === 'hsfo') sv_euHsfo += extraPortDays * epir * avgPF;
-        else sv_euVlsfo += extraPortDays * epir * avgPF;
+        if (epft === 'hsfo') {
+          sv_euHsfoExtra += extraPortDays * epir * avgPF;
+          sv_euHsfo += extraPortDays * epir * avgPF;
+        } else {
+          sv_euVlsfoExtra += extraPortDays * epir * avgPF;
+          sv_euVlsfo += extraPortDays * epir * avgPF;
+        }
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
+        sv_euLsmgoExtra += extraPortDays * (aeRs.idle || 0) * avgPF;
         sv_euLsmgo += extraPortDays * (aeRs.idle || 0) * avgPF;
       }
     }
     if (extraCanalDays > 0 && totalSeaTimeSegs > 0) {
       const avgF = weightedEuSeaF / totalSeaTimeSegs;
       if (avgF > 0) {
-        if (hasScrubber) sv_euHsfo += extraCanalDays * (profile.hsfo.canal || 0) * avgF;
-        else sv_euVlsfo += extraCanalDays * (profile.vlsfo.canal || 0) * avgF;
+        if (hasScrubber) {
+          sv_euHsfoExtra += extraCanalDays * (profile.hsfo.canal || 0) * avgF;
+          sv_euHsfo += extraCanalDays * (profile.hsfo.canal || 0) * avgF;
+        } else {
+          sv_euVlsfoExtra += extraCanalDays * (profile.vlsfo.canal || 0) * avgF;
+          sv_euVlsfo += extraCanalDays * (profile.vlsfo.canal || 0) * avgF;
+        }
       }
     }
   }
@@ -1067,60 +1111,72 @@ export function exportVoyageToExcel(data: ExportData) {
   // For HSFO sea EU:
   setCalcLabel(r, "HSFO EU Sea (mt)", false, false, true);
   const hsfoEuSeaF = `IF(${scrCell}=1,SUMPRODUCT((${seqRange(SC.NECAB)}*${hBal}+${seqRange(SC.NECAL)}*${hLad})*${seqRange(SC.EUSEA)})*${rfCell},0)`;
-  setCalcFormula(r, hsfoEuSeaF, hasScrubber ? sv_euHsfo : 0, false, false, true);
-  // Note: sv_euHsfo includes port+extra, formula only sea here — we'll show software total below
+  setCalcFormula(r, hsfoEuSeaF, sv_euHsfoSea, false, false, true);
   const R_EU_HSFO_SEA = r; r++;
 
   setCalcLabel(r, "VLSFO EU Sea (mt)", false, false, true);
   const vlsfoEuSeaF = `IF(${scrCell}=0,SUMPRODUCT((${seqRange(SC.NECAB)}*${vBal}+${seqRange(SC.NECAL)}*${vLad})*${seqRange(SC.EUSEA)})*${rfCell},0)`;
-  setCalcFormula(r, vlsfoEuSeaF, !hasScrubber ? sv_euVlsfo : 0, false, false, true);
+  setCalcFormula(r, vlsfoEuSeaF, sv_euVlsfoSea, false, false, true);
   const R_EU_VLSFO_SEA = r; r++;
 
   setCalcLabel(r, "LSMGO EU Sea ME (mt)", false, false, true);
   const lsmgoEuSeaMeF = `SUMPRODUCT((${seqRange(SC.ECAB)}*${lBal}+${seqRange(SC.ECAL)}*${lLad})*${seqRange(SC.EUSEA)})*${rfCell}`;
-  setCalcFormula(r, lsmgoEuSeaMeF, 0, false, false, true);
+  setCalcFormula(r, lsmgoEuSeaMeF, sv_euLsmgoSeaMe, false, false, true);
   const R_EU_LSMGO_SEA_ME = r; r++;
 
   setCalcLabel(r, "LSMGO EU Sea AE (mt)", false, false, true);
   const lsmgoEuSeaAeF = `SUMPRODUCT((${seqRange(SC.BSEA)}*(${aeBal})+${seqRange(SC.LSEA)}*(${aeLad}))*${seqRange(SC.EUSEA)})*${rfCell}`;
-  setCalcFormula(r, lsmgoEuSeaAeF, 0, false, false, true);
+  setCalcFormula(r, lsmgoEuSeaAeF, sv_euLsmgoSeaAe, false, false, true);
   const R_EU_LSMGO_SEA_AE = r; r++;
   r++;
 
   // Port EU fuel — uses EUPORT factor column (1 for EU port, 0 for non-EU)
   setCalcLabel(r, "HSFO EU Port (mt)", false, false, true);
   const hsfoEuPortF = `SUMPRODUCT((${seqRange(SC.HLD)}*${hLoad}+${seqRange(SC.HDD)}*${hDisch}+${seqRange(SC.HID)}*${hIdle})*${seqRange(SC.EUPORT)})`;
-  setCalcFormula(r, hsfoEuPortF, 0, false, false, true);
+  setCalcFormula(r, hsfoEuPortF, sv_euHsfoPort, false, false, true);
   const R_EU_HSFO_PORT = r; r++;
 
   setCalcLabel(r, "VLSFO EU Port (mt)", false, false, true);
   const vlsfoEuPortF = `SUMPRODUCT((${seqRange(SC.VLD)}*${vLoad}+${seqRange(SC.VDD)}*${vDisch}+${seqRange(SC.VID)}*${vIdle})*${seqRange(SC.EUPORT)})`;
-  setCalcFormula(r, vlsfoEuPortF, 0, false, false, true);
+  setCalcFormula(r, vlsfoEuPortF, sv_euVlsfoPort, false, false, true);
   const R_EU_VLSFO_PORT = r; r++;
 
   setCalcLabel(r, "LSMGO EU Port (mt)", false, false, true);
   const lsmgoEuPortF = `SUMPRODUCT((${seqRange(SC.LLD)}*${lLoad}+${seqRange(SC.LDD)}*${lDisch}+${seqRange(SC.LID)}*${lIdle})*${seqRange(SC.EUPORT)})`;
-  setCalcFormula(r, lsmgoEuPortF, 0, false, false, true);
+  setCalcFormula(r, lsmgoEuPortF, sv_euLsmgoPort, false, false, true);
   const R_EU_LSMGO_PORT = r; r++;
 
   // AE Port EU
   setCalcLabel(r, "LSMGO EU Port AE (mt)", false, false, true);
   const lsmgoEuPortAeF = `SUMPRODUCT((${seqRange(SC.ISLD)}*${seqRange(SC.WDAYS)}*(${aeLoad})+${seqRange(SC.ISDC)}*${seqRange(SC.WDAYS)}*(${aeDisch})+${seqRange(SC.IDAYS)}*(${aeIdle}))*${seqRange(SC.EUPORT)})`;
-  setCalcFormula(r, lsmgoEuPortAeF, 0, false, false, true);
+  setCalcFormula(r, lsmgoEuPortAeF, sv_euLsmgoPortAe, false, false, true);
   const R_EU_LSMGO_PORT_AE = r; r++;
+  r++;
+
+  setCalcLabel(r, "HSFO EU Extra Time (mt)", false, false, true);
+  setCalcFormula(r, `${sv_euHsfoExtra}`, sv_euHsfoExtra, false, false, true);
+  const R_EU_HSFO_EXTRA = r; r++;
+
+  setCalcLabel(r, "VLSFO EU Extra Time (mt)", false, false, true);
+  setCalcFormula(r, `${sv_euVlsfoExtra}`, sv_euVlsfoExtra, false, false, true);
+  const R_EU_VLSFO_EXTRA = r; r++;
+
+  setCalcLabel(r, "LSMGO EU Extra Time (mt)", false, false, true);
+  setCalcFormula(r, `${sv_euLsmgoExtra}`, sv_euLsmgoExtra, false, false, true);
+  const R_EU_LSMGO_EXTRA = r; r++;
   r++;
 
   // EU-Covered Fuel Totals
   setCalcLabel(r, "HSFO EU Total (mt)", true);
-  setCalcFormula(r, `${B(R_EU_HSFO_SEA)}+${B(R_EU_HSFO_PORT)}`, sv_euHsfo, true);
+  setCalcFormula(r, `${B(R_EU_HSFO_SEA)}+${B(R_EU_HSFO_PORT)}+${B(R_EU_HSFO_EXTRA)}`, sv_euHsfo, true);
   const R_EU_HSFOT = r; r++;
 
   setCalcLabel(r, "VLSFO EU Total (mt)", true);
-  setCalcFormula(r, `${B(R_EU_VLSFO_SEA)}+${B(R_EU_VLSFO_PORT)}`, sv_euVlsfo, true);
+  setCalcFormula(r, `${B(R_EU_VLSFO_SEA)}+${B(R_EU_VLSFO_PORT)}+${B(R_EU_VLSFO_EXTRA)}`, sv_euVlsfo, true);
   const R_EU_VLSFOT = r; r++;
 
   setCalcLabel(r, "LSMGO EU Total (mt)", true);
-  setCalcFormula(r, `${B(R_EU_LSMGO_SEA_ME)}+${B(R_EU_LSMGO_SEA_AE)}+${B(R_EU_LSMGO_PORT)}+${B(R_EU_LSMGO_PORT_AE)}`, sv_euLsmgo, true);
+  setCalcFormula(r, `${B(R_EU_LSMGO_SEA_ME)}+${B(R_EU_LSMGO_SEA_AE)}+${B(R_EU_LSMGO_PORT)}+${B(R_EU_LSMGO_PORT_AE)}+${B(R_EU_LSMGO_EXTRA)}`, sv_euLsmgo, true);
   const R_EU_LSMGOT = r; r++;
 
   // EU coverage percentages
@@ -1145,7 +1201,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // ETS Coverage % = informational weighted avg by sea time (display only — NOT used in chargeable CO₂)
   setCalcLabel(r, "ETS Coverage (%) — informational", false, false, true);
   setCalcFormula(r,
-    `IF(SUM(${seqRange(SC.SEAT)})>0,SUMPRODUCT(${seqRange(SC.EUSEA)},${seqRange(SC.SEAT)})/SUM(${seqRange(SC.SEAT)})*100,0)`,
+    `IF(${B(R_TSEA)}>0,SUMPRODUCT(${seqRange(SC.EUSEA)},${seqRange(SC.SEAT)})/${B(R_TSEA)}*100,0)`,
     results.etsVoyageCoverage * 100, false, false, true);
   r++;
 
