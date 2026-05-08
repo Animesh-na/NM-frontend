@@ -2,6 +2,7 @@ import * as XLSX from "xlsx-js-style";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
+import { isEuPort } from "@/utils/emissionCalculations";
 
 interface ExportData {
   vessel: VesselData;
@@ -159,6 +160,18 @@ export function exportVoyageToExcel(data: ExportData) {
   );
   const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
   const hasScrubber = vessel.hasScrubber === true;
+
+  const isLoadOp = (op?: string) => {
+    const o = (op || "").toLowerCase();
+    return o === "load" || o === "loading";
+  };
+  const isDischargeOp = (op?: string) => {
+    const o = (op || "").toLowerCase();
+    return o === "disch" || o === "discharging";
+  };
+  const isCargoPortCall = (op?: string) => isLoadOp(op) || isDischargeOp(op);
+  const isEtsCoveredPort = (leg: SequenceRowUI): boolean =>
+    leg.isEuEea === true || isEuPort(leg.portUnloc || "") || (leg.ecaDistance || 0) > 0;
 
   // ---- Styled Cell writing helpers ----
   function setText(c: number, r: number, v: string, style?: any) {
