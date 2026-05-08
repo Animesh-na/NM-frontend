@@ -968,8 +968,6 @@ export function exportVoyageToExcel(data: ExportData) {
   let sv_euHsfo = 0, sv_euVlsfo = 0, sv_euLsmgo = 0;
   let totalSeaTimeSegs = 0, weightedEuSeaF = 0;
   {
-    let prevIsEu = false;
-    let prevHasPort = false;
     let segCob = 0;
     
     sequence.forEach((leg, idx) => {
@@ -977,21 +975,11 @@ export function exportVoyageToExcel(data: ExportData) {
       const legQty = Math.max(0, leg.quantity || 0);
       const legIsLaden = segCob > 0;
       const curIsEu = leg.isEuEea === true;
+      const curPortKey = (leg.portUnloc || leg.port || "").trim();
       
-      // Sea fuel - use both endpoints for EU factor (including first segment)
-      if (leg.portUnloc) {
-        let euF = 0;
-        if (!prevHasPort) {
-          // First leg: use current + next port
-          const nextLeg = sequence.find((s, si) => si > idx && s.portUnloc);
-          const nextIsEu = nextLeg?.isEuEea === true;
-          if (curIsEu && nextIsEu) euF = 1.0;
-          else if (curIsEu || nextIsEu) euF = 0.5;
-        } else {
-          if (prevIsEu && curIsEu) euF = 1.0;
-          else if (prevIsEu || curIsEu) euF = 0.5;
-        }
-        
+      // Sea fuel - EU factor uses bracketing cargo-operation ports (same as software engine)
+      if (curPortKey) {
+        const euF = computeSeaEuFactor(idx);
         const legST = leg.totalLegTime || 0;
         totalSeaTimeSegs += legST;
         weightedEuSeaF += legST * euF;
@@ -1017,7 +1005,7 @@ export function exportVoyageToExcel(data: ExportData) {
       }
       
       // Port fuel (only if EU port)
-      if (leg.portUnloc && curIsEu && (leg.calculatedPortDays || 0) > 0) {
+      if (curPortKey && curIsEu && (leg.calculatedPortDays || 0) > 0) {
         const pf = (leg as any).portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
         const turnH = leg.turnTime || 0;
@@ -1051,7 +1039,6 @@ export function exportVoyageToExcel(data: ExportData) {
       
       if (legOp === 'load' || legOp === 'loading') segCob += legQty;
       else if (legOp === 'disch' || legOp === 'discharging') segCob = Math.max(0, segCob - legQty);
-      if (leg.portUnloc) { prevHasPort = true; prevIsEu = curIsEu; }
     });
     
     // Extra sea/port/canal days
