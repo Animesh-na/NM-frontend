@@ -1,5 +1,69 @@
 # Calculations Index & Manual Debug Guide
 
+> **Quick links**
+> - [Console debug toggle](#console-debug-toggle) — silence/expand logs from DevTools
+> - [`window.__voyage` inspector](#window__voyage-inspector) — poke at the latest run from the browser console
+> - [Test the whole software](#test-the-whole-software) — one command to verify the full pipeline
+
+---
+
+## Console debug toggle
+
+Every time the calculation engine runs (`src/hooks/useVoyageCalculation.ts`) it now logs through `src/utils/voyageLogger.ts`, which respects a single `localStorage` switch you can change live in DevTools:
+
+```js
+// In the browser console:
+localStorage.VOYAGE_DEBUG = 'off'      // no logs at all
+localStorage.VOYAGE_DEBUG = 'summary'  // ONLY the final summary table
+localStorage.VOYAGE_DEBUG = 'on'       // collapsed group with all steps  (default)
+localStorage.VOYAGE_DEBUG = 'verbose'  // expanded group with all steps
+// then trigger a recalculation (edit any input) — no reload required
+```
+
+Each run produces:
+1. A single collapsible group **🚢 Voyage Calculation — `<vessel>` (`<profile>`)** containing every `[Step N]` block.
+2. A final `console.table` with the headline KPIs (distance, sea/port days, bunker mt + $, freight, hire, costs, P&L, TCE, CO₂, CII, ETS, FuelEU). This always prints unless `VOYAGE_DEBUG === 'off'`.
+
+## `window.__voyage` inspector
+
+After every calculation, the latest inputs and full result object are exposed at `window.__voyage`. Use it from DevTools to dig into anything the UI doesn't show:
+
+```js
+__voyage.inputs.cargo
+__voyage.result.tce
+__voyage.result.etsResult.legBreakdown
+__voyage.result.fuelEuResult.fuels
+copy(JSON.stringify(__voyage, null, 2))   // copy a full snapshot to the clipboard
+```
+
+## Test the whole software
+
+A single end-to-end smoke test exercises the calculation engine, emission module, EU ETS coverage and FuelEU pricing across realistic scenarios (eco vs full, scrubber on/off, cheap bunkers, zero hire) and prints a side-by-side comparison table.
+
+```bash
+# Run just the smoke test:
+bunx vitest run src/test/smoke
+
+# Run the full test suite (unit + integration + smoke):
+bunx vitest run
+```
+
+The smoke test (`src/test/smoke/overallSoftware.test.ts`) asserts the invariants that **every** voyage must satisfy — time conservation (`days = sea + port + extras`), `hire = rate × days`, `net ≤ gross`, valid CII grade, ETS phase-in within `[0, 100]`, non-negative bunker cost — and prints output like this:
+
+```
+┌──────────────────────────┬───────┬──────────┬──────────┬─────────┬──────────┐
+│ (index)                  │ Days  │ Bunker $ │ Costs $  │ P&L $   │ CII      │
+├──────────────────────────┼───────┼──────────┼──────────┼─────────┼──────────┤
+│ Eco / no-scrubber        │ 30.16 │ 102004   │ 222004   │ 904657  │ 'A'      │
+│ Full speed / no-scrubber │ 30.16 │ 121296   │ 241296   │ 885366  │ 'A'      │
+│ Eco / scrubber on        │ 30.16 │ 209344   │ 329344   │ 797318  │ 'A'      │
+└──────────────────────────┴───────┴──────────┴──────────┴─────────┴──────────┘
+```
+
+If this passes, the engine is wired up correctly end-to-end. To add a new scenario, append a `run("Your label", { /* overrides */ })` call to the `scenarios` array — overrides accept any subset of `VoyageInputs` (vessel, sequence, cargo, bunker, hireRate, misc, extraTime).
+
+---
+
 This is the single source of truth for **where every calculation lives** and **how to manually verify it** when reading or writing code. Use it as a map: pick the metric you care about, jump to the file/line, and follow the debug recipe.
 
 ---

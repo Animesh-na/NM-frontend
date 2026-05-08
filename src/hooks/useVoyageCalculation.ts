@@ -17,6 +17,7 @@ import {
   type Co2BreakdownByFuel,
   type FuelEuResult,
 } from "@/utils/emissionCalculations";
+import { vlog, vlogBegin, vlogEnd, exposeVoyageDebug } from "@/utils/voyageLogger";
 
 // Types for voyage calculation inputs
 export interface SequenceRow {
@@ -260,12 +261,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const hasScrubber = vessel.hasScrubber === true;
     let cargoOnBoard = 0;
 
-    console.log(`\n========== VOYAGE CALCULATION START ==========`);
-    console.log(`[Input] Vessel: ${vessel.name}, DWT: ${vessel.dwt}, Speed Profile: ${vessel.speedProfile}`);
-    console.log(`[Input] Hire Rate: $${hireRate}/day`);
-    console.log(`[Input] Cargo: rate=${cargo.rate} ${cargo.rateType}, qty=${cargo.quantity}, voyComm=${cargo.voyageCommission}%, tcComm=${cargo.tcCommission}%`);
-    console.log(`[Input] Bunker Prices: HSFO=$${bunker.hsfo.price}, VLSFO=$${bunker.vlsfo.price}, LSMGO=$${bunker.lsmgo.price}, CO2=$${bunker.co2Price}`);
-    console.log(`[Input] Reward Factor: ${bunker?.rewardFactor ?? 1.0}`);
+    vlogBegin(`Voyage Calculation — ${vessel.name} (${vessel.speedProfile})`);
+    vlog(`[Input] Vessel: ${vessel.name}, DWT: ${vessel.dwt}, Speed Profile: ${vessel.speedProfile}`);
+    vlog(`[Input] Hire Rate: $${hireRate}/day`);
+    vlog(`[Input] Cargo: rate=${cargo.rate} ${cargo.rateType}, qty=${cargo.quantity}, voyComm=${cargo.voyageCommission}%, tcComm=${cargo.tcCommission}%`);
+    vlog(`[Input] Bunker Prices: HSFO=$${bunker.hsfo.price}, VLSFO=$${bunker.vlsfo.price}, LSMGO=$${bunker.lsmgo.price}, CO2=$${bunker.co2Price}`);
+    vlog(`[Input] Reward Factor: ${bunker?.rewardFactor ?? 1.0}`);
 
     sequence.forEach((leg) => {
       totalDistance += leg.distance || 0;
@@ -290,7 +291,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       // Determine ballast/laden using running cargo on board (before current port operation)
       const legIsLaden = cargoOnBoard > 0;
       
-      console.log(`\n[Step 1] Leg ${leg.id} - "${leg.operation}" at ${leg.port}:
+      vlog(`\n[Step 1] Leg ${leg.id} - "${leg.operation}" at ${leg.port}:
     distance=${leg.distance} nm, ecaDistance=${leg.ecaDistance} nm
     portDays=${leg.portDays} d, expDa=$${leg.expDa}
     seaTime=${legSeaTime} d (total with margin)
@@ -312,7 +313,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const turnExtraDays = ((leg.turnTimeHours || 0) + (leg.extraTimeHours || 0)) / 24;
       const workingDays = Math.max(0, (leg.portDays || 0) - turnExtraDays);
       
-      console.log(`    Port breakdown: turnTimeHrs=${leg.turnTimeHours || 0}, extraTimeHrs=${leg.extraTimeHours || 0} → turnExtraDays=${turnExtraDays}, workingDays=${workingDays}`);
+      vlog(`    Port breakdown: turnTimeHrs=${leg.turnTimeHours || 0}, extraTimeHrs=${leg.extraTimeHours || 0} → turnExtraDays=${turnExtraDays}, workingDays=${workingDays}`);
       
       // Determine port fuel type for this leg
       const legPortFuel = leg.portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
@@ -350,24 +351,24 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         loadingDays += workingDays;
         idleDays += turnExtraDays;
         addPortDays(workingDays, turnExtraDays);
-        console.log(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays`);
+        vlog(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays`);
       } else if (operation === "disch" || operation === "discharging") {
         dischargingDays += workingDays;
         idleDays += turnExtraDays;
         addDischDays(workingDays, turnExtraDays);
-        console.log(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays`);
+        vlog(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays`);
       } else if (operation === "waiting" || operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
-        console.log(`    → IDLE/WAITING (${legPortFuel}): ${leg.portDays} days added to idleDays`);
+        vlog(`    → IDLE/WAITING (${legPortFuel}): ${leg.portDays} days added to idleDays`);
       } else if (operation === "bunkering") {
         bunkeringDays += leg.portDays || 0;
         addBunkeringDays(leg.portDays || 0);
-        console.log(`    → BUNKERING (${legPortFuel}): ${leg.portDays} days added to bunkeringDays`);
+        vlog(`    → BUNKERING (${legPortFuel}): ${leg.portDays} days added to bunkeringDays`);
       } else if (leg.portDays > 0) {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
-        console.log(`    → OTHER (${legPortFuel}) with port time: ${leg.portDays} days added to idleDays`);
+        vlog(`    → OTHER (${legPortFuel}) with port time: ${leg.portDays} days added to idleDays`);
       }
 
       if (operation === "load" || operation === "loading") {
@@ -376,10 +377,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         cargoOnBoard = Math.max(0, cargoOnBoard - legQuantity);
       }
 
-      console.log(`    cargoOnBoardAfter=${cargoOnBoard} mt`);
+      vlog(`    cargoOnBoardAfter=${cargoOnBoard} mt`);
     });
 
-    console.log(`\n[Step 1 Summary] After sequence loop:
+    vlog(`\n[Step 1 Summary] After sequence loop:
     totalDistance=${totalDistance} nm, totalEcaDistance=${totalEcaDistance} nm
     seaDaysBallast=${seaDaysBallast.toFixed(4)} d, seaDaysLaden=${seaDaysLaden.toFixed(4)} d
     ecaSeaDaysBallast=${ecaSeaDaysBallast.toFixed(4)}, ecaSeaDaysLaden=${ecaSeaDaysLaden.toFixed(4)}
@@ -400,7 +401,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // Total voyage days includes all extra time
     const totalVoyageDays = totalSeaDays + totalPortDays + extraPortDays + extraCanalDays;
 
-    console.log(`\n[Step 2-3] Extra & Total Time:
+    vlog(`\n[Step 2-3] Extra & Total Time:
     extraSeaDays=${extraSeaDays}, extraPortDays=${extraPortDays}, extraCanalDays=${extraCanalDays}
     totalSeaDays = seaDaysBallast(${seaDaysBallast.toFixed(4)}) + seaDaysLaden(${seaDaysLaden.toFixed(4)}) + extraSea(${extraSeaDays}) = ${totalSeaDays.toFixed(4)}
     totalVoyageDays = totalSea(${totalSeaDays.toFixed(4)}) + totalPort(${totalPortDays.toFixed(4)}) + extraPort(${extraPortDays}) + extraCanal(${extraCanalDays}) = ${totalVoyageDays.toFixed(4)}`);
@@ -514,7 +515,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const vlsfoConsumption = vlsfoSeaTotal + vlsfoLoading + vlsfoDischarging + vlsfoIdle + vlsfoCanal;
     const lsmgoConsumption = lsmgoSeaTotal + lsmgoLoading + lsmgoDischarging + lsmgoIdle + lsmgoCanal + lsmgoAeTotal;
 
-    console.log(`\n[Step 4] BUNKER CONSUMPTION (profile: ${vessel.speedProfile}, rewardFactor: ${rewardFactor}):
+    vlog(`\n[Step 4] BUNKER CONSUMPTION (profile: ${vessel.speedProfile}, rewardFactor: ${rewardFactor}):
     --- Consumption Rates (TPD) ---
     HSFO: ballast=${profile.hsfo.ballast}, laden=${profile.hsfo.laden}, load=${profile.hsfo.load}, disch=${profile.hsfo.discharge}, idle=${profile.hsfo.idle}, canal=${profile.hsfo.canal}
     VLSFO: ballast=${profile.vlsfo.ballast}, laden=${profile.vlsfo.laden}, load=${profile.vlsfo.load}, disch=${profile.vlsfo.discharge}, idle=${profile.vlsfo.idle}, canal=${profile.vlsfo.canal}
@@ -576,7 +577,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const lsmgoCost = lsmgoConsumption * lsmgoPrice;
     const totalBunkerCost = hsfoCost + vlsfoCost + lsmgoCost;
 
-    console.log(`\n[Step 5] BUNKER COSTS:
+    vlog(`\n[Step 5] BUNKER COSTS:
     HSFO: ${hsfoConsumption} mt × $${hsfoPrice} = $${hsfoCost}
     VLSFO: ${vlsfoConsumption} mt × $${vlsfoPrice} = $${vlsfoCost}
     LSMGO: ${lsmgoConsumption} mt × $${lsmgoPrice} = $${lsmgoCost}
@@ -593,7 +594,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageCommission = grossFreight * (cargo.voyageCommission / 100);
     const netFreight = grossFreight - voyageCommission;
 
-    console.log(`\n[Step 6] FREIGHT & REVENUE:
+    vlog(`\n[Step 6] FREIGHT & REVENUE:
     Gross Freight: ${cargo.rateType === 'lumpsum' ? `lumpsum $${cargo.rate}` : `$${cargo.rate}/mt × ${cargo.quantity} mt`} = $${grossFreight}
     Voyage Commission: $${grossFreight} × ${cargo.voyageCommission}% = $${voyageCommission}
     Net Freight: $${grossFreight} - $${voyageCommission} = $${netFreight}`);
@@ -602,14 +603,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
     const canalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
 
-    console.log(`\n[Step 7] MISC COSTS:
+    vlog(`\n[Step 7] MISC COSTS:
     Misc: miscCost=$${misc?.miscCost || 0} + extraFees=$${misc?.extraFees || 0} + extraInsurance=$${misc?.extraInsurance || 0} = $${miscCosts}
     Canal: canal1=$${misc?.canalCost1 || 0} + canal2=$${misc?.canalCost2 || 0} = $${canalCosts}`);
 
     // 8. Total voyage costs (Bunker + Port + Canal + Misc — NO commissions mixed in)
     const totalVoyageCosts = totalBunkerCost + portCosts + miscCosts + canalCosts;
     
-    console.log(`\n[Step 8] TOTAL VOYAGE COSTS:
+    vlog(`\n[Step 8] TOTAL VOYAGE COSTS:
     Bunker($${totalBunkerCost}) + Port($${portCosts}) + Misc($${miscCosts}) + Canal($${canalCosts}) = $${totalVoyageCosts}`);
 
     // 9. Hire calculations — TC Commission reduces hire ONLY, never freight
@@ -623,7 +624,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageCostInclHire = totalVoyageCosts + hireCost;
     const voyageCostExclHire = totalVoyageCosts;
 
-    console.log(`\n[Step 9] HIRE CALCULATIONS:
+    vlog(`\n[Step 9] HIRE CALCULATIONS:
     Gross Hire Rate: $${grossHireRate}/day
     Net BB: $${netBBValue}
     TC Commission: ${cargo.tcCommission}% → Net Hire Rate: $${grossHireRate} × (1 - ${tcCommissionPct}) = $${netHireRate}/day
@@ -655,7 +656,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const baseRatePerMt = cargo.quantity > 0 ? voyageCostInclHire / cargo.quantity : 0;
     const grossRate = voyageCommissionPct < 1 ? baseRatePerMt / (1 - voyageCommissionPct) : 0;
 
-    console.log(`\n[Step 10] PROFITABILITY:
+    vlog(`\n[Step 10] PROFITABILITY:
     Voyage Result = NetFreight($${netFreight}) - VoyageCosts($${totalVoyageCosts}) + Demurrage($${cargo.demurrage}) - Despatch($${cargo.despatch}) = $${voyageResult}
     Gross Profit = $${grossProfit}
     P&L = VoyageResult($${voyageResult}) - HireCost($${hireCost}) = $${pAndL}
@@ -831,7 +832,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const afrCii = ciiResult.actualCii;
     const ciiRating = ciiResult.rating;
 
-    console.log(`\n[Step 11] ENVIRONMENTAL METRICS:
+    vlog(`\n[Step 11] ENVIRONMENTAL METRICS:
     --- CO2 Emissions (mt) ---
     HSFO CO2: ${hsfoConsumption} mt × ${CO2_EMISSION_FACTORS.hsfo} = ${co2ByFuel.hsfo} mt CO2
     VLSFO CO2: ${vlsfoConsumption} mt × ${CO2_EMISSION_FACTORS.vlsfo} = ${co2ByFuel.vlsfo} mt CO2
@@ -876,7 +877,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       let totalSeaTimeInSegments = 0;
       let weightedEuSeaFactor = 0;
       
-      console.log(`\n[EU ETS] Sequence isEuEea flags:`, sequence.map(s => ({ port: s.port, isEuEea: s.isEuEea })));
+      vlog(`\n[EU ETS] Sequence isEuEea flags:`, sequence.map(s => ({ port: s.port, isEuEea: s.isEuEea })));
       
       sequence.forEach((leg, index) => {
         const legOperation = (leg.operation || '').toLowerCase();
@@ -1133,7 +1134,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       legBreakdown: etsLegBreakdown,
     };
     
-    console.log(`\n[Step 12] CHARGEABLE CO₂ EUA (bottom-up):
+    vlog(`\n[Step 12] CHARGEABLE CO₂ EUA (bottom-up):
     EU Fuel: HSFO=${euCoveredHsfo.toFixed(2)}t, VLSFO=${euCoveredVlsfo.toFixed(2)}t, LSMGO=${euCoveredLsmgo.toFixed(2)}t
     EU CO₂ from fuel = (${euCoveredHsfo.toFixed(2)}×${CO2_EMISSION_FACTORS.hsfo}) + (${euCoveredVlsfo.toFixed(2)}×${CO2_EMISSION_FACTORS.vlsfo}) + (${euCoveredLsmgo.toFixed(2)}×${CO2_EMISSION_FACTORS.lsmgo}) = ${euCo2FromFuel.toFixed(2)} mt
     Chargeable CO₂ EUA = ${euCo2FromFuel.toFixed(2)} × ${phaseInPercentage} (phase-in) = ${totalChargeableCo2.toFixed(2)} mt
@@ -1174,12 +1175,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const voyageCommissionPct2 = cargo.voyageCommission / 100;
     const adjustedGrossRate = voyageCommissionPct2 < 1 ? adjustedBaseRatePerMt / (1 - voyageCommissionPct2) : 0;
 
-    console.log(`\n[Step 13] REGULATORY COSTS & FUEL EU:
+    vlog(`\n[Step 13] REGULATORY COSTS & FUEL EU:
     FuelEU Costs: HSFO=$${fuelEuResult.fuels.hsfo.cost.toFixed(2)}, VLSFO=$${fuelEuResult.fuels.vlsfo.cost.toFixed(2)}, LSMGO=$${fuelEuResult.fuels.lsmgo.cost.toFixed(2)}
     FuelEU Total: $${fuelEuResult.totalPenalty.toFixed(2)}`);
     
-    console.log(`\n========== VOYAGE CALCULATION END ==========\n`);
-
     // Validate emission inputs
     const validation = validateEmissionInputs(
       fuelConsumption,
@@ -1189,7 +1188,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       bunker.co2Price
     );
 
-    return {
+    const result = {
       totalDistance,
       totalEcaDistance,
       seaDaysBallast,
@@ -1259,6 +1258,34 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       fuelEuFreightImpact: cargo.quantity > 0 ? fuelEuResult.totalPenalty / cargo.quantity : 0,
       etsLegDetails,
     };
+
+    // Final compact summary table — easy to scan in DevTools.
+    vlogEnd({
+      vessel: vessel.name,
+      totalDistance,
+      totalSeaDays,
+      totalPortDays,
+      totalVoyageDays,
+      hsfo: hsfoConsumption,
+      vlsfo: vlsfoConsumption,
+      lsmgo: lsmgoConsumption,
+      bunkerCost: totalBunkerCost,
+      grossFreight,
+      netFreight,
+      hireCost,
+      totalVoyageCosts: totalVoyageCosts + regulatoryCost,
+      pAndL: adjustedPAndL,
+      tce: adjustedTce,
+      totalCo2,
+      ciiRating,
+      etsCost: etsResult.etsCost,
+      fuelEuCost: fuelEuResult.totalPenalty,
+    });
+
+    // Inspector hook: in the browser console try `__voyage.result.tce` etc.
+    exposeVoyageDebug({ inputs, result });
+
+    return result;
   }, [inputs]);
 }
 
