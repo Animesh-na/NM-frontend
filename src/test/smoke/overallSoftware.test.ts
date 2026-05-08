@@ -41,10 +41,10 @@ const baseInputs: VoyageInputs = {
 function run(name: string, overrides: Partial<VoyageInputs>) {
   const inputs: VoyageInputs = { ...baseInputs, ...overrides };
   const { result } = renderHook(() => useVoyageCalculation(inputs));
-  return { name, r: result.current };
+  return { name, r: result.current, hireRate: inputs.hireRate };
 }
 
-function assertInvariants(name: string, r: ReturnType<typeof useVoyageCalculation>) {
+function assertInvariants(name: string, r: ReturnType<typeof useVoyageCalculation>, hireRate: number) {
   // Time conservation
   expect(r.totalVoyageDays, `${name}: voyage days = sea + port + extras`).toBeCloseTo(
     r.totalSeaDays + r.totalPortDays + r.extraPortDays + r.extraCanalDays,
@@ -61,7 +61,7 @@ function assertInvariants(name: string, r: ReturnType<typeof useVoyageCalculatio
   expect(r.etsPhaseIn).toBeGreaterThanOrEqual(0);
   expect(r.etsPhaseIn).toBeLessThanOrEqual(100);
   // Hire
-  expect(r.hireCost, `${name}: hire = rate × days`).toBeCloseTo(15000 * r.totalVoyageDays, 1);
+  expect(r.hireCost, `${name}: hire = rate × days`).toBeCloseTo(hireRate * r.totalVoyageDays, 1);
 }
 
 describe("Smoke: overall software pipeline", () => {
@@ -83,7 +83,7 @@ describe("Smoke: overall software pipeline", () => {
   it("prints a comparison table and passes invariants for every scenario", () => {
     const fmt = (n: number) => (Number.isFinite(n) ? Number(n.toFixed(2)) : n);
     const rows: Record<string, Record<string, string | number>> = {};
-    for (const { name, r } of scenarios) {
+    for (const { name, r, hireRate } of scenarios) {
       rows[name] = {
         "Days":         fmt(r.totalVoyageDays),
         "HSFO mt":      fmt(r.hsfoConsumption),
@@ -100,7 +100,7 @@ describe("Smoke: overall software pipeline", () => {
         "ETS $":        fmt(r.etsCost),
         "FuelEU $":     fmt(r.fuelEuTotalPenalty),
       };
-      assertInvariants(name, r);
+      assertInvariants(name, r, hireRate);
     }
     // eslint-disable-next-line no-console
     console.log("\n=== Overall software smoke summary ===");
