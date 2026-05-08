@@ -1061,10 +1061,16 @@ export function exportVoyageToExcel(data: ExportData) {
     if (extraSeaDays > 0 && totalSeaTimeSegs > 0) {
       const avgF = weightedEuSeaF / totalSeaTimeSegs;
       if (avgF > 0) {
-        if (hasScrubber) sv_euHsfo += extraSeaDays * (profile.hsfo.laden || 0) * rewardFactor * avgF;
-        else sv_euVlsfo += extraSeaDays * (profile.vlsfo.laden || 0) * rewardFactor * avgF;
+        if (hasScrubber) {
+          sv_euHsfoExtra += extraSeaDays * (profile.hsfo.laden || 0) * rewardFactor * avgF;
+          sv_euHsfo += sv_euHsfoExtra;
+        } else {
+          sv_euVlsfoExtra += extraSeaDays * (profile.vlsfo.laden || 0) * rewardFactor * avgF;
+          sv_euVlsfo += sv_euVlsfoExtra;
+        }
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
-        sv_euLsmgo += extraSeaDays * (aeRs.laden || 0) * rewardFactor * avgF;
+        sv_euLsmgoExtra += extraSeaDays * (aeRs.laden || 0) * rewardFactor * avgF;
+        sv_euLsmgo += sv_euLsmgoExtra;
       }
     }
     if (extraPortDays > 0) {
@@ -1074,17 +1080,28 @@ export function exportVoyageToExcel(data: ExportData) {
       if (avgPF > 0) {
         const epft = hasScrubber ? 'hsfo' : 'vlsfo';
         const epir = profile[epft]?.idle || 0;
-        if (epft === 'hsfo') sv_euHsfo += extraPortDays * epir * avgPF;
-        else sv_euVlsfo += extraPortDays * epir * avgPF;
+        if (epft === 'hsfo') {
+          sv_euHsfoExtra += extraPortDays * epir * avgPF;
+          sv_euHsfo += extraPortDays * epir * avgPF;
+        } else {
+          sv_euVlsfoExtra += extraPortDays * epir * avgPF;
+          sv_euVlsfo += extraPortDays * epir * avgPF;
+        }
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
+        sv_euLsmgoExtra += extraPortDays * (aeRs.idle || 0) * avgPF;
         sv_euLsmgo += extraPortDays * (aeRs.idle || 0) * avgPF;
       }
     }
     if (extraCanalDays > 0 && totalSeaTimeSegs > 0) {
       const avgF = weightedEuSeaF / totalSeaTimeSegs;
       if (avgF > 0) {
-        if (hasScrubber) sv_euHsfo += extraCanalDays * (profile.hsfo.canal || 0) * avgF;
-        else sv_euVlsfo += extraCanalDays * (profile.vlsfo.canal || 0) * avgF;
+        if (hasScrubber) {
+          sv_euHsfoExtra += extraCanalDays * (profile.hsfo.canal || 0) * avgF;
+          sv_euHsfo += extraCanalDays * (profile.hsfo.canal || 0) * avgF;
+        } else {
+          sv_euVlsfoExtra += extraCanalDays * (profile.vlsfo.canal || 0) * avgF;
+          sv_euVlsfo += extraCanalDays * (profile.vlsfo.canal || 0) * avgF;
+        }
       }
     }
   }
