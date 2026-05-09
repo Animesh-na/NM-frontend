@@ -944,7 +944,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
-        const portEuFactor = (leg.isEuEea === true) ? 1.0 : 0.0;
+        // Per leg-uniform ETS rule: port fuel at the destination port of this
+        // leg is covered at the SAME percentage as the sea leg that arrived
+        // here (0% / 50% / 100%). This keeps fuel allocation consistent at
+        // the leg level instead of jumping between sea% and port 0/100%.
+        const portEuFactor = seaEuFactor;
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
@@ -1019,8 +1023,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             coverageLabel = 'Cargo(Non-EU) → Cargo(Non-EU): 0%';
           }
           
-          // Port coverage label
-          const portLabel = (leg.isEuEea === true) ? ' | Port: EU 100%' : (leg.portDays > 0 ? ' | Port: Non-EU 0%' : '');
+          // Port coverage label — port inherits the sea leg coverage %
+          const portLabel = leg.portDays > 0 ? ` | Port: ${coveragePct}%` : '';
           
           const chargeableCo2 = 
             legChargeHsfo * CO2_EMISSION_FACTORS.hsfo +
@@ -1079,10 +1083,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
       }
       
-      if (extraPortDays > 0) {
-        const euPortCount = sequence.filter(r => getLegPortKey(r) && r.isEuEea === true && r.portDays > 0).length;
-        const totalPortCount = sequence.filter(r => getLegPortKey(r) && r.portDays > 0).length;
-        const avgPortEuFactor = totalPortCount > 0 ? euPortCount / totalPortCount : 0;
+      if (extraPortDays > 0 && totalSeaTimeInSegments > 0) {
+        // Extra port days inherit the same weighted sea-leg coverage as the
+        // voyage (per leg-uniform ETS rule).
+        const avgPortEuFactor = weightedEuSeaFactor / totalSeaTimeInSegments;
         if (avgPortEuFactor > 0) {
           const extraPortFuelType = hasScrubber ? 'hsfo' : 'vlsfo';
           const extraPortIdleRate = profile[extraPortFuelType]?.idle || 0;
