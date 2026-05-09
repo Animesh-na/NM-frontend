@@ -102,7 +102,8 @@ describe("Integration: Full Voyage Calculation", () => {
     it("nonEcaDistance = totalDistance - totalEcaDistance", () => {
       const { result } = renderHook(() => useVoyageCalculation(fullInputs));
       const r = result.current;
-      expect(r.nonEcaDistance).toBe(r.totalDistance - r.totalEcaDistance);
+      // leg.distance is the V (non-ECA) column; nonEcaDistance mirrors totalDistance.
+      expect(r.nonEcaDistance).toBe(r.totalDistance);
     });
   });
 
