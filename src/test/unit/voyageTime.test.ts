@@ -169,6 +169,8 @@ describe("Voyage Time Section", () => {
 
   it("should return non-ECA distance", () => {
     const { result } = renderHook(() => useVoyageCalculation(baseInputs));
-    expect(result.current.nonEcaDistance).toBe(6500 - 500);
+    // leg.distance represents the V (non-ECA) column directly,
+    // so nonEcaDistance equals totalDistance.
+    expect(result.current.nonEcaDistance).toBe(6500);
   });
 });
