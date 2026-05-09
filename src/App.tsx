@@ -46,24 +46,26 @@ function SheetRouter() {
 }
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   if (!isAuthenticated) {
     return <Login />;
   }
 
-  return <SheetRouter />;
+  return (
+    <SheetProvider key={user?.id || "anon"}>
+      <SheetRouter />
+    </SheetProvider>
+  );
 }
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <SheetProvider>
-          <Toaster />
-          <Sonner />
-          <AppContent />
-        </SheetProvider>
+        <Toaster />
+        <Sonner />
+        <AppContent />
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
