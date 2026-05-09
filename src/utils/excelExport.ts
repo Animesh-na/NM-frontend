@@ -483,8 +483,10 @@ export function exportVoyageToExcel(data: ExportData) {
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
-    // EU Port Factor: 1 if current port is EU, 0 otherwise
-    setFormula(SC.EUPORT, rr, `IF(${curEuCell}=1,1,0)`, curIsEu ? 1 : 0, fStyle);
+    // EU Port Factor: per leg-uniform ETS rule, port fuel inherits the
+    // bracketing sea-leg coverage (0 / 0.5 / 1.0). This keeps Excel parity
+    // with the software engine where portEuFactor === seaEuFactor.
+    setFormula(SC.EUPORT, rr, `${cellRef(SC.EUSEA, rr)}`, euSeaFactorVal, fStyle);
 
     // Turn time in days
     const turnTimeH = leg.turnTime || 0;
