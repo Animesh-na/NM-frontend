@@ -1083,10 +1083,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
       }
       
-      if (extraPortDays > 0) {
-        const euPortCount = sequence.filter(r => getLegPortKey(r) && r.isEuEea === true && r.portDays > 0).length;
-        const totalPortCount = sequence.filter(r => getLegPortKey(r) && r.portDays > 0).length;
-        const avgPortEuFactor = totalPortCount > 0 ? euPortCount / totalPortCount : 0;
+      if (extraPortDays > 0 && totalSeaTimeInSegments > 0) {
+        // Extra port days inherit the same weighted sea-leg coverage as the
+        // voyage (per leg-uniform ETS rule).
+        const avgPortEuFactor = weightedEuSeaFactor / totalSeaTimeInSegments;
         if (avgPortEuFactor > 0) {
           const extraPortFuelType = hasScrubber ? 'hsfo' : 'vlsfo';
           const extraPortIdleRate = profile[extraPortFuelType]?.idle || 0;
