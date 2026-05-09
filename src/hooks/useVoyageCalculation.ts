@@ -1023,8 +1023,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             coverageLabel = 'Cargo(Non-EU) → Cargo(Non-EU): 0%';
           }
           
-          // Port coverage label
-          const portLabel = (leg.isEuEea === true) ? ' | Port: EU 100%' : (leg.portDays > 0 ? ' | Port: Non-EU 0%' : '');
+          // Port coverage label — port inherits the sea leg coverage %
+          const portLabel = leg.portDays > 0 ? ` | Port: ${coveragePct}%` : '';
           
           const chargeableCo2 = 
             legChargeHsfo * CO2_EMISSION_FACTORS.hsfo +
