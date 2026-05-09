@@ -483,8 +483,10 @@ export function exportVoyageToExcel(data: ExportData) {
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
-    // EU Port Factor: 1 if current port is EU, 0 otherwise
-    setFormula(SC.EUPORT, rr, `IF(${curEuCell}=1,1,0)`, curIsEu ? 1 : 0, fStyle);
+    // EU Port Factor: per leg-uniform ETS rule, port fuel inherits the
+    // bracketing sea-leg coverage (0 / 0.5 / 1.0). This keeps Excel parity
+    // with the software engine where portEuFactor === seaEuFactor.
+    setFormula(SC.EUPORT, rr, `${cellRef(SC.EUSEA, rr)}`, euSeaFactorVal, fStyle);
 
     // Turn time in days
     const turnTimeH = leg.turnTime || 0;
@@ -1016,8 +1018,10 @@ export function exportVoyageToExcel(data: ExportData) {
         }
       }
       
-      // Port fuel (only if EU port)
-      if (curPortKey && curIsEu && (leg.calculatedPortDays || 0) > 0) {
+      // Port fuel — per leg-uniform ETS rule: port inherits the sea-leg
+      // coverage of the arriving cargo bracket (0 / 0.5 / 1.0).
+      const portEuF = curPortKey ? computeSeaEuFactor(idx) : 0;
+      if (curPortKey && portEuF > 0 && (leg.calculatedPortDays || 0) > 0) {
         const pf = (leg as any).portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
         const turnH = leg.turnTime || 0;
@@ -1044,13 +1048,13 @@ export function exportVoyageToExcel(data: ExportData) {
           addF(pf, pd * (profile[pf]?.idle || 0));
           pAeL += pd * (aeRs.idle || 0);
         }
-        sv_euHsfo += pH;
-        sv_euVlsfo += pV;
-        sv_euLsmgo += pL + pAeL;
-        sv_euHsfoPort += pH;
-        sv_euVlsfoPort += pV;
-        sv_euLsmgoPort += pL;
-        sv_euLsmgoPortAe += pAeL;
+        sv_euHsfo += pH * portEuF;
+        sv_euVlsfo += pV * portEuF;
+        sv_euLsmgo += (pL + pAeL) * portEuF;
+        sv_euHsfoPort += pH * portEuF;
+        sv_euVlsfoPort += pV * portEuF;
+        sv_euLsmgoPort += pL * portEuF;
+        sv_euLsmgoPortAe += pAeL * portEuF;
       }
       
       if (legOp === 'load' || legOp === 'loading') segCob += legQty;
@@ -1073,10 +1077,9 @@ export function exportVoyageToExcel(data: ExportData) {
         sv_euLsmgo += sv_euLsmgoExtra;
       }
     }
-    if (extraPortDays > 0) {
-      const euPc = sequence.filter(r2 => r2.portUnloc && r2.isEuEea === true && (r2.calculatedPortDays || 0) > 0).length;
-      const totPc = sequence.filter(r2 => r2.portUnloc && (r2.calculatedPortDays || 0) > 0).length;
-      const avgPF = totPc > 0 ? euPc / totPc : 0;
+    if (extraPortDays > 0 && totalSeaTimeSegs > 0) {
+      // Extra port days inherit the weighted sea-leg coverage (leg-uniform rule).
+      const avgPF = weightedEuSeaF / totalSeaTimeSegs;
       if (avgPF > 0) {
         const epft = hasScrubber ? 'hsfo' : 'vlsfo';
         const epir = profile[epft]?.idle || 0;
