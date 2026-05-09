@@ -412,7 +412,15 @@ function recalculateDerivedSequenceRows(rows: SequenceRowUI[], vessel: VesselDat
   let cargoOnBoard = 0;
   let currentDepartureMs: number | null = (() => {
     if (!globalDepartureUtc) return null;
-    const parsed = new Date(globalDepartureUtc);
+    // datetime-local inputs come as "YYYY-MM-DDTHH:mm" with no zone.
+    // The field represents UTC, so parse it explicitly as UTC (append Z if missing).
+    const raw = globalDepartureUtc.trim();
+    let iso = raw;
+    if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)) {
+      // Add seconds if missing, then mark as UTC
+      iso = /T\d{2}:\d{2}:\d{2}/.test(raw) ? `${raw}Z` : `${raw}:00Z`;
+    }
+    const parsed = new Date(iso);
     return isNaN(parsed.getTime()) ? null : parsed.getTime();
   })();
 
