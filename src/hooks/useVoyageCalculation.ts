@@ -944,7 +944,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
-        const portEuFactor = (leg.isEuEea === true) ? 1.0 : 0.0;
+        // Per leg-uniform ETS rule: port fuel at the destination port of this
+        // leg is covered at the SAME percentage as the sea leg that arrived
+        // here (0% / 50% / 100%). This keeps fuel allocation consistent at
+        // the leg level instead of jumping between sea% and port 0/100%.
+        const portEuFactor = seaEuFactor;
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
