@@ -111,16 +111,17 @@ describe("EU ETS Fuel Allocation", () => {
     expect(r.euCoveredFuel.vlsfo).toBeGreaterThan(0);
     expect(r.euCoveredFuel.vlsfo).toBeLessThan(r.vlsfoConsumption);
 
-    // LSMGO EU% should be higher than VLSFO EU% because more port time is at EU ports
+    // Per leg-uniform rule: port fuel inherits the sea coverage of the
+    // arriving leg, so LSMGO and VLSFO EU% track closely together.
     const vlsfoPct = r.euCoveredFuel.vlsfo / r.vlsfoConsumption;
     const lsmgoPct = r.euCoveredFuel.lsmgo / r.lsmgoConsumption;
-    expect(lsmgoPct).toBeGreaterThanOrEqual(vlsfoPct - 0.05); // LSMGO typically higher
+    expect(Math.abs(lsmgoPct - vlsfoPct)).toBeLessThan(0.15);
 
     console.log(`Multi-leg: VLSFO EU%=${(vlsfoPct*100).toFixed(1)}%, LSMGO EU%=${(lsmgoPct*100).toFixed(1)}%`);
   });
 
-  it("Port fuel at EU port is 100% covered regardless of sea factor", () => {
-    // Even if sea leg is NonEU→EU (50%), port stay at EU port = 100%
+  it("Port fuel inherits sea-leg coverage % (leg-uniform rule)", () => {
+    // Sea leg Santos→Rotterdam = 50%; port Rotterdam also 50% (not 100%).
     const seq = makeSequence([
       { operation: "load", port: "Santos", portUnloc: "BRSSZ", isEuEea: false, distance: 1000, seaTime: 3.33, ecaTime: 0, nonEcaTime: 3.33, portDays: 3, quantity: 65000 },
       { operation: "disch", port: "Rotterdam", portUnloc: "NLRTM", isEuEea: true, distance: 5500, seaTime: 18.33, ecaTime: 1.67, nonEcaTime: 16.66, portDays: 4, turnTimeHours: 8, extraTimeHours: 4, quantity: 65000 },
@@ -128,11 +129,11 @@ describe("EU ETS Fuel Allocation", () => {
     const { result } = renderHook(() => useVoyageCalculation({ ...baseInputs, sequence: seq }));
     const r = result.current;
 
-    // The EU LSMGO should include 100% of Rotterdam port AE consumption
-    // This means LSMGO EU% > VLSFO EU% (because port AE is fully covered)
+    // Both VLSFO and LSMGO EU% should stay near 50% (sea leg coverage).
     const vlsfoPct = r.euCoveredFuel.vlsfo / r.vlsfoConsumption;
     const lsmgoPct = r.euCoveredFuel.lsmgo / r.lsmgoConsumption;
-    expect(lsmgoPct).toBeGreaterThan(vlsfoPct);
+    expect(vlsfoPct).toBeCloseTo(0.5, 1);
+    expect(lsmgoPct).toBeCloseTo(0.5, 1);
 
     console.log(`Port coverage: VLSFO EU%=${(vlsfoPct*100).toFixed(1)}%, LSMGO EU%=${(lsmgoPct*100).toFixed(1)}%`);
   });
