@@ -228,6 +228,7 @@ export interface SheetListItem {
   name: string;
   updated_at: string;
   created_at: string;
+  owner_email?: string;
 }
 
 export interface SheetListResponse {

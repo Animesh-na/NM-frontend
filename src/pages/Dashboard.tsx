@@ -202,6 +202,7 @@ export default function Dashboard() {
                     <tr className="bg-table-header text-muted-foreground text-xs">
                       <th className="text-left px-4 py-2.5 font-medium w-12">#</th>
                       <th className="text-left px-4 py-2.5 font-medium">Sheet Name</th>
+                      {isAdmin && <th className="text-left px-4 py-2.5 font-medium">Owner</th>}
                       <th className="text-left px-4 py-2.5 font-medium">Last Updated</th>
                       <th className="text-right px-4 py-2.5 font-medium">Actions</th>
                     </tr>
@@ -219,6 +220,11 @@ export default function Dashboard() {
                         <td className="px-4 py-2.5 font-medium text-foreground group-hover:text-primary transition-colors">
                           {sheet.name}
                         </td>
+                        {isAdmin && (
+                          <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                            {sheet.owner_email || "—"}
+                          </td>
+                        )}
                         <td className="px-4 py-2.5 text-muted-foreground text-xs">
                           {new Date(sheet.updated_at || sheet.created_at).toLocaleString()}
                         </td>
