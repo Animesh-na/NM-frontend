@@ -12,9 +12,19 @@ export function CargoSection() {
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const sequenceCargoQuantity = sequence
-    .filter(row => row.operation === "loading")
-    .reduce((sum, row) => sum + (row.quantity || 0), 0);
+  // Derive per-cargo loaded qty using the same logic as the calculation engine:
+  // explicit chip mapping wins; otherwise auto-map loading rows to cargos by order.
+  const loadingRows = sequence.filter((r) => r.operation === "loading");
+  const usesExplicitMapping = sequence.some((r) => (r.assignedCargoIds || []).length > 0);
+  const perCargoQty = (cargoId: number, ci: number): number => {
+    if (usesExplicitMapping) {
+      return loadingRows
+        .filter((r) => (r.assignedCargoIds || []).includes(cargoId))
+        .reduce((sum, r) => sum + (r.quantity || 0), 0);
+    }
+    // Auto: cargo #ci gets loading row #ci (1-to-1 by order)
+    return loadingRows[ci]?.quantity || 0;
+  };
 
   const validation = cargoValidation ?? { errors: [], hasErrors: false, usesExplicitMapping: false };
 
@@ -136,7 +146,7 @@ export function CargoSection() {
               onUpdate={(field, value) => updateCargoEntry(cargo.id, field, value)}
               onRemove={() => removeCargo(cargo.id)}
               canRemove={cargos.length > 1}
-              sequenceQuantity={cargos.length > 1 ? sequenceCargoQuantity / cargos.length : sequenceCargoQuantity}
+              sequenceQuantity={perCargoQty(cargo.id, index)}
             />
           ))}
 
