@@ -5,6 +5,7 @@ import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, 
 import { SequenceSummary } from "./SequenceSummary";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
@@ -118,8 +119,8 @@ export function SequenceTable() {
             <table className="w-full text-[10px]">
               <thead>
                 <tr>
-                  <th className={thClass}>Type</th>
-                  <th className={`${thClass} text-left min-w-[120px]`}>Port</th>
+                   <th className={thClass}>Type</th>
+                   <th className={`${thClass} text-left min-w-[100px]`}>Port</th>
                   <th className={thClass}>Dist nm</th>
                   <th className={thClass}>ECA nm</th>
                   <th className={thClass}>Sea (d)</th>
@@ -167,13 +168,70 @@ export function SequenceTable() {
                         )}
                       </td>
 
-                      {/* Port */}
-                      <td className={tdClass}>
-                        <PortSelect
-                          value={row.port}
-                          onChange={(port) => handlePortChange(row.id, port)}
-                          placeholder="Select port..."
-                        />
+                       {/* Port */}
+                       <td className={tdClass}>
+                         <div className="flex items-center gap-0.5">
+                           <div className="flex-1 min-w-0">
+                             <PortSelect
+                               value={row.port}
+                               onChange={(port) => handlePortChange(row.id, port)}
+                               placeholder="Select port..."
+                             />
+                           </div>
+                           {hasQty && cargos.length > 0 && (
+                             <Popover>
+                               <PopoverTrigger asChild>
+                                 <button
+                                   type="button"
+                                   className="shrink-0 text-[9px] px-1 py-0.5 rounded border border-border bg-muted/40 hover:bg-muted leading-tight font-mono"
+                                   title="Assign cargos to this port"
+                                 >
+                                   {(row.assignedCargoIds && row.assignedCargoIds.length > 0)
+                                     ? row.assignedCargoIds.map((id) => {
+                                         const idx = cargos.findIndex((c) => c.id === id);
+                                         return idx >= 0 ? `#${idx + 1}` : "";
+                                       }).filter(Boolean).join(",")
+                                     : "Cgo ▾"}
+                                 </button>
+                               </PopoverTrigger>
+                               <PopoverContent align="start" className="w-40 p-1 space-y-0.5">
+                                 <div className="text-[9px] text-muted-foreground px-1 pb-1 border-b border-border">
+                                   Assign cargo
+                                 </div>
+                                 {cargos.map((c, i) => {
+                                   const assigned = (row.assignedCargoIds || []).includes(c.id);
+                                   return (
+                                     <label
+                                       key={c.id}
+                                       className="flex items-center gap-1.5 px-1 py-0.5 hover:bg-accent rounded cursor-pointer text-[10px]"
+                                     >
+                                       <input
+                                         type="checkbox"
+                                         checked={assigned}
+                                         onChange={() => {
+                                           const current = row.assignedCargoIds || [];
+                                           const next = assigned
+                                             ? current.filter((x) => x !== c.id)
+                                             : [...current, c.id];
+                                           setSequence((prev) =>
+                                             prev.map((r) =>
+                                               r.id === row.id ? { ...r, assignedCargoIds: next } : r,
+                                             ),
+                                           );
+                                         }}
+                                         className="h-3 w-3"
+                                       />
+                                       <span>Cargo #{i + 1}</span>
+                                       <span className="text-muted-foreground ml-auto">
+                                         {c.rateType === "lumpsum" ? "LS" : `$${c.rate}`}
+                                       </span>
+                                     </label>
+                                   );
+                                 })}
+                               </PopoverContent>
+                             </Popover>
+                           )}
+                         </div>
                         {(row.legDepartureUtc || row.legArrivalUtc) && (
                           <div className="flex gap-1.5 px-1 text-[8px] text-muted-foreground font-mono leading-tight">
                             {row.type === "open" && row.legDepartureUtc && (
@@ -182,41 +240,6 @@ export function SequenceTable() {
                             {row.type !== "open" && row.legArrivalUtc && (
                               <span title="Arrival at port">Arr: {row.legArrivalUtc.replace("T"," ")}</span>
                             )}
-                          </div>
-                        )}
-                        {hasQty && cargos.length > 0 && (
-                          <div className="flex gap-0.5 px-1 pt-0.5 items-center">
-                            <span className="text-[8px] text-muted-foreground mr-0.5" title="Assign cargo to this load/discharge port">
-                              Cgo:
-                            </span>
-                            {cargos.map((c, i) => {
-                              const assigned = (row.assignedCargoIds || []).includes(c.id);
-                              return (
-                                <button
-                                  key={c.id}
-                                  type="button"
-                                  onClick={() => {
-                                    const current = row.assignedCargoIds || [];
-                                    const next = assigned
-                                      ? current.filter((x) => x !== c.id)
-                                      : [...current, c.id];
-                                    setSequence((prev) =>
-                                      prev.map((r) =>
-                                        r.id === row.id ? { ...r, assignedCargoIds: next } : r,
-                                      ),
-                                    );
-                                  }}
-                                  className={`text-[8px] px-1 py-0 rounded leading-tight border ${
-                                    assigned
-                                      ? "bg-primary text-primary-foreground border-primary"
-                                      : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
-                                  }`}
-                                  title={`${assigned ? "Unassign" : "Assign"} Cargo #${i + 1}`}
-                                >
-                                  #{i + 1}
-                                </button>
-                              );
-                            })}
                           </div>
                         )}
                       </td>
