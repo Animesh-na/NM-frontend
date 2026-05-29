@@ -3,12 +3,13 @@ import { useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
+import { getRowsForCargo } from "@/utils/cargoRowMapping";
 
 export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, results, sequence,
-    netBB, setNetBB, cargoValidation
+    netBB, setNetBB, cargoValidation, updateCargoCpOverride
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -147,6 +148,12 @@ export function CargoSection() {
               onRemove={() => removeCargo(cargo.id)}
               canRemove={cargos.length > 1}
               sequenceQuantity={perCargoQty(cargo.id, index)}
+              cpRows={getRowsForCargo(cargo.id, cargos, sequence).filter(
+                (r) => r.operation === "loading" || r.operation === "discharging",
+              )}
+              onCpOverride={(rowId, field, value) =>
+                updateCargoCpOverride(cargo.id, rowId, field, value)
+              }
             />
           ))}
 
@@ -189,15 +196,20 @@ interface CargoEntryCardProps {
     voyageCommission: number; tcCommission: number; demurrageRate: number; despatchRate: number;
     demurrageAmount: number; despatchAmount: number; averageMode: "average" | "per_port" | "per_voyage";
     ntcBase: number; gtcTarget: number; netBBOverride?: number; stowageFactor: number;
+    cpOverrides?: Record<number, { quantity?: number; productivity?: number }>;
   };
   index: number;
   onUpdate: (field: string, value: number | string) => void;
   onRemove: () => void;
   canRemove: boolean;
   sequenceQuantity: number;
+  cpRows: Array<{
+    id: number; port: string; operation?: string; quantity: number; productivity: number;
+  }>;
+  onCpOverride: (rowId: number, field: "quantity" | "productivity", value: number) => void;
 }
 
-function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntryCardProps & { sequenceQuantity: number }) {
+function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
   
   return (
@@ -310,6 +322,63 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity }: CargoEntry
         </div>
 
       </div>
+
+      {/* Charter Party load/discharge overrides — derived from Sequence,
+          editable here without mutating the sequence row. */}
+      {cpRows.length > 0 && (
+        <div className="mt-1.5 border-t border-border pt-1">
+          <div className="text-[10px] font-semibold text-muted-foreground mb-0.5 px-0.5">
+            CP Terms (overrides voyage calc — does not change Sequence)
+          </div>
+          <table className="w-full text-[10px]">
+            <thead>
+              <tr className="text-muted-foreground">
+                <th className="text-left font-medium px-1 py-0.5">Op</th>
+                <th className="text-left font-medium px-1 py-0.5">Port</th>
+                <th className="text-right font-medium px-1 py-0.5">Qty (mt)</th>
+                <th className="text-right font-medium px-1 py-0.5">MT/d</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cpRows.map((r) => {
+                const ov = cargo.cpOverrides?.[r.id] || {};
+                const qtyVal = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
+                const prodVal = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
+                return (
+                  <tr key={r.id} className="border-t border-border/40">
+                    <td className="px-1 py-0.5 uppercase">
+                      {r.operation === "loading" ? "L" : r.operation === "discharging" ? "D" : "-"}
+                    </td>
+                    <td className="px-1 py-0.5 truncate max-w-[140px]" title={r.port}>
+                      {r.port || "—"}
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <input
+                        type="number"
+                        className="form-input-sm w-full font-mono text-right"
+                        value={qtyVal || 0}
+                        onChange={(e) =>
+                          onCpOverride(r.id, "quantity", parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <input
+                        type="number"
+                        className="form-input-sm w-full font-mono text-right"
+                        value={prodVal || 0}
+                        onChange={(e) =>
+                          onCpOverride(r.id, "productivity", parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

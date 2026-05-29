@@ -6,6 +6,7 @@ import { type Port } from "@/components/voyage/PortSelect";
 import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
 import { isPortEuEea } from "@/utils/euCountries";
 import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
+import { getCargoRowMap } from "@/utils/cargoRowMapping";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
@@ -132,6 +133,13 @@ export interface CargoEntry {
   gtcTarget: number; // Target GTC $/day
   netBBOverride?: number; // Manual override for Net BB
   stowageFactor: number; // Global stowage factor (m³/mt)
+  /**
+   * Cargo-level Charter Party overrides for assigned sequence rows.
+   * Keyed by sequence row id. When present, the override REPLACES the
+   * value coming from the sequence for calculation purposes — without
+   * mutating the sequence row itself.
+   */
+  cpOverrides?: Record<number, { quantity?: number; productivity?: number }>;
 }
 
 interface VoyageContextValue {
@@ -167,6 +175,12 @@ interface VoyageContextValue {
   addCargo: () => void;
   removeCargo: (id: number) => void;
   updateCargoEntry: (id: number, field: string, value: number | string) => void;
+  updateCargoCpOverride: (
+    cargoId: number,
+    rowId: number,
+    field: "quantity" | "productivity",
+    value: number,
+  ) => void;
   
   // Vessel cost (global)
   vesselCost: number;
@@ -1307,6 +1321,33 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     ));
   }, []);
 
+  const updateCargoCpOverride = useCallback(
+    (
+      cargoId: number,
+      rowId: number,
+      field: "quantity" | "productivity",
+      value: number,
+    ) => {
+      setCargos((prev) =>
+        prev.map((c) =>
+          c.id !== cargoId
+            ? c
+            : {
+                ...c,
+                cpOverrides: {
+                  ...(c.cpOverrides || {}),
+                  [rowId]: {
+                    ...(c.cpOverrides?.[rowId] || {}),
+                    [field]: value,
+                  },
+                },
+              },
+        ),
+      );
+    },
+    [],
+  );
+
   const updateBunker = useCallback((fuelType: string, field: string, value: number) => {
     setBunker(prev => ({
       ...prev,
@@ -1378,19 +1419,26 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   // Calculate cargo quantity from sequence load/discharge operations
   const sequenceCargoQuantity = useMemo(() => {
-    // Sum all loading quantities from sequence (discharge should match load)
+    // Apply per-cargo CP overrides when present (cargo-level overrides REPLACE
+    // the sequence row qty for calculation, without mutating the sequence).
+    const rowMap = getCargoRowMap(cargos, sequence);
+    const effectiveQty = (row: SequenceRowUI): number => {
+      const cId = rowMap.get(row.id);
+      if (cId !== undefined) {
+        const c = cargos.find((x) => x.id === cId);
+        const ov = c?.cpOverrides?.[row.id]?.quantity;
+        if (ov !== undefined && ov !== null) return ov;
+      }
+      return row.quantity || 0;
+    };
     const loadingQuantity = sequence
-      .filter(row => row.operation === "loading")
-      .reduce((sum, row) => sum + (row.quantity || 0), 0);
-    
-    // Alternative: use discharge quantity if that's preferred
+      .filter((row) => row.operation === "loading")
+      .reduce((sum, row) => sum + effectiveQty(row), 0);
     const dischargingQuantity = sequence
-      .filter(row => row.operation === "discharging")
-      .reduce((sum, row) => sum + (row.quantity || 0), 0);
-    
-    // Use the higher of loading or discharging (in case of partial loads/discharges)
+      .filter((row) => row.operation === "discharging")
+      .reduce((sum, row) => sum + effectiveQty(row), 0);
     return Math.max(loadingQuantity, dischargingQuantity);
-  }, [sequence]);
+  }, [sequence, cargos]);
 
   // Aggregate cargo data for calculation hook
   const aggregatedCargo = useMemo(() => {
@@ -1404,12 +1452,17 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       (r) => (r.assignedCargoIds || []).length > 0,
     );
     const loadedQtyForCargo = (cargoId: number, ci: number): number => {
+      const c = cargos.find((x) => x.id === cargoId);
+      const ovQty = (row: SequenceRowUI) => {
+        const o = c?.cpOverrides?.[row.id]?.quantity;
+        return o !== undefined && o !== null ? o : row.quantity || 0;
+      };
       if (usesExplicitMapping) {
         return loadingRows
           .filter((r) => (r.assignedCargoIds || []).includes(cargoId))
-          .reduce((sum, r) => sum + (r.quantity || 0), 0);
+          .reduce((sum, r) => sum + ovQty(r), 0);
       }
-      return loadingRows[ci]?.quantity || 0;
+      return loadingRows[ci] ? ovQty(loadingRows[ci]) : 0;
     };
 
     // Gross freight = Σ (rate × per-cargo loaded qty), lumpsum added as-is.
@@ -1439,9 +1492,29 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   }, [cargos, sequence, sequenceCargoQuantity]);
 
   // Transform UI state to calculation inputs
+  const cargoRowMapForInputs = getCargoRowMap(cargos, sequence);
   const voyageInputs: VoyageInputs = {
     vessel,
-    sequence: sequence.map(row => ({
+    sequence: sequence.map(row => {
+      // Resolve cargo-level CP overrides (qty / productivity) for this row.
+      let effQty = row.quantity;
+      let effProd = row.productivity;
+      const cId = cargoRowMapForInputs.get(row.id);
+      if (cId !== undefined) {
+        const c = cargos.find((x) => x.id === cId);
+        const ov = c?.cpOverrides?.[row.id];
+        if (ov) {
+          if (ov.quantity !== undefined && ov.quantity !== null) effQty = ov.quantity;
+          if (ov.productivity !== undefined && ov.productivity !== null) effProd = ov.productivity;
+        }
+      }
+      // Recompute port days when override changed qty/prod for load/disch rows.
+      const isLoadDisch = row.operation === "loading" || row.operation === "discharging";
+      const portDays =
+        isLoadDisch && (effQty !== row.quantity || effProd !== row.productivity)
+          ? calculatePortDays({ ...row, quantity: effQty, productivity: effProd })
+          : row.calculatedPortDays;
+      return {
       id: row.id,
       operation: row.operation || "",
       port: row.port,
@@ -1449,8 +1522,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       cgo: "",
       distance: row.distance,
       ecaDistance: row.ecaDistance,
-      portDays: row.calculatedPortDays,
-      quantity: row.quantity,
+      portDays,
+      quantity: effQty,
       expDa: row.expDa,
       // Pass sea margin adjusted times for accurate downstream calculations
       seaTime: row.totalLegTime, // Total sea time WITH sea margin applied
@@ -1467,7 +1540,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       // Pass through for per-cargo route-bounded allocation
       type: row.type,
       assignedCargoIds: row.assignedCargoIds,
-    })),
+      };
+    }),
     cargo: aggregatedCargo,
     cargos: cargos.map(c => ({
       id: c.id,
@@ -1542,6 +1616,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         addCargo,
         removeCargo,
         updateCargoEntry,
+        updateCargoCpOverride,
         vesselCost,
         setVesselCost,
         bunker,
@@ -1605,6 +1680,7 @@ export function useVoyageContext() {
       addCargo: () => {},
       removeCargo: () => {},
       updateCargoEntry: () => {},
+      updateCargoCpOverride: () => {},
       vesselCost: 0,
       setVesselCost: () => {},
       bunker: { 
