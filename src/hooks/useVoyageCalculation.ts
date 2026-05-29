@@ -45,6 +45,10 @@ export interface SequenceRow {
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
   // EU/EEA flag from port API
   isEuEea?: boolean;
+  // Row type: "open" | "port" | "repos"  (used for repositioning detection in per-cargo allocation)
+  type?: string;
+  // Cargo assignment for per-cargo gross rate & route-bounded cost allocation
+  assignedCargoIds?: number[];
 }
 
 export interface CargoData {
@@ -94,6 +98,14 @@ export interface VoyageInputs {
   extraTime?: ExtraTimeData;
   applyEuaImpact?: boolean;
   applyFuelEuImpact?: boolean;
+  /** Optional per-cargo entries used for per-cargo gross-rate breakdown. */
+  cargos?: Array<{
+    id: number;
+    rate: number;
+    rateType: "mt" | "lumpsum";
+    voyageCommission: number;
+    tcCommission: number;
+  }>;
 }
 
 // Per-leg ETS detail for UI breakdown table
