@@ -1492,9 +1492,29 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   }, [cargos, sequence, sequenceCargoQuantity]);
 
   // Transform UI state to calculation inputs
+  const cargoRowMapForInputs = getCargoRowMap(cargos, sequence);
   const voyageInputs: VoyageInputs = {
     vessel,
-    sequence: sequence.map(row => ({
+    sequence: sequence.map(row => {
+      // Resolve cargo-level CP overrides (qty / productivity) for this row.
+      let effQty = row.quantity;
+      let effProd = row.productivity;
+      const cId = cargoRowMapForInputs.get(row.id);
+      if (cId !== undefined) {
+        const c = cargos.find((x) => x.id === cId);
+        const ov = c?.cpOverrides?.[row.id];
+        if (ov) {
+          if (ov.quantity !== undefined && ov.quantity !== null) effQty = ov.quantity;
+          if (ov.productivity !== undefined && ov.productivity !== null) effProd = ov.productivity;
+        }
+      }
+      // Recompute port days when override changed qty/prod for load/disch rows.
+      const isLoadDisch = row.operation === "loading" || row.operation === "discharging";
+      const portDays =
+        isLoadDisch && (effQty !== row.quantity || effProd !== row.productivity)
+          ? calculatePortDays({ ...row, quantity: effQty, productivity: effProd })
+          : row.calculatedPortDays;
+      return {
       id: row.id,
       operation: row.operation || "",
       port: row.port,
@@ -1502,8 +1522,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       cgo: "",
       distance: row.distance,
       ecaDistance: row.ecaDistance,
-      portDays: row.calculatedPortDays,
-      quantity: row.quantity,
+      portDays,
+      quantity: effQty,
       expDa: row.expDa,
       // Pass sea margin adjusted times for accurate downstream calculations
       seaTime: row.totalLegTime, // Total sea time WITH sea margin applied
@@ -1520,7 +1540,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       // Pass through for per-cargo route-bounded allocation
       type: row.type,
       assignedCargoIds: row.assignedCargoIds,
-    })),
+      };
+    }),
     cargo: aggregatedCargo,
     cargos: cargos.map(c => ({
       id: c.id,
