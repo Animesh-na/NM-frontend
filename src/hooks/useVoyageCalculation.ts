@@ -45,6 +45,10 @@ export interface SequenceRow {
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
   // EU/EEA flag from port API
   isEuEea?: boolean;
+  // Row type: "open" | "port" | "repos"  (used for repositioning detection in per-cargo allocation)
+  type?: string;
+  // Cargo assignment for per-cargo gross rate & route-bounded cost allocation
+  assignedCargoIds?: number[];
 }
 
 export interface CargoData {
@@ -94,6 +98,14 @@ export interface VoyageInputs {
   extraTime?: ExtraTimeData;
   applyEuaImpact?: boolean;
   applyFuelEuImpact?: boolean;
+  /** Optional per-cargo entries used for per-cargo gross-rate breakdown. */
+  cargos?: Array<{
+    id: number;
+    rate: number;
+    rateType: "mt" | "lumpsum";
+    voyageCommission: number;
+    tcCommission: number;
+  }>;
 }
 
 // Per-leg ETS detail for UI breakdown table
@@ -219,6 +231,26 @@ export interface VoyageResults {
   
   // FuelEU Freight Impact (FuelEU penalty / cargo quantity)
   fuelEuFreightImpact: number;
+
+  // Per-cargo breakdown (route-bounded allocation). Empty when no explicit cargo mapping is set.
+  perCargoBreakdown: PerCargoBreakdown[];
+  // Costs not attributed to any cargo (repositioning legs + out-of-window legs).
+  repositioningCost: number;
+}
+
+export interface PerCargoBreakdown {
+  cargoId: number;
+  cargoLabel: string; // "#1", "#2", ...
+  loadedQty: number;
+  grossFreight: number;
+  share: number; // 0..1 share of total grossFreight (or qty if all lumpsum)
+  allocatedBunker: number;
+  allocatedPortCosts: number;
+  allocatedVoyageCosts: number; // bunker + port (route-bounded)
+  allocatedHire: number; // hire over the route window
+  grossRate: number; // (allocatedVoyageCosts + allocatedHire) / qty, grossed up by voyComm
+  routeStartIdx: number;
+  routeEndIdx: number;
 }
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
@@ -1192,6 +1224,152 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       bunker.co2Price
     );
 
+    // ============================================
+    // PER-CARGO BREAKDOWN (route-bounded allocation)
+    // ============================================
+    const cargosForBreakdown = inputs.cargos || [];
+    const perCargoBreakdown: PerCargoBreakdown[] = [];
+    let repositioningCost = 0;
+
+    // Per-leg cost vector (bunker + port DA) used for route-bounded allocation.
+    // Bunker per leg = total bunker cost prorated by leg's share of total active days
+    // (sea time + port time). Repositioning legs are tracked separately.
+    const legActiveDays: number[] = sequence.map(
+      (leg) => (leg.seaTime || 0) + (leg.portDays || 0),
+    );
+    const totalActiveDays = legActiveDays.reduce((s, v) => s + v, 0) || 1;
+    const legBunker: number[] = legActiveDays.map(
+      (d) => (totalBunkerCost * d) / totalActiveDays,
+    );
+    const legPort: number[] = sequence.map((leg) => leg.expDa || 0);
+    const isReposLeg = (leg: SequenceRow) =>
+      (leg.type || "").toLowerCase() === "repos";
+
+    // Sum cost for repos legs (excluded from any cargo allocation).
+    sequence.forEach((leg, idx) => {
+      if (isReposLeg(leg)) {
+        repositioningCost += legBunker[idx] + legPort[idx];
+      }
+    });
+
+    if (cargosForBreakdown.length > 0) {
+      // For each cargo, find route window = [firstAssignedLoadIdx ... lastAssignedDischargeIdx]
+      const usesExplicitMapping = sequence.some(
+        (leg) => (leg.assignedCargoIds || []).length > 0,
+      );
+
+      const totalGrossPerCargo: number[] = cargosForBreakdown.map((c) => {
+        if (c.rateType === "lumpsum") return c.rate || 0;
+        // sum loaded qty for this cargo (mapped) — fallback to equal share when no mapping
+        let qty = 0;
+        if (usesExplicitMapping) {
+          sequence.forEach((leg) => {
+            if (
+              (leg.operation || "").toLowerCase().startsWith("load") &&
+              (leg.assignedCargoIds || []).includes(c.id)
+            ) {
+              qty += leg.quantity || 0;
+            }
+          });
+        } else {
+          qty = cargo.quantity / cargosForBreakdown.length;
+        }
+        return (c.rate || 0) * qty;
+      });
+      const totalGross = totalGrossPerCargo.reduce((s, v) => s + v, 0);
+
+      cargosForBreakdown.forEach((c, ci) => {
+        const label = `#${ci + 1}`;
+
+        // Loaded qty
+        let loadedQty = 0;
+        if (usesExplicitMapping) {
+          sequence.forEach((leg) => {
+            if (
+              (leg.operation || "").toLowerCase().startsWith("load") &&
+              (leg.assignedCargoIds || []).includes(c.id)
+            ) {
+              loadedQty += leg.quantity || 0;
+            }
+          });
+        } else {
+          loadedQty = cargo.quantity / cargosForBreakdown.length;
+        }
+
+        const grossFreight = totalGrossPerCargo[ci];
+        const share = totalGross > 0 ? grossFreight / totalGross : 1 / cargosForBreakdown.length;
+
+        // Route window
+        let startIdx = -1;
+        let endIdx = -1;
+        if (usesExplicitMapping) {
+          sequence.forEach((leg, idx) => {
+            const assigned = (leg.assignedCargoIds || []).includes(c.id);
+            if (assigned) {
+              if (startIdx === -1) startIdx = idx;
+              endIdx = idx;
+            }
+          });
+        }
+
+        // If no explicit assignment, fall back to full voyage scope share by qty/grossFreight.
+        let allocatedBunker = 0;
+        let allocatedPortCosts = 0;
+        let allocatedHire = 0;
+        if (startIdx === -1 || endIdx === -1) {
+          allocatedBunker = (totalBunkerCost - repositioningCost > 0 ? totalBunkerCost - 0 : totalBunkerCost) * share;
+          allocatedPortCosts = portCosts * share;
+          allocatedHire = hireCost * share;
+        } else {
+          for (let idx = startIdx; idx <= endIdx; idx++) {
+            const leg = sequence[idx];
+            if (isReposLeg(leg)) continue; // repos excluded
+            // Overlap: if multiple cargos cover the same leg, split by qty share within their windows.
+            // Simple approach: equal split among cargos whose window covers this leg.
+            let overlapCount = 0;
+            cargosForBreakdown.forEach((other) => {
+              // recompute window quickly
+              let oStart = -1;
+              let oEnd = -1;
+              sequence.forEach((l, i) => {
+                if ((l.assignedCargoIds || []).includes(other.id)) {
+                  if (oStart === -1) oStart = i;
+                  oEnd = i;
+                }
+              });
+              if (oStart !== -1 && oEnd !== -1 && idx >= oStart && idx <= oEnd) {
+                overlapCount += 1;
+              }
+            });
+            const w = overlapCount > 0 ? 1 / overlapCount : 1;
+            allocatedBunker += legBunker[idx] * w;
+            allocatedPortCosts += legPort[idx] * w;
+            allocatedHire += hireCost * (legActiveDays[idx] / totalActiveDays) * w;
+          }
+        }
+
+        const allocatedVoyageCosts = allocatedBunker + allocatedPortCosts;
+        const voyCommPct = (c.voyageCommission || 0) / 100;
+        const baseRate = loadedQty > 0 ? (allocatedVoyageCosts + allocatedHire) / loadedQty : 0;
+        const grossRate = voyCommPct < 1 ? baseRate / (1 - voyCommPct) : 0;
+
+        perCargoBreakdown.push({
+          cargoId: c.id,
+          cargoLabel: label,
+          loadedQty,
+          grossFreight,
+          share,
+          allocatedBunker,
+          allocatedPortCosts,
+          allocatedVoyageCosts,
+          allocatedHire,
+          grossRate,
+          routeStartIdx: startIdx,
+          routeEndIdx: endIdx,
+        });
+      });
+    }
+
     const result = {
       totalDistance,
       totalEcaDistance,
@@ -1261,6 +1439,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       fuelEuTotalPenalty: fuelEuResult.totalPenalty,
       fuelEuFreightImpact: cargo.quantity > 0 ? fuelEuResult.totalPenalty / cargo.quantity : 0,
       etsLegDetails,
+      perCargoBreakdown,
+      repositioningCost,
     };
 
     // Final compact summary table — easy to scan in DevTools.

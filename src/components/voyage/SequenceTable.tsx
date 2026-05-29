@@ -184,6 +184,41 @@ export function SequenceTable() {
                             )}
                           </div>
                         )}
+                        {hasQty && cargos.length > 0 && (
+                          <div className="flex gap-0.5 px-1 pt-0.5 items-center">
+                            <span className="text-[8px] text-muted-foreground mr-0.5" title="Assign cargo to this load/discharge port">
+                              Cgo:
+                            </span>
+                            {cargos.map((c, i) => {
+                              const assigned = (row.assignedCargoIds || []).includes(c.id);
+                              return (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = row.assignedCargoIds || [];
+                                    const next = assigned
+                                      ? current.filter((x) => x !== c.id)
+                                      : [...current, c.id];
+                                    setSequence((prev) =>
+                                      prev.map((r) =>
+                                        r.id === row.id ? { ...r, assignedCargoIds: next } : r,
+                                      ),
+                                    );
+                                  }}
+                                  className={`text-[8px] px-1 py-0 rounded leading-tight border ${
+                                    assigned
+                                      ? "bg-primary text-primary-foreground border-primary"
+                                      : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+                                  }`}
+                                  title={`${assigned ? "Unassign" : "Assign"} Cargo #${i + 1}`}
+                                >
+                                  #{i + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </td>
 
                       {/* Distance (V) */}

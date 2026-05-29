@@ -5,6 +5,7 @@ import { getSeaRouteDistance, searchPorts as searchMarinePorts } from "@/service
 import { type Port } from "@/components/voyage/PortSelect";
 import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
 import { isPortEuEea } from "@/utils/euCountries";
+import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
@@ -108,6 +109,10 @@ export interface SequenceRowUI {
   // Cascading leg departure/arrival UTC (computed from cumulative time)
   legDepartureUtc?: string;
   legArrivalUtc?: string;
+
+  // Cargo → route mapping: which cargo IDs are loaded/discharged at this port.
+  // Empty/undefined = legacy behaviour (qty split equally across cargos).
+  assignedCargoIds?: number[];
 }
 
 // Multi-cargo entry structure
@@ -195,6 +200,9 @@ interface VoyageContextValue {
    
    // Calculated results
    results: VoyageResults;
+
+   // Cargo assignment validation (route mapping)
+   cargoValidation: CargoValidationResult;
 }
 
 // Fuel accounting mode type
@@ -1448,8 +1456,18 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       extraTimeHours: row.extraTime || 0, // Extra time in hours
       portFuelType: row.portFuelType, // Port fuel type per leg
       isEuEea: row.isEuEea, // EU/EEA flag from port API
+      // Pass through for per-cargo route-bounded allocation
+      type: row.type,
+      assignedCargoIds: row.assignedCargoIds,
     })),
     cargo: aggregatedCargo,
+    cargos: cargos.map(c => ({
+      id: c.id,
+      rate: c.rate,
+      rateType: c.rateType,
+      voyageCommission: c.voyageCommission,
+      tcCommission: c.tcCommission,
+    })),
     bunker: {
       hsfo: { price: bunker.hsfo.price, robStart: bunker.hsfo.robStart },
       vlsfo: { price: bunker.vlsfo.price, robStart: bunker.vlsfo.robStart },
@@ -1486,6 +1504,11 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   };
 
   const results = useVoyageCalculation(voyageInputs);
+
+  const cargoValidation = useMemo(
+    () => validateCargoAssignments(cargos, sequence),
+    [cargos, sequence],
+  );
 
   return (
     <VoyageContext.Provider
@@ -1530,6 +1553,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         setNetBB,
         resetState,
         results,
+        cargoValidation,
         suppressDistanceRecalc,
         setDistanceSuppressed,
         departureUtc,
@@ -1656,7 +1680,10 @@ export function useVoyageContext() {
         fuelEuTotalPenalty: 0,
         fuelEuFreightImpact: 0,
         etsLegDetails: [],
+        perCargoBreakdown: [],
+        repositioningCost: 0,
       },
+      cargoValidation: { errors: [], hasErrors: false, usesExplicitMapping: false },
     } as VoyageContextValue;
   }
   return context;
