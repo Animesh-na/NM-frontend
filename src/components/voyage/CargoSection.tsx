@@ -205,6 +205,8 @@ interface CargoEntryCardProps {
   sequenceQuantity: number;
   cpRows: Array<{
     id: number; port: string; operation?: string; quantity: number; productivity: number;
+    distance: number; ecaDistance: number; distanceSpeedContext: string; ecaDistanceSpeedContext: string;
+    terms: string; turnTime: number; extraTime: number; expDa: number;
   }>;
   onCpOverride: (rowId: number, field: "quantity" | "productivity", value: number) => void;
 }
@@ -323,60 +325,71 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
       </div>
 
-      {/* Charter Party load/discharge overrides — derived from Sequence,
-          editable here without mutating the sequence row. */}
-      {cpRows.length > 0 && (
-        <div className="mt-1.5 border-t border-border pt-1">
-          <div className="text-[10px] font-semibold text-muted-foreground mb-0.5 px-0.5">
-            CP Terms (overrides voyage calc — does not change Sequence)
-          </div>
-          <table className="w-full text-[10px]">
-            <thead>
-              <tr className="text-muted-foreground">
-                <th className="text-left font-medium px-1 py-0.5">Op</th>
-                <th className="text-left font-medium px-1 py-0.5">Port</th>
-                <th className="text-right font-medium px-1 py-0.5">Qty (mt)</th>
-                <th className="text-right font-medium px-1 py-0.5">MT/d</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cpRows.map((r) => {
-                const ov = cargo.cpOverrides?.[r.id] || {};
-                const qtyVal = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
-                const prodVal = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
-                return (
-                  <tr key={r.id} className="border-t border-border/40">
-                    <td className="px-1 py-0.5 uppercase">
-                      {r.operation === "loading" ? "L" : r.operation === "discharging" ? "D" : "-"}
-                    </td>
-                    <td className="px-1 py-0.5 truncate max-w-[140px]" title={r.port}>
-                      {r.port || "—"}
-                    </td>
-                    <td className="px-1 py-0.5">
-                      <input
-                        type="number"
-                        className="form-input-sm w-full font-mono text-right"
-                        value={qtyVal || 0}
-                        onChange={(e) =>
-                          onCpOverride(r.id, "quantity", parseFloat(e.target.value) || 0)
-                        }
-                      />
-                    </td>
-                    <td className="px-1 py-0.5">
-                      <input
-                        type="number"
-                        className="form-input-sm w-full font-mono text-right"
-                        value={prodVal || 0}
-                        onChange={(e) =>
-                          onCpOverride(r.id, "productivity", parseFloat(e.target.value) || 0)
-                        }
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {/* CP rows — shown only when demurrage > 0. Mirrors sequence row layout
+          with sky-blue highlight; Qty + MT/d are editable overrides. */}
+      {cpRows.length > 0 && (cargo.demurrageAmount || 0) > 0 && (
+        <div className="mt-1.5 rounded border border-sky-400 bg-sky-50 dark:bg-sky-950/30 p-1 space-y-1">
+          {cpRows.map((r) => {
+            const ov = cargo.cpOverrides?.[r.id] || {};
+            const qtyVal = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
+            const prodVal = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
+            const ro = "form-input-sm font-mono text-right bg-white/60 dark:bg-sky-900/40 cursor-default";
+            return (
+              <div key={r.id} className="flex flex-wrap gap-1 items-end">
+                <div className="form-field w-10">
+                  <label className="form-label">Op</label>
+                  <input readOnly className={`${ro} w-full uppercase text-center`}
+                    value={r.operation === "loading" ? "L" : r.operation === "discharging" ? "D" : "-"} />
+                </div>
+                <div className="form-field w-32">
+                  <label className="form-label">Port</label>
+                  <input readOnly className={`${ro} text-left w-full`} value={r.port || "—"} title={r.port} />
+                </div>
+                <div className="form-field w-20">
+                  <label className="form-label">V ({r.distanceSpeedContext})</label>
+                  <input readOnly className={`${ro} w-full`} value={r.distance || 0} />
+                </div>
+                <div className="form-field w-20">
+                  <label className="form-label">L ({r.ecaDistanceSpeedContext})</label>
+                  <input readOnly className={`${ro} w-full`} value={r.ecaDistance || 0} />
+                </div>
+                <div className="form-field w-24">
+                  <label className="form-label">Qty (mt)</label>
+                  <input
+                    type="number"
+                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
+                    value={qtyVal || 0}
+                    onChange={(e) => onCpOverride(r.id, "quantity", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-20">
+                  <label className="form-label">MT/d</label>
+                  <input
+                    type="number"
+                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
+                    value={prodVal || 0}
+                    onChange={(e) => onCpOverride(r.id, "productivity", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-16">
+                  <label className="form-label">Terms</label>
+                  <input readOnly className={`${ro} w-full uppercase`} value={r.terms || "-"} />
+                </div>
+                <div className="form-field w-16">
+                  <label className="form-label">Turn (h)</label>
+                  <input readOnly className={`${ro} w-full`} value={r.turnTime || 0} />
+                </div>
+                <div className="form-field w-16">
+                  <label className="form-label">Extra (h)</label>
+                  <input readOnly className={`${ro} w-full`} value={r.extraTime || 0} />
+                </div>
+                <div className="form-field w-20">
+                  <label className="form-label">Exp DA</label>
+                  <input readOnly className={`${ro} w-full`} value={r.expDa || 0} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
