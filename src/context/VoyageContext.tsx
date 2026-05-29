@@ -1660,6 +1660,8 @@ export function useVoyageContext() {
         fuelEuTotalPenalty: 0,
         fuelEuFreightImpact: 0,
         etsLegDetails: [],
+        perCargoBreakdown: [],
+        repositioningCost: 0,
       },
     } as VoyageContextValue;
   }

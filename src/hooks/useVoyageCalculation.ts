@@ -1439,6 +1439,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       fuelEuTotalPenalty: fuelEuResult.totalPenalty,
       fuelEuFreightImpact: cargo.quantity > 0 ? fuelEuResult.totalPenalty / cargo.quantity : 0,
       etsLegDetails,
+      perCargoBreakdown,
+      repositioningCost,
     };
 
     // Final compact summary table — easy to scan in DevTools.
