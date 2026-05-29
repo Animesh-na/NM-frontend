@@ -1647,6 +1647,7 @@ export function useVoyageContext() {
       addCargo: () => {},
       removeCargo: () => {},
       updateCargoEntry: () => {},
+      updateCargoCpOverride: () => {},
       vesselCost: 0,
       setVesselCost: () => {},
       bunker: { 
