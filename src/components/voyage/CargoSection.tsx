@@ -4,7 +4,6 @@ import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
-import type { SequenceRowUI } from "@/context/VoyageContext";
 
 export function CargoSection() {
   const { 
