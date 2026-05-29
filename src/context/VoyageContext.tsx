@@ -1321,6 +1321,33 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     ));
   }, []);
 
+  const updateCargoCpOverride = useCallback(
+    (
+      cargoId: number,
+      rowId: number,
+      field: "quantity" | "productivity",
+      value: number,
+    ) => {
+      setCargos((prev) =>
+        prev.map((c) =>
+          c.id !== cargoId
+            ? c
+            : {
+                ...c,
+                cpOverrides: {
+                  ...(c.cpOverrides || {}),
+                  [rowId]: {
+                    ...(c.cpOverrides?.[rowId] || {}),
+                    [field]: value,
+                  },
+                },
+              },
+        ),
+      );
+    },
+    [],
+  );
+
   const updateBunker = useCallback((fuelType: string, field: string, value: number) => {
     setBunker(prev => ({
       ...prev,
@@ -1556,6 +1583,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         addCargo,
         removeCargo,
         updateCargoEntry,
+        updateCargoCpOverride,
         vesselCost,
         setVesselCost,
         bunker,
