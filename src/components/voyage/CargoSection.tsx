@@ -2,14 +2,13 @@ import { ChevronDown, Package, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
-import { validateCargoAssignments } from "@/utils/cargoValidation";
 import { AlertTriangle } from "lucide-react";
 
 export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, results, sequence,
-    netBB, setNetBB
+    netBB, setNetBB, cargoValidation
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -17,7 +16,7 @@ export function CargoSection() {
     .filter(row => row.operation === "loading")
     .reduce((sum, row) => sum + (row.quantity || 0), 0);
 
-  const validation = validateCargoAssignments(cargos, sequence);
+  const validation = cargoValidation ?? { errors: [], hasErrors: false, usesExplicitMapping: false };
 
   return (
     <div className="calc-card-compact">
