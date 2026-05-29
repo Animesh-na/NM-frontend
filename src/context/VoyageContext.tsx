@@ -1394,20 +1394,28 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   // Aggregate cargo data for calculation hook
   const aggregatedCargo = useMemo(() => {
-    // Use sequence-derived quantity for gross freight calculation
+    // Use sequence-derived total quantity for downstream rate/MT calculations.
     const totalQuantity = sequenceCargoQuantity;
-    
-    // Calculate gross freight using cargo rates with sequence-derived quantity
-    const totalGrossFreight = cargos.reduce((sum, c) => {
-      if (c.rateType === "lumpsum") {
-        return sum + c.rate;
+
+    // Per-cargo loaded qty: explicit chip mapping wins, otherwise auto-map
+    // loading rows to cargos 1-to-1 by order. NEVER equal-split.
+    const loadingRows = sequence.filter((r) => r.operation === "loading");
+    const usesExplicitMapping = sequence.some(
+      (r) => (r.assignedCargoIds || []).length > 0,
+    );
+    const loadedQtyForCargo = (cargoId: number, ci: number): number => {
+      if (usesExplicitMapping) {
+        return loadingRows
+          .filter((r) => (r.assignedCargoIds || []).includes(cargoId))
+          .reduce((sum, r) => sum + (r.quantity || 0), 0);
       }
-      // For per-MT rate, use sequence quantity proportionally
-      // If multiple cargos, divide sequence quantity proportionally
-      const cargoQuantityShare = cargos.length > 1 
-        ? totalQuantity / cargos.length 
-        : totalQuantity;
-      return sum + (c.rate * cargoQuantityShare);
+      return loadingRows[ci]?.quantity || 0;
+    };
+
+    // Gross freight = Σ (rate × per-cargo loaded qty), lumpsum added as-is.
+    const totalGrossFreight = cargos.reduce((sum, c, ci) => {
+      if (c.rateType === "lumpsum") return sum + (c.rate || 0);
+      return sum + (c.rate || 0) * loadedQtyForCargo(c.id, ci);
     }, 0);
     
     const avgVoyComm = cargos.length > 0 
