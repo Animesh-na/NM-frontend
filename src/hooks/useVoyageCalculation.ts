@@ -248,7 +248,7 @@ export interface PerCargoBreakdown {
   allocatedPortCosts: number;
   allocatedVoyageCosts: number; // bunker + port (route-bounded)
   allocatedHire: number; // hire over the route window
-  grossRate: number; // (allocatedVoyageCosts + allocatedHire) / qty, grossed up by voyComm
+  grossRate: number; // route-bounded breakeven: (allocatedVoyageCosts + allocatedHire) / qty, grossed up by voyComm
   routeStartIdx: number;
   routeEndIdx: number;
 }
@@ -1367,12 +1367,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
         const allocatedVoyageCosts = allocatedBunker + allocatedPortCosts;
         const voyCommPct = (c.voyageCommission || 0) / 100;
-        // Per-cargo Gross Rate = the cargo's own freight rate grossed up by its
-        // voyage commission. For lumpsum, derive an equivalent $/mt from the
-        // lumpsum divided by loaded qty, then gross up.
-        const baseRate = c.rateType === "lumpsum"
-          ? (loadedQty > 0 ? (c.rate || 0) / loadedQty : 0)
-          : (c.rate || 0);
+        // Per-cargo Gross Rate is a route-bounded breakeven rate, not the entered
+        // freight rate. Distance/time-driven bunker, port DA, and hire are allocated
+        // to the cargo route window, then grossed up by voyage commission.
+        const baseRate = loadedQty > 0
+          ? (allocatedVoyageCosts + allocatedHire) / loadedQty
+          : 0;
         const grossRate = voyCommPct < 1 ? baseRate / (1 - voyCommPct) : baseRate;
 
         perCargoBreakdown.push({
