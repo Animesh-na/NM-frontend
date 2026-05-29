@@ -1419,19 +1419,26 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   // Calculate cargo quantity from sequence load/discharge operations
   const sequenceCargoQuantity = useMemo(() => {
-    // Sum all loading quantities from sequence (discharge should match load)
+    // Apply per-cargo CP overrides when present (cargo-level overrides REPLACE
+    // the sequence row qty for calculation, without mutating the sequence).
+    const rowMap = getCargoRowMap(cargos, sequence);
+    const effectiveQty = (row: SequenceRowUI): number => {
+      const cId = rowMap.get(row.id);
+      if (cId !== undefined) {
+        const c = cargos.find((x) => x.id === cId);
+        const ov = c?.cpOverrides?.[row.id]?.quantity;
+        if (ov !== undefined && ov !== null) return ov;
+      }
+      return row.quantity || 0;
+    };
     const loadingQuantity = sequence
-      .filter(row => row.operation === "loading")
-      .reduce((sum, row) => sum + (row.quantity || 0), 0);
-    
-    // Alternative: use discharge quantity if that's preferred
+      .filter((row) => row.operation === "loading")
+      .reduce((sum, row) => sum + effectiveQty(row), 0);
     const dischargingQuantity = sequence
-      .filter(row => row.operation === "discharging")
-      .reduce((sum, row) => sum + (row.quantity || 0), 0);
-    
-    // Use the higher of loading or discharging (in case of partial loads/discharges)
+      .filter((row) => row.operation === "discharging")
+      .reduce((sum, row) => sum + effectiveQty(row), 0);
     return Math.max(loadingQuantity, dischargingQuantity);
-  }, [sequence]);
+  }, [sequence, cargos]);
 
   // Aggregate cargo data for calculation hook
   const aggregatedCargo = useMemo(() => {
@@ -1445,12 +1452,17 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       (r) => (r.assignedCargoIds || []).length > 0,
     );
     const loadedQtyForCargo = (cargoId: number, ci: number): number => {
+      const c = cargos.find((x) => x.id === cargoId);
+      const ovQty = (row: SequenceRowUI) => {
+        const o = c?.cpOverrides?.[row.id]?.quantity;
+        return o !== undefined && o !== null ? o : row.quantity || 0;
+      };
       if (usesExplicitMapping) {
         return loadingRows
           .filter((r) => (r.assignedCargoIds || []).includes(cargoId))
-          .reduce((sum, r) => sum + (r.quantity || 0), 0);
+          .reduce((sum, r) => sum + ovQty(r), 0);
       }
-      return loadingRows[ci]?.quantity || 0;
+      return loadingRows[ci] ? ovQty(loadingRows[ci]) : 0;
     };
 
     // Gross freight = Σ (rate × per-cargo loaded qty), lumpsum added as-is.
