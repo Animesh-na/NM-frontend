@@ -211,10 +211,10 @@ export function VesselPanel() {
               <Checkbox id="loadDischIdle" checked={vessel.loadDischIdleSame} onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)} className="h-3.5 w-3.5" />
               <label htmlFor="loadDischIdle" className="text-[10px] text-foreground font-bold cursor-pointer whitespace-nowrap">L=D=I</label>
             </div>
-            <button onClick={handleRefresh} disabled={refreshing || !vessel.name}
+            {/* <button onClick={handleRefresh} disabled={refreshing || !vessel.name}
               className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors border border-input rounded bg-input-bg" title="Refresh">
               <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
-            </button>
+            </button> */}
           </div>
 
           {/* Consumption Matrix */}

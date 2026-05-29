@@ -124,6 +124,7 @@ export function SequenceTable() {
                   <th className={thClass}>ECA nm</th>
                   <th className={thClass}>Sea (d)</th>
                   <th className={thClass}>{autoDistanceEnabled ? "WD h" : "SM %"}</th>
+                  <th className={thClass}>Port Fuel</th>
                   <th className={thClass}>Qty mt</th>
                   <th className={thClass}>mt/d</th>
                   <th className={thClass}>Terms</th>
@@ -131,7 +132,6 @@ export function SequenceTable() {
                   <th className={thClass}>Turn h</th>
                   <th className={thClass}>Extra h</th>
                   <th className={thClass}>Draft m</th>
-                  <th className={thClass}>Port Fuel</th>
                   <th className={thClass}>DA $</th>
                   <th className={thClass}></th>
                 </tr>
@@ -241,6 +241,18 @@ export function SequenceTable() {
                           <input type="number" min="0" max="100" step="0.5" className="form-input-sm w-12 font-mono text-right text-[10px]"
                             value={row.seaMargin || ""} onChange={(e) => updateSequenceRow(row.id, "seaMargin", parseFloat(e.target.value) || 0)} placeholder="0" />
                         )}
+                      </td>
+
+                      {/* Port Fuel */}
+                      <td className={tdClass}>
+                        {!isOpen && isPort ? (
+                          <select className="form-select-sm w-14 text-[10px]" value={row.portFuelType || "vlsfo"}
+                            onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}>
+                            {vessel.hasScrubber && <option value="hsfo">HSFO</option>}
+                            <option value="vlsfo">VLSFO</option>
+                            <option value="lsmgo">LSMGO</option>
+                          </select>
+                        ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
                       {/* Quantity */}
@@ -361,18 +373,6 @@ export function SequenceTable() {
                             />
                           );
                         })() : <span className="text-muted-foreground/40 px-1">—</span>}
-                      </td>
-
-                      {/* Port Fuel */}
-                      <td className={tdClass}>
-                        {!isOpen && isPort ? (
-                          <select className="form-select-sm w-14 text-[10px]" value={row.portFuelType || "vlsfo"}
-                            onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}>
-                            {vessel.hasScrubber && <option value="hsfo">HSFO</option>}
-                            <option value="vlsfo">VLSFO</option>
-                            <option value="lsmgo">LSMGO</option>
-                          </select>
-                        ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
                       {/* Exp DA */}
