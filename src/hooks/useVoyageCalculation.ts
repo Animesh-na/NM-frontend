@@ -1367,8 +1367,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
         const allocatedVoyageCosts = allocatedBunker + allocatedPortCosts;
         const voyCommPct = (c.voyageCommission || 0) / 100;
-        const baseRate = loadedQty > 0 ? (allocatedVoyageCosts + allocatedHire) / loadedQty : 0;
-        const grossRate = voyCommPct < 1 ? baseRate / (1 - voyCommPct) : 0;
+        // Per-cargo Gross Rate = the cargo's own freight rate grossed up by its
+        // voyage commission. For lumpsum, derive an equivalent $/mt from the
+        // lumpsum divided by loaded qty, then gross up.
+        const baseRate = c.rateType === "lumpsum"
+          ? (loadedQty > 0 ? (c.rate || 0) / loadedQty : 0)
+          : (c.rate || 0);
+        const grossRate = voyCommPct < 1 ? baseRate / (1 - voyCommPct) : baseRate;
 
         perCargoBreakdown.push({
           cargoId: c.id,
