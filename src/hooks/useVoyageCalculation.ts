@@ -1258,9 +1258,32 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         (leg) => (leg.assignedCargoIds || []).length > 0,
       );
 
-      const totalGrossPerCargo: number[] = cargosForBreakdown.map((c) => {
-        if (c.rateType === "lumpsum") return c.rate || 0;
-        // sum loaded qty for this cargo (mapped) — fallback to equal share when no mapping
+      // Build auto-mapping fallback: when no chips are assigned, map loading and
+      // discharge rows to cargos in sequence order (1st load → cargo #1, etc.).
+      // This avoids the prior "equal qty split" that ignored per-port quantities.
+      const loadIdxs: number[] = [];
+      const dischIdxs: number[] = [];
+      sequence.forEach((leg, idx) => {
+        const op = (leg.operation || "").toLowerCase();
+        if (op.startsWith("load")) loadIdxs.push(idx);
+        else if (op.startsWith("disch")) dischIdxs.push(idx);
+      });
+      const autoLoadForCargo = (ci: number): number[] => {
+        if (loadIdxs.length === 0) return [];
+        // If counts match, 1-to-1. Else assign cargo ci all loads at position ci (mod).
+        if (loadIdxs.length === cargosForBreakdown.length) return [loadIdxs[ci]];
+        if (ci < loadIdxs.length) return [loadIdxs[ci]];
+        return [];
+      };
+      const autoDischForCargo = (ci: number): number[] => {
+        if (dischIdxs.length === 0) return [];
+        if (dischIdxs.length === cargosForBreakdown.length) return [dischIdxs[ci]];
+        if (ci < dischIdxs.length) return [dischIdxs[ci]];
+        return [];
+      };
+
+      // Per-cargo loaded qty (always derived from sequence rows; never equal split).
+      const loadedQtyPerCargo: number[] = cargosForBreakdown.map((c, ci) => {
         let qty = 0;
         if (usesExplicitMapping) {
           sequence.forEach((leg) => {
@@ -1272,76 +1295,70 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             }
           });
         } else {
-          qty = cargo.quantity / cargosForBreakdown.length;
+          autoLoadForCargo(ci).forEach((idx) => {
+            qty += sequence[idx]?.quantity || 0;
+          });
         }
-        return (c.rate || 0) * qty;
+        return qty;
+      });
+
+      const totalGrossPerCargo: number[] = cargosForBreakdown.map((c, ci) => {
+        if (c.rateType === "lumpsum") return c.rate || 0;
+        return (c.rate || 0) * loadedQtyPerCargo[ci];
       });
       const totalGross = totalGrossPerCargo.reduce((s, v) => s + v, 0);
+      const totalLoadedQty = loadedQtyPerCargo.reduce((s, v) => s + v, 0);
+
+      // Route window per cargo (covers all assigned/auto load + discharge indices).
+      const routeWindows: Array<{ start: number; end: number }> = cargosForBreakdown.map(
+        (c, ci) => {
+          const idxs: number[] = [];
+          if (usesExplicitMapping) {
+            sequence.forEach((leg, idx) => {
+              if ((leg.assignedCargoIds || []).includes(c.id)) idxs.push(idx);
+            });
+          } else {
+            idxs.push(...autoLoadForCargo(ci), ...autoDischForCargo(ci));
+          }
+          if (idxs.length === 0) return { start: -1, end: -1 };
+          return { start: Math.min(...idxs), end: Math.max(...idxs) };
+        },
+      );
 
       cargosForBreakdown.forEach((c, ci) => {
         const label = `#${ci + 1}`;
-
-        // Loaded qty
-        let loadedQty = 0;
-        if (usesExplicitMapping) {
-          sequence.forEach((leg) => {
-            if (
-              (leg.operation || "").toLowerCase().startsWith("load") &&
-              (leg.assignedCargoIds || []).includes(c.id)
-            ) {
-              loadedQty += leg.quantity || 0;
-            }
-          });
-        } else {
-          loadedQty = cargo.quantity / cargosForBreakdown.length;
-        }
-
+        const loadedQty = loadedQtyPerCargo[ci];
         const grossFreight = totalGrossPerCargo[ci];
-        const share = totalGross > 0 ? grossFreight / totalGross : 1 / cargosForBreakdown.length;
+        // Cost share weighted by loaded quantity (not revenue) so different rates
+        // don't skew cost allocation.
+        const share = totalLoadedQty > 0
+          ? loadedQty / totalLoadedQty
+          : (totalGross > 0 ? grossFreight / totalGross : 1 / cargosForBreakdown.length);
 
-        // Route window
-        let startIdx = -1;
-        let endIdx = -1;
-        if (usesExplicitMapping) {
-          sequence.forEach((leg, idx) => {
-            const assigned = (leg.assignedCargoIds || []).includes(c.id);
-            if (assigned) {
-              if (startIdx === -1) startIdx = idx;
-              endIdx = idx;
-            }
-          });
-        }
+        const { start: startIdx, end: endIdx } = routeWindows[ci];
 
         // If no explicit assignment, fall back to full voyage scope share by qty/grossFreight.
         let allocatedBunker = 0;
         let allocatedPortCosts = 0;
         let allocatedHire = 0;
         if (startIdx === -1 || endIdx === -1) {
-          allocatedBunker = (totalBunkerCost - repositioningCost > 0 ? totalBunkerCost - 0 : totalBunkerCost) * share;
+          allocatedBunker = totalBunkerCost * share;
           allocatedPortCosts = portCosts * share;
           allocatedHire = hireCost * share;
         } else {
           for (let idx = startIdx; idx <= endIdx; idx++) {
             const leg = sequence[idx];
             if (isReposLeg(leg)) continue; // repos excluded
-            // Overlap: if multiple cargos cover the same leg, split by qty share within their windows.
-            // Simple approach: equal split among cargos whose window covers this leg.
-            let overlapCount = 0;
-            cargosForBreakdown.forEach((other) => {
-              // recompute window quickly
-              let oStart = -1;
-              let oEnd = -1;
-              sequence.forEach((l, i) => {
-                if ((l.assignedCargoIds || []).includes(other.id)) {
-                  if (oStart === -1) oStart = i;
-                  oEnd = i;
-                }
-              });
-              if (oStart !== -1 && oEnd !== -1 && idx >= oStart && idx <= oEnd) {
-                overlapCount += 1;
+            // Overlap: when multiple cargo windows cover the same leg, split the
+            // leg's cost by each overlapping cargo's loaded-qty share (not equal).
+            let overlapQty = 0;
+            cargosForBreakdown.forEach((_other, oi) => {
+              const ow = routeWindows[oi];
+              if (ow.start !== -1 && idx >= ow.start && idx <= ow.end) {
+                overlapQty += loadedQtyPerCargo[oi] || 0;
               }
             });
-            const w = overlapCount > 0 ? 1 / overlapCount : 1;
+            const w = overlapQty > 0 ? (loadedQty / overlapQty) : 1;
             allocatedBunker += legBunker[idx] * w;
             allocatedPortCosts += legPort[idx] * w;
             allocatedHire += hireCost * (legActiveDays[idx] / totalActiveDays) * w;
