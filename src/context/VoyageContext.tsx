@@ -108,6 +108,10 @@ export interface SequenceRowUI {
   // Cascading leg departure/arrival UTC (computed from cumulative time)
   legDepartureUtc?: string;
   legArrivalUtc?: string;
+
+  // Cargo → route mapping: which cargo IDs are loaded/discharged at this port.
+  // Empty/undefined = legacy behaviour (qty split equally across cargos).
+  assignedCargoIds?: number[];
 }
 
 // Multi-cargo entry structure
