@@ -191,9 +191,9 @@ export function VoyageSummary() {
                 {results.perCargoBreakdown.map((c, i) => (
                   <div key={c.cargoId} className="flex justify-between text-[9px]">
                     <span className="text-muted-foreground">
-                      Cargo #{i + 1} Gross Rate
+                      Cargo {c.cargoLabel} Gross Rate
                       <span className="ml-1 text-muted-foreground/70">
-                        ({c.qty.toLocaleString()} mt)
+                        ({c.loadedQty.toLocaleString()} mt)
                       </span>
                     </span>
                     <span className="font-mono tabular-nums">
