@@ -1452,8 +1452,18 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       extraTimeHours: row.extraTime || 0, // Extra time in hours
       portFuelType: row.portFuelType, // Port fuel type per leg
       isEuEea: row.isEuEea, // EU/EEA flag from port API
+      // Pass through for per-cargo route-bounded allocation
+      type: row.type,
+      assignedCargoIds: row.assignedCargoIds,
     })),
     cargo: aggregatedCargo,
+    cargos: cargos.map(c => ({
+      id: c.id,
+      rate: c.rate,
+      rateType: c.rateType,
+      voyageCommission: c.voyageCommission,
+      tcCommission: c.tcCommission,
+    })),
     bunker: {
       hsfo: { price: bunker.hsfo.price, robStart: bunker.hsfo.robStart },
       vlsfo: { price: bunker.vlsfo.price, robStart: bunker.vlsfo.robStart },
