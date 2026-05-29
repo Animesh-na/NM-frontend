@@ -1505,6 +1505,11 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   const results = useVoyageCalculation(voyageInputs);
 
+  const cargoValidation = useMemo(
+    () => validateCargoAssignments(cargos, sequence),
+    [cargos, sequence],
+  );
+
   return (
     <VoyageContext.Provider
       value={{
@@ -1548,6 +1553,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         setNetBB,
         resetState,
         results,
+        cargoValidation,
         suppressDistanceRecalc,
         setDistanceSuppressed,
         departureUtc,
@@ -1677,6 +1683,7 @@ export function useVoyageContext() {
         perCargoBreakdown: [],
         repositioningCost: 0,
       },
+      cargoValidation: { errors: [], hasErrors: false, usesExplicitMapping: false },
     } as VoyageContextValue;
   }
   return context;
