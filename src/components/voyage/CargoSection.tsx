@@ -2,6 +2,8 @@ import { ChevronDown, Package, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
+import { validateCargoAssignments } from "@/utils/cargoValidation";
+import { AlertTriangle } from "lucide-react";
 
 export function CargoSection() {
   const { 
@@ -14,6 +16,8 @@ export function CargoSection() {
   const sequenceCargoQuantity = sequence
     .filter(row => row.operation === "loading")
     .reduce((sum, row) => sum + (row.quantity || 0), 0);
+
+  const validation = validateCargoAssignments(cargos, sequence);
 
   return (
     <div className="calc-card-compact">
@@ -35,14 +39,17 @@ export function CargoSection() {
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 NTC
-                <InfoTooltip formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" description="Net Time Charter" />
+                <InfoTooltip
+                  formula="Drives Hire Cost = NTC × Total Voyage Days"
+                  description="Net Time Charter (replaces Daily Hire)"
+                />
               </label>
               <div className="input-with-unit">
                  <input
-                  type="text"
-                  className="form-input-sm w-full font-mono text-right bg-muted/30"
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
                   value={hireRate}
-                  readOnly
+                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
                 />
                 <span className="unit">$/d</span>
               </div>
@@ -69,7 +76,10 @@ export function CargoSection() {
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
                 GTC
-                <InfoTooltip formula="NTC / (1 - TC Comm%). Editing GTC back-calculates Daily Hire." description="Gross Time Charter equivalent" />
+                <InfoTooltip
+                  formula="NTC / (1 - TC Comm%). Editing GTC back-calculates NTC."
+                  description="Gross Time Charter equivalent"
+                />
               </label>
               <div className="input-with-unit">
                  <input
@@ -103,22 +113,20 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field w-28">
-              <label className="form-label flex items-center gap-1">
-                Daily Hire
-                <InfoTooltip formula="Daily vessel hire rate" description="Used in P&L calculation" />
-              </label>
-              <div className="input-with-unit">
-                <input
-                  type="number"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={hireRate}
-                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
-                />
-                <span className="unit">$/d</span>
-              </div>
-            </div>
           </div>
+
+          {/* Cargo assignment validation banner */}
+          {validation.hasErrors && (
+            <div className="rounded border border-destructive/40 bg-destructive/10 p-1.5 text-[10px] text-destructive space-y-0.5">
+              <div className="flex items-center gap-1 font-semibold">
+                <AlertTriangle className="h-3 w-3" />
+                Cargo assignment errors
+              </div>
+              {validation.errors.map((err) => (
+                <div key={err.cargoId} className="pl-4">• {err.message}</div>
+              ))}
+            </div>
+          )}
 
           {/* Cargo entries */}
           {cargos.map((cargo, index) => (
