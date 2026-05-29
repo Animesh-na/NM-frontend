@@ -5,6 +5,7 @@ import { getSeaRouteDistance, searchPorts as searchMarinePorts } from "@/service
 import { type Port } from "@/components/voyage/PortSelect";
 import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
 import { isPortEuEea } from "@/utils/euCountries";
+import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
@@ -199,6 +200,9 @@ interface VoyageContextValue {
    
    // Calculated results
    results: VoyageResults;
+
+   // Cargo assignment validation (route mapping)
+   cargoValidation: CargoValidationResult;
 }
 
 // Fuel accounting mode type
