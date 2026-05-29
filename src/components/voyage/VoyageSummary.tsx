@@ -186,6 +186,23 @@ export function VoyageSummary() {
                 ${formatCurrency(results.grossRate)} /mt
               </span>
             </div>
+            {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 && (
+              <div className="pl-3 space-y-0.5 border-l-2 border-primary/30 ml-1">
+                {results.perCargoBreakdown.map((c, i) => (
+                  <div key={c.cargoId} className="flex justify-between text-[9px]">
+                    <span className="text-muted-foreground">
+                      Cargo #{i + 1} Gross Rate
+                      <span className="ml-1 text-muted-foreground/70">
+                        ({c.qty.toLocaleString()} mt)
+                      </span>
+                    </span>
+                    <span className="font-mono tabular-nums">
+                      ${formatCurrency(c.grossRate)} /mt
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
                 P&L

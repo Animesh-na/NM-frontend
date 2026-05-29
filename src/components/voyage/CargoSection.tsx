@@ -37,18 +37,22 @@ export function CargoSection() {
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
-                NTC
+                GTC
                 <InfoTooltip
-                  formula="Drives Hire Cost = NTC × Total Voyage Days"
-                  description="Net Time Charter (replaces Daily Hire)"
+                  formula="Gross Time Charter — primary hire input. NTC = GTC × (1 - TC Comm%)"
+                  description="Gross Time Charter (primary editable hire rate)"
                 />
               </label>
               <div className="input-with-unit">
-                 <input
+                <input
                   type="number"
                   className="form-input-sm w-full font-mono text-right"
-                  value={hireRate}
-                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
+                  value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
+                  onChange={(e) => {
+                    const gtc = parseFloat(e.target.value) || 0;
+                    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
+                    setHireRate(gtc * (1 - tc));
+                  }}
                 />
                 <span className="unit">$/d</span>
               </div>
@@ -74,22 +78,18 @@ export function CargoSection() {
             </div>
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
-                GTC
+                NTC
                 <InfoTooltip
-                  formula="NTC / (1 - TC Comm%). Editing GTC back-calculates NTC."
-                  description="Gross Time Charter equivalent"
+                  formula="NTC = GTC × (1 - TC Comm%). Drives Hire Cost."
+                  description="Net Time Charter (derived from GTC)"
                 />
               </label>
               <div className="input-with-unit">
-                 <input
+                <input
                   type="number"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
-                  onChange={(e) => {
-                    const gtc = parseFloat(e.target.value) || 0;
-                    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
-                    setHireRate(gtc * (1 - tc));
-                  }}
+                  className="form-input-sm w-full font-mono text-right bg-muted/30"
+                  value={parseFloat((hireRate || 0).toFixed(2))}
+                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
                 />
                 <span className="unit">$/d</span>
               </div>
