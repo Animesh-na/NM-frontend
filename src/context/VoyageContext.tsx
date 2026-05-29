@@ -1436,7 +1436,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       demurrage: totalDemurrage,
       despatch: totalDespatch,
     };
-  }, [cargos, sequenceCargoQuantity]);
+  }, [cargos, sequence, sequenceCargoQuantity]);
 
   // Transform UI state to calculation inputs
   const voyageInputs: VoyageInputs = {
