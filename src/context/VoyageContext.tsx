@@ -6,6 +6,7 @@ import { type Port } from "@/components/voyage/PortSelect";
 import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
 import { isPortEuEea } from "@/utils/euCountries";
 import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
+import { getCargoRowMap } from "@/utils/cargoRowMapping";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
@@ -132,6 +133,13 @@ export interface CargoEntry {
   gtcTarget: number; // Target GTC $/day
   netBBOverride?: number; // Manual override for Net BB
   stowageFactor: number; // Global stowage factor (m³/mt)
+  /**
+   * Cargo-level Charter Party overrides for assigned sequence rows.
+   * Keyed by sequence row id. When present, the override REPLACES the
+   * value coming from the sequence for calculation purposes — without
+   * mutating the sequence row itself.
+   */
+  cpOverrides?: Record<number, { quantity?: number; productivity?: number }>;
 }
 
 interface VoyageContextValue {
@@ -167,6 +175,12 @@ interface VoyageContextValue {
   addCargo: () => void;
   removeCargo: (id: number) => void;
   updateCargoEntry: (id: number, field: string, value: number | string) => void;
+  updateCargoCpOverride: (
+    cargoId: number,
+    rowId: number,
+    field: "quantity" | "productivity",
+    value: number,
+  ) => void;
   
   // Vessel cost (global)
   vesselCost: number;
