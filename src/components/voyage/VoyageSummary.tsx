@@ -14,6 +14,7 @@ export function VoyageSummary() {
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
+  const hasPerCargoGrossRates = cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1;
 
 
   const formatCurrency = (value: number) => {
@@ -174,19 +175,21 @@ export function VoyageSummary() {
             </span>
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                Gross Rate
-                <InfoTooltip 
-                  formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
-                  description="Breakeven freight rate per MT including hire and commission"
-                />
-              </span>
-              <span className="font-mono tabular-nums">
-                ${formatCurrency(results.grossRate)} /mt
-              </span>
-            </div>
-            {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 && (
+            {!hasPerCargoGrossRates && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground flex items-center">
+                  Gross Rate
+                  <InfoTooltip 
+                    formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
+                    description="Breakeven freight rate per MT including hire and commission"
+                  />
+                </span>
+                <span className="font-mono tabular-nums">
+                  ${formatCurrency(results.grossRate)} /mt
+                </span>
+              </div>
+            )}
+            {hasPerCargoGrossRates && (
               <div className="pl-3 space-y-0.5 border-l-2 border-primary/30 ml-1">
                 {results.perCargoBreakdown.map((c, i) => (
                   <div key={c.cargoId} className="flex justify-between text-[9px]">
