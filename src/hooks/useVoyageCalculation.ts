@@ -231,6 +231,26 @@ export interface VoyageResults {
   
   // FuelEU Freight Impact (FuelEU penalty / cargo quantity)
   fuelEuFreightImpact: number;
+
+  // Per-cargo breakdown (route-bounded allocation). Empty when no explicit cargo mapping is set.
+  perCargoBreakdown: PerCargoBreakdown[];
+  // Costs not attributed to any cargo (repositioning legs + out-of-window legs).
+  repositioningCost: number;
+}
+
+export interface PerCargoBreakdown {
+  cargoId: number;
+  cargoLabel: string; // "#1", "#2", ...
+  loadedQty: number;
+  grossFreight: number;
+  share: number; // 0..1 share of total grossFreight (or qty if all lumpsum)
+  allocatedBunker: number;
+  allocatedPortCosts: number;
+  allocatedVoyageCosts: number; // bunker + port (route-bounded)
+  allocatedHire: number; // hire over the route window
+  grossRate: number; // (allocatedVoyageCosts + allocatedHire) / qty, grossed up by voyComm
+  routeStartIdx: number;
+  routeEndIdx: number;
 }
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
