@@ -551,7 +551,7 @@ export function VoyageSummary() {
 
         {/* Disclaimer */}
         <div className="pt-2 border-t border-border text-[9px] text-muted-foreground/60 text-center italic leading-relaxed">
-          All this info is given in good faith; it does not have any guarantee.
+          All information is provided in good faith and without guarantee.
         </div>
       </div>
     </div>
