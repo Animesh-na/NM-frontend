@@ -91,32 +91,22 @@ export function BunkerSection() {
             </div>
           </div>
 
-          {/* BOB - tabular single-row per fuel */}
+          {/* BOB - single row layout */}
           <div className="border border-border rounded overflow-hidden">
-            <table className="w-full text-xs table-fixed">
-              <thead>
-                <tr className="subsection-header">
-                  <th className="text-left px-2 py-1 text-[10px] font-medium w-1/3">BOB</th>
-                  <th className="text-right px-2 py-1 text-[10px] font-medium w-1/3">Qty (t)</th>
-                  <th className="text-right px-2 py-1 text-[10px] font-medium w-1/3">Price ($/t)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fuels.map(fuel => (
-                  <tr key={fuel} className="border-t border-border">
-                    <td className="px-2 py-1 text-[10px] font-medium">{fuel.toUpperCase()}</td>
-                    <td className="px-1 py-0.5">
-                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
-                        value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
-                    </td>
-                    <td className="px-1 py-0.5">
-                      <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
-                        value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border">BOB</div>
+            <div className="flex divide-x divide-border">
+              {fuels.map(fuel => (
+                <div key={fuel} className="flex-1 flex items-center gap-1 px-2 py-1">
+                  <span className="text-[10px] font-medium w-12">{fuel.toUpperCase()}</span>
+                  <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
+                    value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
+                  <span className="text-[9px] text-muted-foreground">t</span>
+                  <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
+                    value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                  <span className="text-[9px] text-muted-foreground">$/t</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Port Bunkering - tabular */}
