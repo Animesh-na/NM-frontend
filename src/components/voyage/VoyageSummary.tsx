@@ -174,33 +174,32 @@ export function VoyageSummary() {
             </span>
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
-            <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
-              <span className="text-muted-foreground flex items-center font-semibold">
-                Gross Rate
-                <InfoTooltip 
-                  formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
-                  description="Breakeven freight rate per MT including hire and commission"
-                />
-              </span>
-              <span className="font-mono tabular-nums font-bold text-primary">
-                ${formatCurrency(results.grossRate)} /mt
-              </span>
-            </div>
-            {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 && (
-              <div className="pl-3 space-y-0.5 border-l-2 border-primary/30 ml-1">
-                {results.perCargoBreakdown.map((c, i) => (
-                  <div key={c.cargoId} className="flex justify-between text-[9px]">
-                    <span className="text-muted-foreground">
-                      Cargo {c.cargoLabel} Gross Rate
-                      <span className="ml-1 text-muted-foreground/70">
-                        ({c.loadedQty.toLocaleString()} mt)
-                      </span>
+            {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 ? (
+              results.perCargoBreakdown.map((c) => (
+                <div key={c.cargoId} className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
+                  <span className="text-muted-foreground flex items-center font-semibold">
+                    Cargo {c.cargoLabel} Gross Rate
+                    <span className="ml-1 text-muted-foreground/70 font-normal">
+                      ({c.loadedQty.toLocaleString()} mt)
                     </span>
-                    <span className="font-mono tabular-nums">
-                      ${formatCurrency(c.grossRate)} /mt
-                    </span>
-                  </div>
-                ))}
+                  </span>
+                  <span className="font-mono tabular-nums font-bold text-primary">
+                    ${formatCurrency(c.grossRate)} /mt
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
+                <span className="text-muted-foreground flex items-center font-semibold">
+                  Gross Rate
+                  <InfoTooltip 
+                    formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
+                    description="Breakeven freight rate per MT including hire and commission"
+                  />
+                </span>
+                <span className="font-mono tabular-nums font-bold text-primary">
+                  ${formatCurrency(results.grossRate)} /mt
+                </span>
               </div>
             )}
             <div className="flex justify-between bg-success/10 rounded-sm px-1 py-0.5 -mx-1">
