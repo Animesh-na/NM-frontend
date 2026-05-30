@@ -1225,22 +1225,42 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     );
 
     // ============================================
-    // PER-CARGO BREAKDOWN (ton-mile allocation)
+    // PER-CARGO BREAKDOWN (route-bounded allocation)
     // ============================================
     const cargosForBreakdown = inputs.cargos || [];
     const perCargoBreakdown: PerCargoBreakdown[] = [];
     let repositioningCost = 0;
 
-    const legPortDa: number[] = sequence.map((leg) => leg.expDa || 0);
-    const legDistance: number[] = sequence.map(
-      (leg) => (leg.distance || 0) + (leg.ecaDistance || 0),
+    // Per-leg cost vector (bunker + port DA) used for route-bounded allocation.
+    // Bunker per leg = total bunker cost prorated by leg's share of total active days
+    // (sea time + port time). Repositioning legs are tracked separately.
+    const legActiveDays: number[] = sequence.map(
+      (leg) => (leg.seaTime || 0) + (leg.portDays || 0),
     );
+    const totalActiveDays = legActiveDays.reduce((s, v) => s + v, 0) || 1;
+    const legBunker: number[] = legActiveDays.map(
+      (d) => (totalBunkerCost * d) / totalActiveDays,
+    );
+    const legPort: number[] = sequence.map((leg) => leg.expDa || 0);
+    const isReposLeg = (leg: SequenceRow) =>
+      (leg.type || "").toLowerCase() === "repos";
+
+    // Sum cost for repos legs (excluded from any cargo allocation).
+    sequence.forEach((leg, idx) => {
+      if (isReposLeg(leg)) {
+        repositioningCost += legBunker[idx] + legPort[idx];
+      }
+    });
 
     if (cargosForBreakdown.length > 0) {
+      // For each cargo, find route window = [firstAssignedLoadIdx ... lastAssignedDischargeIdx]
       const usesExplicitMapping = sequence.some(
         (leg) => (leg.assignedCargoIds || []).length > 0,
       );
 
+      // Build auto-mapping fallback: when no chips are assigned, map loading and
+      // discharge rows to cargos in sequence order (1st load → cargo #1, etc.).
+      // This avoids the prior "equal qty split" that ignored per-port quantities.
       const loadIdxs: number[] = [];
       const dischIdxs: number[] = [];
       sequence.forEach((leg, idx) => {
@@ -1250,6 +1270,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       });
       const autoLoadForCargo = (ci: number): number[] => {
         if (loadIdxs.length === 0) return [];
+        // If counts match, 1-to-1. Else assign cargo ci all loads at position ci (mod).
         if (loadIdxs.length === cargosForBreakdown.length) return [loadIdxs[ci]];
         if (ci < loadIdxs.length) return [loadIdxs[ci]];
         return [];
@@ -1261,6 +1282,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         return [];
       };
 
+      // Per-cargo loaded qty (always derived from sequence rows; never equal split).
       const loadedQtyPerCargo: number[] = cargosForBreakdown.map((c, ci) => {
         let qty = 0;
         if (usesExplicitMapping) {
@@ -1287,124 +1309,72 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       const totalGross = totalGrossPerCargo.reduce((s, v) => s + v, 0);
       const totalLoadedQty = loadedQtyPerCargo.reduce((s, v) => s + v, 0);
 
-      // Owner cargo per leg (load/discharge rows only). null = no owner (open
-      // port, bunkering, canal, repos, etc.).
-      const legOwnerCargoIdx: Array<number | null> = sequence.map((leg, idx) => {
-        const op = (leg.operation || "").toLowerCase();
-        if (!op.startsWith("load") && !op.startsWith("disch")) return null;
-        if (usesExplicitMapping) {
-          const ids = leg.assignedCargoIds || [];
-          if (ids.length === 0) return null;
-          const ci = cargosForBreakdown.findIndex((c) => ids.includes(c.id));
-          return ci >= 0 ? ci : null;
-        }
-        // Auto mapping
-        for (let ci = 0; ci < cargosForBreakdown.length; ci++) {
-          if (op.startsWith("load") && autoLoadForCargo(ci).includes(idx)) return ci;
-          if (op.startsWith("disch") && autoDischForCargo(ci).includes(idx)) return ci;
-        }
-        return null;
-      });
-
-      // Cargo window = [firstOwnedIdx ... lastOwnedIdx]. Used to compute the
-      // cargo's carried distance (load port → discharge port).
+      // Route window per cargo (covers all assigned/auto load + discharge indices).
       const routeWindows: Array<{ start: number; end: number }> = cargosForBreakdown.map(
-        (_c, ci) => {
+        (c, ci) => {
           const idxs: number[] = [];
-          legOwnerCargoIdx.forEach((owner, idx) => {
-            if (owner === ci) idxs.push(idx);
-          });
+          if (usesExplicitMapping) {
+            sequence.forEach((leg, idx) => {
+              if ((leg.assignedCargoIds || []).includes(c.id)) idxs.push(idx);
+            });
+          } else {
+            idxs.push(...autoLoadForCargo(ci), ...autoDischForCargo(ci));
+          }
           if (idxs.length === 0) return { start: -1, end: -1 };
           return { start: Math.min(...idxs), end: Math.max(...idxs) };
         },
       );
 
-      // ---- Cargo-specific port DA (load + discharge ports owned by cargo) ----
-      const cargoSpecificPortDa = new Array(cargosForBreakdown.length).fill(0);
-      let unownedPortDa = 0;
-      sequence.forEach((_leg, idx) => {
-        const owner = legOwnerCargoIdx[idx];
-        if (owner !== null) cargoSpecificPortDa[owner] += legPortDa[idx];
-        else unownedPortDa += legPortDa[idx];
-      });
-
-      // ---- Carried distance per cargo (load port → discharge port window) ----
-      // Sum of leg distances strictly AFTER the cargo's first owned (load) leg
-      // up to and including its last owned (discharge) leg. The distance value
-      // on a leg is the distance sailed to reach that port.
-      const carriedDistancePerCargo: number[] = cargosForBreakdown.map((_c, ci) => {
-        const { start, end } = routeWindows[ci];
-        if (start < 0 || end < 0 || end <= start) return 0;
-        let d = 0;
-        for (let i = start + 1; i <= end; i++) d += legDistance[i];
-        return d;
-      });
-
-      // ---- Ton-miles & allocation ratios ----
-      const tonMilesPerCargo: number[] = cargosForBreakdown.map(
-        (_c, ci) => (loadedQtyPerCargo[ci] || 0) * (carriedDistancePerCargo[ci] || 0),
-      );
-      const totalTonMiles = tonMilesPerCargo.reduce((s, v) => s + v, 0);
-
-      // Single-cargo path: existing behaviour — 100% of voyage costs to that cargo.
-      const singleCargo = cargosForBreakdown.length === 1;
-
-      // Shared voyage cost pool = everything except cargo-specific port DA.
-      // (Ballast + laden bunkers, hire, canal, misc, unowned port stops.)
-      const sharedPool =
-        totalBunkerCost + hireCost + miscCosts + canalCosts + unownedPortDa;
-
-      // Fallback share (when ton-miles = 0): split by loaded qty, then equal.
-      const fallbackShare = (ci: number) => {
-        if (totalLoadedQty > 0) return (loadedQtyPerCargo[ci] || 0) / totalLoadedQty;
-        return 1 / cargosForBreakdown.length;
-      };
-
       cargosForBreakdown.forEach((c, ci) => {
         const label = `#${ci + 1}`;
         const loadedQty = loadedQtyPerCargo[ci];
         const grossFreight = totalGrossPerCargo[ci];
-
-        const ratio = singleCargo
-          ? 1
-          : totalTonMiles > 0
-            ? (tonMilesPerCargo[ci] || 0) / totalTonMiles
-            : fallbackShare(ci);
-
-        // Allocate shared pool by ton-mile ratio; add cargo-specific port DA.
-        const sharedAllocated = sharedPool * ratio;
-        const cargoSpecific = cargoSpecificPortDa[ci];
-
-        // Split shared allocation back into the existing breakdown buckets
-        // proportionally (purely for the breakdown UI — totals are unchanged).
-        const sharedBunker = totalBunkerCost * ratio;
-        const sharedHire = hireCost * ratio;
-        const sharedOtherPort =
-          (miscCosts + canalCosts + unownedPortDa) * ratio;
-
-        const allocatedBunker = sharedBunker;
-        const allocatedPortCosts = cargoSpecific + sharedOtherPort;
-        const allocatedHire = sharedHire;
-        const allocatedVoyageCosts = allocatedBunker + allocatedPortCosts;
-
-        // Gross Rate = breakeven rate covering allocated voyage cost + hire,
-        // grossed up for the cargo's voyage commission.
-        const voyCommPct = (c.voyageCommission || 0) / 100;
-        const baseRate =
-          loadedQty > 0
-            ? (allocatedVoyageCosts + allocatedHire) / loadedQty
-            : 0;
-        const grossRate = voyCommPct < 1 ? baseRate / (1 - voyCommPct) : 0;
-
-        const share = singleCargo
-          ? 1
-          : totalLoadedQty > 0
-            ? loadedQty / totalLoadedQty
-            : totalGross > 0
-              ? grossFreight / totalGross
-              : 1 / cargosForBreakdown.length;
+        // Cost share weighted by loaded quantity (not revenue) so different rates
+        // don't skew cost allocation.
+        const share = totalLoadedQty > 0
+          ? loadedQty / totalLoadedQty
+          : (totalGross > 0 ? grossFreight / totalGross : 1 / cargosForBreakdown.length);
 
         const { start: startIdx, end: endIdx } = routeWindows[ci];
+
+        // If no explicit assignment, fall back to full voyage scope share by qty/grossFreight.
+        let allocatedBunker = 0;
+        let allocatedPortCosts = 0;
+        let allocatedHire = 0;
+        if (startIdx === -1 || endIdx === -1) {
+          allocatedBunker = totalBunkerCost * share;
+          allocatedPortCosts = portCosts * share;
+          allocatedHire = hireCost * share;
+        } else {
+          for (let idx = startIdx; idx <= endIdx; idx++) {
+            const leg = sequence[idx];
+            if (isReposLeg(leg)) continue; // repos excluded
+            // Overlap: when multiple cargo windows cover the same leg, split the
+            // leg's cost by each overlapping cargo's loaded-qty share (not equal).
+            let overlapQty = 0;
+            cargosForBreakdown.forEach((_other, oi) => {
+              const ow = routeWindows[oi];
+              if (ow.start !== -1 && idx >= ow.start && idx <= ow.end) {
+                overlapQty += loadedQtyPerCargo[oi] || 0;
+              }
+            });
+            const w = overlapQty > 0 ? (loadedQty / overlapQty) : 1;
+            allocatedBunker += legBunker[idx] * w;
+            allocatedPortCosts += legPort[idx] * w;
+            allocatedHire += hireCost * (legActiveDays[idx] / totalActiveDays) * w;
+          }
+        }
+
+        const allocatedVoyageCosts = allocatedBunker + allocatedPortCosts;
+        const voyCommPct = (c.voyageCommission || 0) / 100;
+        // Per-cargo Gross Rate = the cargo's own freight rate grossed up by its
+        // voyage commission. For lumpsum, derive an equivalent $/mt from the
+        // lumpsum divided by loaded qty, then gross up.
+        const baseRate = c.rateType === "lumpsum"
+          ? (loadedQty > 0 ? (c.rate || 0) / loadedQty : 0)
+          : (c.rate || 0);
+        const grossRate = voyCommPct < 1 ? baseRate / (1 - voyCommPct) : baseRate;
+
         perCargoBreakdown.push({
           cargoId: c.id,
           cargoLabel: label,
@@ -1420,8 +1390,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           routeEndIdx: endIdx,
         });
       });
-
-      repositioningCost = unownedPortDa;
     }
 
     const result = {
