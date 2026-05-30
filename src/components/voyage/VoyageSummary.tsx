@@ -174,15 +174,15 @@ export function VoyageSummary() {
             </span>
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
+            <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
+              <span className="text-muted-foreground flex items-center font-semibold">
                 Gross Rate
                 <InfoTooltip 
                   formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
                   description="Breakeven freight rate per MT including hire and commission"
                 />
               </span>
-              <span className="font-mono tabular-nums">
+              <span className="font-mono tabular-nums font-bold text-primary">
                 ${formatCurrency(results.grossRate)} /mt
               </span>
             </div>
@@ -203,15 +203,15 @@ export function VoyageSummary() {
                 ))}
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
+            <div className="flex justify-between bg-success/10 rounded-sm px-1 py-0.5 -mx-1">
+              <span className="text-muted-foreground flex items-center font-semibold">
                 P&L
                 <InfoTooltip 
                   formula="Net Freight - Voyage Cost Incl Hire" 
                   description="Profit & Loss for the voyage"
                 />
               </span>
-              <span className={`font-mono tabular-nums ${results.pAndL >= 0 ? "text-success" : "text-destructive"}`}>
+              <span className={`font-mono tabular-nums font-bold ${results.pAndL >= 0 ? "text-success" : "text-destructive"}`}>
                 ${formatCurrency(results.pAndL)}
               </span>
             </div>
@@ -548,6 +548,11 @@ export function VoyageSummary() {
             </Button>
           </div>
         )}
+
+        {/* Disclaimer */}
+        <div className="pt-2 border-t border-border text-[9px] text-muted-foreground/60 text-center italic leading-relaxed">
+          All this info is given in good faith; it does not have any guarantee.
+        </div>
       </div>
     </div>
   );
