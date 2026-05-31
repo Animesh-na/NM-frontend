@@ -451,8 +451,38 @@ export function SequenceTable() {
                       {/* Coefficient */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <input type="number" step="0.01" className="form-input-sm w-12 font-mono text-center text-[10px]"
-                            value={row.coefficientFactor || ""} onChange={(e) => updateSequenceRow(row.id, "coefficientFactor", parseFloat(e.target.value) || 0)} placeholder="1.0" />
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="form-input-sm w-14 font-mono text-center text-[10px]"
+                            value={
+                              coeffDrafts[row.id] !== undefined
+                                ? coeffDrafts[row.id]
+                                : formatCoefficient(row.coefficientFactor || 1)
+                            }
+                            onFocus={() =>
+                              setCoeffDrafts((p) => ({
+                                ...p,
+                                [row.id]: String(row.coefficientFactor || ""),
+                              }))
+                            }
+                            onChange={(e) => {
+                              let v = e.target.value.replace(/,/g, ".");
+                              if (v.startsWith(".")) v = `0${v}`;
+                              if (!/^\d*\.?\d*$/.test(v)) return;
+                              setCoeffDrafts((p) => ({ ...p, [row.id]: v }));
+                              const num = parseFloat(v);
+                              if (!isNaN(num)) updateSequenceRow(row.id, "coefficientFactor", num);
+                            }}
+                            onBlur={() => {
+                              setCoeffDrafts((p) => {
+                                const n = { ...p };
+                                delete n[row.id];
+                                return n;
+                              });
+                            }}
+                            placeholder="1.0000"
+                          />
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
@@ -499,11 +529,29 @@ export function SequenceTable() {
                       {/* Actions */}
                       <td className={tdClass}>
                         {!isOpen && (
-                          <button onClick={() => removeSequence(row.id)}
-                            className="p-0.5 hover:bg-destructive/10 rounded text-destructive/50 hover:text-destructive transition-colors"
-                            title="Delete row">
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => moveRow(row.id, "up")}
+                              disabled={index <= 1}
+                              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move up"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => moveRow(row.id, "down")}
+                              disabled={index >= sequence.length - 1}
+                              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move down"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => removeSequence(row.id)}
+                              className="p-0.5 hover:bg-destructive/10 rounded text-destructive/50 hover:text-destructive transition-colors"
+                              title="Delete row">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
