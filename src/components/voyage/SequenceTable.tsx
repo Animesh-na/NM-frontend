@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle, ArrowUp, ArrowDown, MoreVertical } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
 import { useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
@@ -571,26 +571,14 @@ export function SequenceTable() {
                       {/* Actions */}
                       <td className={tdClass}>
                         {!isOpen && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                type="button"
-                                className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                                title="Actions"
-                              >
-                                <MoreVertical className="h-3 w-3" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="min-w-[8rem]">
-                              <DropdownMenuItem
-                                className="text-[11px] cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
-                                onClick={() => removeSequence(row.id)}
-                              >
-                                <Trash2 className="h-3 w-3 mr-1.5" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <button
+                            type="button"
+                            className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-destructive transition-colors"
+                            title="Remove port"
+                            onClick={() => removeSequence(row.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         )}
                       </td>
                     </tr>
