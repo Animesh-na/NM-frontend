@@ -52,6 +52,59 @@ export function SequenceTable() {
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
 
+  // Local draft store so user can type freely while we keep the underlying numeric value.
+  const [coeffDrafts, setCoeffDrafts] = useState<Record<number, string>>({});
+
+  // Truncate (not round) to 4 decimal places, always pad to 4.
+  const formatCoefficient = (v: number): string => {
+    if (!isFinite(v)) return "1.0000";
+    const truncated = Math.trunc(v * 10000) / 10000;
+    return truncated.toFixed(4);
+  };
+
+  /**
+   * Move a port/repos row up or down with cargo-order validation:
+   *  - a discharge row must remain after at least one load row of the same cargo.
+   *  - "open" row is locked at index 0; can't move into/over it.
+   */
+  const moveRow = (id: number, direction: "up" | "down") => {
+    const idx = sequence.findIndex((r) => r.id === id);
+    if (idx < 0) return;
+    const target = direction === "up" ? idx - 1 : idx + 1;
+    if (target < 0 || target >= sequence.length) return;
+    if (sequence[idx].type === "open" || sequence[target].type === "open") {
+      toast({ title: "Cannot move", description: "Open row is fixed at the start.", variant: "destructive" });
+      return;
+    }
+
+    const next = [...sequence];
+    [next[idx], next[target]] = [next[target], next[idx]];
+
+    // Validate cargo ordering: every discharge must follow a load of its cargo.
+    const map = getCargoRowMap(cargos, next);
+    for (let i = 0; i < next.length; i++) {
+      const row = next[i];
+      if ((row.operation || "").toLowerCase().startsWith("disch")) {
+        const cargoId = map.get(row.id);
+        if (cargoId == null) continue;
+        const hasPriorLoad = next.slice(0, i).some(
+          (r) => (r.operation || "").toLowerCase().startsWith("load") && map.get(r.id) === cargoId,
+        );
+        if (!hasPriorLoad) {
+          const cIdx = cargos.findIndex((c) => c.id === cargoId);
+          toast({
+            title: "Invalid move",
+            description: `Discharge port for Cargo #${cIdx + 1} cannot be placed before its load port.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
+    setSequence(next);
+  };
+
 
   const handlePortChange = (id: number, port: Port | null) => {
     setSequence(prev => prev.map(row => {
