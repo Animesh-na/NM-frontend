@@ -217,16 +217,51 @@ export function SequenceTable() {
                         ) : row.type === "repos" ? (
                           <span className="text-[10px] font-semibold text-muted-foreground px-1">Repos</span>
                         ) : (
-                          <select
-                            className="form-select-sm w-14 text-[10px]"
-                            value={typeLabel}
-                            onChange={(e) => handleTypeChange(row.id, e.target.value)}
-                          >
-                            <option value="load">Load</option>
-                            <option value="disch">Disch</option>
-                            <option value="bkrg">Bkrg</option>
-                            <option value="pssg">Pssg</option>
-                          </select>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="form-select-sm w-14 text-[10px] flex items-center justify-between px-1 capitalize"
+                                title="Type / reorder"
+                              >
+                                <span>{typeLabel}</span>
+                                <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="min-w-[7rem]">
+                              {[
+                                { v: "load", l: "Load" },
+                                { v: "disch", l: "Disch" },
+                                { v: "bkrg", l: "Bkrg" },
+                                { v: "pssg", l: "Pssg" },
+                              ].map((opt) => (
+                                <DropdownMenuItem
+                                  key={opt.v}
+                                  className={`text-[11px] cursor-pointer ${typeLabel === opt.v ? "bg-accent/60 font-semibold" : ""}`}
+                                  onClick={() => handleTypeChange(row.id, opt.v)}
+                                >
+                                  {opt.l}
+                                </DropdownMenuItem>
+                              ))}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-[11px] cursor-pointer"
+                                disabled={index <= 1}
+                                onClick={() => moveRow(row.id, "up")}
+                              >
+                                <ArrowUp className="h-3 w-3 mr-1.5" />
+                                Move Up
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-[11px] cursor-pointer"
+                                disabled={index >= sequence.length - 1}
+                                onClick={() => moveRow(row.id, "down")}
+                              >
+                                <ArrowDown className="h-3 w-3 mr-1.5" />
+                                Move Down
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </td>
 
@@ -547,23 +582,6 @@ export function SequenceTable() {
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="min-w-[8rem]">
-                              <DropdownMenuItem
-                                className="text-[11px] cursor-pointer"
-                                disabled={index <= 1}
-                                onClick={() => moveRow(row.id, "up")}
-                              >
-                                <ArrowUp className="h-3 w-3 mr-1.5" />
-                                Move Up
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-[11px] cursor-pointer"
-                                disabled={index >= sequence.length - 1}
-                                onClick={() => moveRow(row.id, "down")}
-                              >
-                                <ArrowDown className="h-3 w-3 mr-1.5" />
-                                Move Down
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-[11px] cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
                                 onClick={() => removeSequence(row.id)}
