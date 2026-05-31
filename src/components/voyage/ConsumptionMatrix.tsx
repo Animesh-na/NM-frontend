@@ -66,7 +66,11 @@ export function ConsumptionMatrix({
   ): string => {
     const draftValue = draftValues[getCellKey(rowKey, colKey)];
     if (draftValue !== undefined) return draftValue;
-    return numericValue === 0 ? "" : String(numericValue);
+    if (numericValue === 0) return "";
+    // Display max 2 decimals (truncated). Underlying value keeps full precision.
+    const truncated = Math.trunc(numericValue * 100) / 100;
+    // Drop trailing zeros for cleaner display (e.g. 12 not 12.00, 12.5 not 12.50).
+    return String(truncated);
   };
 
   const handleInputFocus = (

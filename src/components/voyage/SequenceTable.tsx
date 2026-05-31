@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
 import { useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
@@ -9,6 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
+import { getCargoRowMap } from "@/utils/cargoRowMapping";
+import { toast } from "@/hooks/use-toast";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
@@ -49,6 +51,59 @@ export function SequenceTable() {
   
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
+
+  // Local draft store so user can type freely while we keep the underlying numeric value.
+  const [coeffDrafts, setCoeffDrafts] = useState<Record<number, string>>({});
+
+  // Truncate (not round) to 4 decimal places, always pad to 4.
+  const formatCoefficient = (v: number): string => {
+    if (!isFinite(v)) return "1.0000";
+    const truncated = Math.trunc(v * 10000) / 10000;
+    return truncated.toFixed(4);
+  };
+
+  /**
+   * Move a port/repos row up or down with cargo-order validation:
+   *  - a discharge row must remain after at least one load row of the same cargo.
+   *  - "open" row is locked at index 0; can't move into/over it.
+   */
+  const moveRow = (id: number, direction: "up" | "down") => {
+    const idx = sequence.findIndex((r) => r.id === id);
+    if (idx < 0) return;
+    const target = direction === "up" ? idx - 1 : idx + 1;
+    if (target < 0 || target >= sequence.length) return;
+    if (sequence[idx].type === "open" || sequence[target].type === "open") {
+      toast({ title: "Cannot move", description: "Open row is fixed at the start.", variant: "destructive" });
+      return;
+    }
+
+    const next = [...sequence];
+    [next[idx], next[target]] = [next[target], next[idx]];
+
+    // Validate cargo ordering: every discharge must follow a load of its cargo.
+    const map = getCargoRowMap(cargos, next);
+    for (let i = 0; i < next.length; i++) {
+      const row = next[i];
+      if ((row.operation || "").toLowerCase().startsWith("disch")) {
+        const cargoId = map.get(row.id);
+        if (cargoId == null) continue;
+        const hasPriorLoad = next.slice(0, i).some(
+          (r) => (r.operation || "").toLowerCase().startsWith("load") && map.get(r.id) === cargoId,
+        );
+        if (!hasPriorLoad) {
+          const cIdx = cargos.findIndex((c) => c.id === cargoId);
+          toast({
+            title: "Invalid move",
+            description: `Discharge port for Cargo #${cIdx + 1} cannot be placed before its load port.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
+    setSequence(next);
+  };
 
 
   const handlePortChange = (id: number, port: Port | null) => {
@@ -396,8 +451,38 @@ export function SequenceTable() {
                       {/* Coefficient */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <input type="number" step="0.01" className="form-input-sm w-12 font-mono text-center text-[10px]"
-                            value={row.coefficientFactor || ""} onChange={(e) => updateSequenceRow(row.id, "coefficientFactor", parseFloat(e.target.value) || 0)} placeholder="1.0" />
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="form-input-sm w-14 font-mono text-center text-[10px]"
+                            value={
+                              coeffDrafts[row.id] !== undefined
+                                ? coeffDrafts[row.id]
+                                : formatCoefficient(row.coefficientFactor || 1)
+                            }
+                            onFocus={() =>
+                              setCoeffDrafts((p) => ({
+                                ...p,
+                                [row.id]: String(row.coefficientFactor || ""),
+                              }))
+                            }
+                            onChange={(e) => {
+                              let v = e.target.value.replace(/,/g, ".");
+                              if (v.startsWith(".")) v = `0${v}`;
+                              if (!/^\d*\.?\d*$/.test(v)) return;
+                              setCoeffDrafts((p) => ({ ...p, [row.id]: v }));
+                              const num = parseFloat(v);
+                              if (!isNaN(num)) updateSequenceRow(row.id, "coefficientFactor", num);
+                            }}
+                            onBlur={() => {
+                              setCoeffDrafts((p) => {
+                                const n = { ...p };
+                                delete n[row.id];
+                                return n;
+                              });
+                            }}
+                            placeholder="1.0000"
+                          />
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
@@ -444,11 +529,29 @@ export function SequenceTable() {
                       {/* Actions */}
                       <td className={tdClass}>
                         {!isOpen && (
-                          <button onClick={() => removeSequence(row.id)}
-                            className="p-0.5 hover:bg-destructive/10 rounded text-destructive/50 hover:text-destructive transition-colors"
-                            title="Delete row">
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => moveRow(row.id, "up")}
+                              disabled={index <= 1}
+                              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move up"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => moveRow(row.id, "down")}
+                              disabled={index >= sequence.length - 1}
+                              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move down"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => removeSequence(row.id)}
+                              className="p-0.5 hover:bg-destructive/10 rounded text-destructive/50 hover:text-destructive transition-colors"
+                              title="Delete row">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
