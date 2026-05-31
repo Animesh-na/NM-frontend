@@ -536,29 +536,43 @@ export function SequenceTable() {
                       {/* Actions */}
                       <td className={tdClass}>
                         {!isOpen && (
-                          <div className="flex items-center gap-0.5">
-                            <button
-                              onClick={() => moveRow(row.id, "up")}
-                              disabled={index <= 1}
-                              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                              title="Move up"
-                            >
-                              <ArrowUp className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={() => moveRow(row.id, "down")}
-                              disabled={index >= sequence.length - 1}
-                              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                              title="Move down"
-                            >
-                              <ArrowDown className="h-3 w-3" />
-                            </button>
-                            <button onClick={() => removeSequence(row.id)}
-                              className="p-0.5 hover:bg-destructive/10 rounded text-destructive/50 hover:text-destructive transition-colors"
-                              title="Delete row">
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                title="Actions"
+                              >
+                                <MoreVertical className="h-3 w-3" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="min-w-[8rem]">
+                              <DropdownMenuItem
+                                className="text-[11px] cursor-pointer"
+                                disabled={index <= 1}
+                                onClick={() => moveRow(row.id, "up")}
+                              >
+                                <ArrowUp className="h-3 w-3 mr-1.5" />
+                                Move Up
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-[11px] cursor-pointer"
+                                disabled={index >= sequence.length - 1}
+                                onClick={() => moveRow(row.id, "down")}
+                              >
+                                <ArrowDown className="h-3 w-3 mr-1.5" />
+                                Move Down
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-[11px] cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                                onClick={() => removeSequence(row.id)}
+                              >
+                                <Trash2 className="h-3 w-3 mr-1.5" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </td>
                     </tr>
