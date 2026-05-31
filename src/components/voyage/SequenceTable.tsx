@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
 import { useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
@@ -9,6 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
+import { getCargoRowMap } from "@/utils/cargoRowMapping";
+import { toast } from "@/hooks/use-toast";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
