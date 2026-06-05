@@ -1,18 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Ship, Users, FileText, LogOut, ChevronLeft, ChevronRight, Loader2,
-  Plus, UserX, UserCheck, ArrowLeft, Eye
+  Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
 import {
   adminListUsers, adminCreateUser, adminDeactivateUser, adminUpdateUser,
-  adminListSheets,
+  adminResetUserMfa, adminListSheets,
   type AdminUser, type AdminSheetItem,
 } from "@/services/adminApi";
 import { toast } from "@/components/ui/sonner";
 
 type AdminView = "users" | "user-sheets";
+
+const MFA_LABEL: Record<string, string> = {
+  totp: "Authenticator app",
+  email_otp: "Email codes",
+};
 
 export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const { logout, user: currentUser } = useAuth();
@@ -104,6 +109,19 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       fetchUsers();
     } else {
       toast.error("Failed to deactivate user");
+    }
+  };
+
+  const handleResetMfa = async (u: AdminUser) => {
+    const confirmed = window.confirm(
+      `Reset MFA for "${u.email}"? This removes their second factor entirely — only do this if they lost their authenticator device.`,
+    );
+    if (!confirmed) return;
+    const message = await adminResetUserMfa(u.id);
+    if (message) {
+      toast.success(message);
+    } else {
+      toast.error("Failed to reset MFA");
     }
   };
 
@@ -286,6 +304,24 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                                   <Eye className="h-3 w-3" />
                                   Sheets
                                 </button>
+                                {u.mfa_method ? (
+                                  <button
+                                    onClick={() => handleResetMfa(u)}
+                                    className="h-6 px-2 text-[11px] text-green-700 dark:text-green-400 hover:bg-green-500/10 rounded-sm transition-colors flex items-center gap-1"
+                                    title={`MFA enabled (${MFA_LABEL[u.mfa_method] || u.mfa_method}) — click to reset`}
+                                  >
+                                    <ShieldCheck className="h-3 w-3" />
+                                    Reset MFA
+                                  </button>
+                                ) : (
+                                  <span
+                                    className="h-6 px-2 text-[11px] text-destructive bg-destructive/10 rounded-sm flex items-center gap-1"
+                                    title="This user has not set up MFA"
+                                  >
+                                    <ShieldOff className="h-3 w-3" />
+                                    MFA not set
+                                  </span>
+                                )}
                                 {u.is_active ? (
                                   <button
                                     onClick={() => handleDeactivate(u)}

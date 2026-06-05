@@ -8,6 +8,8 @@ export interface AdminUser {
   email: string;
   role: string;
   is_active: boolean;
+  mfa_method?: string;        // "" / "totp" / "email_otp" — empty means MFA not set
+  mfa_updated_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +78,21 @@ export async function adminDeactivateUser(userId: string): Promise<boolean> {
   } catch (error) {
     console.error("Failed to deactivate user:", error);
     return false;
+  }
+}
+
+// Reset (remove) a user's MFA — the only way to recover a user who lost their
+// authenticator device. Returns the server message on success, null on failure.
+export async function adminResetUserMfa(userId: string): Promise<string | null> {
+  try {
+    const data = await apiRequest<{ message: string }>(`/admin/users/${userId}/mfa`, undefined, {
+      method: "DELETE",
+      authenticated: true,
+    });
+    return data.message || "MFA reset";
+  } catch (error) {
+    console.error("Failed to reset user MFA:", error);
+    return null;
   }
 }
 
