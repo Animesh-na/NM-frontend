@@ -279,22 +279,46 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "Despatch ($)", S.inputLabel); setNum(1, r, totalDespatch); const R_DESP = r; r++;
   r++;
 
-  // Multi-cargo input listing (informational; per-cargo allocation appears in PER-CARGO BREAKDOWN section below)
+  // Multi-cargo input listing. Row positions captured per-cargo so the
+  // PER-CARGO BREAKDOWN section below can build Excel formulas that reference
+  // the same input cells (single source of truth).
+  // cargoInputRows[i] = { rate, rateType, qty, voyComm, tcComm, dem, desp }
+  type CargoInputRows = {
+    rate: { col: number; row: number };
+    rateType: { col: number; row: number };
+    qty: { col: number; row: number };
+    voyComm: { col: number; row: number };
+    tcComm: { col: number; row: number };
+    dem: { col: number; row: number };
+    desp: { col: number; row: number };
+  };
+  const cargoInputRows: CargoInputRows[] = [];
   if (cargos.length > 1) {
     setSubSectionHeader(r, `ADDITIONAL CARGOES (${cargos.length} total)`); r++;
-    const mcHeaders = ["Cargo", "Rate", "Type", "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $"];
+    const mcHeaders = ["Cargo", "Rate", "Type", "Loaded Qty (MT)", "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $"];
     mcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
     cargos.forEach((c, i) => {
       const isAlt = i % 2 === 1;
       const dStyle = isAlt ? S.seqDataAlt : S.seqData;
       const tStyle = isAlt ? S.seqTextAlt : S.seqText;
+      const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
       setText(0, r, `#${i + 1}`, tStyle);
       setNum(1, r, c.rate, dStyle);
       setText(2, r, c.rateType, tStyle);
-      setNum(3, r, c.voyageCommission, dStyle);
-      setNum(4, r, c.tcCommission, dStyle);
-      setNum(5, r, c.demurrageAmount || 0, dStyle);
-      setNum(6, r, c.despatchAmount || 0, dStyle);
+      setNum(3, r, pc?.loadedQty ?? 0, dStyle);
+      setNum(4, r, c.voyageCommission, dStyle);
+      setNum(5, r, c.tcCommission, dStyle);
+      setNum(6, r, c.demurrageAmount || 0, dStyle);
+      setNum(7, r, c.despatchAmount || 0, dStyle);
+      cargoInputRows.push({
+        rate: { col: 1, row: r },
+        rateType: { col: 2, row: r },
+        qty: { col: 3, row: r },
+        voyComm: { col: 4, row: r },
+        tcComm: { col: 5, row: r },
+        dem: { col: 6, row: r },
+        desp: { col: 7, row: r },
+      });
       r++;
     });
     r++;
