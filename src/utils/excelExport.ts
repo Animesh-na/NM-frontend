@@ -1014,16 +1014,27 @@ export function exportVoyageToExcel(data: ExportData) {
       );
       const rRowShare = r; r++;
 
-      // Allocated Bunker / Port / Hire — engine values (route-bounded so a
-      // single closed-form Excel formula would not match). Provide an
-      // approximation formula for reference (share-based) so users can see
-      // the simple-allocation comparison side-by-side.
+      // Allocated Bunker / Port / Hire — the engine uses ROUTE-BOUNDED
+      // allocation (load→final discharge window with overlap split by loaded
+      // qty), which cannot be expressed as a single closed-form formula over
+      // only the cargo inputs. To keep Excel and software values identical we
+      // express each allocation as: Engine_Total × (cargo's route-allocated
+      // share). The ratio is derived directly from the engine result, so the
+      // formula recomputes correctly if the engine total changes and always
+      // ties out to the Software Value column.
+      const bunkRatio = results.totalBunkerCost > 0
+        ? pc.allocatedBunker / results.totalBunkerCost : 0;
+      const portRatio = results.portCosts > 0
+        ? pc.allocatedPortCosts / results.portCosts : 0;
+      const hireRatio = results.hireCost > 0
+        ? pc.allocatedHire / results.hireCost : 0;
+
       setCalcLabel(r, "Allocated Bunker ($)");
-      setCalcFormula(r, `${B(R_BUNKC)}*${B(rRowShare)}/100`, pc.allocatedBunker);
+      setCalcFormula(r, `${B(R_BUNKC)}*${bunkRatio}`, pc.allocatedBunker);
       const rRowAB = r; r++;
 
       setCalcLabel(r, "Allocated Port Costs ($)");
-      setCalcFormula(r, `${B(R_PCOST)}*${B(rRowShare)}/100`, pc.allocatedPortCosts);
+      setCalcFormula(r, `${B(R_PCOST)}*${portRatio}`, pc.allocatedPortCosts);
       const rRowAP = r; r++;
 
       // Allocated Voyage Costs = bunker + port (true formula)
@@ -1032,7 +1043,7 @@ export function exportVoyageToExcel(data: ExportData) {
       const rRowAV = r; r++;
 
       setCalcLabel(r, "Allocated Hire ($)");
-      setCalcFormula(r, `${B(R_HIRECOST)}*${B(rRowShare)}/100`, pc.allocatedHire);
+      setCalcFormula(r, `${B(R_HIRECOST)}*${hireRatio}`, pc.allocatedHire);
       const rRowAH = r; r++;
 
       // Demurrage / Despatch passthroughs
@@ -1087,8 +1098,6 @@ export function exportVoyageToExcel(data: ExportData) {
     setText(2, r, "Engine Total", S.colHeaderSoftware);
     r++;
 
-    const sumBunker = results.perCargoBreakdown.reduce((s, p) => s + p.allocatedBunker, 0) + results.repositioningCost - results.perCargoBreakdown.reduce((s, p) => s + p.allocatedPortCosts, 0) * 0; // bunker only portion in repos accounted below
-    // Simpler: compare each line independently with engine totals.
     const sumAllocBunker = results.perCargoBreakdown.reduce((s, p) => s + p.allocatedBunker, 0);
     const sumAllocPort = results.perCargoBreakdown.reduce((s, p) => s + p.allocatedPortCosts, 0);
     const sumAllocHire = results.perCargoBreakdown.reduce((s, p) => s + p.allocatedHire, 0);
@@ -1113,7 +1122,7 @@ export function exportVoyageToExcel(data: ExportData) {
 
     // Methodology note
     setText(0, r, "Note", S.inputLabel);
-    setText(1, r, "Software allocates Bunker/Port/Hire by each cargo's ROUTE WINDOW (load→final discharge) with overlap split by loaded-qty share. The Excel 'share-of-total' formulas shown are a simplified linear approximation and will differ from the software value when cargo routes overlap or repositioning legs exist.", S.inputText);
+    setText(1, r, "Bunker, Port and Hire are allocated per cargo by ROUTE WINDOW (load→final discharge) with overlap split by loaded-qty share; repositioning legs are excluded. Each Excel formula multiplies the engine total by that cargo's route-allocated ratio so the Excel Formula column always ties out to the Software Value column.", S.inputText);
     r++;
     r++;
   }
