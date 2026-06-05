@@ -279,22 +279,46 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "Despatch ($)", S.inputLabel); setNum(1, r, totalDespatch); const R_DESP = r; r++;
   r++;
 
-  // Multi-cargo input listing (informational; per-cargo allocation appears in PER-CARGO BREAKDOWN section below)
+  // Multi-cargo input listing. Row positions captured per-cargo so the
+  // PER-CARGO BREAKDOWN section below can build Excel formulas that reference
+  // the same input cells (single source of truth).
+  // cargoInputRows[i] = { rate, rateType, qty, voyComm, tcComm, dem, desp }
+  type CargoInputRows = {
+    rate: { col: number; row: number };
+    rateType: { col: number; row: number };
+    qty: { col: number; row: number };
+    voyComm: { col: number; row: number };
+    tcComm: { col: number; row: number };
+    dem: { col: number; row: number };
+    desp: { col: number; row: number };
+  };
+  const cargoInputRows: CargoInputRows[] = [];
   if (cargos.length > 1) {
     setSubSectionHeader(r, `ADDITIONAL CARGOES (${cargos.length} total)`); r++;
-    const mcHeaders = ["Cargo", "Rate", "Type", "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $"];
+    const mcHeaders = ["Cargo", "Rate", "Type", "Loaded Qty (MT)", "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $"];
     mcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
     cargos.forEach((c, i) => {
       const isAlt = i % 2 === 1;
       const dStyle = isAlt ? S.seqDataAlt : S.seqData;
       const tStyle = isAlt ? S.seqTextAlt : S.seqText;
+      const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
       setText(0, r, `#${i + 1}`, tStyle);
       setNum(1, r, c.rate, dStyle);
       setText(2, r, c.rateType, tStyle);
-      setNum(3, r, c.voyageCommission, dStyle);
-      setNum(4, r, c.tcCommission, dStyle);
-      setNum(5, r, c.demurrageAmount || 0, dStyle);
-      setNum(6, r, c.despatchAmount || 0, dStyle);
+      setNum(3, r, pc?.loadedQty ?? 0, dStyle);
+      setNum(4, r, c.voyageCommission, dStyle);
+      setNum(5, r, c.tcCommission, dStyle);
+      setNum(6, r, c.demurrageAmount || 0, dStyle);
+      setNum(7, r, c.despatchAmount || 0, dStyle);
+      cargoInputRows.push({
+        rate: { col: 1, row: r },
+        rateType: { col: 2, row: r },
+        qty: { col: 3, row: r },
+        voyComm: { col: 4, row: r },
+        tcComm: { col: 5, row: r },
+        dem: { col: 6, row: r },
+        desp: { col: 7, row: r },
+      });
       r++;
     });
     r++;
@@ -920,47 +944,176 @@ export function exportVoyageToExcel(data: ExportData) {
   if (cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 0) {
     setSectionHeader(r, "PER-CARGO BREAKDOWN"); r++;
 
-    // Column headers
-    const pcHeaders = [
-      "Cargo", "Rate", "Type", "Loaded Qty (MT)", "Gross Freight ($)",
-      "Share (%)", "Alloc Bunker ($)", "Alloc Port ($)", "Alloc Voy Costs ($)",
-      "Alloc Hire ($)", "Demurrage ($)", "Despatch ($)", "Gross Rate ($/mt)",
-    ];
-    pcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
+    // Layout: vertical block per cargo with three columns
+    //   A = Field label, B = Excel Formula (live), C = Software Value (engine result)
+    // Formulas reference the per-cargo input rows captured in ADDITIONAL CARGOES
+    // so editing those inputs recalculates the breakdown live.
+
+    // Helper: A1 ref for an arbitrary col/row pair.
+    const cref = (col: number, row: number) => cellRef(col, row);
+
+    // Total loaded qty (sum across the loaded-qty column in ADDITIONAL CARGOES).
+    // Used for the share% formula.
+    const totalLoadedQty = results.perCargoBreakdown.reduce(
+      (s, pc) => s + (pc.loadedQty || 0), 0,
+    );
+    const qtyRefs = cargoInputRows.map(ir => cref(ir.qty.col, ir.qty.row));
+    const totalQtyFormula = qtyRefs.length > 0 ? qtyRefs.join("+") : "1";
+
+    // Column header row
+    setText(0, r, "Cargo / Field", S.seqHeader);
+    setText(1, r, "Excel Formula", S.colHeaderFormula);
+    setText(2, r, "Software Value", S.colHeaderSoftware);
     r++;
 
     results.perCargoBreakdown.forEach((pc, idx) => {
       const src = cargos.find(c => c.id === pc.cargoId);
-      const isAlt = idx % 2 === 1;
-      const dStyle = isAlt ? S.seqDataAlt : S.seqData;
-      const tStyle = isAlt ? S.seqTextAlt : S.seqText;
-      const fStyle = isAlt ? S.seqFormulaAlt : S.seqFormula;
-      const rr = r;
-      setText(0, rr, `Cargo ${pc.cargoLabel}`, tStyle);
-      setNum(1, rr, src?.rate || 0, dStyle);
-      setText(2, rr, src?.rateType || "mt", tStyle);
-      setNum(3, rr, pc.loadedQty, dStyle);
-      setNum(4, rr, pc.grossFreight, dStyle);
-      setNum(5, rr, pc.share * 100, dStyle);
-      setNum(6, rr, pc.allocatedBunker, dStyle);
-      setNum(7, rr, pc.allocatedPortCosts, dStyle);
-      setNum(8, rr, pc.allocatedVoyageCosts, dStyle);
-      setNum(9, rr, pc.allocatedHire, dStyle);
-      setNum(10, rr, src?.demurrageAmount || 0, dStyle);
-      setNum(11, rr, src?.despatchAmount || 0, dStyle);
-      // Highlight gross rate using profit (orange) style for visibility
-      ws[cellRef(12, rr)] = { t: "n", v: pc.grossRate, s: S.totalFormula };
+      const inp = cargoInputRows[idx];
+      if (!inp) return;
+      const rateRef = cref(inp.rate.col, inp.rate.row);
+      const typeRef = cref(inp.rateType.col, inp.rateType.row);
+      const qtyRef = cref(inp.qty.col, inp.qty.row);
+      const vcRef = cref(inp.voyComm.col, inp.voyComm.row);
+      const demRef = cref(inp.dem.col, inp.dem.row);
+      const despRef = cref(inp.desp.col, inp.desp.row);
+
+      // Sub-header for the cargo block
+      setSubSectionHeader(r, `Cargo ${pc.cargoLabel} — ${src?.rateType || "mt"} @ ${src?.rate ?? 0}`); r++;
+
+      // Loaded Qty (software derived from sequence; mirror to the input row)
+      setCalcLabel(r, "Loaded Qty (MT)");
+      setCalcFormula(r, `${qtyRef}`, pc.loadedQty);
+      const rRowQty = r; r++;
+
+      // Gross Freight = IF(type=lumpsum, rate, rate*qty)
+      setCalcLabel(r, "Gross Freight ($)");
+      setCalcFormula(
+        r,
+        `IF(${typeRef}="lumpsum",${rateRef},${rateRef}*${B(rRowQty)})`,
+        pc.grossFreight,
+      );
+      const rRowGF = r; r++;
+
+      // Voyage Commission deduction = GF * VoyComm%
+      setCalcLabel(r, "Voyage Commission ($)");
+      const vcAmtSv = pc.grossFreight * (src?.voyageCommission || 0) / 100;
+      setCalcFormula(r, `${B(rRowGF)}*${vcRef}/100`, vcAmtSv);
+      const rRowVC = r; r++;
+
+      // Net Freight
+      setCalcLabel(r, "Net Freight ($)");
+      setCalcFormula(r, `${B(rRowGF)}-${B(rRowVC)}`, pc.grossFreight - vcAmtSv);
+      const rRowNF = r; r++;
+
+      // Loaded-Qty Share (cost weighting basis)
+      setCalcLabel(r, "Loaded-Qty Share (%)");
+      setCalcFormula(
+        r,
+        `IF((${totalQtyFormula})>0,${qtyRef}/(${totalQtyFormula})*100,0)`,
+        totalLoadedQty > 0 ? (pc.loadedQty / totalLoadedQty) * 100 : 0,
+      );
+      const rRowShare = r; r++;
+
+      // Allocated Bunker / Port / Hire — engine values (route-bounded so a
+      // single closed-form Excel formula would not match). Provide an
+      // approximation formula for reference (share-based) so users can see
+      // the simple-allocation comparison side-by-side.
+      setCalcLabel(r, "Allocated Bunker ($)");
+      setCalcFormula(r, `${B(R_BUNKC)}*${B(rRowShare)}/100`, pc.allocatedBunker);
+      const rRowAB = r; r++;
+
+      setCalcLabel(r, "Allocated Port Costs ($)");
+      setCalcFormula(r, `${B(R_PCOST)}*${B(rRowShare)}/100`, pc.allocatedPortCosts);
+      const rRowAP = r; r++;
+
+      // Allocated Voyage Costs = bunker + port (true formula)
+      setCalcLabel(r, "Allocated Voy Costs ($)", true);
+      setCalcFormula(r, `${B(rRowAB)}+${B(rRowAP)}`, pc.allocatedVoyageCosts, true);
+      const rRowAV = r; r++;
+
+      setCalcLabel(r, "Allocated Hire ($)");
+      setCalcFormula(r, `${B(R_HIRECOST)}*${B(rRowShare)}/100`, pc.allocatedHire);
+      const rRowAH = r; r++;
+
+      // Demurrage / Despatch passthroughs
+      setCalcLabel(r, "Demurrage ($)");
+      setCalcFormula(r, `${demRef}`, src?.demurrageAmount || 0);
+      const rRowDem = r; r++;
+
+      setCalcLabel(r, "Despatch ($)");
+      setCalcFormula(r, `${despRef}`, src?.despatchAmount || 0);
+      const rRowDesp = r; r++;
+
+      // Voyage Result (per-cargo) = Net Freight - AllocVoy + Dem - Desp
+      setCalcLabel(r, "Voyage Result ($)", false, true);
+      const vrSv = (pc.grossFreight - vcAmtSv) - pc.allocatedVoyageCosts
+        + (src?.demurrageAmount || 0) - (src?.despatchAmount || 0);
+      setCalcFormula(
+        r,
+        `${B(rRowNF)}-${B(rRowAV)}+${B(rRowDem)}-${B(rRowDesp)}`,
+        vrSv,
+        false, true,
+      );
+      const rRowVR = r; r++;
+
+      // P&L (per-cargo) = Voyage Result - Allocated Hire
+      setCalcLabel(r, "P&L ($)", false, true);
+      setCalcFormula(r, `${B(rRowVR)}-${B(rRowAH)}`, vrSv - pc.allocatedHire, false, true);
+      r++;
+
+      // Gross Rate ($/mt) — own freight rate grossed up by Voy Commission
+      setCalcLabel(r, "Gross Rate ($/mt)", true);
+      setCalcFormula(
+        r,
+        `IF(${typeRef}="lumpsum",IF(${B(rRowQty)}>0,${rateRef}/${B(rRowQty)},0),${rateRef})/(1-${vcRef}/100)`,
+        pc.grossRate,
+        true,
+      );
+      r++;
       r++;
     });
 
-    // Totals / repositioning row
+    // Repositioning (unallocated)
     if (results.repositioningCost > 0) {
-      setText(0, r, "Repositioning (unallocated)", S.calcLabel);
-      ws[cellRef(8, r)] = { t: "n", v: results.repositioningCost, s: S.totalSoftware };
+      setCalcLabel(r, "Repositioning Cost (unallocated)", true);
+      setCalcFormula(r, `${results.repositioningCost}`, results.repositioningCost, true);
       r++;
     }
+
+    // Cross-check totals — sum of allocated costs vs engine totals
+    setSubSectionHeader(r, "RECONCILIATION (Sum of cargos vs Engine)"); r++;
+    setText(0, r, "Field", S.seqHeader);
+    setText(1, r, "Sum of Allocations", S.colHeaderFormula);
+    setText(2, r, "Engine Total", S.colHeaderSoftware);
+    r++;
+
+    const sumBunker = results.perCargoBreakdown.reduce((s, p) => s + p.allocatedBunker, 0) + results.repositioningCost - results.perCargoBreakdown.reduce((s, p) => s + p.allocatedPortCosts, 0) * 0; // bunker only portion in repos accounted below
+    // Simpler: compare each line independently with engine totals.
+    const sumAllocBunker = results.perCargoBreakdown.reduce((s, p) => s + p.allocatedBunker, 0);
+    const sumAllocPort = results.perCargoBreakdown.reduce((s, p) => s + p.allocatedPortCosts, 0);
+    const sumAllocHire = results.perCargoBreakdown.reduce((s, p) => s + p.allocatedHire, 0);
+    const sumGrossFreight = results.perCargoBreakdown.reduce((s, p) => s + p.grossFreight, 0);
+
+    setText(0, r, "Gross Freight ($)", S.calcLabel);
+    ws[cellRef(1, r)] = { t: "n", v: sumGrossFreight, s: S.formula };
+    ws[cellRef(2, r)] = { t: "n", v: results.grossFreight, s: S.software };
+    r++;
+    setText(0, r, "Allocated Bunker ($) + Repos", S.calcLabel);
+    ws[cellRef(1, r)] = { t: "n", v: sumAllocBunker + (results.repositioningCost || 0), s: S.formula };
+    ws[cellRef(2, r)] = { t: "n", v: results.totalBunkerCost, s: S.software };
+    r++;
+    setText(0, r, "Allocated Port Costs ($)", S.calcLabel);
+    ws[cellRef(1, r)] = { t: "n", v: sumAllocPort, s: S.formula };
+    ws[cellRef(2, r)] = { t: "n", v: results.portCosts, s: S.software };
+    r++;
+    setText(0, r, "Allocated Hire ($)", S.calcLabel);
+    ws[cellRef(1, r)] = { t: "n", v: sumAllocHire, s: S.formula };
+    ws[cellRef(2, r)] = { t: "n", v: results.hireCost, s: S.software };
+    r++;
+
+    // Methodology note
     setText(0, r, "Note", S.inputLabel);
-    setText(1, r, "Costs allocated by cargo route window (load → final discharge). Gross Rate = (Alloc Voy + Hire) / Qty, grossed up by Voy Commission.", S.inputText);
+    setText(1, r, "Software allocates Bunker/Port/Hire by each cargo's ROUTE WINDOW (load→final discharge) with overlap split by loaded-qty share. The Excel 'share-of-total' formulas shown are a simplified linear approximation and will differ from the software value when cargo routes overlap or repositioning legs exist.", S.inputText);
     r++;
     r++;
   }
