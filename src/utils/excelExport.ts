@@ -279,6 +279,27 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "Despatch ($)", S.inputLabel); setNum(1, r, totalDespatch); const R_DESP = r; r++;
   r++;
 
+  // Multi-cargo input listing (informational; per-cargo allocation appears in PER-CARGO BREAKDOWN section below)
+  if (cargos.length > 1) {
+    setSubSectionHeader(r, `ADDITIONAL CARGOES (${cargos.length} total)`); r++;
+    const mcHeaders = ["Cargo", "Rate", "Type", "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $"];
+    mcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
+    cargos.forEach((c, i) => {
+      const isAlt = i % 2 === 1;
+      const dStyle = isAlt ? S.seqDataAlt : S.seqData;
+      const tStyle = isAlt ? S.seqTextAlt : S.seqText;
+      setText(0, r, `#${i + 1}`, tStyle);
+      setNum(1, r, c.rate, dStyle);
+      setText(2, r, c.rateType, tStyle);
+      setNum(3, r, c.voyageCommission, dStyle);
+      setNum(4, r, c.tcCommission, dStyle);
+      setNum(5, r, c.demurrageAmount || 0, dStyle);
+      setNum(6, r, c.despatchAmount || 0, dStyle);
+      r++;
+    });
+    r++;
+  }
+
   // --- BUNKER PRICES ---
   setSectionHeader(r, "BUNKER PRICES"); r++;
   setText(0, r, "HSFO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.hsfo.price); const R_HP = r; r++;
