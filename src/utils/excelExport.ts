@@ -894,6 +894,57 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // ═══════════════════════════════════════════════════════
+  // SECTION 7b: PER-CARGO BREAKDOWN (multi-cargo allocation)
+  // ═══════════════════════════════════════════════════════
+  if (cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 0) {
+    setSectionHeader(r, "PER-CARGO BREAKDOWN"); r++;
+
+    // Column headers
+    const pcHeaders = [
+      "Cargo", "Rate", "Type", "Loaded Qty (MT)", "Gross Freight ($)",
+      "Share (%)", "Alloc Bunker ($)", "Alloc Port ($)", "Alloc Voy Costs ($)",
+      "Alloc Hire ($)", "Demurrage ($)", "Despatch ($)", "Gross Rate ($/mt)",
+    ];
+    pcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
+    r++;
+
+    results.perCargoBreakdown.forEach((pc, idx) => {
+      const src = cargos.find(c => c.id === pc.cargoId);
+      const isAlt = idx % 2 === 1;
+      const dStyle = isAlt ? S.seqDataAlt : S.seqData;
+      const tStyle = isAlt ? S.seqTextAlt : S.seqText;
+      const fStyle = isAlt ? S.seqFormulaAlt : S.seqFormula;
+      const rr = r;
+      setText(0, rr, `Cargo ${pc.cargoLabel}`, tStyle);
+      setNum(1, rr, src?.rate || 0, dStyle);
+      setText(2, rr, src?.rateType || "mt", tStyle);
+      setNum(3, rr, pc.loadedQty, dStyle);
+      setNum(4, rr, pc.grossFreight, dStyle);
+      setNum(5, rr, pc.share * 100, dStyle);
+      setNum(6, rr, pc.allocatedBunker, dStyle);
+      setNum(7, rr, pc.allocatedPortCosts, dStyle);
+      setNum(8, rr, pc.allocatedVoyageCosts, dStyle);
+      setNum(9, rr, pc.allocatedHire, dStyle);
+      setNum(10, rr, src?.demurrageAmount || 0, dStyle);
+      setNum(11, rr, src?.despatchAmount || 0, dStyle);
+      // Highlight gross rate using profit (orange) style for visibility
+      ws[cellRef(12, rr)] = { t: "n", v: pc.grossRate, s: S.totalFormula };
+      r++;
+    });
+
+    // Totals / repositioning row
+    if (results.repositioningCost > 0) {
+      setText(0, r, "Repositioning (unallocated)", S.calcLabel);
+      ws[cellRef(8, r)] = { t: "n", v: results.repositioningCost, s: S.totalSoftware };
+      r++;
+    }
+    setText(0, r, "Note", S.inputLabel);
+    setText(1, r, "Costs allocated by cargo route window (load → final discharge). Gross Rate = (Alloc Voy + Hire) / Qty, grossed up by Voy Commission.", S.inputText);
+    r++;
+    r++;
+  }
+
+  // ═══════════════════════════════════════════════════════
   // SECTION 8: ENVIRONMENTAL
   // ═══════════════════════════════════════════════════════
 
