@@ -66,7 +66,10 @@ export function calculateCargoDemurrageDespatchFromRows(
     // CP baseline = raw sequence values (+ any explicit cp rate/qty/prod override).
     const cpDays = calculatePortDaysForDemurrage(row, cpOverride);
     // Operational = sequence value overridden by cargo-section op edits.
-    const opDays = calculatePortDaysForDemurrage(row, opOverride);
+    // If no operational override exists for this row, operational == CP (diff = 0).
+    // This avoids inventing extra/despatch time when the user has not entered anything.
+    const hasOpEdits = !!opOverride && Object.keys(opOverride).length > 0;
+    const opDays = hasOpEdits ? calculatePortDaysForDemurrage(row, opOverride) : cpDays;
     const demurrageRate = cpOverride?.demurrage ?? cargo.demurrageRate ?? 0;
     const despatchRate = cpOverride?.despatch ?? cargo.despatchRate ?? 0;
     return {
