@@ -251,6 +251,18 @@ export interface PerCargoBreakdown {
   grossRate: number; // (allocatedVoyageCosts + allocatedHire) / qty, grossed up by voyComm
   routeStartIdx: number;
   routeEndIdx: number;
+  // ── Ton-mile allocation (spec: Multi-Cargo Gross Rate) ──
+  cargoDistanceNm: number;
+  cargoTonMiles: number;
+  tonMileShare: number; // 0..1 share of total ton miles
+  allocatedDirectPortCost: number;
+  allocatedSharedPortCost: number;
+  allocatedMiscCost: number;
+  allocatedCanalCost: number;
+  allocatedRepositioningCost: number;
+  allocatedTotalCost: number;
+  netRate: number; // allocatedTotalCost / qty
+  voyageCommissionPct: number;
 }
 
 export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
