@@ -310,8 +310,9 @@ export function exportVoyageToExcel(data: ExportData) {
       setNum(3, r, pc?.loadedQty ?? 0, dStyle);
       setNum(4, r, c.voyageCommission, dStyle);
       setNum(5, r, c.tcCommission, dStyle);
-      setNum(6, r, c.demurrageAmount || 0, dStyle);
-      setNum(7, r, c.despatchAmount || 0, dStyle);
+      const cargoDemDesp = calculateCargoDemurrageDespatch(c, cargos, sequence);
+      setNum(6, r, cargoDemDesp.demurrageAmount, dStyle);
+      setNum(7, r, cargoDemDesp.despatchAmount, dStyle);
       cargoInputRows.push({
         rate: { col: 1, row: r },
         rateType: { col: 2, row: r },
@@ -914,7 +915,7 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   setCalcLabel(r, "Gross Profit ($)", false, true);
-  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}+${B(R_DEM)}-${B(R_DESP)}`, results.grossProfit, false, true);
+  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}-${B(R_DEM)}+${B(R_DESP)}`, results.grossProfit, false, true);
   const R_GP = r; r++;
 
   setCalcLabel(r, "P&L ($)", false, true);
