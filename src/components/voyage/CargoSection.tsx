@@ -260,6 +260,21 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
   const totalDem = perRowCalc.reduce((s, x) => s + x.dem, 0);
   const totalDesp = perRowCalc.reduce((s, x) => s + x.desp, 0);
 
+  // Snapshot CP baseline from operational values once per row, so later
+  // operational edits compute a proper Δ Days against the original CP figures.
+  useEffect(() => {
+    cpRows.forEach((r) => {
+      const ov = cargo.cpOverrides?.[r.id] || {};
+      if (ov.quantity === undefined || ov.quantity === null) {
+        onCpOverride(r.id, "quantity", r.quantity || 0);
+      }
+      if (ov.productivity === undefined || ov.productivity === null) {
+        onCpOverride(r.id, "productivity", r.productivity || 0);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cpRows.map((r) => r.id).join(",")]);
+
   // Sync aggregated totals into the cargo entry so the engine picks them up.
   useEffect(() => {
     if (Math.abs((cargo.demurrageAmount || 0) - totalDem) > 0.01) {
