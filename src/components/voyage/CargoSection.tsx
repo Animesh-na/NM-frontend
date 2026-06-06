@@ -464,7 +464,25 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <input readOnly className={`${ro} w-full`} value={r.ecaDistance || 0} />
                 </div>
                 <div className="form-field w-24">
-                  <label className="form-label">Qty (mt)</label>
+                  <label className="form-label">Op Qty (mt)</label>
+                  <input
+                    type="number"
+                    className="form-input-sm w-full font-mono text-right border-amber-400 bg-amber-50"
+                    value={r.quantity || 0}
+                    onChange={(e) => onOpUpdate(r.id, "quantity", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-20">
+                  <label className="form-label">Op MT/d</label>
+                  <input
+                    type="number"
+                    className="form-input-sm w-full font-mono text-right border-amber-400 bg-amber-50"
+                    value={r.productivity || 0}
+                    onChange={(e) => onOpUpdate(r.id, "productivity", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-24">
+                  <label className="form-label">CP Qty (mt)</label>
                   <input
                     type="number"
                     className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
@@ -473,7 +491,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   />
                 </div>
                 <div className="form-field w-20">
-                  <label className="form-label">MT/d</label>
+                  <label className="form-label">CP MT/d</label>
                   <input
                     type="number"
                     className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
