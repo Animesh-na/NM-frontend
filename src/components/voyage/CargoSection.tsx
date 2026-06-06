@@ -1,9 +1,21 @@
 import { ChevronDown, Package, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
+
+// Local mirror of VoyageContext.calculatePortDays (not exported there).
+// Computes total port days from a CP row's qty / productivity / terms / turn / extra.
+function calcPortDaysLocal(opts: {
+  quantity: number; productivity: number; terms?: string;
+  turnTime?: number; extraTime?: number; coefficientFactor?: number;
+}): number {
+  const { quantity, productivity, terms, turnTime = 0, extraTime = 0, coefficientFactor } = opts;
+  if (productivity <= 0 || quantity <= 0) return (turnTime + extraTime) / 24;
+  const mult = coefficientFactor || (terms === "sshex" ? 1.5555 : terms === "fhex" ? 1.25 : terms === "satpn" ? 1.33 : 1.0);
+  return (quantity / productivity) * mult + (turnTime + extraTime) / 24;
+}
 
 export function CargoSection() {
   const { 
