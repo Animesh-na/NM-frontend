@@ -237,7 +237,11 @@ interface CargoEntryCardProps {
   sequenceQuantity: number;
   cpRows: SequenceRowUI[];
   onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
-  onOpUpdate: (rowId: number, field: keyof SequenceRowUI, value: number | string) => void;
+  onOpUpdate: (
+    rowId: number,
+    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+    value: number | string,
+  ) => void;
 }
 
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
@@ -256,20 +260,6 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
   const totalDem = demurrageResult.demurrageAmount;
   const totalDesp = demurrageResult.despatchAmount;
 
-  // Snapshot CP baseline from operational values once per row, so later
-  // operational edits compute a proper Δ Days against the original CP figures.
-  useEffect(() => {
-    cpRows.forEach((r) => {
-      const ov = cargo.cpOverrides?.[r.id] || {};
-      if (ov.quantity === undefined || ov.quantity === null) {
-        onCpOverride(r.id, "quantity", r.quantity || 0);
-      }
-      if (ov.productivity === undefined || ov.productivity === null) {
-        onCpOverride(r.id, "productivity", r.productivity || 0);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cpRows.map((r) => r.id).join(",")]);
 
   // Sync aggregated totals into the cargo entry so the engine picks them up.
   useEffect(() => {
