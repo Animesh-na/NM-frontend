@@ -109,8 +109,16 @@ describe("perCargoBreakdown", () => {
     const c = result.current.perCargoBreakdown[0];
     expect(c.loadedQty).toBe(30000);
     expect(c.grossFreight).toBe(25 * 30000);
-    // Route window is legs 0..1 (port DA = 20000 + 25000 = 45000), repos port DA excluded
-    expect(c.allocatedPortCosts).toBeCloseTo(45000, 0);
-    expect(result.current.repositioningCost).toBeGreaterThan(0);
+    // Multi-cargo ton-mile spec: direct load/discharge DA → 100% to the cargo
+    // (20000 + 25000 = 45000); repos port DA (9999) is "shared" and with a
+    // single cargo it absorbs the full amount via ton-mile share.
+    expect(c.allocatedDirectPortCost).toBeCloseTo(45000, 0);
+    expect(c.allocatedPortCosts).toBeCloseTo(45000 + 9999, 0);
+    // Repositioning bunker (from the repos leg's bunker share) is allocated
+    // to the cargo that caused it (this single cargo).
+    expect(c.allocatedRepositioningCost).toBeGreaterThan(0);
+    // Net & Gross rate per spec
+    expect(c.netRate).toBeCloseTo(c.allocatedTotalCost / 30000, 4);
+    expect(c.grossRate).toBeCloseTo(c.netRate, 4); // voyComm = 0 in test
   });
 });
