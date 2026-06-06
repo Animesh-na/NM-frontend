@@ -209,27 +209,14 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
   // First sum all row differences for this cargo: Σ(Operational days − CP days).
   // Only the final total decides demurrage/despatch: positive = demurrage,
   // negative = despatch. A fast port can therefore offset a slow port.
-  const perRowCalc = useMemo(() => {
-    return cpRows.map((r) => {
-      const ov = cargo.cpOverrides?.[r.id] || {};
-      const qtyCp = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
-      const prodCp = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
-      const cpDays = calcPortDaysLocal({
-        quantity: qtyCp, productivity: prodCp, terms: r.terms,
-        turnTime: r.turnTime, extraTime: r.extraTime,
-      });
-      const opDays = calcPortDaysLocal({
-        quantity: r.quantity, productivity: r.productivity, terms: r.terms,
-        turnTime: r.turnTime, extraTime: r.extraTime,
-      });
-      const diff = opDays - cpDays; // days
-      return { rowId: r.id, cpDays, opDays, diff };
-    });
-  }, [cpRows, cargo.cpOverrides]);
-
-  const totalExtraDays = perRowCalc.reduce((s, x) => s + x.diff, 0);
-  const totalDem = totalExtraDays > 0 ? totalExtraDays * (cargo.demurrageRate || 0) : 0;
-  const totalDesp = totalExtraDays < 0 ? Math.abs(totalExtraDays) * (cargo.despatchRate || 0) : 0;
+  const demurrageResult = useMemo(
+    () => calculateCargoDemurrageDespatchFromRows(cargo, cpRows),
+    [cargo, cpRows],
+  );
+  const perRowCalc = demurrageResult.rows;
+  const totalExtraDays = demurrageResult.totalExtraDays;
+  const totalDem = demurrageResult.demurrageAmount;
+  const totalDesp = demurrageResult.despatchAmount;
 
   // Snapshot CP baseline from operational values once per row, so later
   // operational edits compute a proper Δ Days against the original CP figures.
