@@ -333,9 +333,29 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             const ov = cargo.cpOverrides?.[r.id] || {};
             const qtyVal = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
             const prodVal = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
+            const demVal = ov.demurrage !== undefined && ov.demurrage !== null ? ov.demurrage : cargo.demurrageAmount;
+            const despVal = ov.despatch !== undefined && ov.despatch !== null ? ov.despatch : cargo.despatchAmount;
             const ro = "form-input-sm font-mono text-right bg-white/60 dark:bg-sky-900/40 cursor-default";
             return (
               <div key={r.id} className="flex flex-wrap gap-1 items-end">
+                <div className="form-field w-24">
+                  <label className="form-label">Demurrage</label>
+                  <input
+                    type="number"
+                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
+                    value={demVal || 0}
+                    onChange={(e) => onCpOverride(r.id, "demurrage", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-24">
+                  <label className="form-label">Despatch</label>
+                  <input
+                    type="number"
+                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
+                    value={despVal || 0}
+                    onChange={(e) => onCpOverride(r.id, "despatch", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
                 <div className="form-field w-10">
                   <label className="form-label">Op</label>
                   <input readOnly className={`${ro} w-full uppercase text-center`}
