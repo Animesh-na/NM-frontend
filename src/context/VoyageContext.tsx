@@ -1419,20 +1419,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   // Calculate cargo quantity from sequence load/discharge operations
   const sequenceCargoQuantity = useMemo(() => {
-    // Apply per-cargo CP overrides when present (cargo-level overrides REPLACE
-    // the sequence row qty for calculation, without mutating the sequence).
-    const rowMap = getCargoRowMap(cargos, sequence);
-    const effectiveQty = (row: SequenceRowUI): number => {
-      const cId = rowMap.get(row.id);
-      if (cId !== undefined) {
-        const c = cargos.find((x) => x.id === cId);
-        if (c && ((c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0)) {
-          const ov = c.cpOverrides?.[row.id]?.quantity;
-          if (ov !== undefined && ov !== null) return ov;
-        }
-      }
-      return row.quantity || 0;
-    };
+    // CP override qty/productivity are reference-only for demurrage/despatch
+    // comparison — they MUST NOT modify operational values. Always use the
+    // original sequence row values.
+    const effectiveQty = (row: SequenceRowUI): number => row.quantity || 0;
     const loadingQuantity = sequence
       .filter((row) => row.operation === "loading")
       .reduce((sum, row) => sum + effectiveQty(row), 0);
@@ -1454,13 +1444,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       (r) => (r.assignedCargoIds || []).length > 0,
     );
     const loadedQtyForCargo = (cargoId: number, ci: number): number => {
-      const c = cargos.find((x) => x.id === cargoId);
-      const cpActive = !!c && ((c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0);
-      const ovQty = (row: SequenceRowUI) => {
-        if (!cpActive) return row.quantity || 0;
-        const o = c!.cpOverrides?.[row.id]?.quantity;
-        return o !== undefined && o !== null ? o : row.quantity || 0;
-      };
+      // CP overrides are reference-only and never replace operational qty.
+      const ovQty = (row: SequenceRowUI) => row.quantity || 0;
       if (usesExplicitMapping) {
         return loadingRows
           .filter((r) => (r.assignedCargoIds || []).includes(cargoId))
