@@ -1372,6 +1372,33 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     [],
   );
 
+  const updateCargoOpOverride = useCallback(
+    (
+      cargoId: number,
+      rowId: number,
+      field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+      value: number | string,
+    ) => {
+      setCargos((prev) =>
+        prev.map((c) =>
+          c.id !== cargoId
+            ? c
+            : {
+                ...c,
+                opOverrides: {
+                  ...(c.opOverrides || {}),
+                  [rowId]: {
+                    ...(c.opOverrides?.[rowId] || {}),
+                    [field]: value,
+                  },
+                },
+              },
+        ),
+      );
+    },
+    [],
+  );
+
   const updateBunker = useCallback((fuelType: string, field: string, value: number) => {
     setBunker(prev => ({
       ...prev,
@@ -1617,6 +1644,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         removeCargo,
         updateCargoEntry,
         updateCargoCpOverride,
+        updateCargoOpOverride,
         vesselCost,
         setVesselCost,
         bunker,
@@ -1681,6 +1709,7 @@ export function useVoyageContext() {
       removeCargo: () => {},
       updateCargoEntry: () => {},
       updateCargoCpOverride: () => {},
+      updateCargoOpOverride: () => {},
       vesselCost: 0,
       setVesselCost: () => {},
       bunker: { 
