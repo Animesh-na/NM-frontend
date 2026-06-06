@@ -1049,22 +1049,24 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${B(R_HIRECOST)}*${hireRatio}`, pc.allocatedHire);
       const rRowAH = r; r++;
 
-      // Demurrage / Despatch passthroughs
+      const cargoDemDesp = src ? calculateCargoDemurrageDespatch(src, cargos, sequence) : undefined;
+
+      // Demurrage / Despatch from overall Op − CP days for this cargo
       setCalcLabel(r, "Demurrage ($)");
-      setCalcFormula(r, `${demRef}`, src?.demurrageAmount || 0);
+      setCalcFormula(r, `${demRef}`, cargoDemDesp?.demurrageAmount || 0);
       const rRowDem = r; r++;
 
       setCalcLabel(r, "Despatch ($)");
-      setCalcFormula(r, `${despRef}`, src?.despatchAmount || 0);
+      setCalcFormula(r, `${despRef}`, cargoDemDesp?.despatchAmount || 0);
       const rRowDesp = r; r++;
 
-      // Voyage Result (per-cargo) = Net Freight - AllocVoy + Dem - Desp
+      // Voyage Result (per-cargo) = Net Freight - AllocVoy - Dem + Desp
       setCalcLabel(r, "Voyage Result ($)", false, true);
       const vrSv = (pc.grossFreight - vcAmtSv) - pc.allocatedVoyageCosts
-        + (src?.demurrageAmount || 0) - (src?.despatchAmount || 0);
+        - (cargoDemDesp?.demurrageAmount || 0) + (cargoDemDesp?.despatchAmount || 0);
       setCalcFormula(
         r,
-        `${B(rRowNF)}-${B(rRowAV)}+${B(rRowDem)}-${B(rRowDesp)}`,
+        `${B(rRowNF)}-${B(rRowAV)}-${B(rRowDem)}+${B(rRowDesp)}`,
         vrSv,
         false, true,
       );
