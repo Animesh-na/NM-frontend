@@ -2,6 +2,14 @@ import type { CargoEntry, SequenceRowUI } from "@/context/VoyageContext";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
 
 type CpOverride = { quantity?: number; productivity?: number; demurrage?: number; despatch?: number };
+type OpOverride = {
+  quantity?: number;
+  productivity?: number;
+  turnTime?: number;
+  extraTime?: number;
+  terms?: string;
+  coefficientFactor?: number;
+};
 
 export interface DemurrageDespatchRow {
   rowId: number;
@@ -27,18 +35,24 @@ function isCargoOperation(operation?: string): boolean {
   return op === "loading" || op === "load" || op === "discharging" || op === "disch";
 }
 
-export function calculatePortDaysForDemurrage(row: SequenceRowUI, override?: CpOverride): number {
+export function calculatePortDaysForDemurrage(
+  row: SequenceRowUI,
+  override?: CpOverride | OpOverride,
+): number {
   if (row.type === "open" || row.type === "repos") return 0;
   if (!isCargoOperation(row.operation)) return 0;
 
-  const turnTime = Number(row.turnTime) || 0;
-  const extraTime = Number(row.extraTime) || 0;
+  const ov = (override || {}) as CpOverride & OpOverride;
+  const turnTime = Number(ov.turnTime ?? row.turnTime) || 0;
+  const extraTime = Number(ov.extraTime ?? row.extraTime) || 0;
 
-  const quantity = override?.quantity ?? row.quantity ?? 0;
-  const productivity = override?.productivity ?? row.productivity ?? 0;
+  const quantity = ov.quantity ?? row.quantity ?? 0;
+  const productivity = ov.productivity ?? row.productivity ?? 0;
   if (productivity <= 0 || quantity <= 0) return (turnTime + extraTime) / 24;
 
-  const termsMultiplier = row.coefficientFactor || (row.terms === "sshex" ? 1.5555 : row.terms === "fhex" ? 1.25 : row.terms === "satpn" ? 1.33 : 1.0);
+  const terms = (ov.terms ?? row.terms) as string | undefined;
+  const factor = ov.coefficientFactor ?? row.coefficientFactor;
+  const termsMultiplier = factor || (terms === "sshex" ? 1.5555 : terms === "fhex" ? 1.25 : terms === "satpn" ? 1.33 : 1.0);
   return (quantity / productivity) * termsMultiplier + (turnTime + extraTime) / 24;
 }
 
@@ -48,8 +62,11 @@ export function calculateCargoDemurrageDespatchFromRows(
 ): DemurrageDespatchCargoResult {
   const rowBreakdown = rows.filter((row) => isCargoOperation(row.operation)).map((row) => {
     const cpOverride = cargo.cpOverrides?.[row.id];
+    const opOverride = cargo.opOverrides?.[row.id];
+    // CP baseline = raw sequence values (+ any explicit cp rate/qty/prod override).
     const cpDays = calculatePortDaysForDemurrage(row, cpOverride);
-    const opDays = calculatePortDaysForDemurrage(row);
+    // Operational = sequence value overridden by cargo-section op edits.
+    const opDays = calculatePortDaysForDemurrage(row, opOverride);
     const demurrageRate = cpOverride?.demurrage ?? cargo.demurrageRate ?? 0;
     const despatchRate = cpOverride?.despatch ?? cargo.despatchRate ?? 0;
     return {
