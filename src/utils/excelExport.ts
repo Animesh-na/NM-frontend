@@ -3,6 +3,7 @@ import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
 import { isEuPort } from "@/utils/emissionCalculations";
+import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 
 interface ExportData {
   vessel: VesselData;
@@ -273,8 +274,9 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "Quantity (MT)", S.inputLabel); setNum(1, r, sequenceCargoQuantity); const R_QTY = r; r++;
   setText(0, r, "Voyage Comm (%)", S.inputLabel); setNum(1, r, cargo.voyageCommission); const R_VCOMM = r; r++;
   setText(0, r, "TC Comm (%)", S.inputLabel); setNum(1, r, cargo.tcCommission); const R_TCOMM = r; r++;
-  const totalDemurrage = cargos.reduce((sum, c) => sum + (c.demurrageAmount || 0), 0);
-  const totalDespatch = cargos.reduce((sum, c) => sum + (c.despatchAmount || 0), 0);
+  const demurrageDespatchTotals = calculateDemurrageDespatchTotals(cargos, sequence);
+  const totalDemurrage = demurrageDespatchTotals.demurrageAmount;
+  const totalDespatch = demurrageDespatchTotals.despatchAmount;
   setText(0, r, "Demurrage ($)", S.inputLabel); setNum(1, r, totalDemurrage); const R_DEM = r; r++;
   setText(0, r, "Despatch ($)", S.inputLabel); setNum(1, r, totalDespatch); const R_DESP = r; r++;
   r++;
