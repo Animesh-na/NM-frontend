@@ -1426,7 +1426,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       const cId = rowMap.get(row.id);
       if (cId !== undefined) {
         const c = cargos.find((x) => x.id === cId);
-        if (c && (c.demurrageAmount || 0) > 0) {
+        if (c && ((c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0)) {
           const ov = c.cpOverrides?.[row.id]?.quantity;
           if (ov !== undefined && ov !== null) return ov;
         }
@@ -1455,7 +1455,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     );
     const loadedQtyForCargo = (cargoId: number, ci: number): number => {
       const c = cargos.find((x) => x.id === cargoId);
-      const cpActive = !!c && (c.demurrageAmount || 0) > 0;
+      const cpActive = !!c && ((c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0);
       const ovQty = (row: SequenceRowUI) => {
         if (!cpActive) return row.quantity || 0;
         const o = c!.cpOverrides?.[row.id]?.quantity;
@@ -1506,7 +1506,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       const cId = cargoRowMapForInputs.get(row.id);
       if (cId !== undefined) {
         const c = cargos.find((x) => x.id === cId);
-        const ov = c && (c.demurrageAmount || 0) > 0 ? c.cpOverrides?.[row.id] : undefined;
+        const ov = c && ((c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) ? c.cpOverrides?.[row.id] : undefined;
         if (ov) {
           if (ov.quantity !== undefined && ov.quantity !== null) effQty = ov.quantity;
           if (ov.productivity !== undefined && ov.productivity !== null) effProd = ov.productivity;
