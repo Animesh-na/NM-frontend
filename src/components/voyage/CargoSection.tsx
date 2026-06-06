@@ -377,9 +377,9 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             const qtyVal = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
             const prodVal = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
             const calc = perRowCalc.find((x) => x.rowId === r.id);
-            const diffDays = calc?.diff || 0;
-            const demVal = calc?.dem || 0;
-            const despVal = calc?.desp || 0;
+            const diffDays = calc?.diffDays || 0;
+            const demVal = cargo.demurrageRate || 0;
+            const despVal = cargo.despatchRate || 0;
             const ro = "form-input-sm font-mono text-right bg-white/60 dark:bg-sky-900/40 cursor-default";
             return (
               <div key={r.id} className="flex flex-wrap gap-1 items-end">
@@ -395,11 +395,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     value={diffDays.toFixed(2)} />
                 </div>
                 <div className="form-field w-24">
-                  <label className="form-label">Demurrage ($)</label>
+                  <label className="form-label">Dem $/d</label>
                   <input readOnly className={`${ro} w-full`} value={Math.round(demVal).toLocaleString()} />
                 </div>
                 <div className="form-field w-24">
-                  <label className="form-label">Despatch ($)</label>
+                  <label className="form-label">Desp $/d</label>
                   <input readOnly className={`${ro} w-full`} value={Math.round(despVal).toLocaleString()} />
                 </div>
                 <div className="form-field w-10">
@@ -464,6 +464,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
               </div>
             );
           })}
+          <div className="flex justify-end gap-3 border-t border-border pt-1 text-[10px] font-semibold">
+            <span>Total extra time: <span className="font-mono">{totalExtraDays.toFixed(2)} d</span></span>
+            <span>Demurrage: <span className="font-mono">${Math.round(totalDem).toLocaleString()}</span></span>
+            <span>Despatch: <span className="font-mono">${Math.round(totalDesp).toLocaleString()}</span></span>
+          </div>
         </div>
       )}
     </div>
