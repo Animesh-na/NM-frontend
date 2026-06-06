@@ -223,48 +223,18 @@ export function VoyageSummary() {
             {showLaytimeImpact && (
               <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1">
                 <span className="text-muted-foreground flex items-center font-semibold">
-                  CP − Op Time
+                  Extra time
                   <InfoTooltip
-                    formula="Σ Charter Party Port Days − Σ Operational Port Days. Positive = despatch, negative = demurrage."
-                    description="Overall load/discharge port time difference"
+                    formula="Σ CP cargo port days − Σ operational cargo port days. Positive = despatch, negative = demurrage."
+                    description="Only load/discharge rows shown in Cargo are included. Passing/bunker/other ports are excluded."
                   />
                 </span>
-                <span className={`font-mono tabular-nums font-bold ${totalExtraDays >= 0 ? "text-success" : "text-destructive"}`}>
-                  {formatDays(totalExtraDays)} d
+                <span className="font-mono tabular-nums font-bold">
+                  <span className={totalExtraDays >= 0 ? "text-success" : "text-destructive"}>{formatDays(totalExtraDays)} d</span>
+                  {totalDespatch > 0 && <span className="text-success"> / Despatch : $ {formatCurrency(totalDespatch)}</span>}
+                  {totalDemurrage > 0 && <span className="text-destructive"> / Demurrage : $ {formatCurrency(totalDemurrage)}</span>}
                 </span>
               </div>
-            )}
-            {((totalDemurrage > 0) || (totalDespatch > 0)) && (
-              <>
-                {totalDemurrage > 0 && (
-                  <div className="flex justify-between bg-destructive/10 rounded-sm px-1 py-0.5 -mx-1">
-                    <span className="text-muted-foreground flex items-center font-semibold">
-                      Demurrage (Expense)
-                      <InfoTooltip
-                        formula="Σ (Operational Port Days − CP Port Days) × Demurrage Rate, where Op > CP"
-                        description="Excess port time charged to charterer"
-                      />
-                    </span>
-                    <span className="font-mono tabular-nums font-bold text-destructive">
-                      −${formatCurrency(totalDemurrage)}
-                    </span>
-                  </div>
-                )}
-                {totalDespatch > 0 && (
-                  <div className="flex justify-between bg-success/10 rounded-sm px-1 py-0.5 -mx-1">
-                    <span className="text-muted-foreground flex items-center font-semibold">
-                      Despatch (Earnings)
-                      <InfoTooltip
-                        formula="Σ (CP Port Days − Operational Port Days) × Despatch Rate, where CP > Op"
-                        description="Saved port time earned by charterer"
-                      />
-                    </span>
-                    <span className="font-mono tabular-nums font-bold text-success">
-                      +${formatCurrency(totalDespatch)}
-                    </span>
-                  </div>
-                )}
-              </>
             )}
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
