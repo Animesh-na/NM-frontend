@@ -21,7 +21,8 @@ export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, results, sequence,
-    netBB, setNetBB, cargoValidation, updateCargoCpOverride
+    netBB, setNetBB, cargoValidation, updateCargoCpOverride,
+    updateSequenceRow,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -166,6 +167,9 @@ export function CargoSection() {
               onCpOverride={(rowId, field, value) =>
                 updateCargoCpOverride(cargo.id, rowId, field, value)
               }
+              onOpUpdate={(rowId, field, value) =>
+                updateSequenceRow(rowId, field, value)
+              }
             />
           ))}
 
@@ -221,9 +225,10 @@ interface CargoEntryCardProps {
     terms: string; turnTime: number; extraTime: number; expDa: number;
   }>;
   onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
+  onOpUpdate: (rowId: number, field: "quantity" | "productivity", value: number) => void;
 }
 
-function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
+function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
 
   // ─── Auto-compute per-row Demurrage / Despatch from day-diff ───
@@ -254,6 +259,21 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
   const totalDem = perRowCalc.reduce((s, x) => s + x.dem, 0);
   const totalDesp = perRowCalc.reduce((s, x) => s + x.desp, 0);
+
+  // Snapshot CP baseline from operational values once per row, so later
+  // operational edits compute a proper Δ Days against the original CP figures.
+  useEffect(() => {
+    cpRows.forEach((r) => {
+      const ov = cargo.cpOverrides?.[r.id] || {};
+      if (ov.quantity === undefined || ov.quantity === null) {
+        onCpOverride(r.id, "quantity", r.quantity || 0);
+      }
+      if (ov.productivity === undefined || ov.productivity === null) {
+        onCpOverride(r.id, "productivity", r.productivity || 0);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cpRows.map((r) => r.id).join(",")]);
 
   // Sync aggregated totals into the cargo entry so the engine picks them up.
   useEffect(() => {
@@ -444,7 +464,25 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <input readOnly className={`${ro} w-full`} value={r.ecaDistance || 0} />
                 </div>
                 <div className="form-field w-24">
-                  <label className="form-label">Qty (mt)</label>
+                  <label className="form-label">Op Qty (mt)</label>
+                  <input
+                    type="number"
+                    className="form-input-sm w-full font-mono text-right border-amber-400 bg-amber-50"
+                    value={r.quantity || 0}
+                    onChange={(e) => onOpUpdate(r.id, "quantity", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-20">
+                  <label className="form-label">Op MT/d</label>
+                  <input
+                    type="number"
+                    className="form-input-sm w-full font-mono text-right border-amber-400 bg-amber-50"
+                    value={r.productivity || 0}
+                    onChange={(e) => onOpUpdate(r.id, "productivity", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-24">
+                  <label className="form-label">CP Qty (mt)</label>
                   <input
                     type="number"
                     className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
@@ -453,7 +491,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   />
                 </div>
                 <div className="form-field w-20">
-                  <label className="form-label">MT/d</label>
+                  <label className="form-label">CP MT/d</label>
                   <input
                     type="number"
                     className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
