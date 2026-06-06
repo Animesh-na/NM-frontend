@@ -226,12 +226,10 @@ interface CargoEntryCardProps {
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
 
-  // ─── Auto-compute per-row Demurrage / Despatch from day-diff ───
-  // CP days = port days using CP override (or original if no override yet)
-  // Operational days = port days using ORIGINAL sequence row values
-  // diff = opDays - cpDays
-  //   diff > 0  → operational exceeds CP  → Demurrage = diff × demRate
-  //   diff < 0  → operational saved time  → Despatch  = |diff| × despRate
+  // ─── Auto-compute Demurrage / Despatch from TOTAL day-diff ───
+  // First sum all row differences for this cargo: Σ(Operational days − CP days).
+  // Only the final total decides demurrage/despatch: positive = demurrage,
+  // negative = despatch. A fast port can therefore offset a slow port.
   const perRowCalc = useMemo(() => {
     return cpRows.map((r) => {
       const ov = cargo.cpOverrides?.[r.id] || {};
@@ -246,14 +244,13 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         turnTime: r.turnTime, extraTime: r.extraTime,
       });
       const diff = opDays - cpDays; // days
-      const dem = diff > 0 ? diff * (cargo.demurrageRate || 0) : 0;
-      const desp = diff < 0 ? -diff * (cargo.despatchRate || 0) : 0;
-      return { rowId: r.id, cpDays, opDays, diff, dem, desp };
+      return { rowId: r.id, cpDays, opDays, diff };
     });
-  }, [cpRows, cargo.cpOverrides, cargo.demurrageRate, cargo.despatchRate]);
+  }, [cpRows, cargo.cpOverrides]);
 
-  const totalDem = perRowCalc.reduce((s, x) => s + x.dem, 0);
-  const totalDesp = perRowCalc.reduce((s, x) => s + x.desp, 0);
+  const totalExtraDays = perRowCalc.reduce((s, x) => s + x.diff, 0);
+  const totalDem = totalExtraDays > 0 ? totalExtraDays * (cargo.demurrageRate || 0) : 0;
+  const totalDesp = totalExtraDays < 0 ? Math.abs(totalExtraDays) * (cargo.despatchRate || 0) : 0;
 
   // Snapshot CP baseline from operational values once per row, so later
   // operational edits compute a proper Δ Days against the original CP figures.
