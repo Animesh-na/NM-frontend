@@ -141,6 +141,23 @@ export interface CargoEntry {
    * mutating the sequence row itself.
    */
   cpOverrides?: Record<number, { quantity?: number; productivity?: number; demurrage?: number; despatch?: number }>;
+  /**
+   * Cargo-level OPERATIONAL overrides for assigned sequence rows.
+   * Keyed by sequence row id. These are the actual/operational values
+   * shown in the Cargo section's per-row inputs. They are INDEPENDENT
+   * from the sequence row values (which act as the Charter Party
+   * baseline) so editing one side does not mutate the other.
+   */
+  opOverrides?: Record<number, {
+    quantity?: number;
+    productivity?: number;
+    turnTime?: number;
+    extraTime?: number;
+    terms?: string;
+    coefficientFactor?: number;
+    cranes?: number;
+    expDa?: number;
+  }>;
 }
 
 interface VoyageContextValue {
@@ -181,6 +198,12 @@ interface VoyageContextValue {
     rowId: number,
     field: "quantity" | "productivity" | "demurrage" | "despatch",
     value: number,
+  ) => void;
+  updateCargoOpOverride: (
+    cargoId: number,
+    rowId: number,
+    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+    value: number | string,
   ) => void;
   
   // Vessel cost (global)
