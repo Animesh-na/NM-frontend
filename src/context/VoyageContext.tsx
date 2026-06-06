@@ -139,7 +139,7 @@ export interface CargoEntry {
    * value coming from the sequence for calculation purposes — without
    * mutating the sequence row itself.
    */
-  cpOverrides?: Record<number, { quantity?: number; productivity?: number }>;
+  cpOverrides?: Record<number, { quantity?: number; productivity?: number; demurrage?: number; despatch?: number }>;
 }
 
 interface VoyageContextValue {
@@ -178,7 +178,7 @@ interface VoyageContextValue {
   updateCargoCpOverride: (
     cargoId: number,
     rowId: number,
-    field: "quantity" | "productivity",
+    field: "quantity" | "productivity" | "demurrage" | "despatch",
     value: number,
   ) => void;
   
@@ -1325,7 +1325,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     (
       cargoId: number,
       rowId: number,
-      field: "quantity" | "productivity",
+      field: "quantity" | "productivity" | "demurrage" | "despatch",
       value: number,
     ) => {
       setCargos((prev) =>
