@@ -225,9 +225,10 @@ interface CargoEntryCardProps {
     terms: string; turnTime: number; extraTime: number; expDa: number;
   }>;
   onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
+  onOpUpdate: (rowId: number, field: "quantity" | "productivity", value: number) => void;
 }
 
-function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
+function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
 
   // ─── Auto-compute per-row Demurrage / Despatch from day-diff ───
