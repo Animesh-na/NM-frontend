@@ -22,7 +22,6 @@ export function CargoSection() {
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, results, sequence,
     netBB, setNetBB, cargoValidation, updateCargoCpOverride,
-    updateSequenceRow,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -167,9 +166,6 @@ export function CargoSection() {
               onCpOverride={(rowId, field, value) =>
                 updateCargoCpOverride(cargo.id, rowId, field, value)
               }
-              onOpUpdate={(rowId, field, value) =>
-                updateSequenceRow(rowId, field, value)
-              }
             />
           ))}
 
@@ -225,10 +221,9 @@ interface CargoEntryCardProps {
     terms: string; turnTime: number; extraTime: number; expDa: number;
   }>;
   onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
-  onOpUpdate: (rowId: number, field: "quantity" | "productivity", value: number) => void;
 }
 
-function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
+function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
 
   // ─── Auto-compute per-row Demurrage / Despatch from day-diff ───
