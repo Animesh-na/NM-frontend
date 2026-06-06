@@ -7,6 +7,7 @@ import { calculateSeaRouteDistance } from "@/utils/seaRouteDistance";
 import { isPortEuEea } from "@/utils/euCountries";
 import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
+import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
@@ -1466,8 +1467,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     const avgTcComm = cargos.length > 0 
       ? cargos.reduce((sum, c) => sum + c.tcCommission, 0) / cargos.length 
       : 0;
-    const totalDemurrage = cargos.reduce((sum, c) => sum + c.demurrageAmount, 0);
-    const totalDespatch = cargos.reduce((sum, c) => sum + c.despatchAmount, 0);
+    const demurrageDespatch = calculateDemurrageDespatchTotals(cargos, sequence);
+    const totalDemurrage = demurrageDespatch.demurrageAmount;
+    const totalDespatch = demurrageDespatch.despatchAmount;
 
     return {
       rate: totalQuantity > 0 ? totalGrossFreight / totalQuantity : 0,

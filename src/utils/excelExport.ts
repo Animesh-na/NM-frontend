@@ -3,6 +3,7 @@ import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
 import { isEuPort } from "@/utils/emissionCalculations";
+import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 
 interface ExportData {
   vessel: VesselData;
@@ -273,8 +274,9 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "Quantity (MT)", S.inputLabel); setNum(1, r, sequenceCargoQuantity); const R_QTY = r; r++;
   setText(0, r, "Voyage Comm (%)", S.inputLabel); setNum(1, r, cargo.voyageCommission); const R_VCOMM = r; r++;
   setText(0, r, "TC Comm (%)", S.inputLabel); setNum(1, r, cargo.tcCommission); const R_TCOMM = r; r++;
-  const totalDemurrage = cargos.reduce((sum, c) => sum + (c.demurrageAmount || 0), 0);
-  const totalDespatch = cargos.reduce((sum, c) => sum + (c.despatchAmount || 0), 0);
+  const demurrageDespatchTotals = calculateDemurrageDespatchTotals(cargos, sequence);
+  const totalDemurrage = demurrageDespatchTotals.demurrageAmount;
+  const totalDespatch = demurrageDespatchTotals.despatchAmount;
   setText(0, r, "Demurrage ($)", S.inputLabel); setNum(1, r, totalDemurrage); const R_DEM = r; r++;
   setText(0, r, "Despatch ($)", S.inputLabel); setNum(1, r, totalDespatch); const R_DESP = r; r++;
   r++;
@@ -308,8 +310,9 @@ export function exportVoyageToExcel(data: ExportData) {
       setNum(3, r, pc?.loadedQty ?? 0, dStyle);
       setNum(4, r, c.voyageCommission, dStyle);
       setNum(5, r, c.tcCommission, dStyle);
-      setNum(6, r, c.demurrageAmount || 0, dStyle);
-      setNum(7, r, c.despatchAmount || 0, dStyle);
+      const cargoDemDesp = calculateCargoDemurrageDespatch(c, cargos, sequence);
+      setNum(6, r, cargoDemDesp.demurrageAmount, dStyle);
+      setNum(7, r, cargoDemDesp.despatchAmount, dStyle);
       cargoInputRows.push({
         rate: { col: 1, row: r },
         rateType: { col: 2, row: r },
@@ -912,7 +915,7 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   setCalcLabel(r, "Gross Profit ($)", false, true);
-  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}+${B(R_DEM)}-${B(R_DESP)}`, results.grossProfit, false, true);
+  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}-${B(R_DEM)}+${B(R_DESP)}`, results.grossProfit, false, true);
   const R_GP = r; r++;
 
   setCalcLabel(r, "P&L ($)", false, true);
@@ -1046,22 +1049,24 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${B(R_HIRECOST)}*${hireRatio}`, pc.allocatedHire);
       const rRowAH = r; r++;
 
-      // Demurrage / Despatch passthroughs
+      const cargoDemDesp = src ? calculateCargoDemurrageDespatch(src, cargos, sequence) : undefined;
+
+      // Demurrage / Despatch from overall Op − CP days for this cargo
       setCalcLabel(r, "Demurrage ($)");
-      setCalcFormula(r, `${demRef}`, src?.demurrageAmount || 0);
+      setCalcFormula(r, `${demRef}`, cargoDemDesp?.demurrageAmount || 0);
       const rRowDem = r; r++;
 
       setCalcLabel(r, "Despatch ($)");
-      setCalcFormula(r, `${despRef}`, src?.despatchAmount || 0);
+      setCalcFormula(r, `${despRef}`, cargoDemDesp?.despatchAmount || 0);
       const rRowDesp = r; r++;
 
-      // Voyage Result (per-cargo) = Net Freight - AllocVoy + Dem - Desp
+      // Voyage Result (per-cargo) = Net Freight - AllocVoy - Dem + Desp
       setCalcLabel(r, "Voyage Result ($)", false, true);
       const vrSv = (pc.grossFreight - vcAmtSv) - pc.allocatedVoyageCosts
-        + (src?.demurrageAmount || 0) - (src?.despatchAmount || 0);
+        - (cargoDemDesp?.demurrageAmount || 0) + (cargoDemDesp?.despatchAmount || 0);
       setCalcFormula(
         r,
-        `${B(rRowNF)}-${B(rRowAV)}+${B(rRowDem)}-${B(rRowDesp)}`,
+        `${B(rRowNF)}-${B(rRowAV)}-${B(rRowDem)}+${B(rRowDesp)}`,
         vrSv,
         false, true,
       );
