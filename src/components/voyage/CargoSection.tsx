@@ -225,7 +225,47 @@ interface CargoEntryCardProps {
 
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
-  
+
+  // ─── Auto-compute per-row Demurrage / Despatch from day-diff ───
+  // CP days = port days using CP override (or original if no override yet)
+  // Operational days = port days using ORIGINAL sequence row values
+  // diff = opDays - cpDays
+  //   diff > 0  → operational exceeds CP  → Demurrage = diff × demRate
+  //   diff < 0  → operational saved time  → Despatch  = |diff| × despRate
+  const perRowCalc = useMemo(() => {
+    return cpRows.map((r) => {
+      const ov = cargo.cpOverrides?.[r.id] || {};
+      const qtyCp = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
+      const prodCp = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
+      const cpDays = calcPortDaysLocal({
+        quantity: qtyCp, productivity: prodCp, terms: r.terms,
+        turnTime: r.turnTime, extraTime: r.extraTime,
+      });
+      const opDays = calcPortDaysLocal({
+        quantity: r.quantity, productivity: r.productivity, terms: r.terms,
+        turnTime: r.turnTime, extraTime: r.extraTime,
+      });
+      const diff = opDays - cpDays; // days
+      const dem = diff > 0 ? diff * (cargo.demurrageRate || 0) : 0;
+      const desp = diff < 0 ? -diff * (cargo.despatchRate || 0) : 0;
+      return { rowId: r.id, cpDays, opDays, diff, dem, desp };
+    });
+  }, [cpRows, cargo.cpOverrides, cargo.demurrageRate, cargo.despatchRate]);
+
+  const totalDem = perRowCalc.reduce((s, x) => s + x.dem, 0);
+  const totalDesp = perRowCalc.reduce((s, x) => s + x.desp, 0);
+
+  // Sync aggregated totals into the cargo entry so the engine picks them up.
+  useEffect(() => {
+    if (Math.abs((cargo.demurrageAmount || 0) - totalDem) > 0.01) {
+      onUpdate("demurrageAmount", parseFloat(totalDem.toFixed(2)));
+    }
+    if (Math.abs((cargo.despatchAmount || 0) - totalDesp) > 0.01) {
+      onUpdate("despatchAmount", parseFloat(totalDesp.toFixed(2)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalDem, totalDesp]);
+
   return (
     <div className="border border-border rounded p-2 bg-input-bg">
       <div className="flex flex-wrap gap-2 items-end">
