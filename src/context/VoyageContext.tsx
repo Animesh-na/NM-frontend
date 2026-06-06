@@ -1537,10 +1537,31 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   const voyageInputs: VoyageInputs = {
     vessel,
     sequence: sequence.map(row => {
-      // CP overrides are reference-only (for demurrage/despatch comparison).
-      // They MUST NOT change operational sequence values fed to the engine.
-      const effQty = row.quantity;
-      const portDays = row.calculatedPortDays;
+      // Operational overrides (entered in CargoSection) DO affect actual port
+      // days, fuel consumption, and downstream voyage costs. CP overrides
+      // remain reference-only (for demurrage/despatch comparison).
+      // Find the first cargo with an opOverride for this row.
+      let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
+      for (const c of cargos) {
+        const o = c.opOverrides?.[row.id];
+        if (o && Object.keys(o).length > 0) { opOv = o; break; }
+      }
+      const hasOp = !!opOv;
+      const effQty = hasOp && opOv!.quantity !== undefined ? opOv!.quantity : row.quantity;
+      const effTurnTime = hasOp && opOv!.turnTime !== undefined ? opOv!.turnTime : row.turnTime;
+      const effExtraTime = hasOp && opOv!.extraTime !== undefined ? opOv!.extraTime : row.extraTime;
+      const portDays = hasOp
+        ? calculatePortDays({
+            ...row,
+            quantity: effQty,
+            productivity: opOv!.productivity ?? row.productivity,
+            turnTime: effTurnTime,
+            extraTime: effExtraTime,
+            terms: (opOv!.terms as SequenceRowUI["terms"]) ?? row.terms,
+            coefficientFactor: opOv!.coefficientFactor ?? row.coefficientFactor,
+          })
+        : row.calculatedPortDays;
+      const effExpDa = hasOp && opOv!.expDa !== undefined ? opOv!.expDa : row.expDa;
       return {
       id: row.id,
       operation: row.operation || "",
@@ -1551,7 +1572,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       ecaDistance: row.ecaDistance,
       portDays,
       quantity: effQty,
-      expDa: row.expDa,
+      expDa: effExpDa,
       // Pass sea margin adjusted times for accurate downstream calculations
       seaTime: row.totalLegTime, // Total sea time WITH sea margin applied
       ecaTime: row.ecaTime, // ECA sea time WITH margin
@@ -1560,8 +1581,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       seaMarginTime: row.seaMarginTime, // Extra time from sea margin
       seaMargin: row.seaMargin, // Sea margin percentage
       // Port time breakdown for fuel consumption split
-      turnTimeHours: row.turnTime || 0, // Turn time in hours
-      extraTimeHours: row.extraTime || 0, // Extra time in hours
+      turnTimeHours: effTurnTime || 0, // Turn time in hours
+      extraTimeHours: effExtraTime || 0, // Extra time in hours
       portFuelType: row.portFuelType, // Port fuel type per leg
       isEuEea: row.isEuEea, // EU/EEA flag from port API
       // Pass through for per-cargo route-bounded allocation

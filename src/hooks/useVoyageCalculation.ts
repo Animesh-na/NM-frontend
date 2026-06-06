@@ -616,12 +616,16 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Total Bunker Cost = $${totalBunkerCost}`);
 
     // 6. Calculate freight and revenue
-    let grossFreight = 0;
+    let baseGrossFreight = 0;
     if (cargo.rateType === "lumpsum") {
-      grossFreight = cargo.rate;
+      baseGrossFreight = cargo.rate;
     } else {
-      grossFreight = cargo.rate * cargo.quantity;
+      baseGrossFreight = cargo.rate * cargo.quantity;
     }
+    // Demurrage / Despatch now adjust Gross Freight directly (removed from P&L):
+    // demurrage is added to gross freight (charterer pays extra), despatch is
+    // subtracted (charterer earns back). They no longer appear in P&L formula.
+    const grossFreight = baseGrossFreight + (cargo.demurrage || 0) - (cargo.despatch || 0);
 
     const voyageCommission = grossFreight * (cargo.voyageCommission / 100);
     const netFreight = grossFreight - voyageCommission;
@@ -667,8 +671,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Voyage Cost excl Hire: $${voyageCostExclHire}`);
 
     // 10. Profitability calculations
-    // Charterer perspective: despatch is earnings (adds), demurrage is a cost (subtracts).
-    const voyageResult = netFreight - totalVoyageCosts - cargo.demurrage + cargo.despatch;
+    // Demurrage / Despatch are no longer applied here — already baked into
+    // Gross Freight above (demurrage +, despatch -).
+    const voyageResult = netFreight - totalVoyageCosts;
     const grossProfit = voyageResult;
     const netProfit = grossProfit;
     
@@ -1201,7 +1206,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const adjustedVoyageCostInclHire = voyageCostInclHire + regulatoryCost;
 
     // Recalculate financials with regulatory costs
-    const adjustedVoyageResult = netFreight - (totalVoyageCosts + regulatoryCost) - cargo.demurrage + cargo.despatch;
+    // Demurrage/Despatch already included in Gross Freight → omit here.
+    const adjustedVoyageResult = netFreight - (totalVoyageCosts + regulatoryCost);
     const adjustedPAndL = adjustedVoyageResult - hireCost;
     const adjustedNtce = totalVoyageDays > 0
       ? (netFreight - (totalVoyageCosts + regulatoryCost)) / totalVoyageDays
