@@ -339,27 +339,39 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         <div className="form-field w-28">
           <label className="form-label flex items-center gap-1">
             Demurrage
-            <InfoTooltip formula="Demurrage Rate × Excess Days" description="Penalty" />
+            <InfoTooltip
+              formula="Auto = Rate ($/day) × Excess Port Days (Op − CP). Cost to charterer."
+              description="Demurrage rate per day"
+            />
           </label>
-          <input
-            type="number"
-            className="form-input-sm w-full font-mono text-right"
-            value={cargo.demurrageAmount}
-            onChange={(e) => onUpdate("demurrageAmount", parseFloat(e.target.value) || 0)}
-          />
+          <div className="input-with-unit">
+            <input
+              type="number"
+              className="form-input-sm w-full font-mono text-right"
+              value={cargo.demurrageRate}
+              onChange={(e) => onUpdate("demurrageRate", parseFloat(e.target.value) || 0)}
+            />
+            <span className="unit">$/d</span>
+          </div>
         </div>
 
         <div className="form-field w-28">
           <label className="form-label flex items-center gap-1">
             Despatch
-            <InfoTooltip formula="Despatch Rate × Saved Days" description="Bonus" />
+            <InfoTooltip
+              formula="Auto = Rate ($/day) × Saved Port Days (CP − Op). Earnings for charterer."
+              description="Despatch rate per day"
+            />
           </label>
-          <input
-            type="number"
-            className="form-input-sm w-full font-mono text-right"
-            value={cargo.despatchAmount}
-            onChange={(e) => onUpdate("despatchAmount", parseFloat(e.target.value) || 0)}
-          />
+          <div className="input-with-unit">
+            <input
+              type="number"
+              className="form-input-sm w-full font-mono text-right"
+              value={cargo.despatchRate}
+              onChange={(e) => onUpdate("despatchRate", parseFloat(e.target.value) || 0)}
+            />
+            <span className="unit">$/d</span>
+          </div>
         </div>
 
         <div className="form-field w-20">
