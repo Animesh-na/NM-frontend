@@ -377,36 +377,42 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
       </div>
 
-      {/* CP rows — shown only when demurrage > 0. Mirrors sequence row layout
-          with sky-blue highlight; Qty + MT/d are editable overrides. */}
-      {cpRows.length > 0 && (cargo.demurrageAmount || 0) > 0 && (
+      {/* CP rows — shown when demurrage or despatch rates are set. Mirrors
+          sequence row layout with sky-blue highlight; Qty + MT/d are editable
+          CP overrides. Demurrage / Despatch $ are auto-computed from the
+          difference between operational port days (sequence row) and CP
+          port days (override values). */}
+      {cpRows.length > 0 && ((cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0) && (
         <div className="mt-1.5 rounded border border-sky-400 bg-sky-50 dark:bg-sky-950/30 p-1 space-y-1">
           {cpRows.map((r) => {
             const ov = cargo.cpOverrides?.[r.id] || {};
             const qtyVal = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
             const prodVal = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
-            const demVal = ov.demurrage !== undefined && ov.demurrage !== null ? ov.demurrage : cargo.demurrageAmount;
-            const despVal = ov.despatch !== undefined && ov.despatch !== null ? ov.despatch : cargo.despatchAmount;
+            const calc = perRowCalc.find((x) => x.rowId === r.id);
+            const diffDays = calc?.diff || 0;
+            const demVal = calc?.dem || 0;
+            const despVal = calc?.desp || 0;
             const ro = "form-input-sm font-mono text-right bg-white/60 dark:bg-sky-900/40 cursor-default";
             return (
               <div key={r.id} className="flex flex-wrap gap-1 items-end">
-                <div className="form-field w-24">
-                  <label className="form-label">Demurrage</label>
-                  <input
-                    type="number"
-                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
-                    value={demVal || 0}
-                    onChange={(e) => onCpOverride(r.id, "demurrage", parseFloat(e.target.value) || 0)}
-                  />
+                <div className="form-field w-20">
+                  <label className="form-label flex items-center gap-1">
+                    Δ Days
+                    <InfoTooltip
+                      formula="Operational Port Days − CP Port Days"
+                      description="Positive = excess (demurrage). Negative = saved (despatch)."
+                    />
+                  </label>
+                  <input readOnly className={`${ro} w-full ${diffDays > 0 ? "text-red-600" : diffDays < 0 ? "text-green-600" : ""}`}
+                    value={diffDays.toFixed(2)} />
                 </div>
                 <div className="form-field w-24">
-                  <label className="form-label">Despatch</label>
-                  <input
-                    type="number"
-                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
-                    value={despVal || 0}
-                    onChange={(e) => onCpOverride(r.id, "despatch", parseFloat(e.target.value) || 0)}
-                  />
+                  <label className="form-label">Demurrage ($)</label>
+                  <input readOnly className={`${ro} w-full`} value={Math.round(demVal).toLocaleString()} />
+                </div>
+                <div className="form-field w-24">
+                  <label className="form-label">Despatch ($)</label>
+                  <input readOnly className={`${ro} w-full`} value={Math.round(despVal).toLocaleString()} />
                 </div>
                 <div className="form-field w-10">
                   <label className="form-label">Op</label>
