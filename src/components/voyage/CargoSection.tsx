@@ -10,7 +10,7 @@ export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, sequence, vesselCost, setVesselCost,
-    netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateSequenceRow,
+    netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateCargoOpOverride,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -189,7 +189,9 @@ export function CargoSection() {
               onCpOverride={(rowId, field, value) =>
                 updateCargoCpOverride(cargo.id, rowId, field, value)
               }
-              onOpUpdate={(rowId, field, value) => updateSequenceRow(rowId, field, value)}
+              onOpUpdate={(rowId, field, value) =>
+                updateCargoOpOverride(cargo.id, rowId, field, value)
+              }
             />
           ))}
 
