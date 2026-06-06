@@ -667,7 +667,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Voyage Cost excl Hire: $${voyageCostExclHire}`);
 
     // 10. Profitability calculations
-    const voyageResult = netFreight - totalVoyageCosts + cargo.demurrage - cargo.despatch;
+    // Charterer perspective: despatch is earnings (adds), demurrage is a cost (subtracts).
+    const voyageResult = netFreight - totalVoyageCosts - cargo.demurrage + cargo.despatch;
     const grossProfit = voyageResult;
     const netProfit = grossProfit;
     
@@ -689,7 +690,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const grossRate = voyageCommissionPct < 1 ? baseRatePerMt / (1 - voyageCommissionPct) : 0;
 
     vlog(`\n[Step 10] PROFITABILITY:
-    Voyage Result = NetFreight($${netFreight}) - VoyageCosts($${totalVoyageCosts}) + Demurrage($${cargo.demurrage}) - Despatch($${cargo.despatch}) = $${voyageResult}
+    Voyage Result = NetFreight($${netFreight}) - VoyageCosts($${totalVoyageCosts}) - Demurrage($${cargo.demurrage}) + Despatch($${cargo.despatch}) = $${voyageResult}
     Gross Profit = $${grossProfit}
     P&L = VoyageResult($${voyageResult}) - HireCost($${hireCost}) = $${pAndL}
     NTCE = (NetFreight($${netFreight}) - VoyageCosts($${totalVoyageCosts})) / Days(${totalVoyageDays}) = $${ntce}/day
@@ -1200,7 +1201,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const adjustedVoyageCostInclHire = voyageCostInclHire + regulatoryCost;
 
     // Recalculate financials with regulatory costs
-    const adjustedVoyageResult = netFreight - (totalVoyageCosts + regulatoryCost) + cargo.demurrage - cargo.despatch;
+    const adjustedVoyageResult = netFreight - (totalVoyageCosts + regulatoryCost) - cargo.demurrage + cargo.despatch;
     const adjustedPAndL = adjustedVoyageResult - hireCost;
     const adjustedNtce = totalVoyageDays > 0
       ? (netFreight - (totalVoyageCosts + regulatoryCost)) / totalVoyageDays

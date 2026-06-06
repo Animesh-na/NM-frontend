@@ -1,9 +1,21 @@
 import { ChevronDown, Package, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
+
+// Local mirror of VoyageContext.calculatePortDays (not exported there).
+// Computes total port days from a CP row's qty / productivity / terms / turn / extra.
+function calcPortDaysLocal(opts: {
+  quantity: number; productivity: number; terms?: string;
+  turnTime?: number; extraTime?: number; coefficientFactor?: number;
+}): number {
+  const { quantity, productivity, terms, turnTime = 0, extraTime = 0, coefficientFactor } = opts;
+  if (productivity <= 0 || quantity <= 0) return (turnTime + extraTime) / 24;
+  const mult = coefficientFactor || (terms === "sshex" ? 1.5555 : terms === "fhex" ? 1.25 : terms === "satpn" ? 1.33 : 1.0);
+  return (quantity / productivity) * mult + (turnTime + extraTime) / 24;
+}
 
 export function CargoSection() {
   const { 
@@ -213,7 +225,47 @@ interface CargoEntryCardProps {
 
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
-  
+
+  // ─── Auto-compute per-row Demurrage / Despatch from day-diff ───
+  // CP days = port days using CP override (or original if no override yet)
+  // Operational days = port days using ORIGINAL sequence row values
+  // diff = opDays - cpDays
+  //   diff > 0  → operational exceeds CP  → Demurrage = diff × demRate
+  //   diff < 0  → operational saved time  → Despatch  = |diff| × despRate
+  const perRowCalc = useMemo(() => {
+    return cpRows.map((r) => {
+      const ov = cargo.cpOverrides?.[r.id] || {};
+      const qtyCp = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
+      const prodCp = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
+      const cpDays = calcPortDaysLocal({
+        quantity: qtyCp, productivity: prodCp, terms: r.terms,
+        turnTime: r.turnTime, extraTime: r.extraTime,
+      });
+      const opDays = calcPortDaysLocal({
+        quantity: r.quantity, productivity: r.productivity, terms: r.terms,
+        turnTime: r.turnTime, extraTime: r.extraTime,
+      });
+      const diff = opDays - cpDays; // days
+      const dem = diff > 0 ? diff * (cargo.demurrageRate || 0) : 0;
+      const desp = diff < 0 ? -diff * (cargo.despatchRate || 0) : 0;
+      return { rowId: r.id, cpDays, opDays, diff, dem, desp };
+    });
+  }, [cpRows, cargo.cpOverrides, cargo.demurrageRate, cargo.despatchRate]);
+
+  const totalDem = perRowCalc.reduce((s, x) => s + x.dem, 0);
+  const totalDesp = perRowCalc.reduce((s, x) => s + x.desp, 0);
+
+  // Sync aggregated totals into the cargo entry so the engine picks them up.
+  useEffect(() => {
+    if (Math.abs((cargo.demurrageAmount || 0) - totalDem) > 0.01) {
+      onUpdate("demurrageAmount", parseFloat(totalDem.toFixed(2)));
+    }
+    if (Math.abs((cargo.despatchAmount || 0) - totalDesp) > 0.01) {
+      onUpdate("despatchAmount", parseFloat(totalDesp.toFixed(2)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalDem, totalDesp]);
+
   return (
     <div className="border border-border rounded p-2 bg-input-bg">
       <div className="flex flex-wrap gap-2 items-end">
@@ -287,27 +339,39 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         <div className="form-field w-28">
           <label className="form-label flex items-center gap-1">
             Demurrage
-            <InfoTooltip formula="Demurrage Rate × Excess Days" description="Penalty" />
+            <InfoTooltip
+              formula="Auto = Rate ($/day) × Excess Port Days (Op − CP). Cost to charterer."
+              description="Demurrage rate per day"
+            />
           </label>
-          <input
-            type="number"
-            className="form-input-sm w-full font-mono text-right"
-            value={cargo.demurrageAmount}
-            onChange={(e) => onUpdate("demurrageAmount", parseFloat(e.target.value) || 0)}
-          />
+          <div className="input-with-unit">
+            <input
+              type="number"
+              className="form-input-sm w-full font-mono text-right"
+              value={cargo.demurrageRate}
+              onChange={(e) => onUpdate("demurrageRate", parseFloat(e.target.value) || 0)}
+            />
+            <span className="unit">$/d</span>
+          </div>
         </div>
 
         <div className="form-field w-28">
           <label className="form-label flex items-center gap-1">
             Despatch
-            <InfoTooltip formula="Despatch Rate × Saved Days" description="Bonus" />
+            <InfoTooltip
+              formula="Auto = Rate ($/day) × Saved Port Days (CP − Op). Earnings for charterer."
+              description="Despatch rate per day"
+            />
           </label>
-          <input
-            type="number"
-            className="form-input-sm w-full font-mono text-right"
-            value={cargo.despatchAmount}
-            onChange={(e) => onUpdate("despatchAmount", parseFloat(e.target.value) || 0)}
-          />
+          <div className="input-with-unit">
+            <input
+              type="number"
+              className="form-input-sm w-full font-mono text-right"
+              value={cargo.despatchRate}
+              onChange={(e) => onUpdate("despatchRate", parseFloat(e.target.value) || 0)}
+            />
+            <span className="unit">$/d</span>
+          </div>
         </div>
 
         <div className="form-field w-20">
@@ -325,36 +389,42 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
       </div>
 
-      {/* CP rows — shown only when demurrage > 0. Mirrors sequence row layout
-          with sky-blue highlight; Qty + MT/d are editable overrides. */}
-      {cpRows.length > 0 && (cargo.demurrageAmount || 0) > 0 && (
+      {/* CP rows — shown when demurrage or despatch rates are set. Mirrors
+          sequence row layout with sky-blue highlight; Qty + MT/d are editable
+          CP overrides. Demurrage / Despatch $ are auto-computed from the
+          difference between operational port days (sequence row) and CP
+          port days (override values). */}
+      {cpRows.length > 0 && ((cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0) && (
         <div className="mt-1.5 rounded border border-sky-400 bg-sky-50 dark:bg-sky-950/30 p-1 space-y-1">
           {cpRows.map((r) => {
             const ov = cargo.cpOverrides?.[r.id] || {};
             const qtyVal = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
             const prodVal = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
-            const demVal = ov.demurrage !== undefined && ov.demurrage !== null ? ov.demurrage : cargo.demurrageAmount;
-            const despVal = ov.despatch !== undefined && ov.despatch !== null ? ov.despatch : cargo.despatchAmount;
+            const calc = perRowCalc.find((x) => x.rowId === r.id);
+            const diffDays = calc?.diff || 0;
+            const demVal = calc?.dem || 0;
+            const despVal = calc?.desp || 0;
             const ro = "form-input-sm font-mono text-right bg-white/60 dark:bg-sky-900/40 cursor-default";
             return (
               <div key={r.id} className="flex flex-wrap gap-1 items-end">
-                <div className="form-field w-24">
-                  <label className="form-label">Demurrage</label>
-                  <input
-                    type="number"
-                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
-                    value={demVal || 0}
-                    onChange={(e) => onCpOverride(r.id, "demurrage", parseFloat(e.target.value) || 0)}
-                  />
+                <div className="form-field w-20">
+                  <label className="form-label flex items-center gap-1">
+                    Δ Days
+                    <InfoTooltip
+                      formula="Operational Port Days − CP Port Days"
+                      description="Positive = excess (demurrage). Negative = saved (despatch)."
+                    />
+                  </label>
+                  <input readOnly className={`${ro} w-full ${diffDays > 0 ? "text-red-600" : diffDays < 0 ? "text-green-600" : ""}`}
+                    value={diffDays.toFixed(2)} />
                 </div>
                 <div className="form-field w-24">
-                  <label className="form-label">Despatch</label>
-                  <input
-                    type="number"
-                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
-                    value={despVal || 0}
-                    onChange={(e) => onCpOverride(r.id, "despatch", parseFloat(e.target.value) || 0)}
-                  />
+                  <label className="form-label">Demurrage ($)</label>
+                  <input readOnly className={`${ro} w-full`} value={Math.round(demVal).toLocaleString()} />
+                </div>
+                <div className="form-field w-24">
+                  <label className="form-label">Despatch ($)</label>
+                  <input readOnly className={`${ro} w-full`} value={Math.round(despVal).toLocaleString()} />
                 </div>
                 <div className="form-field w-10">
                   <label className="form-label">Op</label>
