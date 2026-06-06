@@ -10,7 +10,7 @@ export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, sequence, vesselCost, setVesselCost,
-    netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateSequenceRow,
+    netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateCargoOpOverride,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -189,7 +189,9 @@ export function CargoSection() {
               onCpOverride={(rowId, field, value) =>
                 updateCargoCpOverride(cargo.id, rowId, field, value)
               }
-              onOpUpdate={(rowId, field, value) => updateSequenceRow(rowId, field, value)}
+              onOpUpdate={(rowId, field, value) =>
+                updateCargoOpOverride(cargo.id, rowId, field, value)
+              }
             />
           ))}
 
@@ -235,7 +237,11 @@ interface CargoEntryCardProps {
   sequenceQuantity: number;
   cpRows: SequenceRowUI[];
   onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
-  onOpUpdate: (rowId: number, field: keyof SequenceRowUI, value: number | string) => void;
+  onOpUpdate: (
+    rowId: number,
+    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+    value: number | string,
+  ) => void;
 }
 
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
@@ -254,20 +260,6 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
   const totalDem = demurrageResult.demurrageAmount;
   const totalDesp = demurrageResult.despatchAmount;
 
-  // Snapshot CP baseline from operational values once per row, so later
-  // operational edits compute a proper Δ Days against the original CP figures.
-  useEffect(() => {
-    cpRows.forEach((r) => {
-      const ov = cargo.cpOverrides?.[r.id] || {};
-      if (ov.quantity === undefined || ov.quantity === null) {
-        onCpOverride(r.id, "quantity", r.quantity || 0);
-      }
-      if (ov.productivity === undefined || ov.productivity === null) {
-        onCpOverride(r.id, "productivity", r.productivity || 0);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cpRows.map((r) => r.id).join(",")]);
 
   // Sync aggregated totals into the cargo entry so the engine picks them up.
   useEffect(() => {
@@ -412,6 +404,15 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         <div className="mt-1.5 rounded border border-sky-400 bg-sky-50 dark:bg-sky-950/30 p-1 space-y-1">
           {cpRows.map((r) => {
             const ov = cargo.cpOverrides?.[r.id] || {};
+            const op = cargo.opOverrides?.[r.id] || {};
+            const opQty = op.quantity ?? r.quantity ?? 0;
+            const opProd = op.productivity ?? r.productivity ?? 0;
+            const opTerms = (op.terms ?? r.terms ?? "") as string;
+            const opFactor = op.coefficientFactor ?? r.coefficientFactor ?? 0;
+            const opTurn = op.turnTime ?? r.turnTime ?? 0;
+            const opExtra = op.extraTime ?? r.extraTime ?? 0;
+            const opCranes = op.cranes ?? r.cranes ?? 0;
+            const opExpDa = op.expDa ?? r.expDa ?? 0;
             const calc = perRowCalc.find((x) => x.rowId === r.id);
             const diffDays = calc?.diffDays || 0;
             const demVal = ov.demurrage ?? cargo.demurrageRate ?? 0;
@@ -440,14 +441,14 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                 </div>
                 <div className="form-field w-10">
                   <label className="form-label">C</label>
-                  <input type="number" className={edit} value={r.cranes || 0} onChange={(e) => onOpUpdate(r.id, "cranes", parseFloat(e.target.value) || 0)} />
+                  <input type="number" className={edit} value={opCranes} onChange={(e) => onOpUpdate(r.id, "cranes", parseFloat(e.target.value) || 0)} />
                 </div>
                 <div className="form-field w-24">
                   <label className="form-label">Quantity</label>
                   <input
                     type="number"
                     className={edit}
-                    value={r.quantity || 0}
+                    value={opQty}
                     onChange={(e) => onOpUpdate(r.id, "quantity", parseFloat(e.target.value) || 0)}
                   />
                 </div>
@@ -456,24 +457,24 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <input
                     type="number"
                     className={edit}
-                    value={r.productivity || 0}
+                    value={opProd}
                     onChange={(e) => onOpUpdate(r.id, "productivity", parseFloat(e.target.value) || 0)}
                   />
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Terms</label>
-                  <input className={`${edit} uppercase`} value={r.terms || ""} onChange={(e) => onOpUpdate(r.id, "terms", e.target.value)} />
+                  <input className={`${edit} uppercase`} value={opTerms} onChange={(e) => onOpUpdate(r.id, "terms", e.target.value)} />
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Factor</label>
-                  <input type="number" step="0.0001" className={edit} value={r.coefficientFactor || 0} onChange={(e) => onOpUpdate(r.id, "coefficientFactor", parseFloat(e.target.value) || 0)} />
+                  <input type="number" step="0.0001" className={edit} value={opFactor} onChange={(e) => onOpUpdate(r.id, "coefficientFactor", parseFloat(e.target.value) || 0)} />
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Tt</label>
                   <input
                     type="number"
                     className={edit}
-                    value={r.turnTime || 0}
+                    value={opTurn}
                     onChange={(e) => onOpUpdate(r.id, "turnTime", parseFloat(e.target.value) || 0)}
                   />
                 </div>
@@ -482,7 +483,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <input
                     type="number"
                     className={edit}
-                    value={r.extraTime || 0}
+                    value={opExtra}
                     onChange={(e) => onOpUpdate(r.id, "extraTime", parseFloat(e.target.value) || 0)}
                   />
                 </div>
@@ -491,7 +492,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <input
                     type="number"
                     className={edit}
-                    value={r.expDa || 0}
+                    value={opExpDa}
                     onChange={(e) => onOpUpdate(r.id, "expDa", parseFloat(e.target.value) || 0)}
                   />
                 </div>
