@@ -206,9 +206,9 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
   const cargoQuantity = sequenceQuantity;
 
   // ─── Auto-compute Demurrage / Despatch from TOTAL day-diff ───
-  // First sum all row differences for this cargo: Σ(Operational days − CP days).
-  // Only the final total decides demurrage/despatch: positive = demurrage,
-  // negative = despatch. A fast port can therefore offset a slow port.
+  // First sum all row differences for this cargo: Σ(CP days − Operational days).
+  // Only the final total decides demurrage/despatch: positive = despatch,
+  // negative = demurrage. A fast port can therefore offset a slow port.
   const demurrageResult = useMemo(
     () => calculateCargoDemurrageDespatchFromRows(cargo, cpRows),
     [cargo, cpRows],
@@ -318,7 +318,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           <label className="form-label flex items-center gap-1">
             Demurrage
             <InfoTooltip
-              formula="Auto = Rate ($/day) × Excess Port Days (Op − CP). Cost to charterer."
+              formula="Auto = Rate ($/day) × Excess Port Days (Op over CP). Cost to charterer."
               description="Demurrage rate per day"
             />
           </label>
@@ -387,11 +387,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <label className="form-label flex items-center gap-1">
                     Δ Days
                     <InfoTooltip
-                      formula="Operational Port Days − CP Port Days"
-                      description="Positive = excess (demurrage). Negative = saved (despatch)."
+                      formula="CP Port Days − Operational Port Days"
+                      description="Positive = saved (despatch). Negative = excess (demurrage)."
                     />
                   </label>
-                  <input readOnly className={`${ro} w-full ${diffDays > 0 ? "text-red-600" : diffDays < 0 ? "text-green-600" : ""}`}
+                  <input readOnly className={`${ro} w-full ${diffDays > 0 ? "text-green-600" : diffDays < 0 ? "text-red-600" : ""}`}
                     value={diffDays.toFixed(2)} />
                 </div>
                 <div className="form-field w-24">
@@ -465,7 +465,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             );
           })}
           <div className="flex justify-end gap-3 border-t border-border pt-1 text-[10px] font-semibold">
-            <span>Total extra time: <span className="font-mono">{totalExtraDays.toFixed(2)} d</span></span>
+            <span>CP − Op time: <span className="font-mono">{totalExtraDays.toFixed(2)} d</span></span>
             <span>Demurrage: <span className="font-mono">${Math.round(totalDem).toLocaleString()}</span></span>
             <span>Despatch: <span className="font-mono">${Math.round(totalDesp).toLocaleString()}</span></span>
           </div>

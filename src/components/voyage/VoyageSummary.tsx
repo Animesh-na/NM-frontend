@@ -223,13 +223,13 @@ export function VoyageSummary() {
             {showLaytimeImpact && (
               <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1">
                 <span className="text-muted-foreground flex items-center font-semibold">
-                  Extra Time (Op − CP)
+                  CP − Op Time
                   <InfoTooltip
-                    formula="Σ Operational Port Days − Σ Charter Party Port Days. Negative = despatch, positive = demurrage."
+                    formula="Σ Charter Party Port Days − Σ Operational Port Days. Positive = despatch, negative = demurrage."
                     description="Overall load/discharge port time difference"
                   />
                 </span>
-                <span className={`font-mono tabular-nums font-bold ${totalExtraDays <= 0 ? "text-success" : "text-destructive"}`}>
+                <span className={`font-mono tabular-nums font-bold ${totalExtraDays >= 0 ? "text-success" : "text-destructive"}`}>
                   {formatDays(totalExtraDays)} d
                 </span>
               </div>
@@ -241,7 +241,7 @@ export function VoyageSummary() {
                     <span className="text-muted-foreground flex items-center font-semibold">
                       Demurrage (Expense)
                       <InfoTooltip
-                        formula="Σ (Op Port Days − CP Port Days) × Demurrage Rate, where Op > CP"
+                        formula="Σ (Operational Port Days − CP Port Days) × Demurrage Rate, where Op > CP"
                         description="Excess port time charged to charterer"
                       />
                     </span>
@@ -255,7 +255,7 @@ export function VoyageSummary() {
                     <span className="text-muted-foreground flex items-center font-semibold">
                       Despatch (Earnings)
                       <InfoTooltip
-                        formula="Σ (CP Port Days − Op Port Days) × Despatch Rate, where Op < CP"
+                        formula="Σ (CP Port Days − Operational Port Days) × Despatch Rate, where CP > Op"
                         description="Saved port time earned by charterer"
                       />
                     </span>

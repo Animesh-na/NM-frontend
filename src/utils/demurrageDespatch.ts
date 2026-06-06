@@ -55,7 +55,7 @@ export function calculateCargoDemurrageDespatchFromRows(
       operation: row.operation,
       cpDays,
       opDays,
-      diffDays: opDays - cpDays,
+      diffDays: cpDays - opDays,
     };
   });
 
@@ -64,8 +64,8 @@ export function calculateCargoDemurrageDespatchFromRows(
     cargoId: cargo.id,
     rows: rowBreakdown,
     totalExtraDays,
-    demurrageAmount: totalExtraDays > 0 ? totalExtraDays * (cargo.demurrageRate || 0) : 0,
-    despatchAmount: totalExtraDays < 0 ? Math.abs(totalExtraDays) * (cargo.despatchRate || 0) : 0,
+    demurrageAmount: totalExtraDays < 0 ? Math.abs(totalExtraDays) * (cargo.demurrageRate || 0) : 0,
+    despatchAmount: totalExtraDays > 0 ? totalExtraDays * (cargo.despatchRate || 0) : 0,
   };
 }
 
