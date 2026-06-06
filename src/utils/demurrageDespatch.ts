@@ -1,7 +1,7 @@
 import type { CargoEntry, SequenceRowUI } from "@/context/VoyageContext";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
 
-type CpOverride = { quantity?: number; productivity?: number };
+type CpOverride = { quantity?: number; productivity?: number; demurrage?: number; despatch?: number };
 
 export interface DemurrageDespatchRow {
   rowId: number;
