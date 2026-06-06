@@ -1485,24 +1485,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   const voyageInputs: VoyageInputs = {
     vessel,
     sequence: sequence.map(row => {
-      // Resolve cargo-level CP overrides (qty / productivity) for this row.
-      let effQty = row.quantity;
-      let effProd = row.productivity;
-      const cId = cargoRowMapForInputs.get(row.id);
-      if (cId !== undefined) {
-        const c = cargos.find((x) => x.id === cId);
-        const ov = c && ((c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) ? c.cpOverrides?.[row.id] : undefined;
-        if (ov) {
-          if (ov.quantity !== undefined && ov.quantity !== null) effQty = ov.quantity;
-          if (ov.productivity !== undefined && ov.productivity !== null) effProd = ov.productivity;
-        }
-      }
-      // Recompute port days when override changed qty/prod for load/disch rows.
-      const isLoadDisch = row.operation === "loading" || row.operation === "discharging";
-      const portDays =
-        isLoadDisch && (effQty !== row.quantity || effProd !== row.productivity)
-          ? calculatePortDays({ ...row, quantity: effQty, productivity: effProd })
-          : row.calculatedPortDays;
+      // CP overrides are reference-only (for demurrage/despatch comparison).
+      // They MUST NOT change operational sequence values fed to the engine.
+      const effQty = row.quantity;
+      const portDays = row.calculatedPortDays;
       return {
       id: row.id,
       operation: row.operation || "",
