@@ -1051,7 +1051,7 @@ export function exportVoyageToExcel(data: ExportData) {
 
       const cargoDemDesp = src ? calculateCargoDemurrageDespatch(src, cargos, sequence) : undefined;
 
-      // Demurrage / Despatch from overall Op − CP days for this cargo
+      // Demurrage / Despatch from overall CP − Op days for this cargo
       setCalcLabel(r, "Demurrage ($)");
       setCalcFormula(r, `${demRef}`, cargoDemDesp?.demurrageAmount || 0);
       const rRowDem = r; r++;
