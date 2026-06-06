@@ -9,7 +9,7 @@ import { calculateCargoDemurrageDespatchFromRows } from "@/utils/demurrageDespat
 export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
-    hireRate, setHireRate, results, sequence, vesselCost, setVesselCost,
+    hireRate, setHireRate, sequence, vesselCost, setVesselCost,
     netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateSequenceRow,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
