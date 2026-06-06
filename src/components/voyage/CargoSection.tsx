@@ -404,11 +404,9 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
       </div>
 
-      {/* CP rows — shown when demurrage or despatch rates are set. Mirrors
-          sequence row layout with sky-blue highlight; Qty + MT/d are editable
-          CP overrides. Demurrage / Despatch $ are auto-computed from the
-          difference between operational port days (sequence row) and CP
-          port days (override values). */}
+      {/* Charter party rows — shown when demurrage or despatch rates are set.
+          Contract CP values stay editable here; operational values mirror the
+          sequence and are not changed by demurrage/despatch rates. */}
       {cpRows.length > 0 && ((cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0) && (
         <div className="mt-1.5 rounded border border-sky-400 bg-sky-50 dark:bg-sky-950/30 p-1 space-y-1">
           {cpRows.map((r) => {
@@ -459,24 +457,6 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <input readOnly className={`${ro} w-full`} value={r.ecaDistance || 0} />
                 </div>
                 <div className="form-field w-24">
-                  <label className="form-label">Op Qty (mt)</label>
-                  <input
-                    type="number"
-                    className="form-input-sm w-full font-mono text-right border-amber-400 bg-amber-50"
-                    value={r.quantity || 0}
-                    onChange={(e) => onOpUpdate(r.id, "quantity", parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="form-field w-20">
-                  <label className="form-label">Op MT/d</label>
-                  <input
-                    type="number"
-                    className="form-input-sm w-full font-mono text-right border-amber-400 bg-amber-50"
-                    value={r.productivity || 0}
-                    onChange={(e) => onOpUpdate(r.id, "productivity", parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="form-field w-24">
                   <label className="form-label">CP Qty (mt)</label>
                   <input
                     type="number"
@@ -493,6 +473,14 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     value={prodVal || 0}
                     onChange={(e) => onCpOverride(r.id, "productivity", parseFloat(e.target.value) || 0)}
                   />
+                </div>
+                <div className="form-field w-24">
+                  <label className="form-label">Op Qty (mt)</label>
+                  <input readOnly className={`${ro} w-full`} value={r.quantity || 0} />
+                </div>
+                <div className="form-field w-20">
+                  <label className="form-label">Op MT/d</label>
+                  <input readOnly className={`${ro} w-full`} value={r.productivity || 0} />
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Terms</label>
