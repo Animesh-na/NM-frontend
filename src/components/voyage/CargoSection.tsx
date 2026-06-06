@@ -10,7 +10,7 @@ export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, results, sequence,
-    netBB, setNetBB, cargoValidation, updateCargoCpOverride,
+    netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateSequenceRow,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -155,6 +155,7 @@ export function CargoSection() {
               onCpOverride={(rowId, field, value) =>
                 updateCargoCpOverride(cargo.id, rowId, field, value)
               }
+              onOpUpdate={(rowId, field, value) => updateSequenceRow(rowId, field, value)}
             />
           ))}
 
@@ -200,9 +201,10 @@ interface CargoEntryCardProps {
   sequenceQuantity: number;
   cpRows: SequenceRowUI[];
   onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
+  onOpUpdate: (rowId: number, field: keyof SequenceRowUI, value: number | string) => void;
 }
 
-function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
+function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
 
   // ─── Auto-compute Demurrage / Despatch from TOTAL day-diff ───
@@ -381,6 +383,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             const demVal = cargo.demurrageRate || 0;
             const despVal = cargo.despatchRate || 0;
             const ro = "form-input-sm font-mono text-right bg-white/60 dark:bg-sky-900/40 cursor-default";
+            const edit = "form-input-sm w-full font-mono text-right border-sky-400 bg-white";
             return (
               <div key={r.id} className="flex flex-wrap gap-1 items-end">
                 <div className="form-field w-20">
@@ -413,37 +416,39 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                 </div>
                 <div className="form-field w-20">
                   <label className="form-label">V ({r.distanceSpeedContext})</label>
-                  <input readOnly className={`${ro} w-full`} value={r.distance || 0} />
-                </div>
-                <div className="form-field w-20">
-                  <label className="form-label">L ({r.ecaDistanceSpeedContext})</label>
-                  <input readOnly className={`${ro} w-full`} value={r.ecaDistance || 0} />
-                </div>
-                <div className="form-field w-24">
-                  <label className="form-label">CP Qty (mt)</label>
                   <input
                     type="number"
-                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
-                    value={qtyVal || 0}
-                    onChange={(e) => onCpOverride(r.id, "quantity", parseFloat(e.target.value) || 0)}
+                    className={edit}
+                    value={r.distance || 0}
+                    onChange={(e) => onOpUpdate(r.id, "distance", parseFloat(e.target.value) || 0)}
                   />
                 </div>
                 <div className="form-field w-20">
-                  <label className="form-label">CP MT/d</label>
+                  <label className="form-label">L ({r.ecaDistanceSpeedContext})</label>
                   <input
                     type="number"
-                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
-                    value={prodVal || 0}
-                    onChange={(e) => onCpOverride(r.id, "productivity", parseFloat(e.target.value) || 0)}
+                    className={edit}
+                    value={r.ecaDistance || 0}
+                    onChange={(e) => onOpUpdate(r.id, "ecaDistance", parseFloat(e.target.value) || 0)}
                   />
                 </div>
                 <div className="form-field w-24">
                   <label className="form-label">Op Qty (mt)</label>
-                  <input readOnly className={`${ro} w-full`} value={r.quantity || 0} />
+                  <input
+                    type="number"
+                    className={edit}
+                    value={r.quantity || 0}
+                    onChange={(e) => onOpUpdate(r.id, "quantity", parseFloat(e.target.value) || 0)}
+                  />
                 </div>
                 <div className="form-field w-20">
                   <label className="form-label">Op MT/d</label>
-                  <input readOnly className={`${ro} w-full`} value={r.productivity || 0} />
+                  <input
+                    type="number"
+                    className={edit}
+                    value={r.productivity || 0}
+                    onChange={(e) => onOpUpdate(r.id, "productivity", parseFloat(e.target.value) || 0)}
+                  />
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Terms</label>
@@ -451,15 +456,30 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Turn (h)</label>
-                  <input readOnly className={`${ro} w-full`} value={r.turnTime || 0} />
+                  <input
+                    type="number"
+                    className={edit}
+                    value={r.turnTime || 0}
+                    onChange={(e) => onOpUpdate(r.id, "turnTime", parseFloat(e.target.value) || 0)}
+                  />
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Extra (h)</label>
-                  <input readOnly className={`${ro} w-full`} value={r.extraTime || 0} />
+                  <input
+                    type="number"
+                    className={edit}
+                    value={r.extraTime || 0}
+                    onChange={(e) => onOpUpdate(r.id, "extraTime", parseFloat(e.target.value) || 0)}
+                  />
                 </div>
                 <div className="form-field w-20">
                   <label className="form-label">Exp DA</label>
-                  <input readOnly className={`${ro} w-full`} value={r.expDa || 0} />
+                  <input
+                    type="number"
+                    className={edit}
+                    value={r.expDa || 0}
+                    onChange={(e) => onOpUpdate(r.id, "expDa", parseFloat(e.target.value) || 0)}
+                  />
                 </div>
               </div>
             );
