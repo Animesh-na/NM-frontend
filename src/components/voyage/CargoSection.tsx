@@ -196,7 +196,7 @@ interface CargoEntryCardProps {
     voyageCommission: number; tcCommission: number; demurrageRate: number; despatchRate: number;
     demurrageAmount: number; despatchAmount: number; averageMode: "average" | "per_port" | "per_voyage";
     ntcBase: number; gtcTarget: number; netBBOverride?: number; stowageFactor: number;
-    cpOverrides?: Record<number, { quantity?: number; productivity?: number }>;
+    cpOverrides?: Record<number, { quantity?: number; productivity?: number; demurrage?: number; despatch?: number }>;
   };
   index: number;
   onUpdate: (field: string, value: number | string) => void;
@@ -208,7 +208,7 @@ interface CargoEntryCardProps {
     distance: number; ecaDistance: number; distanceSpeedContext: string; ecaDistanceSpeedContext: string;
     terms: string; turnTime: number; extraTime: number; expDa: number;
   }>;
-  onCpOverride: (rowId: number, field: "quantity" | "productivity", value: number) => void;
+  onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
 }
 
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
