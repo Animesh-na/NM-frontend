@@ -206,7 +206,7 @@ export function VoyageSummary() {
               <span className="text-muted-foreground flex items-center font-semibold">
                 P&L
                 <InfoTooltip 
-                  formula="Net Freight - Voyage Cost Incl Hire" 
+                  formula="Net Freight − Voyage Cost Incl Hire − Demurrage + Despatch"
                   description="Profit & Loss for the voyage"
                 />
               </span>
@@ -214,6 +214,39 @@ export function VoyageSummary() {
                 ${formatCurrency(results.pAndL)}
               </span>
             </div>
+            {((cargos.reduce((s, c) => s + (c.demurrageAmount || 0), 0) > 0) ||
+              (cargos.reduce((s, c) => s + (c.despatchAmount || 0), 0) > 0)) && (
+              <>
+                {cargos.reduce((s, c) => s + (c.demurrageAmount || 0), 0) > 0 && (
+                  <div className="flex justify-between bg-destructive/10 rounded-sm px-1 py-0.5 -mx-1">
+                    <span className="text-muted-foreground flex items-center font-semibold">
+                      Demurrage (Expense)
+                      <InfoTooltip
+                        formula="Σ (Op Port Days − CP Port Days) × Demurrage Rate, where Op > CP"
+                        description="Excess port time charged to charterer"
+                      />
+                    </span>
+                    <span className="font-mono tabular-nums font-bold text-destructive">
+                      −${formatCurrency(cargos.reduce((s, c) => s + (c.demurrageAmount || 0), 0))}
+                    </span>
+                  </div>
+                )}
+                {cargos.reduce((s, c) => s + (c.despatchAmount || 0), 0) > 0 && (
+                  <div className="flex justify-between bg-success/10 rounded-sm px-1 py-0.5 -mx-1">
+                    <span className="text-muted-foreground flex items-center font-semibold">
+                      Despatch (Earnings)
+                      <InfoTooltip
+                        formula="Σ (CP Port Days − Op Port Days) × Despatch Rate, where Op < CP"
+                        description="Saved port time earned by charterer"
+                      />
+                    </span>
+                    <span className="font-mono tabular-nums font-bold text-success">
+                      +${formatCurrency(cargos.reduce((s, c) => s + (c.despatchAmount || 0), 0))}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
                 Net Freight
