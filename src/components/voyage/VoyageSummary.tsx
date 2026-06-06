@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
 import { useAuth } from "@/context/AuthContext";
+import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 
 
 export function VoyageSummary() {
@@ -14,6 +15,11 @@ export function VoyageSummary() {
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
+  const demurrageDespatch = calculateDemurrageDespatchTotals(cargos, sequence);
+  const totalDemurrage = demurrageDespatch.demurrageAmount;
+  const totalDespatch = demurrageDespatch.despatchAmount;
+  const totalExtraDays = demurrageDespatch.totalExtraDays;
+  const showLaytimeImpact = cargos.some((c) => (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) || Math.abs(totalExtraDays) > 0.005;
 
 
   const formatCurrency = (value: number) => {
@@ -214,10 +220,23 @@ export function VoyageSummary() {
                 ${formatCurrency(results.pAndL)}
               </span>
             </div>
-            {((cargos.reduce((s, c) => s + (c.demurrageAmount || 0), 0) > 0) ||
-              (cargos.reduce((s, c) => s + (c.despatchAmount || 0), 0) > 0)) && (
+            {showLaytimeImpact && (
+              <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1">
+                <span className="text-muted-foreground flex items-center font-semibold">
+                  Extra Time (Op − CP)
+                  <InfoTooltip
+                    formula="Σ Operational Port Days − Σ Charter Party Port Days. Negative = despatch, positive = demurrage."
+                    description="Overall load/discharge port time difference"
+                  />
+                </span>
+                <span className={`font-mono tabular-nums font-bold ${totalExtraDays <= 0 ? "text-success" : "text-destructive"}`}>
+                  {formatDays(totalExtraDays)} d
+                </span>
+              </div>
+            )}
+            {((totalDemurrage > 0) || (totalDespatch > 0)) && (
               <>
-                {cargos.reduce((s, c) => s + (c.demurrageAmount || 0), 0) > 0 && (
+                {totalDemurrage > 0 && (
                   <div className="flex justify-between bg-destructive/10 rounded-sm px-1 py-0.5 -mx-1">
                     <span className="text-muted-foreground flex items-center font-semibold">
                       Demurrage (Expense)
@@ -227,11 +246,11 @@ export function VoyageSummary() {
                       />
                     </span>
                     <span className="font-mono tabular-nums font-bold text-destructive">
-                      −${formatCurrency(cargos.reduce((s, c) => s + (c.demurrageAmount || 0), 0))}
+                      −${formatCurrency(totalDemurrage)}
                     </span>
                   </div>
                 )}
-                {cargos.reduce((s, c) => s + (c.despatchAmount || 0), 0) > 0 && (
+                {totalDespatch > 0 && (
                   <div className="flex justify-between bg-success/10 rounded-sm px-1 py-0.5 -mx-1">
                     <span className="text-muted-foreground flex items-center font-semibold">
                       Despatch (Earnings)
@@ -241,7 +260,7 @@ export function VoyageSummary() {
                       />
                     </span>
                     <span className="font-mono tabular-nums font-bold text-success">
-                      +${formatCurrency(cargos.reduce((s, c) => s + (c.despatchAmount || 0), 0))}
+                      +${formatCurrency(totalDespatch)}
                     </span>
                   </div>
                 )}
