@@ -63,13 +63,17 @@ export function calculateCargoDemurrageDespatchFromRows(
   const rowBreakdown = rows.filter((row) => isCargoOperation(row.operation)).map((row) => {
     const cpOverride = cargo.cpOverrides?.[row.id];
     const opOverride = cargo.opOverrides?.[row.id];
-    // CP baseline = raw sequence values (+ any explicit cp rate/qty/prod override).
-    const cpDays = calculatePortDaysForDemurrage(row, cpOverride);
+    // CP baseline = visible Sequence values only. Cargo CP qty/productivity
+    // fields were removed, so any stale hidden overrides must not affect days.
+    const cpDays = calculatePortDaysForDemurrage(row);
     // Operational = sequence value overridden by cargo-section op edits.
     // If no operational override exists for this row, operational == CP (diff = 0).
     // This avoids inventing extra/despatch time when the user has not entered anything.
-    const hasOpEdits = !!opOverride && Object.keys(opOverride).length > 0;
+    const hasOpEdits = !!opOverride && ["quantity", "productivity", "turnTime", "extraTime", "terms", "coefficientFactor"].some(
+      (field) => (opOverride as Record<string, unknown>)[field] !== undefined,
+    );
     const opDays = hasOpEdits ? calculatePortDaysForDemurrage(row, opOverride) : cpDays;
+    const diffDays = Math.abs(cpDays - opDays) < 0.005 ? 0 : cpDays - opDays;
     const demurrageRate = cpOverride?.demurrage ?? cargo.demurrageRate ?? 0;
     const despatchRate = cpOverride?.despatch ?? cargo.despatchRate ?? 0;
     return {
@@ -78,7 +82,7 @@ export function calculateCargoDemurrageDespatchFromRows(
       operation: row.operation,
       cpDays,
       opDays,
-      diffDays: cpDays - opDays,
+      diffDays,
       demurrageRate,
       despatchRate,
     };
