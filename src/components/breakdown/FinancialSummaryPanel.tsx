@@ -87,7 +87,7 @@ export function FinancialSummaryPanel({ results, hireRate, cargos }: FinancialSu
         <div className="grid grid-cols-2 gap-6">
           <FormulaBlock
             name="5. Gross Profit"
-            formula="Net Freight - Voyage Cost Excl Hire + Demurrage - Despatch"
+            formula="Net Freight - Voyage Cost Excl Hire - Demurrage + Despatch"
             inputs={[
               { label: "Net Freight", value: formatCurrency(results.netFreight), source: "Step 2" },
               { label: "Voyage Cost", value: formatCurrency(results.voyageCostExclHire), source: "Step 3" },

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
 import { useAuth } from "@/context/AuthContext";
+import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 
 
 export function VoyageSummary() {
@@ -14,6 +15,11 @@ export function VoyageSummary() {
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
+  const demurrageDespatch = calculateDemurrageDespatchTotals(cargos, sequence);
+  const totalDemurrage = demurrageDespatch.demurrageAmount;
+  const totalDespatch = demurrageDespatch.despatchAmount;
+  const totalExtraDays = demurrageDespatch.totalExtraDays;
+  const showLaytimeImpact = cargos.some((c) => (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) || Math.abs(totalExtraDays) > 0.005;
 
 
   const formatCurrency = (value: number) => {
@@ -206,7 +212,7 @@ export function VoyageSummary() {
               <span className="text-muted-foreground flex items-center font-semibold">
                 P&L
                 <InfoTooltip 
-                  formula="Net Freight - Voyage Cost Incl Hire" 
+                  formula="Net Freight − Voyage Cost Incl Hire − Demurrage + Despatch"
                   description="Profit & Loss for the voyage"
                 />
               </span>
@@ -214,6 +220,22 @@ export function VoyageSummary() {
                 ${formatCurrency(results.pAndL)}
               </span>
             </div>
+            {showLaytimeImpact && (
+              <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1">
+                <span className="text-muted-foreground flex items-center font-semibold">
+                  Extra time
+                  <InfoTooltip
+                    formula="Σ CP cargo port days − Σ operational cargo port days. Positive = despatch, negative = demurrage."
+                    description="Only load/discharge rows shown in Cargo are included. Passing/bunker/other ports are excluded."
+                  />
+                </span>
+                <span className="font-mono tabular-nums font-bold">
+                  <span className={totalExtraDays >= 0 ? "text-success" : "text-destructive"}>{formatDays(totalExtraDays)} d</span>
+                  {totalDespatch > 0 && <span className="text-success"> / Despatch : $ {formatCurrency(totalDespatch)}</span>}
+                  {totalDemurrage > 0 && <span className="text-destructive"> / Demurrage : $ {formatCurrency(totalDemurrage)}</span>}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
                 Net Freight

@@ -1,15 +1,16 @@
 import { ChevronDown, Package, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { useVoyageContext } from "@/context/VoyageContext";
+import { useEffect, useMemo, useState } from "react";
+import { useVoyageContext, type CargoEntry, type SequenceRowUI } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
+import { calculateCargoDemurrageDespatchFromRows } from "@/utils/demurrageDespatch";
 
 export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
-    hireRate, setHireRate, results, sequence,
-    netBB, setNetBB, cargoValidation, updateCargoCpOverride
+    hireRate, setHireRate, sequence, vesselCost, setVesselCost,
+    netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateCargoOpOverride,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -48,22 +49,18 @@ export function CargoSection() {
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
-                GTC
+                NTC
                 <InfoTooltip
-                  formula="Gross Time Charter — primary hire input. NTC = GTC × (1 - TC Comm%)"
-                  description="Gross Time Charter (primary editable hire rate)"
+                  formula="NTC = GTC × (1 - TC Comm%)"
+                  description="Net Time Charter"
                 />
               </label>
               <div className="input-with-unit">
                 <input
                   type="number"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
-                  onChange={(e) => {
-                    const gtc = parseFloat(e.target.value) || 0;
-                    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
-                    setHireRate(gtc * (1 - tc));
-                  }}
+                  className="form-input-sm w-full font-mono text-right bg-muted/30"
+                  value={parseFloat((hireRate || 0).toFixed(2))}
+                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
                 />
                 <span className="unit">$/d</span>
               </div>
@@ -89,18 +86,22 @@ export function CargoSection() {
             </div>
             <div className="form-field w-28">
               <label className="form-label flex items-center gap-1">
-                NTC
+                GTC
                 <InfoTooltip
-                  formula="NTC = GTC × (1 - TC Comm%). Drives Hire Cost."
-                  description="Net Time Charter (derived from GTC)"
+                  formula="GTC = NTC / (1 - TC Comm%)"
+                  description="Gross Time Charter"
                 />
               </label>
               <div className="input-with-unit">
                 <input
                   type="number"
-                  className="form-input-sm w-full font-mono text-right bg-muted/30"
-                  value={parseFloat((hireRate || 0).toFixed(2))}
-                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
+                  className="form-input-sm w-full font-mono text-right"
+                  value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
+                  onChange={(e) => {
+                    const gtc = parseFloat(e.target.value) || 0;
+                    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
+                    setHireRate(gtc * (1 - tc));
+                  }}
                 />
                 <span className="unit">$/d</span>
               </div>
@@ -121,6 +122,40 @@ export function CargoSection() {
                   }}
                 />
                 <span className="unit">$</span>
+              </div>
+            </div>
+            <div className="form-field w-28">
+              <label className="form-label flex items-center gap-1">
+                Gross BB
+                <InfoTooltip formula="Gross BB = Net BB / (1 - TC Comm%)" description="Gross Ballast Bonus" />
+              </label>
+              <div className="input-with-unit">
+                <input
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? netBB / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
+                  onChange={(e) => {
+                    const gross = parseFloat(e.target.value) || 0;
+                    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
+                    setNetBB(gross * (1 - tc));
+                  }}
+                />
+                <span className="unit">$</span>
+              </div>
+            </div>
+            <div className="form-field w-28">
+              <label className="form-label flex items-center gap-1">
+                Vessel cost
+                <InfoTooltip formula="Reference vessel cost $/d" description="Editable vessel cost reference" />
+              </label>
+              <div className="input-with-unit">
+                <input
+                  type="number"
+                  className="form-input-sm w-full font-mono text-right"
+                  value={vesselCost}
+                  onChange={(e) => setVesselCost(parseFloat(e.target.value) || 0)}
+                />
+                <span className="unit">$/d</span>
               </div>
             </div>
           </div>
@@ -153,6 +188,9 @@ export function CargoSection() {
               )}
               onCpOverride={(rowId, field, value) =>
                 updateCargoCpOverride(cargo.id, rowId, field, value)
+              }
+              onOpUpdate={(rowId, field, value) =>
+                updateCargoOpOverride(cargo.id, rowId, field, value)
               }
             />
           ))}
@@ -191,29 +229,49 @@ export function CargoSection() {
 // ─── Cargo Entry Card ──────────────────────────────────────────────
 
 interface CargoEntryCardProps {
-  cargo: {
-    id: number; rate: number; rateType: "mt" | "lumpsum"; quantity: number;
-    voyageCommission: number; tcCommission: number; demurrageRate: number; despatchRate: number;
-    demurrageAmount: number; despatchAmount: number; averageMode: "average" | "per_port" | "per_voyage";
-    ntcBase: number; gtcTarget: number; netBBOverride?: number; stowageFactor: number;
-    cpOverrides?: Record<number, { quantity?: number; productivity?: number }>;
-  };
+  cargo: CargoEntry;
   index: number;
   onUpdate: (field: string, value: number | string) => void;
   onRemove: () => void;
   canRemove: boolean;
   sequenceQuantity: number;
-  cpRows: Array<{
-    id: number; port: string; operation?: string; quantity: number; productivity: number;
-    distance: number; ecaDistance: number; distanceSpeedContext: string; ecaDistanceSpeedContext: string;
-    terms: string; turnTime: number; extraTime: number; expDa: number;
-  }>;
-  onCpOverride: (rowId: number, field: "quantity" | "productivity", value: number) => void;
+  cpRows: SequenceRowUI[];
+  onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
+  onOpUpdate: (
+    rowId: number,
+    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+    value: number | string,
+  ) => void;
 }
 
-function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride }: CargoEntryCardProps) {
+function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
-  
+
+  // ─── Auto-compute Demurrage / Despatch from TOTAL day-diff ───
+  // First sum all row differences for this cargo: Σ(CP days − Operational days).
+  // Only the final total decides demurrage/despatch: positive = despatch,
+  // negative = demurrage. A fast port can therefore offset a slow port.
+  const demurrageResult = useMemo(
+    () => calculateCargoDemurrageDespatchFromRows(cargo, cpRows),
+    [cargo, cpRows],
+  );
+  const perRowCalc = demurrageResult.rows;
+  const totalExtraDays = demurrageResult.totalExtraDays;
+  const totalDem = demurrageResult.demurrageAmount;
+  const totalDesp = demurrageResult.despatchAmount;
+
+
+  // Sync aggregated totals into the cargo entry so the engine picks them up.
+  useEffect(() => {
+    if (Math.abs((cargo.demurrageAmount || 0) - totalDem) > 0.01) {
+      onUpdate("demurrageAmount", parseFloat(totalDem.toFixed(2)));
+    }
+    if (Math.abs((cargo.despatchAmount || 0) - totalDesp) > 0.01) {
+      onUpdate("despatchAmount", parseFloat(totalDesp.toFixed(2)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalDem, totalDesp]);
+
   return (
     <div className="border border-border rounded p-2 bg-input-bg">
       <div className="flex flex-wrap gap-2 items-end">
@@ -256,15 +314,19 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
         <div className="form-field w-32">
           <label className="form-label flex items-center gap-1">
-            Gross Freight
-            <InfoTooltip formula="Rate × Qty (or Lumpsum)" description="Calculated" />
+            Lumpsum
+            <InfoTooltip formula="Used when rate type is Lump" description="Lumpsum freight value" />
           </label>
-          <input
-            type="text"
-            className="form-input-sm w-full font-mono text-right bg-muted/30"
-            value={(cargo.rateType === "lumpsum" ? cargo.rate : cargo.rate * cargoQuantity).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-            readOnly
-          />
+          <div className="input-with-unit">
+            <input
+              type="number"
+              className="form-input-sm w-full font-mono text-right"
+              value={cargo.rateType === "lumpsum" ? cargo.rate : 0}
+              onChange={(e) => onUpdate("rate", parseFloat(e.target.value) || 0)}
+              disabled={cargo.rateType !== "lumpsum"}
+            />
+            <span className="unit">$</span>
+          </div>
         </div>
 
         <div className="form-field w-24">
@@ -287,27 +349,39 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         <div className="form-field w-28">
           <label className="form-label flex items-center gap-1">
             Demurrage
-            <InfoTooltip formula="Demurrage Rate × Excess Days" description="Penalty" />
+            <InfoTooltip
+              formula="Auto = Rate ($/day) × Excess Port Days (Op over CP). Cost to charterer."
+              description="Demurrage rate per day"
+            />
           </label>
-          <input
-            type="number"
-            className="form-input-sm w-full font-mono text-right"
-            value={cargo.demurrageAmount}
-            onChange={(e) => onUpdate("demurrageAmount", parseFloat(e.target.value) || 0)}
-          />
+          <div className="input-with-unit">
+            <input
+              type="number"
+              className="form-input-sm w-full font-mono text-right"
+              value={cargo.demurrageRate}
+              onChange={(e) => onUpdate("demurrageRate", parseFloat(e.target.value) || 0)}
+            />
+            <span className="unit">$/d</span>
+          </div>
         </div>
 
         <div className="form-field w-28">
           <label className="form-label flex items-center gap-1">
             Despatch
-            <InfoTooltip formula="Despatch Rate × Saved Days" description="Bonus" />
+            <InfoTooltip
+              formula="Auto = Rate ($/day) × Saved Port Days (CP − Op). Earnings for charterer."
+              description="Despatch rate per day"
+            />
           </label>
-          <input
-            type="number"
-            className="form-input-sm w-full font-mono text-right"
-            value={cargo.despatchAmount}
-            onChange={(e) => onUpdate("despatchAmount", parseFloat(e.target.value) || 0)}
-          />
+          <div className="input-with-unit">
+            <input
+              type="number"
+              className="form-input-sm w-full font-mono text-right"
+              value={cargo.despatchRate}
+              onChange={(e) => onUpdate("despatchRate", parseFloat(e.target.value) || 0)}
+            />
+            <span className="unit">$/d</span>
+          </div>
         </div>
 
         <div className="form-field w-20">
@@ -325,71 +399,115 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
       </div>
 
-      {/* CP rows — shown only when demurrage > 0. Mirrors sequence row layout
-          with sky-blue highlight; Qty + MT/d are editable overrides. */}
-      {cpRows.length > 0 && (cargo.demurrageAmount || 0) > 0 && (
+      {/* Cargo operational rows: only load/discharge rows shown here are used for demurrage/despatch. */}
+      {cpRows.length > 0 && ((cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0) && (
         <div className="mt-1.5 rounded border border-sky-400 bg-sky-50 dark:bg-sky-950/30 p-1 space-y-1">
           {cpRows.map((r) => {
             const ov = cargo.cpOverrides?.[r.id] || {};
-            const qtyVal = ov.quantity !== undefined && ov.quantity !== null ? ov.quantity : r.quantity;
-            const prodVal = ov.productivity !== undefined && ov.productivity !== null ? ov.productivity : r.productivity;
+            const op = cargo.opOverrides?.[r.id] || {};
+            const opQty = op.quantity ?? r.quantity ?? 0;
+            const opProd = op.productivity ?? r.productivity ?? 0;
+            const opTerms = (op.terms ?? r.terms ?? "") as string;
+            const opFactor = op.coefficientFactor ?? r.coefficientFactor ?? 0;
+            const opTurn = op.turnTime ?? r.turnTime ?? 0;
+            const opExtra = op.extraTime ?? r.extraTime ?? 0;
+            const opCranes = op.cranes ?? r.cranes ?? 0;
+            const opExpDa = op.expDa ?? r.expDa ?? 0;
+            const calc = perRowCalc.find((x) => x.rowId === r.id);
+            const diffDays = calc?.diffDays || 0;
+            const demVal = ov.demurrage ?? cargo.demurrageRate ?? 0;
+            const despVal = ov.despatch ?? cargo.despatchRate ?? 0;
             const ro = "form-input-sm font-mono text-right bg-white/60 dark:bg-sky-900/40 cursor-default";
+            const edit = "form-input-sm w-full font-mono text-right border-sky-400 bg-white";
             return (
               <div key={r.id} className="flex flex-wrap gap-1 items-end">
+                <span className="w-4 pb-1 text-xs font-semibold">&gt;</span>
                 <div className="form-field w-10">
                   <label className="form-label">Op</label>
                   <input readOnly className={`${ro} w-full uppercase text-center`}
-                    value={r.operation === "loading" ? "L" : r.operation === "discharging" ? "D" : "-"} />
+                    value={r.operation === "loading" ? "load" : r.operation === "discharging" ? "disch" : "-"} />
                 </div>
                 <div className="form-field w-32">
                   <label className="form-label">Port</label>
                   <input readOnly className={`${ro} text-left w-full`} value={r.port || "—"} title={r.port} />
                 </div>
-                <div className="form-field w-20">
-                  <label className="form-label">V ({r.distanceSpeedContext})</label>
-                  <input readOnly className={`${ro} w-full`} value={r.distance || 0} />
-                </div>
-                <div className="form-field w-20">
-                  <label className="form-label">L ({r.ecaDistanceSpeedContext})</label>
-                  <input readOnly className={`${ro} w-full`} value={r.ecaDistance || 0} />
+                <div className="form-field w-24">
+                  <label className="form-label">Demurrage</label>
+                  <input type="number" className={edit} value={demVal} onChange={(e) => onCpOverride(r.id, "demurrage", parseFloat(e.target.value) || 0)} />
                 </div>
                 <div className="form-field w-24">
-                  <label className="form-label">Qty (mt)</label>
+                  <label className="form-label">Despatch</label>
+                  <input type="number" className={edit} value={despVal} onChange={(e) => onCpOverride(r.id, "despatch", parseFloat(e.target.value) || 0)} />
+                </div>
+                <div className="form-field w-10">
+                  <label className="form-label">C</label>
+                  <input type="number" className={edit} value={opCranes} onChange={(e) => onOpUpdate(r.id, "cranes", parseFloat(e.target.value) || 0)} />
+                </div>
+                <div className="form-field w-24">
+                  <label className="form-label">Quantity</label>
                   <input
                     type="number"
-                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
-                    value={qtyVal || 0}
-                    onChange={(e) => onCpOverride(r.id, "quantity", parseFloat(e.target.value) || 0)}
+                    className={edit}
+                    value={opQty}
+                    onChange={(e) => onOpUpdate(r.id, "quantity", parseFloat(e.target.value) || 0)}
                   />
                 </div>
                 <div className="form-field w-20">
                   <label className="form-label">MT/d</label>
                   <input
                     type="number"
-                    className="form-input-sm w-full font-mono text-right border-sky-400 bg-white"
-                    value={prodVal || 0}
-                    onChange={(e) => onCpOverride(r.id, "productivity", parseFloat(e.target.value) || 0)}
+                    className={edit}
+                    value={opProd}
+                    onChange={(e) => onOpUpdate(r.id, "productivity", parseFloat(e.target.value) || 0)}
                   />
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Terms</label>
-                  <input readOnly className={`${ro} w-full uppercase`} value={r.terms || "-"} />
+                  <input className={`${edit} uppercase`} value={opTerms} onChange={(e) => onOpUpdate(r.id, "terms", e.target.value)} />
                 </div>
                 <div className="form-field w-16">
-                  <label className="form-label">Turn (h)</label>
-                  <input readOnly className={`${ro} w-full`} value={r.turnTime || 0} />
+                  <label className="form-label">Factor</label>
+                  <input type="number" step="0.0001" className={edit} value={opFactor} onChange={(e) => onOpUpdate(r.id, "coefficientFactor", parseFloat(e.target.value) || 0)} />
                 </div>
                 <div className="form-field w-16">
-                  <label className="form-label">Extra (h)</label>
-                  <input readOnly className={`${ro} w-full`} value={r.extraTime || 0} />
+                  <label className="form-label">Tt</label>
+                  <input
+                    type="number"
+                    className={edit}
+                    value={opTurn}
+                    onChange={(e) => onOpUpdate(r.id, "turnTime", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-16">
+                  <label className="form-label">Et</label>
+                  <input
+                    type="number"
+                    className={edit}
+                    value={opExtra}
+                    onChange={(e) => onOpUpdate(r.id, "extraTime", parseFloat(e.target.value) || 0)}
+                  />
                 </div>
                 <div className="form-field w-20">
                   <label className="form-label">Exp DA</label>
-                  <input readOnly className={`${ro} w-full`} value={r.expDa || 0} />
+                  <input
+                    type="number"
+                    className={edit}
+                    value={opExpDa}
+                    onChange={(e) => onOpUpdate(r.id, "expDa", parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="form-field w-20">
+                  <label className="form-label">Δ Days</label>
+                  <input readOnly className={`${ro} w-full ${diffDays > 0 ? "text-green-600" : diffDays < 0 ? "text-red-600" : ""}`} value={diffDays.toFixed(2)} />
                 </div>
               </div>
             );
           })}
+          <div className="flex justify-end gap-3 border-t border-border pt-1 text-[10px] font-semibold">
+            <span>CP − Op time: <span className="font-mono">{totalExtraDays.toFixed(2)} d</span></span>
+            <span>Demurrage: <span className="font-mono">${Math.round(totalDem).toLocaleString()}</span></span>
+            <span>Despatch: <span className="font-mono">${Math.round(totalDesp).toLocaleString()}</span></span>
+          </div>
         </div>
       )}
     </div>
