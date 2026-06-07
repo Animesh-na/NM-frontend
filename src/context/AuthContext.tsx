@@ -2,18 +2,30 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { toast } from "@/hooks/use-toast";
 import { clearStoredAuthSession, getStoredAuthToken, isAuthTokenExpired, SESSION_EXPIRED_EVENT } from "@/utils/authToken";
 
+export type MfaMethod = "" | "email_otp" | "totp";
+
 interface AuthUser {
   id: string;
   email: string;
   role: string;
   expires_at: string | null;
+  mfa_method?: MfaMethod;
 }
+
+// login() result: either logged in, MFA pending (second step needed), or failed.
+type LoginResult =
+  | { success: true }
+  | { mfaRequired: true; challengeToken: string; mfaMethod: MfaMethod }
+  | { success: false; error: string };
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: AuthUser | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  verifyMfa: (challengeToken: string, code: string) => Promise<{ success: boolean; error?: string }>;
+  resendMfaCode: (challengeToken: string) => Promise<{ success: boolean; error?: string }>;
+  setUserMfaMethod: (method: MfaMethod) => void;
   logout: () => void;
 }
 
@@ -21,7 +33,10 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   user: null,
   token: null,
-  login: async () => ({ success: false }),
+  login: async () => ({ success: false, error: "Not initialized" }),
+  verifyMfa: async () => ({ success: false }),
+  resendMfaCode: async () => ({ success: false }),
+  setUserMfaMethod: () => {},
   logout: () => {},
 });
 
@@ -145,7 +160,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [handleSessionExpired]);
 
-  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  // Persist a successful auth result (used by both login and MFA verify).
+  const persistSession = useCallback((newToken: string, newUser: AuthUser) => {
+    sessionExpiredShownRef.current = false;
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem(STORAGE_KEY_TOKEN, newToken);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newUser));
+  }, []);
+
+  const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     try {
       const response = await fetch(
         `${SUPABASE_URL}/functions/v1/marine-api?endpoint=/auth/signin`,
@@ -161,17 +185,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        return { success: false, error: errData.error || errData.message || "Invalid credentials" };
+        const fallback = response.status === 403
+          ? "Your account is inactive or expired."
+          : "Invalid credentials";
+        return { success: false, error: errData.error || errData.message || fallback };
       }
 
       const data = await response.json();
 
+      // MFA on: backend returns a challenge instead of a token. Do NOT treat as
+      // logged in — the challenge token stays in caller memory only.
+      if (data.mfa_required && data.challenge_token) {
+        return {
+          mfaRequired: true,
+          challengeToken: data.challenge_token,
+          mfaMethod: (data.mfa_method || "") as MfaMethod,
+        };
+      }
+
       if (data.token && data.user) {
-        sessionExpiredShownRef.current = false;
-        setToken(data.token);
-        setUser(data.user);
-        localStorage.setItem(STORAGE_KEY_TOKEN, data.token);
-        localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user));
+        persistSession(data.token, data.user);
         return { success: true };
       }
 
@@ -180,6 +213,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Login error:", err);
       return { success: false, error: "Network error. Please try again." };
     }
+  }, [persistSession]);
+
+  // Step 2 of MFA login — exchange the challenge token + code for a session token.
+  const verifyMfa = useCallback(async (challengeToken: string, code: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/marine-api?endpoint=/auth/mfa/verify`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${SUPABASE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ challenge_token: challengeToken, code: code.replace(/\D/g, "") }),
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const fallback = {
+          401: "Invalid or expired code.",
+          403: "Your account is no longer active.",
+          429: "Too many attempts — request a new code.",
+        }[response.status] || "Verification failed.";
+        return { success: false, error: errData.error || errData.message || fallback };
+      }
+
+      const data = await response.json();
+      if (data.token && data.user) {
+        persistSession(data.token, data.user);
+        return { success: true };
+      }
+      return { success: false, error: "Invalid response from server" };
+    } catch (err) {
+      console.error("MFA verify error:", err);
+      return { success: false, error: "Network error. Please try again." };
+    }
+  }, [persistSession]);
+
+  // Email OTP only — request a fresh code during the login challenge.
+  const resendMfaCode = useCallback(async (challengeToken: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/marine-api?endpoint=/auth/mfa/resend`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${SUPABASE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ challenge_token: challengeToken }),
+        }
+      );
+
+      if (!response.ok) {
+        const fallback = response.status === 429
+          ? "Please wait a bit before requesting another code."
+          : "Could not resend the code.";
+        const errData = await response.json().catch(() => ({}));
+        return { success: false, error: errData.error || errData.message || fallback };
+      }
+      return { success: true };
+    } catch (err) {
+      console.error("MFA resend error:", err);
+      return { success: false, error: "Network error. Please try again." };
+    }
+  }, []);
+
+  // Keep the stored user's mfa_method in sync after enable/disable in settings.
+  const setUserMfaMethod = useCallback((method: MfaMethod) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, mfa_method: method };
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(next));
+      return next;
+    });
   }, []);
 
   const logout = useCallback(() => {
@@ -188,7 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearSession]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, verifyMfa, resendMfaCode, setUserMfaMethod, logout }}>
       {children}
     </AuthContext.Provider>
   );

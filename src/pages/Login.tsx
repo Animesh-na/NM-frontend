@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Ship, Loader2 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, type MfaMethod } from "@/context/AuthContext";
+import MfaVerifyForm from "@/components/mfa/MfaVerifyForm";
 import loginBg from "@/assets/login-bg.jpg";
 
 const Login = () => {
@@ -8,16 +9,19 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingMfa, setPendingMfa] = useState<{ challengeToken: string; method: MfaMethod } | null>(null);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    
+
     const result = await login(email, password);
-    
-    if (!result.success) {
+
+    if ("mfaRequired" in result) {
+      setPendingMfa({ challengeToken: result.challengeToken, method: result.mfaMethod });
+    } else if (!result.success) {
       setError(result.error || "Invalid login credentials");
     }
     setLoading(false);
@@ -31,6 +35,14 @@ const Login = () => {
       <div className="absolute inset-0 bg-black/40" />
       <div className="w-full max-w-sm relative z-10">
         <div className="bg-card/95 backdrop-blur-sm border border-border rounded-md shadow-lg p-6">
+          {pendingMfa ? (
+            <MfaVerifyForm
+              method={pendingMfa.method}
+              challengeToken={pendingMfa.challengeToken}
+              onBack={() => setPendingMfa(null)}
+            />
+          ) : (
+          <>
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-3">
@@ -84,6 +96,8 @@ const Login = () => {
               {loading ? "Signing in..." : "Login"}
             </button>
           </form>
+          </>
+          )}
         </div>
       </div>
     </div>

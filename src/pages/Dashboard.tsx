@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, Users, Calendar, Hash } from "lucide-react";
+import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, ShieldCheck, Users, Calendar, Hash } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
 import { listSheets, deleteSheet, type SheetListItem } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
+import MfaManageDialog from "@/components/mfa/MfaManageDialog";
+import MfaSetupGate from "@/components/mfa/MfaSetupGate";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -11,6 +13,8 @@ export default function Dashboard() {
   const { logout, user } = useAuth();
   const { openSheet, createNewSheet, setCurrentView } = useSheets();
   const isAdmin = user?.role === "admin";
+  const mfaEnabled = !!user?.mfa_method;
+  const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -93,6 +97,15 @@ export default function Dashboard() {
               <span>Admin Panel</span>
             </button>
           )}
+          <button
+            onClick={() => setMfaDialogOpen(true)}
+            className="flex items-center gap-1.5 h-7 px-3 rounded-md hover:bg-section-header-foreground/10 transition-colors text-xs font-medium text-section-header-foreground/70"
+            title="Two-factor authentication"
+          >
+            <ShieldCheck className={`h-3.5 w-3.5 ${mfaEnabled ? "text-green-500" : ""}`} />
+            <span>Security</span>
+            {!mfaEnabled && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+          </button>
           <button
             onClick={logout}
             className="flex items-center gap-1 h-7 px-2.5 rounded-md hover:bg-section-header-foreground/10 transition-colors text-section-header-foreground/70"
@@ -279,6 +292,9 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      <MfaManageDialog open={mfaDialogOpen} onOpenChange={setMfaDialogOpen} />
+      <MfaSetupGate onSetup={() => setMfaDialogOpen(true)} />
     </div>
   );
 }
