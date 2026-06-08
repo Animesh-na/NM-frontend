@@ -21,7 +21,7 @@ const Login = () => {
 
     if ("mfaRequired" in result) {
       setPendingMfa({ challengeToken: result.challengeToken, method: result.mfaMethod });
-    } else if (!result.success) {
+    } else if (result.success === false) {
       setError(result.error || "Invalid login credentials");
     }
     setLoading(false);
