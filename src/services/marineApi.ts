@@ -1,8 +1,7 @@
-// Marine API Service - calls via Edge Function proxy to avoid CORS
+// Marine API Service - calls upstream Marine API DIRECTLY (no Supabase proxy).
+// ⚠️ Requires upstream CORS allow-listing of every browser origin this app runs on.
 import { dispatchSessionExpired, getStoredAuthToken } from "@/utils/authToken";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+import { buildMarineUrl, marineHeaders } from "./apiConfig";
 
 // Types
 export interface VesselType {
@@ -41,50 +40,33 @@ export interface MarinePort {
   source_table?: string;
 }
 
-// Helper for API requests via Edge Function
+// Helper for direct API requests to the upstream Marine API
 export async function apiRequest<T>(
   endpoint: string,
   params?: Record<string, string | number>,
   options?: { method?: string; body?: unknown; authenticated?: boolean }
 ): Promise<T> {
-  const queryParams = new URLSearchParams({ endpoint });
-  
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        queryParams.append(key, String(value));
-      }
-    });
-  }
+  const extraHeaders: Record<string, string> = {};
 
-  const headers: Record<string, string> = {
-    'Authorization': `Bearer ${SUPABASE_KEY}`,
-    'Content-Type': 'application/json',
-  };
-
-  // Add JWT auth token for authenticated endpoints
   if (options?.authenticated !== false) {
     const token = getStoredAuthToken();
     if (!token) {
       dispatchSessionExpired();
       throw new Error("Session expired");
     }
-    headers['X-Auth-Token'] = token;
+    extraHeaders["Authorization"] = `Bearer ${token}`;
   }
 
   const fetchOptions: RequestInit = {
-    method: options?.method || 'GET',
-    headers,
+    method: options?.method || "GET",
+    headers: marineHeaders(extraHeaders),
   };
 
   if (options?.body) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(
-    `${SUPABASE_URL}/functions/v1/marine-api?${queryParams.toString()}`,
-    fetchOptions
-  );
+  const response = await fetch(buildMarineUrl(endpoint, params), fetchOptions);
 
   if (!response.ok) {
     if (response.status === 401 && typeof window !== "undefined") {

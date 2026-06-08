@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { clearStoredAuthSession, getStoredAuthToken, isAuthTokenExpired, SESSION_EXPIRED_EVENT } from "@/utils/authToken";
+import { buildMarineUrl, marineHeaders } from "@/services/apiConfig";
 
 export type MfaMethod = "" | "email_otp" | "totp";
 
@@ -39,9 +40,6 @@ const AuthContext = createContext<AuthContextType>({
   setUserMfaMethod: () => {},
   logout: () => {},
 });
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const STORAGE_KEY_TOKEN = "voyagecalc_token";
 const STORAGE_KEY_USER = "voyagecalc_user";
@@ -95,17 +93,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/marine-api?endpoint=/auth/validate`,
-        {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json",
-            "X-Auth-Token": currentToken,
-          },
-        }
-      );
+      const response = await fetch(buildMarineUrl("/auth/validate"), {
+        method: "GET",
+        headers: marineHeaders({ Authorization: `Bearer ${currentToken}` }),
+      });
 
       if (!response.ok) {
         handleSessionExpired();
@@ -171,17 +162,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/marine-api?endpoint=/auth/signin`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await fetch(buildMarineUrl("/auth/signin"), {
+        method: "POST",
+        headers: marineHeaders(),
+        body: JSON.stringify({ email, password }),
+      });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -218,17 +203,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Step 2 of MFA login — exchange the challenge token + code for a session token.
   const verifyMfa = useCallback(async (challengeToken: string, code: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/marine-api?endpoint=/auth/mfa/verify`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ challenge_token: challengeToken, code: code.replace(/\D/g, "") }),
-        }
-      );
+      const response = await fetch(buildMarineUrl("/auth/mfa/verify"), {
+        method: "POST",
+        headers: marineHeaders(),
+        body: JSON.stringify({ challenge_token: challengeToken, code: code.replace(/\D/g, "") }),
+      });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -255,17 +234,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Email OTP only — request a fresh code during the login challenge.
   const resendMfaCode = useCallback(async (challengeToken: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/marine-api?endpoint=/auth/mfa/resend`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ challenge_token: challengeToken }),
-        }
-      );
+      const response = await fetch(buildMarineUrl("/auth/mfa/resend"), {
+        method: "POST",
+        headers: marineHeaders(),
+        body: JSON.stringify({ challenge_token: challengeToken }),
+      });
 
       if (!response.ok) {
         const fallback = response.status === 429

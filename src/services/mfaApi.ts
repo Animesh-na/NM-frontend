@@ -3,9 +3,7 @@
 // X-Auth-Token. Unlike apiRequest in marineApi.ts, this surfaces the HTTP status
 // and parsed body on errors so callers can map 401/403/409/429/503 to UX.
 import { dispatchSessionExpired, getStoredAuthToken } from "@/utils/authToken";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+import { buildMarineUrl, marineHeaders } from "./apiConfig";
 
 export type MfaMethod = "" | "email_otp" | "totp";
 
@@ -51,21 +49,14 @@ async function mfaRequest<T>(
 
   const fetchOptions: RequestInit = {
     method: options?.method || "GET",
-    headers: {
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      "X-Auth-Token": token,
-    },
+    headers: marineHeaders({ Authorization: `Bearer ${token}` }),
   };
 
   if (options?.body !== undefined) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(
-    `${SUPABASE_URL}/functions/v1/marine-api?endpoint=${encodeURIComponent(endpoint)}`,
-    fetchOptions,
-  );
+  const response = await fetch(buildMarineUrl(endpoint), fetchOptions);
 
   const data = await response.json().catch(() => null);
 
