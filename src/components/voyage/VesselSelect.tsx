@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Ship, Loader2 } from "lucide-react";
+import { Search, Ship } from "lucide-react";
 import { 
   type VesselData, 
   type ConsumptionMatrix,
@@ -211,7 +211,6 @@ export function VesselSelect({
           placeholder={placeholder}
           className="form-input w-full pl-6 pr-6 text-xs"
         />
-        {loading && <Loader2 className="absolute right-6 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground" />}
         {search && (
           <button onClick={handleClear} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm">×</button>
         )}
@@ -221,10 +220,6 @@ export function VesselSelect({
         <div className="absolute z-50 top-full left-0 right-0 mt-1 min-w-[360px] max-h-64 overflow-auto rounded-sm border border-border bg-popover shadow-md">
           {search.length < 2 ? (
             <div className="px-3 py-2 text-xs text-muted-foreground">Type at least 2 characters to search...</div>
-          ) : loading ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-3 w-3 animate-spin" /> Searching vessels...
-            </div>
           ) : vessels.length === 0 ? (
             <div className="px-3 py-2 text-xs text-muted-foreground">No vessels found</div>
           ) : (
