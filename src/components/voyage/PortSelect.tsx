@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Search, MapPin, Loader2 } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchPorts as searchMarinePorts, type MarinePort } from "@/services/marineApi";
 import { isPortEuEea } from "@/utils/euCountries";
@@ -168,11 +168,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
         pointerEvents: 'auto',
       }}
     >
-      {loading ? (
-        <div className="px-3 py-3 text-xs text-muted-foreground flex items-center gap-2">
-          <Loader2 className="h-3 w-3 animate-spin" /> Searching ports...
-        </div>
-      ) : results.length === 0 ? (
+      {results.length === 0 ? (
         <div className="px-3 py-3 text-xs text-muted-foreground">
           {search.length < 2 ? "Type at least 2 characters to search" : "No ports found"}
         </div>
@@ -221,9 +217,6 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
           className="form-input-sm w-full pl-6 pr-6"
           autoComplete="off"
         />
-        {loading && (
-          <Loader2 className="absolute right-6 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground pointer-events-none" />
-        )}
         {search && (
           <button
             type="button"
