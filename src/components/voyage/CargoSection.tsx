@@ -31,20 +31,18 @@ export function CargoSection() {
   const validation = cargoValidation ?? { errors: [], hasErrors: false, usesExplicitMapping: false };
 
   return (
-    <div className="calc-card-compact">
+    <div className="calc-card-row">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header-compact w-full justify-between"
+        className="section-header-vertical"
+        title="Cargo"
       >
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4" />
-          <span>Cargo</span>
-        </div>
-        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+        <Package className="h-4 w-4" />
+        <span>Cargo</span>
       </button>
 
       {isExpanded && (
-        <div className="px-2 py-1 space-y-1">
+        <div className="flex-1 min-w-0 px-2 py-1 space-y-1">
           {/* Top summary fields */}
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field w-28">
