@@ -161,12 +161,19 @@
 
   /* Vertical (left-side) section header */
   .section-header-vertical {
-    @apply bg-section-header text-section-header-foreground px-1 py-2 text-[11px] font-semibold flex flex-col items-center gap-2 rounded-l-md self-stretch shrink-0 cursor-pointer hover:bg-section-header/90 transition-colors;
+    @apply text-white px-1 py-2 text-[11px] font-semibold flex flex-col items-center justify-center gap-2 rounded-l-md self-stretch shrink-0 cursor-pointer transition-colors;
+    background-color: #00204b;
     writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  .section-header-vertical:hover {
+    background-color: #003a7a;
   }
 
   .calc-card-row {
     @apply bg-muted rounded-md shadow-sm overflow-hidden flex items-stretch;
+    border: 1px solid #00204b;
   }
 
   /* Subsection headers */

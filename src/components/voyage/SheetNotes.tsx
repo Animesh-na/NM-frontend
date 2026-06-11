@@ -12,7 +12,6 @@ export function SheetNotes() {
         className="section-header-vertical"
         title="Notes"
       >
-        <FileText className="h-3.5 w-3.5" />
         <span>Notes</span>
       </button>
 

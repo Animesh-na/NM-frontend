@@ -147,7 +147,6 @@ export function VesselPanel() {
         className="section-header-vertical"
         title="Vessel"
       >
-        <Ship className="h-3.5 w-3.5" />
         <span>Vessel</span>
       </button>
 

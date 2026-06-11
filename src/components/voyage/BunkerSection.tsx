@@ -51,7 +51,6 @@ export function BunkerSection() {
         className="section-header-vertical"
         title="Bunker"
       >
-        <Fuel className="h-4 w-4" />
         <span>Bunker</span>
       </button>
 

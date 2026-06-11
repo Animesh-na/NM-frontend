@@ -98,7 +98,6 @@ export function JsonImportSection() {
         className="section-header-vertical"
         title="JSON Import / Export"
       >
-        <FileJson className="h-3.5 w-3.5" />
         <span>JSON</span>
       </button>
 
