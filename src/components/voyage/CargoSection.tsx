@@ -397,7 +397,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       </div>
 
       {/* Cargo operational rows: only load/discharge rows shown here are used for demurrage/despatch. */}
-      {cpRows.length > 0 && ((cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0) && (
+      {cpRows.length > 0 && (
         <div className="mt-1.5 rounded border border-sky-400 bg-sky-50 dark:bg-sky-950/30 p-1 space-y-1">
           {cpRows.map((r) => {
             const ov = cargo.cpOverrides?.[r.id] || {};
