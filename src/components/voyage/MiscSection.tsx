@@ -26,23 +26,18 @@ export function MiscSection() {
   const extraTimeLabels: Record<string, string> = { canal1: "Canal 1", canal2: "Canal 2", idlePort: "Port (idle)", atSea: "At Sea" };
 
   return (
-    <div className="calc-card-compact">
+    <div className="calc-card-row">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header-compact w-full justify-between"
+        className="section-header-vertical"
+        title="Misc & Extra Time"
       >
-        <div className="flex items-center gap-2">
-          <Settings className="h-4 w-4" />
-          <span>Misc & Extra Time</span>
-          <span className="text-[10px] font-normal text-muted-foreground ml-2">
-            ${(totalMiscCosts + totalCanalCosts).toLocaleString()} | {totalExtraTime.toFixed(1)}d
-          </span>
-        </div>
-        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+        <Settings className="h-4 w-4" />
+        <span>Misc</span>
       </button>
 
       {isExpanded && (
-        <div className="p-3 space-y-3">
+        <div className="flex-1 min-w-0 p-3 space-y-3">
           {/* Misc Costs - tabular */}
           <div className="border border-border rounded overflow-hidden">
             <table className="w-full text-xs">
