@@ -8,7 +8,7 @@ import {
 
 export function MiscSection() {
   const { misc, updateMisc, updateExtraTime, results } = useVoyageContext();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const totalMiscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
   const totalCanalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
