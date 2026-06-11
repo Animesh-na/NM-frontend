@@ -156,27 +156,18 @@ export function SequenceTable() {
   const thClass = "px-0 py-0.5 text-[8px] font-semibold text-foreground whitespace-nowrap text-center bg-table-header";
 
   return (
-    <div className="calc-card-compact">
+    <div className="calc-card-row">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header-compact w-full justify-between"
+        className="section-header-vertical"
+        title="Sequence"
       >
-        <div className="flex items-center gap-1.5">
-          <Ship className="h-3.5 w-3.5" />
-          <span>Sequence</span>
-          <span className={`text-[10px] font-normal px-2 py-0.5 rounded-full ${
-            vessel.speedProfile === "eco" 
-              ? "bg-success/10 text-success" 
-              : "bg-warning/10 text-warning"
-          }`}>
-            {vessel.speedProfile === "eco" ? "Eco" : "Full"}
-          </span>
-        </div>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+        <Ship className="h-3.5 w-3.5" />
+        <span>Sequence ({vessel.speedProfile === "eco" ? "Eco" : "Full"})</span>
       </button>
 
       {isExpanded && (
-        <div className="p-1">
+        <div className="flex-1 min-w-0 p-1">
           <div className="overflow-x-auto">
             <table className="w-full text-[10px]">
               <thead>
