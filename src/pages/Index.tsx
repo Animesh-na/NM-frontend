@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { CompactHeader } from "@/components/voyage/CompactHeader";
 import { SheetTabs } from "@/components/voyage/SheetTabs";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
@@ -12,12 +12,24 @@ import { VoyageSummary } from "@/components/voyage/VoyageSummary";
 import { VoyageTimeline } from "@/components/voyage/VoyageTimeline";
 import { useSheets } from "@/context/sheetContextCore";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, Ship, ListOrdered, Package, Fuel, Clock, FileText, FileJson } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { activeTab, activeTabIndex, saveCurrentSheet, markDirty, updateTabData } = useSheets();
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
+
+  const sections = [
+    { id: "vessel", label: "Vessel", icon: Ship, component: <VesselPanel /> },
+    { id: "sequence", label: "Sequence", icon: ListOrdered, component: <SequenceTable /> },
+    { id: "cargo", label: "Cargo", icon: Package, component: <CargoSection /> },
+    { id: "bunker", label: "Bunker", icon: Fuel, component: <BunkerSection /> },
+    { id: "misc", label: "Misc", icon: Clock, component: <MiscSection /> },
+    { id: "notes", label: "Notes", icon: FileText, component: <SheetNotes /> },
+    { id: "json", label: "JSON", icon: FileJson, component: <JsonImportSection /> },
+  ] as const;
+  const [activeSection, setActiveSection] = useState<string>("vessel");
 
   // Track which tab id we last loaded to detect tab switches
   const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
@@ -136,15 +148,37 @@ const Index = () => {
       
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-          <VesselPanel />
-          <SequenceTable />
-          <CargoSection />
-          <BunkerSection />
-          <MiscSection />
-          <SheetNotes />
-          <JsonImportSection />
+        {/* Vertical Section Nav */}
+        <nav className="w-20 flex-shrink-0 border-r border-border bg-card flex flex-col py-2 gap-1 overflow-y-auto">
+          {sections.map((s) => {
+            const Icon = s.icon;
+            const active = activeSection === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id)}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 mx-1 px-1 py-2 rounded text-[10px] font-medium transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+                title={s.label}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="leading-none">{s.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Active Section Content */}
+        <div className="flex-1 overflow-y-auto p-3">
+          {sections.map((s) => (
+            <div key={s.id} style={{ display: activeSection === s.id ? "block" : "none" }}>
+              {s.component}
+            </div>
+          ))}
         </div>
         
         {/* Right Panel - Summary */}
