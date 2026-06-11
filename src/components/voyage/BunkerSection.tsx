@@ -104,7 +104,8 @@ export function BunkerSection() {
             </div>
           </div>
 
-          {/* Port Bunkering - tabular */}
+          {/* Port Bunkering - tabular (only when bunkering ports exist in sequence) */}
+          {bunkeringPorts.length > 0 && (
           <div className="border border-border rounded overflow-hidden">
             <div className="subsection-header px-2 py-1 border-b border-border flex items-center justify-between">
               <span className="text-[10px] font-medium">Port Fuel Prices</span>
@@ -171,8 +172,10 @@ export function BunkerSection() {
               </table>
             )}
           </div>
+          )}
 
-          {/* Summary - inside collapsible */}
+          {/* Summary - only when bunkering ports exist */}
+          {bunkeringPorts.length > 0 && (
           <details className="border border-border rounded overflow-hidden">
             <summary className="subsection-header px-2 py-1 cursor-pointer text-[10px] font-medium flex items-center justify-between">
               <span>Summary</span>
@@ -205,6 +208,7 @@ export function BunkerSection() {
               </tbody>
             </table>
           </details>
+          )}
         </div>
       )}
     </div>
