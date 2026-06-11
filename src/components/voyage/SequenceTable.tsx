@@ -162,7 +162,6 @@ export function SequenceTable() {
         className="section-header-vertical"
         title="Sequence"
       >
-        <Ship className="h-3.5 w-3.5" />
         <span>Sequence ({vessel.speedProfile === "eco" ? "Eco" : "Full"})</span>
       </button>
 

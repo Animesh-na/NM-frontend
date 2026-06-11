@@ -32,7 +32,6 @@ export function MiscSection() {
         className="section-header-vertical"
         title="Misc & Extra Time"
       >
-        <Settings className="h-4 w-4" />
         <span>Misc</span>
       </button>
 

@@ -37,7 +37,6 @@ export function CargoSection() {
         className="section-header-vertical"
         title="Cargo"
       >
-        <Package className="h-4 w-4" />
         <span>Cargo</span>
       </button>
 
