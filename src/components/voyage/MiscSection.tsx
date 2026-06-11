@@ -37,10 +37,10 @@ export function MiscSection() {
       </button>
 
       {isExpanded && (
-        <div className="flex-1 min-w-0 p-3 space-y-3">
+        <div className="flex-1 min-w-0 p-3 space-y-3 overflow-x-auto">
           {/* Misc Costs - tabular */}
           <div className="border border-border rounded overflow-hidden">
-            <table className="w-full text-xs">
+            <table className="w-full text-xs table-fixed min-w-[560px]">
               <thead>
                 <tr className="subsection-header">
                   <th className="text-left px-2 py-1 text-[10px] font-medium">Misc Costs</th>
@@ -106,7 +106,7 @@ export function MiscSection() {
 
           {/* Extra Time - tabular */}
           <div className="border border-border rounded overflow-hidden">
-            <table className="w-full text-xs">
+            <table className="w-full text-xs table-fixed min-w-[480px]">
               <thead>
                 <tr className="subsection-header">
                   {extraTimeKeys.map(key => (
@@ -119,11 +119,11 @@ export function MiscSection() {
                 <tr className="border-t border-border">
                   {extraTimeKeys.map(key => (
                     <td key={key} className="px-1 py-0.5">
-                      <div className="flex items-center gap-0.5">
-                        <input type="number" className="form-input-sm flex-1 font-mono text-right text-xs"
+                      <div className="flex items-center gap-0.5 min-w-0">
+                        <input type="number" className="form-input-sm flex-1 min-w-0 font-mono text-right text-xs"
                           value={misc?.extraTime?.[key]?.value || ""} onChange={(e) => updateExtraTime(key, "value", parseFloat(e.target.value) || 0)} placeholder="0" />
                         <Select value={misc?.extraTime?.[key]?.unit || "days"} onValueChange={(value) => updateExtraTime(key, "unit", value)}>
-                          <SelectTrigger className="h-6 w-14 text-[10px]"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-6 w-12 shrink-0 text-[10px] px-1"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="days" className="text-xs">days</SelectItem>
                             <SelectItem value="hours" className="text-xs">hrs</SelectItem>

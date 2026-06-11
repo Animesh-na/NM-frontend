@@ -166,7 +166,7 @@
   }
 
   .calc-card-row {
-    @apply bg-card rounded-md shadow-sm overflow-hidden flex items-stretch;
+    @apply bg-muted rounded-md shadow-sm overflow-hidden flex items-stretch;
   }
 
   /* Subsection headers */
