@@ -159,6 +159,16 @@
     @apply bg-section-header text-section-header-foreground px-3 py-1.5 text-[11px] font-semibold flex items-center gap-2 rounded-t-md;
   }
 
+  /* Vertical (left-side) section header */
+  .section-header-vertical {
+    @apply bg-section-header text-section-header-foreground px-1 py-2 text-[11px] font-semibold flex flex-col items-center gap-2 rounded-l-md self-stretch shrink-0 cursor-pointer hover:bg-section-header/90 transition-colors;
+    writing-mode: vertical-rl;
+  }
+
+  .calc-card-row {
+    @apply bg-card rounded-md shadow-sm overflow-hidden flex items-stretch;
+  }
+
   /* Subsection headers */
   .subsection-header {
     @apply bg-subsection-header text-foreground px-2 py-1 text-[11px] font-medium;

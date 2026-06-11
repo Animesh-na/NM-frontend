@@ -92,22 +92,18 @@ export function JsonImportSection() {
   };
 
   return (
-    <div className="calc-card-compact">
+    <div className="calc-card-row">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header-compact w-full justify-between"
+        className="section-header-vertical"
+        title="JSON Import / Export"
       >
-        <div className="flex items-center gap-1.5">
-          <FileJson className="h-3.5 w-3.5" />
-          <span>JSON Import / Export</span>
-        </div>
-        <ChevronDown
-          className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`}
-        />
+        <FileJson className="h-3.5 w-3.5" />
+        <span>JSON</span>
       </button>
 
       {isExpanded && (
-        <div className="p-2 space-y-2">
+        <div className="flex-1 min-w-0 p-2 space-y-2">
           <textarea
             className="w-full h-40 font-mono text-xs bg-muted/30 border border-border rounded-md p-2 resize-y focus:outline-none focus:ring-1 focus:ring-primary"
             placeholder='Paste full voyage JSON here... e.g. { "vessel": {...}, "sequence": [...], "cargos": [...], "bunker": {...}, "misc": {...}, "hireRate": 8500, "vesselCost": 6500 }'
