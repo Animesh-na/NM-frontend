@@ -141,20 +141,18 @@ export function VesselPanel() {
   const currentMatrix = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
 
   return (
-    <div className="calc-card-compact">
+    <div className="calc-card-row">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="section-header-compact w-full justify-between"
+        className="section-header-vertical"
+        title="Vessel"
       >
-        <div className="flex items-center gap-2">
-          <Ship className="h-3.5 w-3.5" />
-          <span>Vessel</span>
-        </div>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+        <Ship className="h-3.5 w-3.5" />
+        <span>Vessel</span>
       </button>
 
       {isExpanded && (
-        <div className="px-3 py-2.5 space-y-2">
+        <div className="flex-1 min-w-0 px-3 py-2.5 space-y-2">
           {/* Row 1: Search + Particulars + Type/Sector/Speed */}
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field min-w-[120px] max-w-[200px] flex-1">
