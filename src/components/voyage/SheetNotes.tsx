@@ -2,7 +2,7 @@ import { FileText, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 export function SheetNotes() {
-  const [isExpanded, setIsExpanded] = useState(false); // Start collapsed
+  const [isExpanded, setIsExpanded] = useState(true);
   const [notes, setNotes] = useState("");
 
   return (

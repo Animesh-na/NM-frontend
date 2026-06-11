@@ -22,7 +22,7 @@ export function JsonImportSection() {
     vesselCost,
   } = useVoyageContext();
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [jsonInput, setJsonInput] = useState("");
 
   const handleImport = () => {

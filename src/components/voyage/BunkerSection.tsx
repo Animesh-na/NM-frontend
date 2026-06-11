@@ -16,7 +16,7 @@ export function BunkerSection() {
     updatePortBunkering, results, sequence 
   } = useVoyageContext();
   
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const bunkeringPorts = sequence.filter(row => row.operation === "bunkering" && row.port);
 
   const totalBunkeredHsfo = bunker.portBunkering.reduce((sum, p) => sum + p.hsfo.quantity, 0);
