@@ -75,8 +75,9 @@ export function calculateCargoDemurrageDespatchFromRows(
     // CP baseline = snapshotted CP values (set when an operational override is
     // first applied) falling back to the live sequence row when no snapshot exists.
     const cpDays = calculatePortDaysForDemurrage(row, cpOverride);
-    // Operational = live sequence row (operational edits now propagate to the row).
-    const opDays = calculatePortDaysForDemurrage(row);
+    // Operational = Cargo-section operational overrides only. The Sequence row
+    // remains the CP baseline and must not be mutated by these edits.
+    const opDays = calculatePortDaysForDemurrage(row, opOverride);
     const diffDays = Math.abs(cpDays - opDays) < 0.005 ? 0 : cpDays - opDays;
     const demurrageRate = cpOverride?.demurrage ?? cargo.demurrageRate ?? 0;
     const despatchRate = cpOverride?.despatch ?? cargo.despatchRate ?? 0;
