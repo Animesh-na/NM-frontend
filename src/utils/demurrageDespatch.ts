@@ -1,7 +1,16 @@
 import type { CargoEntry, SequenceRowUI } from "@/context/VoyageContext";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
 
-type CpOverride = { quantity?: number; productivity?: number; demurrage?: number; despatch?: number };
+type CpOverride = {
+  quantity?: number;
+  productivity?: number;
+  demurrage?: number;
+  despatch?: number;
+  turnTime?: number;
+  extraTime?: number;
+  terms?: string;
+  coefficientFactor?: number;
+};
 type OpOverride = {
   quantity?: number;
   productivity?: number;
@@ -63,16 +72,11 @@ export function calculateCargoDemurrageDespatchFromRows(
   const rowBreakdown = rows.filter((row) => isCargoOperation(row.operation)).map((row) => {
     const cpOverride = cargo.cpOverrides?.[row.id];
     const opOverride = cargo.opOverrides?.[row.id];
-    // CP baseline = visible Sequence values only. Cargo CP qty/productivity
-    // fields were removed, so any stale hidden overrides must not affect days.
-    const cpDays = calculatePortDaysForDemurrage(row);
-    // Operational = sequence value overridden by cargo-section op edits.
-    // If no operational override exists for this row, operational == CP (diff = 0).
-    // This avoids inventing extra/despatch time when the user has not entered anything.
-    const hasOpEdits = !!opOverride && ["quantity", "productivity", "turnTime", "extraTime", "terms", "coefficientFactor"].some(
-      (field) => (opOverride as Record<string, unknown>)[field] !== undefined,
-    );
-    const opDays = hasOpEdits ? calculatePortDaysForDemurrage(row, opOverride) : cpDays;
+    // CP baseline = snapshotted CP values (set when an operational override is
+    // first applied) falling back to the live sequence row when no snapshot exists.
+    const cpDays = calculatePortDaysForDemurrage(row, cpOverride);
+    // Operational = live sequence row (operational edits now propagate to the row).
+    const opDays = calculatePortDaysForDemurrage(row);
     const diffDays = Math.abs(cpDays - opDays) < 0.005 ? 0 : cpDays - opDays;
     const demurrageRate = cpOverride?.demurrage ?? cargo.demurrageRate ?? 0;
     const despatchRate = cpOverride?.despatch ?? cargo.despatchRate ?? 0;

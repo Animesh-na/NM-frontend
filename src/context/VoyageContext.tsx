@@ -140,7 +140,16 @@ export interface CargoEntry {
    * value coming from the sequence for calculation purposes — without
    * mutating the sequence row itself.
    */
-  cpOverrides?: Record<number, { quantity?: number; productivity?: number; demurrage?: number; despatch?: number }>;
+  cpOverrides?: Record<number, {
+    quantity?: number;
+    productivity?: number;
+    demurrage?: number;
+    despatch?: number;
+    turnTime?: number;
+    extraTime?: number;
+    terms?: string;
+    coefficientFactor?: number;
+  }>;
   /**
    * Cargo-level OPERATIONAL overrides for assigned sequence rows.
    * Keyed by sequence row id. These are the actual/operational values
@@ -923,6 +932,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   // Uses a ref to current vessel to avoid stale closures
   const vesselRef = useRef(vessel);
   vesselRef.current = vessel;
+  const sequenceRef = useRef(sequence);
+  sequenceRef.current = sequence;
 
    // Track the last computed port key per leg to avoid redundant API calls
    const lastComputedLegsRef = useRef<Map<number, string>>(new Map());
@@ -1379,24 +1390,56 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
       value: number | string,
     ) => {
-      setCargos((prev) =>
-        prev.map((c) =>
-          c.id !== cargoId
-            ? c
-            : {
-                ...c,
-                opOverrides: {
-                  ...(c.opOverrides || {}),
-                  [rowId]: {
-                    ...(c.opOverrides?.[rowId] || {}),
-                    [field]: value,
-                  },
-                },
+      // Fields whose CP baseline must be snapshotted before the row is mutated
+      // so demurrage/despatch comparison keeps using the original Charter Party values.
+      const cpSnapshotFields = new Set([
+        "quantity",
+        "productivity",
+        "turnTime",
+        "extraTime",
+        "terms",
+        "coefficientFactor",
+      ]);
+
+      // 1. Snapshot the current sequence-row value into cpOverrides (if not already set)
+      //    AND update the opOverrides record for UI tracking.
+      setCargos((prev) => {
+        const targetRow = sequenceRef.current.find((r) => r.id === rowId);
+        return prev.map((c) => {
+          if (c.id !== cargoId) return c;
+          const existingCp = c.cpOverrides?.[rowId] || {};
+          const newCp = { ...existingCp } as Record<string, number | string>;
+          if (cpSnapshotFields.has(field) && existingCp[field as keyof typeof existingCp] === undefined && targetRow) {
+            const rowVal = (targetRow as unknown as Record<string, number | string>)[field];
+            if (rowVal !== undefined) newCp[field] = rowVal;
+          }
+          return {
+            ...c,
+            cpOverrides: { ...(c.cpOverrides || {}), [rowId]: newCp },
+            opOverrides: {
+              ...(c.opOverrides || {}),
+              [rowId]: {
+                ...(c.opOverrides?.[rowId] || {}),
+                [field]: value,
               },
-        ),
-      );
+            },
+          };
+        });
+      });
+
+      // 2. Propagate the operational value to the sequence row itself so port days,
+      //    sea times, and fuel consumption all reflect the live operational input.
+      if (field === "cranes" || field === "expDa") {
+        // These don't drive port days; still update the row for display parity.
+        setSequence((prev) => prev.map((r) => (r.id === rowId ? { ...r, [field]: value as number } : r)));
+      } else {
+        setSequence((prev) => {
+          const updated = prev.map((r) => (r.id === rowId ? { ...r, [field]: value } : r));
+          return recalculateDerivedSequenceRows(updated, vesselRef.current, autoDistanceEnabled, departureUtc);
+        });
+      }
     },
-    [],
+    [autoDistanceEnabled, departureUtc],
   );
 
   const updateBunker = useCallback((fuelType: string, field: string, value: number) => {
