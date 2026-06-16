@@ -69,9 +69,10 @@ export function calculateCargoDemurrageDespatchFromRows(
   cargo: CargoEntry,
   rows: SequenceRowUI[],
 ): DemurrageDespatchCargoResult {
+  const isActive = (cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0;
   const rowBreakdown = rows.filter((row) => isCargoOperation(row.operation)).map((row) => {
     const cpOverride = cargo.cpOverrides?.[row.id];
-    const opOverride = cargo.opOverrides?.[row.id];
+    const opOverride = isActive ? cargo.opOverrides?.[row.id] : undefined;
     // CP baseline = snapshotted CP values (set when an operational override is
     // first applied) falling back to the live sequence row when no snapshot exists.
     const cpDays = calculatePortDaysForDemurrage(row, cpOverride);
@@ -79,8 +80,8 @@ export function calculateCargoDemurrageDespatchFromRows(
     // remains the CP baseline and must not be mutated by these edits.
     const opDays = calculatePortDaysForDemurrage(row, opOverride);
     const diffDays = Math.abs(cpDays - opDays) < 0.005 ? 0 : cpDays - opDays;
-    const demurrageRate = cpOverride?.demurrage ?? cargo.demurrageRate ?? 0;
-    const despatchRate = cpOverride?.despatch ?? cargo.despatchRate ?? 0;
+    const demurrageRate = isActive ? cpOverride?.demurrage ?? cargo.demurrageRate ?? 0 : 0;
+    const despatchRate = isActive ? cpOverride?.despatch ?? cargo.despatchRate ?? 0 : 0;
     return {
       rowId: row.id,
       port: row.port,
