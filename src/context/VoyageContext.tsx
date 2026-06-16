@@ -1390,8 +1390,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
       value: number | string,
     ) => {
-      // Fields whose CP baseline must be snapshotted before the row is mutated
-      // so demurrage/despatch comparison keeps using the original Charter Party values.
+      // Fields whose CP baseline must be snapshotted before operational values are entered
+      // so demurrage/despatch comparison keeps using the original Sequence/CP values.
       const cpSnapshotFields = new Set([
         "quantity",
         "productivity",
@@ -1401,8 +1401,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         "coefficientFactor",
       ]);
 
-      // 1. Snapshot the current sequence-row value into cpOverrides (if not already set)
-      //    AND update the opOverrides record for UI tracking.
+      // Snapshot the current sequence-row value into cpOverrides (if not already set)
+      // and store the operational value separately. Do NOT mutate sequence rows here;
+      // the Sequence section remains the CP baseline, while calculations can consume
+      // active operational overrides from cargo.opOverrides.
       setCargos((prev) => {
         const targetRow = sequenceRef.current.find((r) => r.id === rowId);
         return prev.map((c) => {
@@ -1426,20 +1428,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
           };
         });
       });
-
-      // 2. Propagate the operational value to the sequence row itself so port days,
-      //    sea times, and fuel consumption all reflect the live operational input.
-      if (field === "cranes" || field === "expDa") {
-        // These don't drive port days; still update the row for display parity.
-        setSequence((prev) => prev.map((r) => (r.id === rowId ? { ...r, [field]: value as number } : r)));
-      } else {
-        setSequence((prev) => {
-          const updated = prev.map((r) => (r.id === rowId ? { ...r, [field]: value } : r));
-          return recalculateDerivedSequenceRows(updated, vesselRef.current, autoDistanceEnabled, departureUtc);
-        });
-      }
     },
-    [autoDistanceEnabled, departureUtc],
+    [],
   );
 
   const updateBunker = useCallback((fuelType: string, field: string, value: number) => {
@@ -1580,12 +1570,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   const voyageInputs: VoyageInputs = {
     vessel,
     sequence: sequence.map(row => {
-      // Operational overrides (entered in CargoSection) DO affect actual port
-      // days, fuel consumption, and downstream voyage costs. CP overrides
-      // remain reference-only (for demurrage/despatch comparison).
-      // Find the first cargo with an opOverride for this row.
+      // Operational overrides (entered in CargoSection) affect actual expenses,
+      // fuel, and port days only while demurrage/despatch is active. Sequence rows
+      // stay untouched and remain the CP baseline. If rates are reset to 0, ignore
+      // opOverrides and calculate from Sequence again.
       let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
       for (const c of cargos) {
+        const cargoDdActive = (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0;
+        if (!cargoDdActive) continue;
         const o = c.opOverrides?.[row.id];
         if (o && Object.keys(o).length > 0) { opOv = o; break; }
       }
