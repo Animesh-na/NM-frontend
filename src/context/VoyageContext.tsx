@@ -932,6 +932,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   // Uses a ref to current vessel to avoid stale closures
   const vesselRef = useRef(vessel);
   vesselRef.current = vessel;
+  const sequenceRef = useRef(sequence);
+  sequenceRef.current = sequence;
 
    // Track the last computed port key per leg to avoid redundant API calls
    const lastComputedLegsRef = useRef<Map<number, string>>(new Map());
