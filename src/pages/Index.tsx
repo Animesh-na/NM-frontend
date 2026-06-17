@@ -39,7 +39,8 @@ const Index = () => {
     applyEuaImpact: voyage.applyEuaImpact,
     applyFuelEuImpact: voyage.applyFuelEuImpact,
     departureUtc: voyage.departureUtc,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact]);
+    autoDistanceEnabled: voyage.autoDistanceEnabled,
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.autoDistanceEnabled]);
 
   // Snapshot current voyage data back to the previous tab when switching tabs
   useEffect(() => {
@@ -86,6 +87,7 @@ const Index = () => {
       if (d.applyEuaImpact !== undefined) voyage.setApplyEuaImpact(d.applyEuaImpact);
       if (d.applyFuelEuImpact !== undefined) voyage.setApplyFuelEuImpact(d.applyFuelEuImpact);
       if (d.departureUtc !== undefined) voyage.setDepartureUtc(d.departureUtc as string);
+      voyage.setAutoDistanceEnabled(d.autoDistanceEnabled === true);
     } else {
       // New empty sheet — reset all state
       resetState();
