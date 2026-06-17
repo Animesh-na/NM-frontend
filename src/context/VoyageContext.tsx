@@ -1229,6 +1229,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     });
     setHireRate(0);
     setVesselCost(0);
+    setNotes("");
   }, []);
 
   // Track the previous portCoordsKey to detect actual changes vs initial hydration
