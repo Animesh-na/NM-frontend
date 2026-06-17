@@ -249,6 +249,9 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {sheets.map((sheet, idx) => (
+                      (() => {
+                      const isOwn = !!sheet.owner_email && !!user?.email && sheet.owner_email.toLowerCase() === user.email.toLowerCase();
+                      return (
                       <tr
                         key={sheet.id}
                         className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer group"
@@ -259,8 +262,11 @@ export default function Dashboard() {
                         </td>
                         <td className="px-4 py-2.5 font-medium text-foreground group-hover:text-primary transition-colors">
                           {sheet.name}
-                          {tab === "org" && (
+                          {tab === "org" && !isOwn && (
                             <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-semibold uppercase">Read-only</span>
+                          )}
+                          {tab === "org" && isOwn && (
+                            <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-semibold uppercase">Yours</span>
                           )}
                         </td>
                         {(isAdmin || tab === "org") && (
@@ -277,9 +283,9 @@ export default function Dashboard() {
                               onClick={() => handleOpen(sheet)}
                               className="btn-primary h-6 px-3 text-[11px] rounded"
                             >
-                              {tab === "org" ? "View" : "Open"}
+                              {tab === "org" && !isOwn ? "View" : "Open"}
                             </button>
-                            {tab === "mine" && (
+                            {(tab === "mine" || isOwn) && (
                               <button
                                 onClick={() => handleDelete(sheet)}
                                 className="h-6 w-6 flex items-center justify-center text-destructive/60 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
@@ -291,6 +297,8 @@ export default function Dashboard() {
                           </div>
                         </td>
                       </tr>
+                      );
+                      })()
                     ))}
                   </tbody>
                 </table>
