@@ -186,10 +186,26 @@ export default function Dashboard() {
 
           {/* Title + Create */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              My Sheets
-            </h2>
+            <div className="flex items-center gap-1 border border-border rounded-md p-0.5 bg-card">
+              <button
+                onClick={() => setTab("mine")}
+                className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
+                  tab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                My Sheets
+              </button>
+              <button
+                onClick={() => setTab("org")}
+                className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
+                  tab === "org" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <Users className="h-3.5 w-3.5" />
+                Organization Sheets
+              </button>
+            </div>
             <button
               onClick={handleCreate}
               className="btn-primary flex items-center gap-1.5 h-8 px-4 text-xs rounded-md"
@@ -225,7 +241,7 @@ export default function Dashboard() {
                     <tr className="bg-table-header text-muted-foreground text-xs">
                       <th className="text-left px-4 py-2.5 font-medium w-12">#</th>
                       <th className="text-left px-4 py-2.5 font-medium">Sheet Name</th>
-                      {isAdmin && <th className="text-left px-4 py-2.5 font-medium">Owner</th>}
+                      {(isAdmin || tab === "org") && <th className="text-left px-4 py-2.5 font-medium">Owner</th>}
                       <th className="text-left px-4 py-2.5 font-medium">Last Updated</th>
                       <th className="text-right px-4 py-2.5 font-medium">Actions</th>
                     </tr>
@@ -242,8 +258,11 @@ export default function Dashboard() {
                         </td>
                         <td className="px-4 py-2.5 font-medium text-foreground group-hover:text-primary transition-colors">
                           {sheet.name}
+                          {tab === "org" && (
+                            <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-semibold uppercase">Read-only</span>
+                          )}
                         </td>
-                        {isAdmin && (
+                        {(isAdmin || tab === "org") && (
                           <td className="px-4 py-2.5 text-muted-foreground text-xs">
                             {sheet.owner_email || "—"}
                           </td>
@@ -257,15 +276,17 @@ export default function Dashboard() {
                               onClick={() => handleOpen(sheet)}
                               className="btn-primary h-6 px-3 text-[11px] rounded"
                             >
-                              Open
+                              {tab === "org" ? "View" : "Open"}
                             </button>
-                            <button
-                              onClick={() => handleDelete(sheet)}
-                              className="h-6 w-6 flex items-center justify-center text-destructive/60 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
-                              title="Delete sheet"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            {tab === "mine" && (
+                              <button
+                                onClick={() => handleDelete(sheet)}
+                                className="h-6 w-6 flex items-center justify-center text-destructive/60 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                title="Delete sheet"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
