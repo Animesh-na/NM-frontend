@@ -242,6 +242,17 @@ export async function listSheets(page: number = 1, limit: number = 10): Promise<
   }
 }
 
+// 5b. List organization sheets (read-only view of other users' sheets in the org)
+export async function listOrganizationSheets(page: number = 1, limit: number = 10): Promise<SheetListResponse> {
+  try {
+    const data = await apiRequest<SheetListResponse>("/organization/sheets", { page, limit }, { authenticated: true });
+    return data;
+  } catch (error) {
+    console.error("Failed to list organization sheets:", error);
+    return { sheets: [], pagination: { total: 0, page, limit, total_pages: 1 } };
+  }
+}
+
 // 6. Save (create) a new sheet
 export async function saveSheet(name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
   try {

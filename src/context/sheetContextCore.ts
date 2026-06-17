@@ -6,6 +6,7 @@ export interface SheetTab {
   data: Record<string, unknown>;
   isDirty: boolean;
   isLoading: boolean;
+  readOnly?: boolean; // true for organization sheets owned by other users
 }
 
 export interface SheetContextValue {
@@ -23,6 +24,7 @@ export interface SheetContextValue {
   createNewSheet: () => void;
   copyCurrentSheet: () => void;
   openSheet: (id: string, name: string) => void;
+  openOrganizationSheet: (id: string, name: string) => void;
   closeTab: (index: number) => boolean; // returns false if user cancels
   saveCurrentSheet: (name: string, data: Record<string, unknown>) => Promise<void>;
   markDirty: () => void;
