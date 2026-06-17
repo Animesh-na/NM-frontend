@@ -39,7 +39,8 @@ const Index = () => {
     applyEuaImpact: voyage.applyEuaImpact,
     applyFuelEuImpact: voyage.applyFuelEuImpact,
     departureUtc: voyage.departureUtc,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact]);
+    autoDistanceEnabled: voyage.autoDistanceEnabled,
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.autoDistanceEnabled]);
 
   // Snapshot current voyage data back to the previous tab when switching tabs
   useEffect(() => {
@@ -86,6 +87,7 @@ const Index = () => {
       if (d.applyEuaImpact !== undefined) voyage.setApplyEuaImpact(d.applyEuaImpact);
       if (d.applyFuelEuImpact !== undefined) voyage.setApplyFuelEuImpact(d.applyFuelEuImpact);
       if (d.departureUtc !== undefined) voyage.setDepartureUtc(d.departureUtc as string);
+      voyage.setAutoDistanceEnabled(d.autoDistanceEnabled === true);
     } else {
       // New empty sheet — reset all state
       resetState();
@@ -141,9 +143,12 @@ const Index = () => {
       )}
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex overflow-hidden ${activeTab?.readOnly ? 'pointer-events-none select-none opacity-95' : ''}`}>
+      <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+        <div
+          className="flex-1 overflow-y-auto p-3 space-y-2.5"
+          {...(activeTab?.readOnly ? { inert: "" as unknown as undefined } : {})}
+        >
           <VesselPanel />
           <SequenceTable />
           <CargoSection />
@@ -154,7 +159,10 @@ const Index = () => {
         </div>
         
         {/* Right Panel - Summary */}
-        <div className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background">
+        <div
+          className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background"
+          {...(activeTab?.readOnly ? { inert: "" as unknown as undefined } : {})}
+        >
           <div className="p-2">
             <VoyageSummary />
             <div className="mt-2">

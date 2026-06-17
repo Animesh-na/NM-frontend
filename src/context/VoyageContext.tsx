@@ -805,7 +805,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   const [vesselCost, setVesselCost] = useState(() =>
     initialData?.vesselCost != null ? Number(initialData.vesselCost) : 6500
   );
-  const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(true);
+  const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(() =>
+    initialData?.autoDistanceEnabled === true
+  );
   const [applyEuaImpact, setApplyEuaImpact] = useState(() =>
     initialData?.applyEuaImpact === true
   );
