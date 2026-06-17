@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, ShieldCheck, Users, Calendar, Hash } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
-import { listSheets, deleteSheet, type SheetListItem } from "@/services/marineApi";
+import { listSheets, listOrganizationSheets, deleteSheet, type SheetListItem } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
@@ -11,10 +11,11 @@ const ITEMS_PER_PAGE = 10;
 
 export default function Dashboard() {
   const { logout, user } = useAuth();
-  const { openSheet, createNewSheet, setCurrentView } = useSheets();
+  const { openSheet, openOrganizationSheet, createNewSheet, setCurrentView } = useSheets();
   const isAdmin = user?.role === "admin";
   const mfaEnabled = !!user?.mfa_method;
   const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
+  const [tab, setTab] = useState<"mine" | "org">("mine");
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -24,7 +25,9 @@ export default function Dashboard() {
   const fetchSheets = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listSheets(page, ITEMS_PER_PAGE);
+      const res = tab === "mine"
+        ? await listSheets(page, ITEMS_PER_PAGE)
+        : await listOrganizationSheets(page, ITEMS_PER_PAGE);
       setSheets(res.sheets || []);
       setTotal(res.pagination?.total || 0);
     } catch {
@@ -32,18 +35,25 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, tab]);
 
   useEffect(() => {
     fetchSheets();
   }, [fetchSheets]);
+
+  // Reset to page 1 when switching tabs
+  useEffect(() => { setPage(1); }, [tab]);
 
   const handleCreate = () => {
     createNewSheet();
   };
 
   const handleOpen = (sheet: SheetListItem) => {
-    openSheet(sheet.id, sheet.name);
+    if (tab === "org") {
+      openOrganizationSheet(sheet.id, sheet.name);
+    } else {
+      openSheet(sheet.id, sheet.name);
+    }
   };
 
   const handleDelete = async (sheet: SheetListItem) => {
