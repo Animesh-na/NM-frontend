@@ -81,7 +81,7 @@ export async function apiRequest<T>(
 // 1. Get Vessel Types
 export async function getVesselTypes(): Promise<VesselType[]> {
   try {
-    const data = await apiRequest<{ types: VesselType[] }>("/vessel-types", undefined, { authenticated: false });
+    const data = await apiRequest<{ types: VesselType[] }>("/vessel-types", undefined, { authenticated: true });
     return data.types || [];
   } catch (error) {
     console.error("Failed to fetch vessel types:", error);
@@ -100,7 +100,7 @@ export async function searchVessels(
     if (typeId) {
       params.type_id = typeId;
     }
-    const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels/search", params, { authenticated: false });
+    const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels/search", params, { authenticated: true });
     return data.vessels || [];
   } catch (error) {
     console.error("Failed to search vessels:", error);
@@ -111,7 +111,7 @@ export async function searchVessels(
 // 3. Search Ports
 export async function searchPorts(query: string, limit: number = 10): Promise<MarinePort[]> {
   try {
-    const data = await apiRequest<{ ports: MarinePort[] }>("/ports/search", { q: query }, { authenticated: false });
+    const data = await apiRequest<{ ports: MarinePort[] }>("/ports/search", { q: query }, { authenticated: true });
     return data.ports || [];
   } catch (error) {
     console.error("Failed to search ports:", error);
