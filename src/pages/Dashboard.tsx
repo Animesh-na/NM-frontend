@@ -49,7 +49,8 @@ export default function Dashboard() {
   };
 
   const handleOpen = (sheet: SheetListItem) => {
-    if (tab === "org") {
+    const isOwn = !!sheet.owner_email && !!user?.email && sheet.owner_email.toLowerCase() === user.email.toLowerCase();
+    if (tab === "org" && !isOwn) {
       openOrganizationSheet(sheet.id, sheet.name);
     } else {
       openSheet(sheet.id, sheet.name);
