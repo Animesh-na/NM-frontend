@@ -143,9 +143,12 @@ const Index = () => {
       )}
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex overflow-hidden ${activeTab?.readOnly ? 'pointer-events-none select-none opacity-95' : ''}`}>
+      <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+        <div
+          className="flex-1 overflow-y-auto p-3 space-y-2.5"
+          {...(activeTab?.readOnly ? { inert: "" as unknown as undefined } : {})}
+        >
           <VesselPanel />
           <SequenceTable />
           <CargoSection />
@@ -156,7 +159,10 @@ const Index = () => {
         </div>
         
         {/* Right Panel - Summary */}
-        <div className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background">
+        <div
+          className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background"
+          {...(activeTab?.readOnly ? { inert: "" as unknown as undefined } : {})}
+        >
           <div className="p-2">
             <VoyageSummary />
             <div className="mt-2">
