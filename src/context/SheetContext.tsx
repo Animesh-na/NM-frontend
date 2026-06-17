@@ -32,6 +32,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       data: JSON.parse(JSON.stringify(current.data)),
       isDirty: true,
       isLoading: false,
+      readOnly: false,
     };
     setTabs(prev => [...prev, copiedTab]);
     setActiveTabIndex(tabs.length);
@@ -76,6 +77,46 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const openOrganizationSheet = useCallback(async (id: string, name: string) => {
+    // Open an organization sheet as a read-only tab. We use a synthetic tab id
+    // (prefixed with "org:") so it can't collide with an editable sheet of the
+    // same id and so save/update calls won't accidentally overwrite the original.
+    const tabKey = `org:${id}`;
+    setTabs(prev => {
+      const existingIdx = prev.findIndex(t => t.id === tabKey);
+      if (existingIdx >= 0) {
+        setActiveTabIndex(existingIdx);
+        setCurrentView("editor");
+        return prev;
+      }
+      const loadingTab: SheetTab = {
+        id: tabKey,
+        name: `${name} (Read-only)`,
+        data: {},
+        isDirty: false,
+        isLoading: true,
+        readOnly: true,
+      };
+      const newIndex = prev.length;
+      setActiveTabIndex(newIndex);
+      setCurrentView("editor");
+      return [...prev, loadingTab];
+    });
+
+    try {
+      const detail = await getSheet(id);
+      if (detail) {
+        setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, data: detail.data || {}, isLoading: false } : t));
+      } else {
+        toast.error("Failed to load organization sheet");
+        setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, isLoading: false } : t));
+      }
+    } catch {
+      toast.error("Failed to load organization sheet");
+      setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, isLoading: false } : t));
+    }
+  }, []);
+
   const closeTab = useCallback((index: number): boolean => {
     const tab = tabs[index];
     if (tab?.isDirty) {
@@ -102,10 +143,14 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   const saveCurrentSheet = useCallback(async (name: string, data: Record<string, unknown>) => {
     const tab = tabs[activeTabIndex];
     if (!tab) return;
+    if (tab.readOnly) {
+      toast.error("This sheet is read-only. Use 'Copy Sheet' to make an editable copy.");
+      return;
+    }
 
     try {
       let result: SheetDetail | null;
-      if (tab.id) {
+      if (tab.id && !tab.id.startsWith("org:")) {
         // Update existing
         result = await updateSheet(tab.id, name, data);
       } else {
@@ -131,7 +176,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   }, [tabs, activeTabIndex]);
 
   const markDirty = useCallback(() => {
-    setTabs(prev => prev.map((t, i) => i === activeTabIndex ? { ...t, isDirty: true } : t));
+    setTabs(prev => prev.map((t, i) => (i === activeTabIndex && !t.readOnly) ? { ...t, isDirty: true } : t));
   }, [activeTabIndex]);
 
   const goToDashboard = useCallback(() => {
@@ -150,7 +195,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     <SheetContext.Provider value={{
       currentView, setCurrentView,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
-      createNewSheet, copyCurrentSheet, openSheet, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
+      createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
     }}>
       {children}
     </SheetContext.Provider>
