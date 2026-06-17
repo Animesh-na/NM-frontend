@@ -1,6 +1,7 @@
 // Vessel Fuel Consumption API Service — calls upstream directly + computes
 // fuel TPD client-side (previously done inside the vessel-fuel-api edge function).
 import { buildMarineUrl, marineHeaders } from "./apiConfig";
+import { dispatchSessionExpired, getStoredAuthToken } from "@/utils/authToken";
 
 const AE_SFOC = 181; // g/kWh standard for auxiliary engines
 
@@ -66,8 +67,20 @@ function computeConsumption(mcr: number, sfoc: number, scrubber: boolean, mode: 
 }
 
 async function upstream<T>(endpoint: string, params?: Record<string, string | number>): Promise<T> {
-  const res = await fetch(buildMarineUrl(endpoint, params), { headers: marineHeaders() });
-  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  const token = getStoredAuthToken();
+  if (!token) {
+    dispatchSessionExpired();
+    throw new Error("Session expired");
+  }
+  const res = await fetch(buildMarineUrl(endpoint, params), {
+    headers: marineHeaders({ Authorization: `Bearer ${token}` }),
+  });
+  if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      dispatchSessionExpired();
+    }
+    throw new Error(`API ${res.status}: ${res.statusText}`);
+  }
   return res.json();
 }
 
