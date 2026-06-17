@@ -1768,6 +1768,8 @@ export function useVoyageContext() {
       setDistanceSuppressed: () => {},
       departureUtc: "",
       setDepartureUtc: () => {},
+      notes: "",
+      setNotes: () => {},
       cargos: [],
       setCargos: () => {},
       addCargo: () => {},
