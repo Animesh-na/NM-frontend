@@ -1732,6 +1732,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         setDistanceSuppressed,
         departureUtc,
         setDepartureUtc,
+        notes,
+        setNotes,
       }}
     >
       {children}
