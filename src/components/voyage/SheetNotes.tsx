@@ -1,9 +1,10 @@
 import { FileText, ChevronDown } from "lucide-react";
 import { useState } from "react";
+import { useVoyageContext } from "@/context/VoyageContext";
 
 export function SheetNotes() {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [notes, setNotes] = useState("");
+  const { notes, setNotes } = useVoyageContext();
 
   return (
     <div className="calc-card-row">

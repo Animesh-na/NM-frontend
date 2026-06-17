@@ -244,6 +244,8 @@ interface VoyageContextValue {
    
    // Reset all state to defaults
    resetState: () => void;
+  notes: string;
+  setNotes: (value: string) => void;
    
    // Calculated results
    results: VoyageResults;
@@ -818,6 +820,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   const [departureUtc, setDepartureUtc] = useState(() =>
     (initialData?.departureUtc as string) || ""
   );
+  const [notes, setNotes] = useState<string>(() =>
+    typeof initialData?.notes === "string" ? (initialData.notes as string) : ""
+  );
 
   // Recalculate derived port days and sea times whenever vessel changes
   useEffect(() => {
@@ -1224,6 +1229,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     });
     setHireRate(0);
     setVesselCost(0);
+    setNotes("");
   }, []);
 
   // Track the previous portCoordsKey to detect actual changes vs initial hydration
@@ -1727,6 +1733,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         setDistanceSuppressed,
         departureUtc,
         setDepartureUtc,
+        notes,
+        setNotes,
       }}
     >
       {children}
@@ -1761,6 +1769,8 @@ export function useVoyageContext() {
       setDistanceSuppressed: () => {},
       departureUtc: "",
       setDepartureUtc: () => {},
+      notes: "",
+      setNotes: () => {},
       cargos: [],
       setCargos: () => {},
       addCargo: () => {},
