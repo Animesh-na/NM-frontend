@@ -76,7 +76,7 @@ export function SheetTabs() {
       </button>
 
       {/* Save Button */}
-      {activeTab && (
+      {activeTab && !activeTab.readOnly && (
         <div className="ml-auto flex items-center gap-1.5">
           {savingName ? (
             <div className="flex items-center gap-1.5">
@@ -100,6 +100,13 @@ export function SheetTabs() {
               <span>Save</span>
             </button>
           )}
+        </div>
+      )}
+      {activeTab?.readOnly && (
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-semibold uppercase tracking-wide">
+            Read-only · Organization sheet
+          </span>
         </div>
       )}
     </div>
