@@ -133,9 +133,15 @@ const Index = () => {
       
       {/* Sheet Tabs */}
       <SheetTabs />
-      
+
+      {activeTab?.readOnly && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30 text-amber-700 dark:text-amber-300 px-3 py-1.5 text-[11px] flex items-center justify-between flex-shrink-0">
+          <span>This sheet belongs to another user in your organization and is read-only. Use <strong>Copy Sheet</strong> to create your own editable copy.</span>
+        </div>
+      )}
+
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className={`flex-1 flex overflow-hidden ${activeTab?.readOnly ? 'pointer-events-none select-none opacity-95' : ''}`}>
         {/* Left Panel */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
           <VesselPanel />
@@ -166,7 +172,7 @@ const Index = () => {
           <span>Session: {new Date().toLocaleTimeString()}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <button
+          {!activeTab?.readOnly && <button
             className="bg-primary/80 text-primary-foreground px-2.5 py-0.5 rounded text-[10px] font-medium hover:bg-primary/70 transition-colors flex items-center gap-1"
             onClick={() => {
               if (activeTab) {
@@ -175,7 +181,7 @@ const Index = () => {
             }}
           >
             Save Sheet
-          </button>
+          </button>}
         </div>
       </footer>
     </div>
