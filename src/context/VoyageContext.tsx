@@ -820,6 +820,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   const [departureUtc, setDepartureUtc] = useState(() =>
     (initialData?.departureUtc as string) || ""
   );
+  const [notes, setNotes] = useState<string>(() =>
+    typeof initialData?.notes === "string" ? (initialData.notes as string) : ""
+  );
 
   // Recalculate derived port days and sea times whenever vessel changes
   useEffect(() => {
