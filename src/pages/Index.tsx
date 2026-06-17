@@ -11,13 +11,17 @@ import { JsonImportSection } from "@/components/voyage/JsonImportSection";
 import { VoyageSummary } from "@/components/voyage/VoyageSummary";
 import { VoyageTimeline } from "@/components/voyage/VoyageTimeline";
 import { useSheets } from "@/context/sheetContextCore";
+import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { Loader2 } from "lucide-react";
 
 const Index = () => {
   const { activeTab, activeTabIndex, saveCurrentSheet, markDirty, updateTabData } = useSheets();
+  const { user } = useAuth();
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
+  const isAdmin = user?.role === "admin";
+  const isReadOnly = activeTab?.readOnly === true;
 
   // Track which tab id we last loaded to detect tab switches
   const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
@@ -146,8 +150,9 @@ const Index = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
         <div
-          className="flex-1 overflow-y-auto p-3 space-y-2.5"
-          {...(activeTab?.readOnly ? { inert: "" as unknown as undefined } : {})}
+          className={`flex-1 overflow-y-auto p-3 space-y-2.5 ${
+            isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
+          }`}
         >
           <VesselPanel />
           <SequenceTable />
@@ -155,13 +160,14 @@ const Index = () => {
           <BunkerSection />
           <MiscSection />
           <SheetNotes />
-          <JsonImportSection />
+          {isAdmin && !isReadOnly && <JsonImportSection />}
         </div>
         
         {/* Right Panel - Summary */}
         <div
-          className="w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background"
-          {...(activeTab?.readOnly ? { inert: "" as unknown as undefined } : {})}
+          className={`w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background ${
+            isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
+          }`}
         >
           <div className="p-2">
             <VoyageSummary />
