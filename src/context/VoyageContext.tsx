@@ -244,6 +244,8 @@ interface VoyageContextValue {
    
    // Reset all state to defaults
    resetState: () => void;
+  notes: string;
+  setNotes: (value: string) => void;
    
    // Calculated results
    results: VoyageResults;
