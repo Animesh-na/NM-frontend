@@ -23,7 +23,7 @@ export default function Dashboard() {
   const [orgUsers, setOrgUsers] = useState<OrganizationUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | number | null>(null);
-  const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[] }>>({});
+  const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[]; page: number; total: number }>>({});
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
   const fetchSheets = useCallback(async () => {
@@ -89,6 +89,24 @@ export default function Dashboard() {
     }
   };
 
+  const loadUserSheetsPage = async (u: OrganizationUser, nextPage: number) => {
+    const key = String(u.id);
+    setUserSheetsMap(m => ({
+      ...m,
+      [key]: { loading: true, sheets: m[key]?.sheets || [], page: nextPage, total: m[key]?.total || 0 },
+    }));
+    const res = await listUserSheets(u.id, nextPage, ITEMS_PER_PAGE);
+    setUserSheetsMap(m => ({
+      ...m,
+      [key]: {
+        loading: false,
+        sheets: res.sheets || [],
+        page: nextPage,
+        total: res.pagination?.total ?? (res.sheets?.length || 0),
+      },
+    }));
+  };
+
   const toggleUserExpand = async (u: OrganizationUser) => {
     const key = String(u.id);
     if (expandedUserId === u.id) {
@@ -97,9 +115,7 @@ export default function Dashboard() {
     }
     setExpandedUserId(u.id);
     if (!userSheetsMap[key]) {
-      setUserSheetsMap(m => ({ ...m, [key]: { loading: true, sheets: [] } }));
-      const res = await listUserSheets(u.id, 1, 100);
-      setUserSheetsMap(m => ({ ...m, [key]: { loading: false, sheets: res.sheets || [] } }));
+      await loadUserSheetsPage(u, 1);
     }
   };
 
@@ -290,7 +306,6 @@ export default function Dashboard() {
                     <tr className="bg-table-header text-muted-foreground text-xs">
                       <th className="text-left px-4 py-2.5 font-medium w-10"></th>
                       <th className="text-left px-4 py-2.5 font-medium">Email</th>
-                      <th className="text-left px-4 py-2.5 font-medium">Name</th>
                       <th className="text-left px-4 py-2.5 font-medium">Role</th>
                       <th className="text-right px-4 py-2.5 font-medium">Sheets</th>
                     </tr>
@@ -314,40 +329,66 @@ export default function Dashboard() {
                               {u.email}
                               {isSelf && <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-semibold uppercase">You</span>}
                             </td>
-                            <td className="px-4 py-2.5 text-muted-foreground text-xs">{u.name || "—"}</td>
                             <td className="px-4 py-2.5 text-muted-foreground text-xs uppercase">{u.role || "user"}</td>
-                            <td className="px-4 py-2.5 text-right text-muted-foreground text-xs tabular-nums">{u.sheet_count ?? (entry?.sheets.length ?? "—")}</td>
+                            <td className="px-4 py-2.5 text-right text-muted-foreground text-xs tabular-nums">{u.sheet_count ?? entry?.total ?? "—"}</td>
                           </tr>
                           {expanded && (
                             <tr className="border-t border-border bg-muted/20">
-                              <td colSpan={5} className="px-4 py-3">
-                                {entry?.loading ? (
+                              <td colSpan={4} className="px-4 py-3">
+                                {entry?.loading && entry.sheets.length === 0 ? (
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading sheets...
                                   </div>
                                 ) : !entry || entry.sheets.length === 0 ? (
                                   <p className="text-xs text-muted-foreground">No sheets for this user.</p>
                                 ) : (
-                                  <div className="space-y-1">
-                                    {entry.sheets.map((s) => (
-                                      <div key={s.id} className="flex items-center justify-between bg-card border border-border rounded px-3 py-1.5">
-                                        <div className="flex items-center gap-2">
-                                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                                          <span className="text-xs font-medium text-foreground">{s.name}</span>
-                                          {!isSelf && (
-                                            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-semibold uppercase">Read-only</span>
-                                          )}
-                                          <span className="text-[10px] text-muted-foreground">{new Date(s.updated_at || s.created_at).toLocaleString()}</span>
+                                  <>
+                                    <div className="space-y-1">
+                                      {entry.sheets.map((s) => (
+                                        <div key={s.id} className="flex items-center justify-between bg-card border border-border rounded px-3 py-1.5">
+                                          <div className="flex items-center gap-2">
+                                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-xs font-medium text-foreground">{s.name}</span>
+                                            {!isSelf && (
+                                              <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-semibold uppercase">Read-only</span>
+                                            )}
+                                            <span className="text-[10px] text-muted-foreground">{new Date(s.updated_at || s.created_at).toLocaleString()}</span>
+                                          </div>
+                                          <button
+                                            onClick={() => handleOpenUserSheet(s, u.email)}
+                                            className="btn-primary h-6 px-3 text-[11px] rounded"
+                                          >
+                                            {isSelf ? "Open" : "View"}
+                                          </button>
                                         </div>
-                                        <button
-                                          onClick={() => handleOpenUserSheet(s, u.email)}
-                                          className="btn-primary h-6 px-3 text-[11px] rounded"
-                                        >
-                                          {isSelf ? "Open" : "View"}
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
+                                      ))}
+                                    </div>
+                                    {(() => {
+                                      const uTotalPages = Math.max(1, Math.ceil((entry.total || 0) / ITEMS_PER_PAGE));
+                                      if (uTotalPages <= 1) return null;
+                                      return (
+                                        <div className="flex items-center justify-between mt-3 text-[11px] text-muted-foreground">
+                                          <span>Page {entry.page} of {uTotalPages} ({entry.total} sheets)</span>
+                                          <div className="flex items-center gap-1">
+                                            <button
+                                              onClick={() => loadUserSheetsPage(u, Math.max(1, entry.page - 1))}
+                                              disabled={entry.page <= 1 || entry.loading}
+                                              className="btn-secondary h-6 px-2 disabled:opacity-40"
+                                            >
+                                              <ChevronLeft className="h-3 w-3" />
+                                            </button>
+                                            <button
+                                              onClick={() => loadUserSheetsPage(u, Math.min(uTotalPages, entry.page + 1))}
+                                              disabled={entry.page >= uTotalPages || entry.loading}
+                                              className="btn-secondary h-6 px-2 disabled:opacity-40"
+                                            >
+                                              <ChevronRight className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </>
                                 )}
                               </td>
                             </tr>
