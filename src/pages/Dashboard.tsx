@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, ShieldCheck, Users, Calendar, Hash } from "lucide-react";
+import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, ShieldCheck, Users, Calendar, Hash, ChevronDown, UserCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
-import { listSheets, listOrganizationSheets, deleteSheet, type SheetListItem } from "@/services/marineApi";
+import { listSheets, listOrganizationSheets, listOrganizationUsers, listUserSheets, deleteSheet, type SheetListItem, type OrganizationUser } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
@@ -15,14 +15,19 @@ export default function Dashboard() {
   const isAdmin = user?.role === "admin";
   const mfaEnabled = !!user?.mfa_method;
   const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
-  const [tab, setTab] = useState<"mine" | "org">("mine");
+  const [tab, setTab] = useState<"mine" | "users" | "org">("mine");
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [orgUsers, setOrgUsers] = useState<OrganizationUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<string | number | null>(null);
+  const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[] }>>({});
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
   const fetchSheets = useCallback(async () => {
+    if (tab === "users") return;
     setLoading(true);
     try {
       const res = tab === "mine"
@@ -41,6 +46,24 @@ export default function Dashboard() {
     fetchSheets();
   }, [fetchSheets]);
 
+  // Fetch organization users when switching to the Users tab
+  useEffect(() => {
+    if (tab !== "users") return;
+    let cancelled = false;
+    (async () => {
+      setUsersLoading(true);
+      try {
+        const res = await listOrganizationUsers(1, 100);
+        if (!cancelled) setOrgUsers(res.users || []);
+      } catch {
+        if (!cancelled) toast.error("Failed to load organization users");
+      } finally {
+        if (!cancelled) setUsersLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tab]);
+
   // Reset to page 1 when switching tabs
   useEffect(() => { setPage(1); }, [tab]);
 
@@ -54,6 +77,29 @@ export default function Dashboard() {
       openOrganizationSheet(sheet.id, sheet.name);
     } else {
       openSheet(sheet.id, sheet.name);
+    }
+  };
+
+  const handleOpenUserSheet = (sheet: SheetListItem, ownerEmail: string) => {
+    const isOwn = !!user?.email && ownerEmail.toLowerCase() === user.email.toLowerCase();
+    if (isOwn) {
+      openSheet(sheet.id, sheet.name);
+    } else {
+      openOrganizationSheet(sheet.id, sheet.name);
+    }
+  };
+
+  const toggleUserExpand = async (u: OrganizationUser) => {
+    const key = String(u.id);
+    if (expandedUserId === u.id) {
+      setExpandedUserId(null);
+      return;
+    }
+    setExpandedUserId(u.id);
+    if (!userSheetsMap[key]) {
+      setUserSheetsMap(m => ({ ...m, [key]: { loading: true, sheets: [] } }));
+      const res = await listUserSheets(u.id, 1, 100);
+      setUserSheetsMap(m => ({ ...m, [key]: { loading: false, sheets: res.sheets || [] } }));
     }
   };
 
