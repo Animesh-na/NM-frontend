@@ -330,7 +330,11 @@ export default function Dashboard() {
                               {isSelf && <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-semibold uppercase">You</span>}
                             </td>
                             <td className="px-4 py-2.5 text-muted-foreground text-xs uppercase">{u.role || "user"}</td>
-                            <td className="px-4 py-2.5 text-right text-muted-foreground text-xs tabular-nums">{u.sheet_count ?? entry?.total ?? "—"}</td>
+                            <td className="px-4 py-2.5 text-right text-muted-foreground text-xs tabular-nums">
+                              {u.sheet_count ?? entry?.total ?? (
+                                <FileText className="h-3.5 w-3.5 inline text-muted-foreground/50" />
+                              )}
+                            </td>
                           </tr>
                           {expanded && (
                             <tr className="border-t border-border bg-muted/20">
