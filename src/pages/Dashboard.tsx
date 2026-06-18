@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
-import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, ShieldCheck, Users, Calendar, Hash } from "lucide-react";
+import { useState, useEffect, useCallback, Fragment } from "react";
+import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, ShieldCheck, Users, Calendar, Hash, ChevronDown, UserCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
-import { listSheets, listOrganizationSheets, deleteSheet, type SheetListItem } from "@/services/marineApi";
+import { listSheets, listOrganizationSheets, listOrganizationUsers, listUserSheets, deleteSheet, type SheetListItem, type OrganizationUser } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
@@ -15,14 +15,19 @@ export default function Dashboard() {
   const isAdmin = user?.role === "admin";
   const mfaEnabled = !!user?.mfa_method;
   const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
-  const [tab, setTab] = useState<"mine" | "org">("mine");
+  const [tab, setTab] = useState<"mine" | "users" | "org">("mine");
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [orgUsers, setOrgUsers] = useState<OrganizationUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<string | number | null>(null);
+  const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[] }>>({});
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
   const fetchSheets = useCallback(async () => {
+    if (tab === "users") return;
     setLoading(true);
     try {
       const res = tab === "mine"
@@ -41,6 +46,24 @@ export default function Dashboard() {
     fetchSheets();
   }, [fetchSheets]);
 
+  // Fetch organization users when switching to the Users tab
+  useEffect(() => {
+    if (tab !== "users") return;
+    let cancelled = false;
+    (async () => {
+      setUsersLoading(true);
+      try {
+        const res = await listOrganizationUsers(1, 100);
+        if (!cancelled) setOrgUsers(res.users || []);
+      } catch {
+        if (!cancelled) toast.error("Failed to load organization users");
+      } finally {
+        if (!cancelled) setUsersLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tab]);
+
   // Reset to page 1 when switching tabs
   useEffect(() => { setPage(1); }, [tab]);
 
@@ -54,6 +77,29 @@ export default function Dashboard() {
       openOrganizationSheet(sheet.id, sheet.name);
     } else {
       openSheet(sheet.id, sheet.name);
+    }
+  };
+
+  const handleOpenUserSheet = (sheet: SheetListItem, ownerEmail: string) => {
+    const isOwn = !!user?.email && ownerEmail.toLowerCase() === user.email.toLowerCase();
+    if (isOwn) {
+      openSheet(sheet.id, sheet.name);
+    } else {
+      openOrganizationSheet(sheet.id, sheet.name);
+    }
+  };
+
+  const toggleUserExpand = async (u: OrganizationUser) => {
+    const key = String(u.id);
+    if (expandedUserId === u.id) {
+      setExpandedUserId(null);
+      return;
+    }
+    setExpandedUserId(u.id);
+    if (!userSheetsMap[key]) {
+      setUserSheetsMap(m => ({ ...m, [key]: { loading: true, sheets: [] } }));
+      const res = await listUserSheets(u.id, 1, 100);
+      setUserSheetsMap(m => ({ ...m, [key]: { loading: false, sheets: res.sheets || [] } }));
     }
   };
 
@@ -198,6 +244,15 @@ export default function Dashboard() {
                 My Sheets
               </button>
               <button
+                onClick={() => setTab("users")}
+                className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
+                  tab === "users" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <UserCircle2 className="h-3.5 w-3.5" />
+                Organization Users
+              </button>
+              <button
                 onClick={() => setTab("org")}
                 className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
                   tab === "org" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
@@ -217,7 +272,94 @@ export default function Dashboard() {
           </div>
 
           {/* Sheet List */}
-          {loading ? (
+          {tab === "users" ? (
+            usersLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading users...</span>
+              </div>
+            ) : orgUsers.length === 0 ? (
+              <div className="text-center py-20 border border-dashed border-border rounded-lg bg-card">
+                <UserCircle2 className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">No users found</p>
+              </div>
+            ) : (
+              <div className="border border-border rounded-lg overflow-hidden bg-card">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-table-header text-muted-foreground text-xs">
+                      <th className="text-left px-4 py-2.5 font-medium w-10"></th>
+                      <th className="text-left px-4 py-2.5 font-medium">Email</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Name</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Role</th>
+                      <th className="text-right px-4 py-2.5 font-medium">Sheets</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orgUsers.map((u) => {
+                      const key = String(u.id);
+                      const expanded = expandedUserId === u.id;
+                      const entry = userSheetsMap[key];
+                      const isSelf = !!user?.email && u.email?.toLowerCase() === user.email.toLowerCase();
+                      return (
+                        <Fragment key={key}>
+                          <tr
+                            className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                            onClick={() => toggleUserExpand(u)}
+                          >
+                            <td className="px-4 py-2.5">
+                              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
+                            </td>
+                            <td className="px-4 py-2.5 font-medium text-foreground">
+                              {u.email}
+                              {isSelf && <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-semibold uppercase">You</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-muted-foreground text-xs">{u.name || "—"}</td>
+                            <td className="px-4 py-2.5 text-muted-foreground text-xs uppercase">{u.role || "user"}</td>
+                            <td className="px-4 py-2.5 text-right text-muted-foreground text-xs tabular-nums">{u.sheet_count ?? (entry?.sheets.length ?? "—")}</td>
+                          </tr>
+                          {expanded && (
+                            <tr className="border-t border-border bg-muted/20">
+                              <td colSpan={5} className="px-4 py-3">
+                                {entry?.loading ? (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading sheets...
+                                  </div>
+                                ) : !entry || entry.sheets.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">No sheets for this user.</p>
+                                ) : (
+                                  <div className="space-y-1">
+                                    {entry.sheets.map((s) => (
+                                      <div key={s.id} className="flex items-center justify-between bg-card border border-border rounded px-3 py-1.5">
+                                        <div className="flex items-center gap-2">
+                                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                                          <span className="text-xs font-medium text-foreground">{s.name}</span>
+                                          {!isSelf && (
+                                            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-semibold uppercase">Read-only</span>
+                                          )}
+                                          <span className="text-[10px] text-muted-foreground">{new Date(s.updated_at || s.created_at).toLocaleString()}</span>
+                                        </div>
+                                        <button
+                                          onClick={() => handleOpenUserSheet(s, u.email)}
+                                          className="btn-primary h-6 px-3 text-[11px] rounded"
+                                        >
+                                          {isSelf ? "Open" : "View"}
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          ) : loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">Loading sheets...</span>

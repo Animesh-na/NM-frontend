@@ -253,6 +253,47 @@ export async function listOrganizationSheets(page: number = 1, limit: number = 1
   }
 }
 
+// 5c. List organization users
+export interface OrganizationUser {
+  id: string | number;
+  email: string;
+  name?: string;
+  role?: string;
+  sheet_count?: number;
+  created_at?: string;
+}
+
+export interface OrganizationUsersResponse {
+  users: OrganizationUser[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  };
+}
+
+export async function listOrganizationUsers(page: number = 1, limit: number = 50): Promise<OrganizationUsersResponse> {
+  try {
+    const data = await apiRequest<OrganizationUsersResponse>("/organization/users", { page, limit }, { authenticated: true });
+    return { users: data.users || [], pagination: data.pagination };
+  } catch (error) {
+    console.error("Failed to list organization users:", error);
+    return { users: [] };
+  }
+}
+
+// 5d. List sheets owned by a specific organization user
+export async function listUserSheets(userId: string | number, page: number = 1, limit: number = 50): Promise<SheetListResponse> {
+  try {
+    const data = await apiRequest<SheetListResponse>(`/organization/users/${userId}/sheets`, { page, limit }, { authenticated: true });
+    return data;
+  } catch (error) {
+    console.error("Failed to list user sheets:", error);
+    return { sheets: [], pagination: { total: 0, page, limit, total_pages: 1 } };
+  }
+}
+
 // 6. Save (create) a new sheet
 export async function saveSheet(name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
   try {
