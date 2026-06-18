@@ -275,8 +275,13 @@ export interface OrganizationUsersResponse {
 
 export async function listOrganizationUsers(page: number = 1, limit: number = 50): Promise<OrganizationUsersResponse> {
   try {
-    const data = await apiRequest<OrganizationUsersResponse>("/organization/users", { page, limit }, { authenticated: true });
-    return { users: data.users || [], pagination: data.pagination };
+    const data = await apiRequest<OrganizationUsersResponse & { organization?: { users?: OrganizationUser[] } }>(
+      "/organization/users",
+      { page, limit },
+      { authenticated: true }
+    );
+    const users = data.users || data.organization?.users || [];
+    return { users, pagination: data.pagination };
   } catch (error) {
     console.error("Failed to list organization users:", error);
     return { users: [] };
