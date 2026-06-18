@@ -244,6 +244,15 @@ export default function Dashboard() {
                 My Sheets
               </button>
               <button
+                onClick={() => setTab("users")}
+                className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
+                  tab === "users" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <UserCircle2 className="h-3.5 w-3.5" />
+                Organization Users
+              </button>
+              <button
                 onClick={() => setTab("org")}
                 className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
                   tab === "org" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
