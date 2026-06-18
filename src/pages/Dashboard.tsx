@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, ShieldCheck, Users, Calendar, Hash, ChevronDown, UserCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
@@ -302,9 +302,8 @@ export default function Dashboard() {
                       const entry = userSheetsMap[key];
                       const isSelf = !!user?.email && u.email?.toLowerCase() === user.email.toLowerCase();
                       return (
-                        <>
+                        <Fragment key={key}>
                           <tr
-                            key={key}
                             className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer"
                             onClick={() => toggleUserExpand(u)}
                           >
@@ -320,7 +319,7 @@ export default function Dashboard() {
                             <td className="px-4 py-2.5 text-right text-muted-foreground text-xs tabular-nums">{u.sheet_count ?? (entry?.sheets.length ?? "—")}</td>
                           </tr>
                           {expanded && (
-                            <tr key={`${key}-expand`} className="border-t border-border bg-muted/20">
+                            <tr className="border-t border-border bg-muted/20">
                               <td colSpan={5} className="px-4 py-3">
                                 {entry?.loading ? (
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -353,7 +352,7 @@ export default function Dashboard() {
                               </td>
                             </tr>
                           )}
-                        </>
+                        </Fragment>
                       );
                     })}
                   </tbody>
