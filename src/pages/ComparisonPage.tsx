@@ -261,16 +261,46 @@ export default function ComparisonPage() {
       };
     }), [orderedIndices, entries]);
 
-  const pnlChartData = useMemo(() =>
-    orderedIndices.map(i => {
+  // Waterfall: per sheet build steps Revenue -> -Fuel -> -Port -> -Canal -> -Hire -> -Misc/Comm -> P&L
+  const waterfallData = useMemo(() => {
+    const rows: Array<{ name: string; sheet: string; base: number; delta: number; type: "start" | "neg" | "pos" | "total"; value: number }> = [];
+    orderedIndices.forEach((i) => {
       const r = entries[i]?.results;
-      return {
-        name: entries[i]?.name || `#${i + 1}`,
-        Revenue: r?.grossFreight || 0,
-        Cost: r?.totalVoyageCosts || 0,
-        "P&L": r?.netProfit || 0,
+      if (!r) return;
+      const sheet = entries[i]?.name || `#${i + 1}`;
+      const revenue = r.grossFreight || 0;
+      const fuel = r.totalBunkerCost || 0;
+      const port = r.portCosts || 0;
+      const canal = r.canalCosts || 0;
+      const hire = r.hireCost || 0;
+      const otherCost = (r.miscCosts || 0) + (r.voyageCommission || 0);
+      const pnl = (r as unknown as { pAndL?: number }).pAndL ?? r.netProfit ?? 0;
+      let running = 0;
+      const push = (name: string, delta: number, type: "start" | "neg" | "pos" | "total", forcedValue?: number) => {
+        if (type === "start") {
+          rows.push({ name: `${sheet} · ${name}`, sheet, base: 0, delta: revenue, type, value: revenue });
+          running = revenue;
+        } else if (type === "total") {
+          rows.push({ name: `${sheet} · ${name}`, sheet, base: 0, delta: forcedValue ?? running, type, value: forcedValue ?? running });
+        } else {
+          // delta is signed; for negatives base is running+delta (since delta<0)
+          const next = running + delta;
+          const base = Math.min(running, next);
+          const size = Math.abs(delta);
+          rows.push({ name: `${sheet} · ${name}`, sheet, base, delta: size, type, value: delta });
+          running = next;
+        }
       };
-    }), [orderedIndices, entries]);
+      push("Revenue", 0, "start");
+      push("Fuel", -fuel, "neg");
+      push("Port", -port, "neg");
+      if (canal) push("Canal", -canal, "neg");
+      push("Hire", -hire, "neg");
+      if (otherCost) push("Misc+Comm", -otherCost, "neg");
+      push("P&L", 0, "total", pnl);
+    });
+    return rows;
+  }, [orderedIndices, entries]);
 
   if (compareSheetIds.length === 0) {
     return (
