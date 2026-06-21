@@ -153,7 +153,7 @@ export function ConsumptionMatrix({
                       <input
                         type="text"
                         inputMode="decimal"
-                        className={`form-input-sm w-full font-mono tabular-nums text-right h-4 text-[9px] px-1.5 ${isDisabled ? "opacity-50" : ""}`}
+                        className={`form-input-sm w-14 max-w-full ml-auto block font-mono tabular-nums text-right h-4 text-[9px] px-1.5 ${isDisabled ? "opacity-50" : ""}`}
                         value={getDisplayValue(row.key, col.key, value)}
                         onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
                         onFocus={() => handleInputFocus(row.key, col.key, value)}
