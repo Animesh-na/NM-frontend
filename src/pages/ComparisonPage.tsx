@@ -33,8 +33,12 @@ function ResultEmitter({ onResult }: { onResult: (r: VoyageResults, vesselName: 
 }
 
 function HiddenRunner({ data, onResult }: { data: Record<string, unknown>; onResult: (r: VoyageResults, vesselName: string) => void }) {
-  // Disable auto-distance to prevent external API calls during comparison
-  const safeData = useMemo(() => ({ ...data, autoDistanceEnabled: false }), [data]);
+  // Preserve all saved settings (including autoDistanceEnabled, which also
+  // drives weather-delay handling in sea-time calculations). The provider's
+  // internal distanceSuppressedRef already prevents the external distance API
+  // from firing when initialData.sequence is present, so values match the
+  // editor exactly.
+  const safeData = useMemo(() => data, [data]);
   return (
     <div style={{ display: "none" }} aria-hidden>
       <VoyageProvider initialData={safeData}>
