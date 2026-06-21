@@ -14,6 +14,12 @@ export function CargoSection() {
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
+  // NTC is always considered the vessel cost — keep them in sync.
+  useEffect(() => {
+    if (vesselCost !== hireRate) setVesselCost(hireRate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hireRate]);
+
   // Derive per-cargo loaded qty using the same logic as the calculation engine:
   // explicit chip mapping wins; otherwise auto-map loading rows to cargos by order.
   const loadingRows = sequence.filter((r) => r.operation === "loading");
@@ -46,18 +52,22 @@ export function CargoSection() {
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field w-24">
               <label className="form-label flex items-center gap-1">
-                NTC
+                GTC
                 <InfoTooltip
-                  formula="NTC = GTC × (1 - TC Comm%)"
-                  description="Net Time Charter"
+                  formula="GTC = NTC / (1 - TC Comm%)"
+                  description="Gross Time Charter"
                 />
               </label>
               <div className="input-with-unit">
                 <input
                   type="number"
-                  className="form-input-sm w-full font-mono text-right bg-muted/30"
-                  value={parseFloat((hireRate || 0).toFixed(2))}
-                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
+                  className="form-input-sm w-full font-mono text-right"
+                  value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
+                  onChange={(e) => {
+                    const gtc = parseFloat(e.target.value) || 0;
+                    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
+                    setHireRate(gtc * (1 - tc));
+                  }}
                 />
                 <span className="unit">$/d</span>
               </div>
@@ -83,22 +93,18 @@ export function CargoSection() {
             </div>
             <div className="form-field w-24">
               <label className="form-label flex items-center gap-1">
-                GTC
+                NTC
                 <InfoTooltip
-                  formula="GTC = NTC / (1 - TC Comm%)"
-                  description="Gross Time Charter"
+                  formula="NTC = GTC × (1 - TC Comm%) — also used as Vessel Cost"
+                  description="Net Time Charter (Vessel Cost)"
                 />
               </label>
               <div className="input-with-unit">
                 <input
                   type="number"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
-                  onChange={(e) => {
-                    const gtc = parseFloat(e.target.value) || 0;
-                    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
-                    setHireRate(gtc * (1 - tc));
-                  }}
+                  className="form-input-sm w-full font-mono text-right bg-muted/30"
+                  value={parseFloat((hireRate || 0).toFixed(2))}
+                  onChange={(e) => setHireRate(parseFloat(e.target.value) || 0)}
                 />
                 <span className="unit">$/d</span>
               </div>
@@ -138,21 +144,6 @@ export function CargoSection() {
                   }}
                 />
                 <span className="unit">$</span>
-              </div>
-            </div>
-            <div className="form-field w-24">
-              <label className="form-label flex items-center gap-1">
-                Vessel cost
-                <InfoTooltip formula="Reference vessel cost $/d" description="Editable vessel cost reference" />
-              </label>
-              <div className="input-with-unit">
-                <input
-                  type="number"
-                  className="form-input-sm w-full font-mono text-right"
-                  value={vesselCost}
-                  onChange={(e) => setVesselCost(parseFloat(e.target.value) || 0)}
-                />
-                <span className="unit">$/d</span>
               </div>
             </div>
           </div>
