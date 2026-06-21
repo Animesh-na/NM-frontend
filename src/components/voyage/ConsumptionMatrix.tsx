@@ -33,12 +33,12 @@ const matrixRows: MatrixRow[] = [
 type ColumnKey = keyof ConsumptionMatrixType["speed"];
 
 const columns: { key: ColumnKey; label: string }[] = [
-  { key: "ballast", label: "Bal" },
-  { key: "laden", label: "Ldn" },
-  { key: "canal", label: "Cnl" },
-  { key: "load", label: "Ld" },
-  { key: "discharge", label: "Dis" },
-  { key: "idle", label: "Idl" },
+  { key: "ballast", label: "Ballast" },
+  { key: "laden", label: "Laden" },
+  { key: "canal", label: "Canal" },
+  { key: "load", label: "Load" },
+  { key: "discharge", label: "Discharge" },
+  { key: "idle", label: "Idle" },
 ];
 
 export function ConsumptionMatrix({
@@ -126,12 +126,12 @@ export function ConsumptionMatrix({
 
   return (
     <div className="overflow-x-auto w-full">
-      <table className="text-[10px] border-collapse w-full">
+      <table className="text-[10px] border-collapse w-full table-fixed">
         <thead>
           <tr>
             <th className={`${thClass} text-left w-12`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
             {columns.map(col => (
-              <th key={col.key} className={`${thClass} px-1`}>{col.label}</th>
+              <th key={col.key} className={`${thClass} px-0`}>{col.label}</th>
             ))}
             <th className={`${thClass} w-8`}>Unit</th>
           </tr>
@@ -146,14 +146,14 @@ export function ConsumptionMatrix({
                 const value = consumptionMatrix[row.key][col.key];
                 
                 return (
-                  <td key={col.key} className="px-1 py-0">
+                  <td key={col.key} className="px-0 py-0">
                     {isSpeedNA ? (
                       <div className="h-4 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                     ) : (
                       <input
                         type="text"
                         inputMode="decimal"
-                        className={`form-input-sm w-14 max-w-full ml-auto block font-mono tabular-nums text-right h-4 text-[9px] px-1.5 ${isDisabled ? "opacity-50" : ""}`}
+                        className={`form-input-sm w-full max-w-full mx-auto block font-mono tabular-nums text-center h-4 text-[9px] px-0.5 ${isDisabled ? "opacity-50" : ""}`}
                         value={getDisplayValue(row.key, col.key, value)}
                         onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
                         onFocus={() => handleInputFocus(row.key, col.key, value)}
