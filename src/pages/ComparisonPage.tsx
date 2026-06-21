@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, FileSpreadsheet, Loader2, Trophy } from "lucide-react";
+import { ArrowLeft, Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend } from "recharts";
 import { useSheets } from "@/context/sheetContextCore";
@@ -69,6 +69,7 @@ const METRICS: Metric[] = [
   { key: "seaDaysLaden", label: "Laden Days", group: "Voyage Metrics", unit: "d", better: "lower", get: r => r.seaDaysLaden, fmt: num(2) },
   { key: "totalPortDays", label: "Port Days", group: "Voyage Metrics", unit: "d", better: "lower", get: r => r.totalPortDays, fmt: num(2) },
   { key: "extraCanalDays", label: "Canal Days", group: "Voyage Metrics", unit: "d", better: "lower", get: r => r.extraCanalDays, fmt: num(2) },
+  { key: "seaMarginTime", label: "Weather/Sea Margin", group: "Voyage Metrics", unit: "d", better: "lower", get: r => (r as unknown as { seaMarginTime?: number }).seaMarginTime || 0, fmt: num(2) },
 
   // Financial Metrics
   { key: "grossFreight", label: "Freight Revenue", group: "Financial Metrics", better: "higher", get: r => r.grossFreight, fmt: $ },
@@ -79,8 +80,9 @@ const METRICS: Metric[] = [
   { key: "miscCosts", label: "Miscellaneous Cost", group: "Financial Metrics", better: "lower", get: r => r.miscCosts, fmt: $ },
   { key: "voyageCommission", label: "Commission", group: "Financial Metrics", better: "lower", get: r => r.voyageCommission, fmt: $ },
   { key: "totalVoyageCosts", label: "Total Voyage Expense", group: "Financial Metrics", better: "lower", get: r => r.totalVoyageCosts, fmt: $ },
-  { key: "netProfit", label: "Net Profit", group: "Financial Metrics", better: "higher", get: r => r.netProfit, fmt: $ },
-  { key: "tce", label: "TCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => r.tce, fmt: $ },
+  { key: "netProfit", label: "P&L (Net Profit)", group: "Financial Metrics", better: "higher", get: r => r.netProfit, fmt: $ },
+  { key: "gtce", label: "GTCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => (r as unknown as { gtce?: number }).gtce ?? r.tce, fmt: $ },
+  { key: "ntce", label: "NTCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => (r as unknown as { ntce?: number }).ntce ?? r.tce, fmt: $ },
   { key: "grossRate", label: "Gross Rate", group: "Financial Metrics", unit: "$/mt", better: "lower", get: r => r.grossRate, fmt: num(2) },
 
   // Fuel Consumption
@@ -95,17 +97,6 @@ const METRICS: Metric[] = [
   { key: "etsCost", label: "ETS Cost", group: "Environmental", better: "lower", get: r => r.etsCost, fmt: $ },
 ];
 
-// Map summary callout → metric key
-const HIGHLIGHTS: { label: string; key: string }[] = [
-  { label: "Best Profit", key: "netProfit" },
-  { label: "Best TCE", key: "tce" },
-  { label: "Best Gross Rate", key: "grossRate" },
-  { label: "Lowest Fuel Cost", key: "totalBunkerCost" },
-  { label: "Lowest Voyage Cost", key: "totalVoyageCosts" },
-  { label: "Lowest Total Consumption", key: "totalConsumption" },
-  { label: "Fastest Voyage", key: "totalVoyageDays" },
-];
-
 function bestIndex(values: number[], dir: MetricDir): number {
   let best = -1; let bestV = dir === "higher" ? -Infinity : Infinity;
   values.forEach((v, i) => {
@@ -118,7 +109,7 @@ function worstIndex(values: number[], dir: MetricDir): number {
   return bestIndex(values, dir === "higher" ? "lower" : "higher");
 }
 
-const CHART_METRIC_KEYS = ["netProfit", "tce", "grossRate", "totalBunkerCost", "hireCost", "totalVoyageDays", "totalConsumption", "totalCo2"];
+const CHART_METRIC_KEYS = ["netProfit", "gtce", "ntce", "grossRate", "totalBunkerCost", "hireCost", "totalVoyageDays", "totalConsumption", "totalCo2"];
 
 export default function ComparisonPage() {
   const { compareSheetIds, setCurrentView, openCompare } = useSheets();
@@ -221,26 +212,50 @@ export default function ComparisonPage() {
 
   const handleChangeSelection = () => openCompare([]);
 
-  // Highlight summary cards
-  const highlightCards = HIGHLIGHTS.map(h => {
-    const m = METRICS.find(x => x.key === h.key);
-    if (!m) return { ...h, vessel: "—", value: "" };
-    const idx = bestPerMetric[h.key];
-    if (idx < 0 || !entries[idx]) return { ...h, vessel: "—", value: "" };
-    const e = entries[idx];
-    const v = e.results ? m.get(e.results) : NaN;
-    return { ...h, vessel: e.vesselName, value: m.fmt ? m.fmt(v) : String(v) };
-  });
-
-  // Chart data
+  // Chart data (by sheet name)
   const chartData = useMemo(() => {
     const m = METRICS.find(x => x.key === chartMetric);
     if (!m) return [];
     return orderedIndices.map(i => ({
-      name: entries[i]?.vesselName || entries[i]?.name || `#${i + 1}`,
+      name: entries[i]?.name || entries[i]?.vesselName || `#${i + 1}`,
       value: entries[i]?.results ? m.get(entries[i].results!) : 0,
     }));
   }, [orderedIndices, entries, chartMetric]);
+
+  // Multi-metric analysis charts grouped by sheet
+  const fuelChartData = useMemo(() =>
+    orderedIndices.map(i => {
+      const r = entries[i]?.results;
+      return {
+        name: entries[i]?.name || `#${i + 1}`,
+        HSFO: r?.hsfoConsumption || 0,
+        VLSFO: r?.vlsfoConsumption || 0,
+        LSMGO: r?.lsmgoConsumption || 0,
+      };
+    }), [orderedIndices, entries]);
+
+  const daysChartData = useMemo(() =>
+    orderedIndices.map(i => {
+      const r = entries[i]?.results;
+      const sm = (r as unknown as { seaMarginTime?: number } | undefined)?.seaMarginTime || 0;
+      return {
+        name: entries[i]?.name || `#${i + 1}`,
+        "Sea Days": r?.totalSeaDays || 0,
+        "Port Days": r?.totalPortDays || 0,
+        "Weather/Margin": sm,
+      };
+    }), [orderedIndices, entries]);
+
+  const pnlChartData = useMemo(() =>
+    orderedIndices.map(i => {
+      const r = entries[i]?.results;
+      return {
+        name: entries[i]?.name || `#${i + 1}`,
+        Revenue: r?.grossFreight || 0,
+        Cost: r?.totalVoyageCosts || 0,
+        "P&L": r?.netProfit || 0,
+      };
+    }), [orderedIndices, entries]);
 
   if (compareSheetIds.length === 0) {
     return (
@@ -288,23 +303,6 @@ export default function ComparisonPage() {
           </div>
         ) : (
           <>
-            {/* Summary highlight cards */}
-            <section>
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground mb-2 tracking-wide">Highlights</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
-                {highlightCards.map(h => (
-                  <div key={h.label} className="bg-card border border-border rounded p-2.5">
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
-                      <Trophy className="h-3 w-3 text-amber-500" />
-                      {h.label}
-                    </div>
-                    <div className="text-xs font-semibold text-foreground truncate" title={h.vessel}>{h.vessel}</div>
-                    <div className="text-[11px] text-primary tabular-nums mt-0.5">{h.value}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             {/* Comparison table */}
             <section className="bg-card border border-border rounded overflow-hidden">
               <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
@@ -314,8 +312,8 @@ export default function ComparisonPage() {
                       <th className="sticky left-0 z-20 bg-table-header text-left px-3 py-2 font-medium border-b border-border min-w-[180px]">Metric</th>
                       {orderedIndices.map(i => (
                         <th key={entries[i].id} className="text-right px-3 py-2 font-medium border-b border-l border-border min-w-[140px]">
-                          <div className="text-foreground truncate" title={entries[i].vesselName}>{entries[i].vesselName}</div>
-                          <div className="text-[10px] text-muted-foreground font-normal truncate" title={entries[i].name}>{entries[i].name}</div>
+                          <div className="text-foreground truncate" title={entries[i].name}>{entries[i].name}</div>
+                          <div className="text-[10px] text-muted-foreground font-normal truncate" title={entries[i].vesselName}>{entries[i].vesselName}</div>
                         </th>
                       ))}
                     </tr>
@@ -385,7 +383,9 @@ export default function ComparisonPage() {
             {/* Chart */}
             <section className="bg-card border border-border rounded p-3">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Metric Comparison</h2>
+                <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                  Metric Comparison by Sheet — {METRICS.find(x => x.key === chartMetric)?.label}
+                </h2>
                 <select
                   value={chartMetric}
                   onChange={e => setChartMetric(e.target.value)}
@@ -411,6 +411,83 @@ export default function ComparisonPage() {
                     />
                     <Legend />
                     <Bar dataKey="value" name={METRICS.find(x => x.key === chartMetric)?.label || "Value"} fill="hsl(var(--primary))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Inline data table */}
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-[11px] border-collapse">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="text-left px-2 py-1 border border-border">Sheet</th>
+                      <th className="text-right px-2 py-1 border border-border">{METRICS.find(x => x.key === chartMetric)?.label}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chartData.map(d => {
+                      const m = METRICS.find(x => x.key === chartMetric);
+                      return (
+                        <tr key={d.name}>
+                          <td className="px-2 py-1 border border-border">{d.name}</td>
+                          <td className="px-2 py-1 border border-border text-right tabular-nums">{m?.fmt ? m.fmt(d.value) : d.value}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* Graphical Analysis */}
+            <section className="bg-card border border-border rounded p-3">
+              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Bunkering — Fuel Type by Sheet (mt)</h2>
+              <div style={{ width: "100%", height: 300 }}>
+                <ResponsiveContainer>
+                  <BarChart data={fuelChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ReTooltip formatter={(v: number) => v.toFixed(2) + " mt"} />
+                    <Legend />
+                    <Bar dataKey="HSFO" stackId="f" fill="hsl(var(--chart-1, 220 70% 50%))" />
+                    <Bar dataKey="VLSFO" stackId="f" fill="hsl(var(--chart-2, 160 60% 45%))" />
+                    <Bar dataKey="LSMGO" stackId="f" fill="hsl(var(--chart-3, 30 80% 55%))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+
+            <section className="bg-card border border-border rounded p-3">
+              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Voyage Time Breakdown by Sheet (days)</h2>
+              <div style={{ width: "100%", height: 300 }}>
+                <ResponsiveContainer>
+                  <BarChart data={daysChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ReTooltip formatter={(v: number) => v.toFixed(2) + " d"} />
+                    <Legend />
+                    <Bar dataKey="Sea Days" stackId="d" fill="hsl(var(--chart-1, 220 70% 50%))" />
+                    <Bar dataKey="Port Days" stackId="d" fill="hsl(var(--chart-2, 160 60% 45%))" />
+                    <Bar dataKey="Weather/Margin" stackId="d" fill="hsl(var(--chart-3, 30 80% 55%))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+
+            <section className="bg-card border border-border rounded p-3">
+              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Revenue, Cost & P&L by Sheet ($)</h2>
+              <div style={{ width: "100%", height: 300 }}>
+                <ResponsiveContainer>
+                  <BarChart data={pnlChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ReTooltip formatter={(v: number) => "$" + Math.round(v).toLocaleString()} />
+                    <Legend />
+                    <Bar dataKey="Revenue" fill="hsl(var(--chart-1, 220 70% 50%))" />
+                    <Bar dataKey="Cost" fill="hsl(var(--chart-2, 0 70% 55%))" />
+                    <Bar dataKey="P&L" fill="hsl(var(--chart-3, 140 60% 45%))" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
