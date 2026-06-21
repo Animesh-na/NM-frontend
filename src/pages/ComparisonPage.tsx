@@ -334,6 +334,37 @@ export default function ComparisonPage() {
                     </tr>
                   </thead>
                   <tbody>
+                    <tr className="border-b border-border bg-amber-500/5">
+                      <td className="sticky left-0 z-10 bg-amber-500/5 px-3 py-1.5 font-medium text-foreground">
+                        Cargoes
+                        <span className="text-[10px] text-muted-foreground ml-1">(grade × qty)</span>
+                      </td>
+                      {orderedIndices.map((i) => {
+                        const cs = entries[i]?.cargos || [];
+                        const isMulti = cs.length > 1;
+                        return (
+                          <td key={`cargo-${entries[i].id}`} className="text-right px-3 py-1.5 border-l border-border align-top">
+                            {cs.length === 0 ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : (
+                              <div className="space-y-0.5">
+                                {cs.map((c, k) => (
+                                  <div key={k} className="text-[11px] truncate" title={`${c.grade || "Cargo"} ${c.quantity ?? ""}`}>
+                                    <span className="text-foreground">{c.grade || `Cargo ${k + 1}`}</span>
+                                    {c.quantity ? <span className="text-muted-foreground"> · {Math.round(c.quantity).toLocaleString()} mt</span> : null}
+                                  </div>
+                                ))}
+                                {isMulti && (
+                                  <div className="text-[9px] uppercase tracking-wider text-amber-700 dark:text-amber-400 font-semibold mt-0.5">
+                                    Multi-cargo ({cs.length})
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
                     {(() => {
                       const out: JSX.Element[] = [];
                       let lastGroup = "";
