@@ -1,6 +1,7 @@
 import { Ship, FileText, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
 
 export function CompactHeader() {
   const { logout, user } = useAuth();
@@ -27,6 +28,7 @@ export function CompactHeader() {
             <span>Details</span>
           </Link>
         )}
+        <CompareSheetsLauncher variant="compact" />
         <button
           onClick={logout}
           className="flex items-center gap-1 hover:text-white/80 transition-colors"
