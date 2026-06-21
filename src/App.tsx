@@ -14,6 +14,7 @@ import AdminPanel from "./pages/AdminPanel";
 import CalculationBreakdown from "./pages/CalculationBreakdown";
 import ComparisonPage from "./pages/ComparisonPage";
 import NotFound from "./pages/NotFound";
+import { useExcelNavigation } from "@/hooks/useExcelNavigation";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ function SheetRouter() {
 
 function AppContent() {
   const { isAuthenticated, user } = useAuth();
+  useExcelNavigation();
 
   if (!isAuthenticated) {
     return <Login />;
