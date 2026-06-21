@@ -212,26 +212,50 @@ export default function ComparisonPage() {
 
   const handleChangeSelection = () => openCompare([]);
 
-  // Highlight summary cards
-  const highlightCards = HIGHLIGHTS.map(h => {
-    const m = METRICS.find(x => x.key === h.key);
-    if (!m) return { ...h, vessel: "—", value: "" };
-    const idx = bestPerMetric[h.key];
-    if (idx < 0 || !entries[idx]) return { ...h, vessel: "—", value: "" };
-    const e = entries[idx];
-    const v = e.results ? m.get(e.results) : NaN;
-    return { ...h, vessel: e.vesselName, value: m.fmt ? m.fmt(v) : String(v) };
-  });
-
-  // Chart data
+  // Chart data (by sheet name)
   const chartData = useMemo(() => {
     const m = METRICS.find(x => x.key === chartMetric);
     if (!m) return [];
     return orderedIndices.map(i => ({
-      name: entries[i]?.vesselName || entries[i]?.name || `#${i + 1}`,
+      name: entries[i]?.name || entries[i]?.vesselName || `#${i + 1}`,
       value: entries[i]?.results ? m.get(entries[i].results!) : 0,
     }));
   }, [orderedIndices, entries, chartMetric]);
+
+  // Multi-metric analysis charts grouped by sheet
+  const fuelChartData = useMemo(() =>
+    orderedIndices.map(i => {
+      const r = entries[i]?.results;
+      return {
+        name: entries[i]?.name || `#${i + 1}`,
+        HSFO: r?.hsfoConsumption || 0,
+        VLSFO: r?.vlsfoConsumption || 0,
+        LSMGO: r?.lsmgoConsumption || 0,
+      };
+    }), [orderedIndices, entries]);
+
+  const daysChartData = useMemo(() =>
+    orderedIndices.map(i => {
+      const r = entries[i]?.results;
+      const sm = (r as unknown as { seaMarginTime?: number } | undefined)?.seaMarginTime || 0;
+      return {
+        name: entries[i]?.name || `#${i + 1}`,
+        "Sea Days": r?.totalSeaDays || 0,
+        "Port Days": r?.totalPortDays || 0,
+        "Weather/Margin": sm,
+      };
+    }), [orderedIndices, entries]);
+
+  const pnlChartData = useMemo(() =>
+    orderedIndices.map(i => {
+      const r = entries[i]?.results;
+      return {
+        name: entries[i]?.name || `#${i + 1}`,
+        Revenue: r?.grossFreight || 0,
+        Cost: r?.totalVoyageCosts || 0,
+        "P&L": r?.netProfit || 0,
+      };
+    }), [orderedIndices, entries]);
 
   if (compareSheetIds.length === 0) {
     return (
@@ -305,8 +329,8 @@ export default function ComparisonPage() {
                       <th className="sticky left-0 z-20 bg-table-header text-left px-3 py-2 font-medium border-b border-border min-w-[180px]">Metric</th>
                       {orderedIndices.map(i => (
                         <th key={entries[i].id} className="text-right px-3 py-2 font-medium border-b border-l border-border min-w-[140px]">
-                          <div className="text-foreground truncate" title={entries[i].vesselName}>{entries[i].vesselName}</div>
-                          <div className="text-[10px] text-muted-foreground font-normal truncate" title={entries[i].name}>{entries[i].name}</div>
+                          <div className="text-foreground truncate" title={entries[i].name}>{entries[i].name}</div>
+                          <div className="text-[10px] text-muted-foreground font-normal truncate" title={entries[i].vesselName}>{entries[i].vesselName}</div>
                         </th>
                       ))}
                     </tr>
