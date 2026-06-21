@@ -167,7 +167,7 @@ const Index = () => {
         
         {/* Right Panel - Summary */}
         <div
-          className={`w-72 flex-shrink-0 border-l border-border overflow-y-auto bg-background ${
+          className={`w-80 flex-shrink-0 border-l border-border overflow-y-auto bg-background ${
             isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
           }`}
         >

@@ -39,7 +39,7 @@ export function MiscSection() {
         <div className="flex-1 min-w-0 p-3 space-y-3 overflow-x-auto">
           {/* Misc Costs - tabular */}
           <div className="border border-border rounded overflow-hidden">
-            <table className="w-full text-xs table-fixed min-w-[560px]">
+            <table className="w-full text-xs table-fixed min-w-[440px]">
               <thead>
                 <tr className="subsection-header">
                   <th className="text-left px-2 py-1 text-[10px] font-medium">Misc Costs</th>
@@ -53,35 +53,35 @@ export function MiscSection() {
               <tbody>
                 <tr className="border-t border-border">
                   <td className="px-1 py-0.5">
-                    <div className="input-with-unit">
+                    <div className="input-with-unit max-w-[90px]">
                       <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
                       <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.miscCost || ""} onChange={(e) => updateMisc("miscCost", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
                   </td>
                   <td className="px-1 py-0.5">
-                    <div className="input-with-unit">
+                    <div className="input-with-unit max-w-[90px]">
                       <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
                       <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.extraFees || ""} onChange={(e) => updateMisc("extraFees", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
                   </td>
                   <td className="px-1 py-0.5">
-                    <div className="input-with-unit">
+                    <div className="input-with-unit max-w-[90px]">
                       <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
                       <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.extraInsurance || ""} onChange={(e) => updateMisc("extraInsurance", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
                   </td>
                   <td className="px-1 py-0.5">
-                    <div className="input-with-unit">
+                    <div className="input-with-unit max-w-[90px]">
                       <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
                       <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.canalCost1 || ""} onChange={(e) => updateMisc("canalCost1", parseFloat(e.target.value) || 0)} placeholder="0" />
                     </div>
                   </td>
                   <td className="px-1 py-0.5">
-                    <div className="input-with-unit">
+                    <div className="input-with-unit max-w-[90px]">
                       <span className="unit border-r-0 rounded-r-none rounded-l-md text-[10px]">$</span>
                       <input type="number" className="form-input-sm w-full font-mono text-right text-xs rounded-l-none"
                         value={misc?.canalCost2 || ""} onChange={(e) => updateMisc("canalCost2", parseFloat(e.target.value) || 0)} placeholder="0" />
@@ -105,7 +105,7 @@ export function MiscSection() {
 
           {/* Extra Time - tabular */}
           <div className="border border-border rounded overflow-hidden">
-            <table className="w-full text-xs table-fixed min-w-[480px]">
+            <table className="w-full text-xs table-fixed min-w-[380px]">
               <thead>
                 <tr className="subsection-header">
                   {extraTimeKeys.map(key => (
@@ -118,7 +118,7 @@ export function MiscSection() {
                 <tr className="border-t border-border">
                   {extraTimeKeys.map(key => (
                     <td key={key} className="px-1 py-0.5">
-                      <div className="flex items-center gap-0.5 min-w-0">
+                      <div className="flex items-center gap-0.5 min-w-0 max-w-[110px]">
                         <input type="number" className="form-input-sm flex-1 min-w-0 font-mono text-right text-xs"
                           value={misc?.extraTime?.[key]?.value || ""} onChange={(e) => updateExtraTime(key, "value", parseFloat(e.target.value) || 0)} placeholder="0" />
                         <Select value={misc?.extraTime?.[key]?.unit || "days"} onValueChange={(value) => updateExtraTime(key, "unit", value)}>
