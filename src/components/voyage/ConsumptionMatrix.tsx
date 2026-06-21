@@ -126,12 +126,12 @@ export function ConsumptionMatrix({
 
   return (
     <div className="overflow-x-auto w-full">
-      <table className="text-[10px] border-collapse w-full table-fixed">
+      <table className="text-[10px] border-collapse table-fixed">
         <thead>
           <tr>
             <th className={`${thClass} text-left w-12`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
             {columns.map(col => (
-              <th key={col.key} className={`${thClass} px-0`}>{col.label}</th>
+              <th key={col.key} className={`${thClass} px-1 w-16`}>{col.label}</th>
             ))}
             <th className={`${thClass} w-8`}>Unit</th>
           </tr>
@@ -153,7 +153,7 @@ export function ConsumptionMatrix({
                       <input
                         type="text"
                         inputMode="decimal"
-                        className={`form-input-sm w-full max-w-full mx-auto block font-mono tabular-nums text-center h-4 text-[9px] px-0.5 ${isDisabled ? "opacity-50" : ""}`}
+                        className={`form-input-sm w-14 mx-auto block font-mono tabular-nums text-center h-4 text-[9px] px-0.5 ${isDisabled ? "opacity-50" : ""}`}
                         value={getDisplayValue(row.key, col.key, value)}
                         onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
                         onFocus={() => handleInputFocus(row.key, col.key, value)}
