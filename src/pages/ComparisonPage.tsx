@@ -117,7 +117,7 @@ export default function ComparisonPage() {
   const { compareSheetIds, setCurrentView, openCompare } = useSheets();
   const [entries, setEntries] = useState<SheetEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [chartMetric, setChartMetric] = useState("netProfit");
+  const [chartMetric, setChartMetric] = useState("pAndL");
   const [sortKey, setSortKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -128,13 +128,26 @@ export default function ComparisonPage() {
         const details = await Promise.all(compareSheetIds.map(id => getSheet(id).catch(() => null)));
         if (cancelled) return;
         const next: SheetEntry[] = details
-          .map((d, i) => d ? ({
-            id: compareSheetIds[i],
-            name: d.name,
-            data: d.data || {},
-            vesselName: ((d.data as Record<string, { name?: string }> | undefined)?.vessel?.name) || "—",
-            results: null,
-          }) : null)
+          .map((d, i) => {
+            if (!d) return null;
+            const data = (d.data || {}) as Record<string, unknown>;
+            const vesselName = ((data.vessel as { name?: string } | undefined)?.name) || "—";
+            const cargosRaw = Array.isArray(data.cargos) ? (data.cargos as Array<Record<string, unknown>>) : [];
+            const cargos = cargosRaw.map(c => ({
+              grade: (c.grade as string) || (c.cargoGrade as string) || (c.name as string),
+              quantity: Number(c.quantity ?? c.qty ?? c.cargoQuantity ?? 0) || undefined,
+              loadPort: (c.loadPort as string) || (c.lPort as string),
+              dischargePort: (c.dischargePort as string) || (c.dPort as string),
+            }));
+            return {
+              id: compareSheetIds[i],
+              name: d.name,
+              data,
+              vesselName,
+              results: null,
+              cargos,
+            } as SheetEntry;
+          })
           .filter((x): x is SheetEntry => x !== null);
         setEntries(next);
       } catch {
