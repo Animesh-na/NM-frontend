@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend } from "recharts";
 import { useSheets } from "@/context/sheetContextCore";
 import { getSheet } from "@/services/marineApi";
 import { VoyageProvider, useVoyageContext } from "@/context/VoyageContext";
