@@ -14,6 +14,7 @@ interface SheetEntry {
   data: Record<string, unknown>;
   vesselName: string;
   results: VoyageResults | null;
+  cargos: Array<{ grade?: string; quantity?: number; loadPort?: string; dischargePort?: string }>;
 }
 
 // ─────────────────────────────────────────────────────────
@@ -22,12 +23,8 @@ interface SheetEntry {
 // ─────────────────────────────────────────────────────────
 function ResultEmitter({ onResult }: { onResult: (r: VoyageResults, vesselName: string) => void }) {
   const ctx = useVoyageContext();
-  const lastSentRef = useRef<VoyageResults | null>(null);
   useEffect(() => {
-    if (ctx.results && ctx.results !== lastSentRef.current) {
-      lastSentRef.current = ctx.results;
-      onResult(ctx.results, ctx.vessel?.name || "—");
-    }
+    if (ctx.results) onResult(ctx.results, ctx.vessel?.name || "—");
   }, [ctx.results, ctx.vessel?.name, onResult]);
   return null;
 }
