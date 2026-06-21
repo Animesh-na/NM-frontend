@@ -552,18 +552,37 @@ export default function ComparisonPage() {
             </section>
 
             <section className="bg-card border border-border rounded p-3">
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Revenue, Cost & P&L by Sheet ($)</h2>
-              <div style={{ width: "100%", height: 300 }}>
+              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">P&L Waterfall by Sheet ($)</h2>
+              <div style={{ width: "100%", height: Math.max(320, waterfallData.length * 28) }}>
                 <ResponsiveContainer>
-                  <BarChart data={pnlChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                  <BarChart data={waterfallData} layout="vertical" margin={{ top: 10, right: 30, left: 140, bottom: 10 }} barCategoryGap={2}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <ReTooltip formatter={(v: number) => "$" + Math.round(v).toLocaleString()} />
-                    <Legend />
-                    <Bar dataKey="Revenue" fill="hsl(var(--chart-1, 220 70% 50%))" />
-                    <Bar dataKey="Cost" fill="hsl(var(--chart-2, 0 70% 55%))" />
-                    <Bar dataKey="P&L" fill="hsl(var(--chart-3, 140 60% 45%))" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v: number) => "$" + (v / 1000).toFixed(0) + "k"} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={140} interval={0} />
+                    <ReTooltip
+                      formatter={(_v: number, _n: string, p: { payload?: { value?: number; type?: string } }) => {
+                        const val = p?.payload?.value ?? 0;
+                        const label = p?.payload?.type === "neg" ? "Deduction" : p?.payload?.type === "total" ? "P&L" : p?.payload?.type === "start" ? "Revenue" : "Value";
+                        return ["$" + Math.round(val).toLocaleString(), label];
+                      }}
+                    />
+                    <Bar dataKey="base" stackId="wf" fill="transparent" />
+                    <Bar dataKey="delta" stackId="wf">
+                      {waterfallData.map((d, idx) => (
+                        <Cell
+                          key={idx}
+                          fill={
+                            d.type === "start"
+                              ? "hsl(217 91% 60%)"
+                              : d.type === "neg"
+                                ? "hsl(0 72% 51%)"
+                                : d.value >= 0
+                                  ? "hsl(142 71% 45%)"
+                                  : "hsl(0 72% 51%)"
+                          }
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
