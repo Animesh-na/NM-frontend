@@ -39,82 +39,65 @@ export function VoyageSummary() {
 
       <div className="p-2 space-y-2 text-[10px] [&_.text-muted-foreground]:text-foreground [&_.text-muted-foreground]:font-bold [&_.font-medium]:text-primary [&_.font-medium]:font-bold">
         {/* Financial Summary */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center border-b border-border pb-1">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-b border-border pb-1">
+          <div className="flex justify-between items-center">
             <span className="font-medium flex items-center">
-              Voyage - Total Incl Hire
-              <InfoTooltip 
-                formula="Voyage Cost Excl Hire + Hire Cost" 
-                description="Total voyage cost including vessel hire"
-              />
+              Incl Hire
+              <InfoTooltip formula="Voyage Cost Excl Hire + Hire Cost" description="Total voyage cost including vessel hire" />
             </span>
-            <span className="font-mono tabular-nums font-semibold text-primary">
-              ${formatCurrency(results.voyageCostInclHire)}
-            </span>
+            <span className="font-mono tabular-nums font-semibold text-primary">${formatCurrency(results.voyageCostInclHire)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground flex items-center">
               Excl Hire
-              <InfoTooltip 
-                formula="Port Costs + Bunker Cost + CO₂ Cost" 
-                description="Total voyage cost excluding vessel hire"
-              />
+              <InfoTooltip formula="Port Costs + Bunker Cost + CO₂ Cost" description="Total voyage cost excluding vessel hire" />
             </span>
-            <span className="font-mono tabular-nums">
-              ${formatCurrency(results.voyageCostExclHire)}
-            </span>
+            <span className="font-mono tabular-nums">${formatCurrency(results.voyageCostExclHire)}</span>
           </div>
         </div>
 
         {/* Time Summary */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-1 mb-2 border-b border-border pb-1">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1 border-b border-border pb-0.5">
             <Clock className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">Time</span>
           </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <span className="text-muted-foreground flex items-center">
-              Time ballast
-              <InfoTooltip 
-                formula="Ballast Distance / (Speed × 24)" 
-                description="Days spent sailing in ballast condition"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{formatDays(results.seaDaysBallast)} d</span>
-            <span className="text-muted-foreground flex items-center">
-              Time laden
-              <InfoTooltip 
-                formula="Laden Distance / (Speed × 24)" 
-                description="Days spent sailing with cargo"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{formatDays(results.seaDaysLaden)} d</span>
-            <span className="text-muted-foreground flex items-center">
-              Time at sea
-              <InfoTooltip 
-                formula="Time Ballast + Time Laden" 
-                description="Total sailing time"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{formatDays(results.totalSeaDays)} d</span>
-            <span className="text-muted-foreground flex items-center">
-              Time in port
-              <InfoTooltip 
-                formula="Σ Port Days (all ports)" 
-                description="Sum of days in all ports"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">{formatDays(results.totalPortDays)} d</span>
-            <span className="font-medium flex items-center">
-              Total time
-              <InfoTooltip 
-                formula="Time at Sea + Time in Port" 
-                description="Total voyage duration"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right font-semibold text-primary">
-              {formatDays(results.totalVoyageDays)} d
-            </span>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground flex items-center">
+                Ballast
+                <InfoTooltip formula="Ballast Distance / (Speed × 24)" description="Days spent sailing in ballast condition" />
+              </span>
+              <span className="font-mono tabular-nums">{formatDays(results.seaDaysBallast)}d</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground flex items-center">
+                Laden
+                <InfoTooltip formula="Laden Distance / (Speed × 24)" description="Days spent sailing with cargo" />
+              </span>
+              <span className="font-mono tabular-nums">{formatDays(results.seaDaysLaden)}d</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground flex items-center">
+                At Sea
+                <InfoTooltip formula="Time Ballast + Time Laden" description="Total sailing time" />
+              </span>
+              <span className="font-mono tabular-nums">{formatDays(results.totalSeaDays)}d</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground flex items-center">
+                In Port
+                <InfoTooltip formula="Σ Port Days (all ports)" description="Sum of days in all ports" />
+              </span>
+              <span className="font-mono tabular-nums">{formatDays(results.totalPortDays)}d</span>
+            </div>
+            <div className="flex justify-between col-span-2 border-t border-border pt-0.5">
+              <span className="font-medium flex items-center">
+                Total Time
+                <InfoTooltip formula="Time at Sea + Time in Port" description="Total voyage duration" />
+              </span>
+              <span className="font-mono tabular-nums font-semibold text-primary">{formatDays(results.totalVoyageDays)}d</span>
+            </div>
           </div>
         </div>
 
@@ -147,37 +130,28 @@ export function VoyageSummary() {
             <DollarSign className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">Cargo / Economics</span>
           </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <span className="text-muted-foreground flex items-center">
-              NTCE
-              <InfoTooltip 
-                formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" 
-                description="Net Time Charter Equivalent - daily earning after all costs"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right font-semibold">
-              ${formatCurrency(results.ntce)}
-            </span>
-            <span className="text-muted-foreground flex items-center">
-              GTCE
-              <InfoTooltip 
-                formula="NTCE / (1 - TC Commission%)" 
-                description="Gross Time Charter Equivalent - NTCE grossed up by TC commission"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right text-success font-semibold">
-              ${formatCurrency(results.gtce)}
-            </span>
-            <span className="text-muted-foreground flex items-center">
-              TCE
-              <InfoTooltip 
-                formula="NTCE / (1 - TC Commission%)" 
-                description="Time Charter Equivalent - equals GTCE in this model"
-              />
-            </span>
-            <span className="font-mono tabular-nums text-right">
-              ${formatCurrency(results.tce)}
-            </span>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground flex items-center">
+                NTCE
+                <InfoTooltip formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" description="Net Time Charter Equivalent - daily earning after all costs" />
+              </span>
+              <span className="font-mono tabular-nums font-semibold">${formatCurrency(results.ntce)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground flex items-center">
+                GTCE
+                <InfoTooltip formula="NTCE / (1 - TC Commission%)" description="Gross Time Charter Equivalent - NTCE grossed up by TC commission" />
+              </span>
+              <span className="font-mono tabular-nums text-success font-semibold">${formatCurrency(results.gtce)}</span>
+            </div>
+            <div className="flex justify-between col-span-2">
+              <span className="text-muted-foreground flex items-center">
+                TCE
+                <InfoTooltip formula="NTCE / (1 - TC Commission%)" description="Time Charter Equivalent - equals GTCE in this model" />
+              </span>
+              <span className="font-mono tabular-nums">${formatCurrency(results.tce)}</span>
+            </div>
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
             {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 ? (
@@ -236,29 +210,21 @@ export function VoyageSummary() {
                 </span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                Net Freight
-                <InfoTooltip 
-                  formula="Gross Freight × (1 - Commission%)" 
-                  description="Freight after deducting commissions"
-                />
-              </span>
-              <span className="font-mono tabular-nums">
-                ${formatCurrency(results.netFreight)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                Gross Freight
-                <InfoTooltip 
-                  formula="Rate × Quantity (or Lumpsum)" 
-                  description="Total freight before commissions"
-                />
-              </span>
-              <span className="font-mono tabular-nums">
-                ${formatCurrency(results.grossFreight)}
-              </span>
+            <div className="grid grid-cols-2 gap-x-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground flex items-center">
+                  Net Frt
+                  <InfoTooltip formula="Gross Freight × (1 - Commission%)" description="Freight after deducting commissions" />
+                </span>
+                <span className="font-mono tabular-nums">${formatCurrency(results.netFreight)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground flex items-center">
+                  Gross Frt
+                  <InfoTooltip formula="Rate × Quantity (or Lumpsum)" description="Total freight before commissions" />
+                </span>
+                <span className="font-mono tabular-nums">${formatCurrency(results.grossFreight)}</span>
+              </div>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
