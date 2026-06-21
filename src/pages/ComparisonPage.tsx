@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend } from "recharts";
 import { useSheets } from "@/context/sheetContextCore";
 import { getSheet } from "@/services/marineApi";
 import { VoyageProvider, useVoyageContext } from "@/context/VoyageContext";
@@ -14,6 +14,7 @@ interface SheetEntry {
   data: Record<string, unknown>;
   vesselName: string;
   results: VoyageResults | null;
+  cargos: Array<{ grade?: string; quantity?: number; loadPort?: string; dischargePort?: string }>;
 }
 
 // ─────────────────────────────────────────────────────────
@@ -22,12 +23,8 @@ interface SheetEntry {
 // ─────────────────────────────────────────────────────────
 function ResultEmitter({ onResult }: { onResult: (r: VoyageResults, vesselName: string) => void }) {
   const ctx = useVoyageContext();
-  const lastSentRef = useRef<VoyageResults | null>(null);
   useEffect(() => {
-    if (ctx.results && ctx.results !== lastSentRef.current) {
-      lastSentRef.current = ctx.results;
-      onResult(ctx.results, ctx.vessel?.name || "—");
-    }
+    if (ctx.results) onResult(ctx.results, ctx.vessel?.name || "—");
   }, [ctx.results, ctx.vessel?.name, onResult]);
   return null;
 }
@@ -84,7 +81,8 @@ const METRICS: Metric[] = [
   { key: "miscCosts", label: "Miscellaneous Cost", group: "Financial Metrics", better: "lower", get: r => r.miscCosts, fmt: $ },
   { key: "voyageCommission", label: "Commission", group: "Financial Metrics", better: "lower", get: r => r.voyageCommission, fmt: $ },
   { key: "totalVoyageCosts", label: "Total Voyage Expense", group: "Financial Metrics", better: "lower", get: r => r.totalVoyageCosts, fmt: $ },
-  { key: "netProfit", label: "P&L (Net Profit)", group: "Financial Metrics", better: "higher", get: r => r.netProfit, fmt: $ },
+  { key: "pAndL", label: "P&L", group: "Financial Metrics", better: "higher", get: r => (r as unknown as { pAndL?: number }).pAndL ?? r.netProfit, fmt: $ },
+  { key: "netProfit", label: "Net Voyage Result", group: "Financial Metrics", better: "higher", get: r => r.netProfit, fmt: $ },
   { key: "gtce", label: "GTCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => (r as unknown as { gtce?: number }).gtce ?? r.tce, fmt: $ },
   { key: "ntce", label: "NTCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => (r as unknown as { ntce?: number }).ntce ?? r.tce, fmt: $ },
   { key: "grossRate", label: "Gross Rate", group: "Financial Metrics", unit: "$/mt", better: "lower", get: r => r.grossRate, fmt: num(2) },
@@ -113,13 +111,13 @@ function worstIndex(values: number[], dir: MetricDir): number {
   return bestIndex(values, dir === "higher" ? "lower" : "higher");
 }
 
-const CHART_METRIC_KEYS = ["netProfit", "gtce", "ntce", "grossRate", "totalBunkerCost", "hireCost", "totalVoyageDays", "totalConsumption", "totalCo2"];
+const CHART_METRIC_KEYS = ["pAndL", "netProfit", "gtce", "ntce", "grossRate", "totalBunkerCost", "hireCost", "totalVoyageDays", "totalConsumption", "totalCo2"];
 
 export default function ComparisonPage() {
   const { compareSheetIds, setCurrentView, openCompare } = useSheets();
   const [entries, setEntries] = useState<SheetEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [chartMetric, setChartMetric] = useState("netProfit");
+  const [chartMetric, setChartMetric] = useState("pAndL");
   const [sortKey, setSortKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -130,13 +128,26 @@ export default function ComparisonPage() {
         const details = await Promise.all(compareSheetIds.map(id => getSheet(id).catch(() => null)));
         if (cancelled) return;
         const next: SheetEntry[] = details
-          .map((d, i) => d ? ({
-            id: compareSheetIds[i],
-            name: d.name,
-            data: d.data || {},
-            vesselName: ((d.data as Record<string, { name?: string }> | undefined)?.vessel?.name) || "—",
-            results: null,
-          }) : null)
+          .map((d, i) => {
+            if (!d) return null;
+            const data = (d.data || {}) as Record<string, unknown>;
+            const vesselName = ((data.vessel as { name?: string } | undefined)?.name) || "—";
+            const cargosRaw = Array.isArray(data.cargos) ? (data.cargos as Array<Record<string, unknown>>) : [];
+            const cargos = cargosRaw.map(c => ({
+              grade: (c.grade as string) || (c.cargoGrade as string) || (c.name as string),
+              quantity: Number(c.quantity ?? c.qty ?? c.cargoQuantity ?? 0) || undefined,
+              loadPort: (c.loadPort as string) || (c.lPort as string),
+              dischargePort: (c.dischargePort as string) || (c.dPort as string),
+            }));
+            return {
+              id: compareSheetIds[i],
+              name: d.name,
+              data,
+              vesselName,
+              results: null,
+              cargos,
+            } as SheetEntry;
+          })
           .filter((x): x is SheetEntry => x !== null);
         setEntries(next);
       } catch {
@@ -250,16 +261,46 @@ export default function ComparisonPage() {
       };
     }), [orderedIndices, entries]);
 
-  const pnlChartData = useMemo(() =>
-    orderedIndices.map(i => {
+  // Waterfall: per sheet build steps Revenue -> -Fuel -> -Port -> -Canal -> -Hire -> -Misc/Comm -> P&L
+  const waterfallData = useMemo(() => {
+    const rows: Array<{ name: string; sheet: string; base: number; delta: number; type: "start" | "neg" | "pos" | "total"; value: number }> = [];
+    orderedIndices.forEach((i) => {
       const r = entries[i]?.results;
-      return {
-        name: entries[i]?.name || `#${i + 1}`,
-        Revenue: r?.grossFreight || 0,
-        Cost: r?.totalVoyageCosts || 0,
-        "P&L": r?.netProfit || 0,
+      if (!r) return;
+      const sheet = entries[i]?.name || `#${i + 1}`;
+      const revenue = r.grossFreight || 0;
+      const fuel = r.totalBunkerCost || 0;
+      const port = r.portCosts || 0;
+      const canal = r.canalCosts || 0;
+      const hire = r.hireCost || 0;
+      const otherCost = (r.miscCosts || 0) + (r.voyageCommission || 0);
+      const pnl = (r as unknown as { pAndL?: number }).pAndL ?? r.netProfit ?? 0;
+      let running = 0;
+      const push = (name: string, delta: number, type: "start" | "neg" | "pos" | "total", forcedValue?: number) => {
+        if (type === "start") {
+          rows.push({ name: `${sheet} · ${name}`, sheet, base: 0, delta: revenue, type, value: revenue });
+          running = revenue;
+        } else if (type === "total") {
+          rows.push({ name: `${sheet} · ${name}`, sheet, base: 0, delta: forcedValue ?? running, type, value: forcedValue ?? running });
+        } else {
+          // delta is signed; for negatives base is running+delta (since delta<0)
+          const next = running + delta;
+          const base = Math.min(running, next);
+          const size = Math.abs(delta);
+          rows.push({ name: `${sheet} · ${name}`, sheet, base, delta: size, type, value: delta });
+          running = next;
+        }
       };
-    }), [orderedIndices, entries]);
+      push("Revenue", 0, "start");
+      push("Fuel", -fuel, "neg");
+      push("Port", -port, "neg");
+      if (canal) push("Canal", -canal, "neg");
+      push("Hire", -hire, "neg");
+      if (otherCost) push("Misc+Comm", -otherCost, "neg");
+      push("P&L", 0, "total", pnl);
+    });
+    return rows;
+  }, [orderedIndices, entries]);
 
   if (compareSheetIds.length === 0) {
     return (
@@ -323,6 +364,37 @@ export default function ComparisonPage() {
                     </tr>
                   </thead>
                   <tbody>
+                    <tr className="border-b border-border bg-amber-500/5">
+                      <td className="sticky left-0 z-10 bg-amber-500/5 px-3 py-1.5 font-medium text-foreground">
+                        Cargoes
+                        <span className="text-[10px] text-muted-foreground ml-1">(grade × qty)</span>
+                      </td>
+                      {orderedIndices.map((i) => {
+                        const cs = entries[i]?.cargos || [];
+                        const isMulti = cs.length > 1;
+                        return (
+                          <td key={`cargo-${entries[i].id}`} className="text-right px-3 py-1.5 border-l border-border align-top">
+                            {cs.length === 0 ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : (
+                              <div className="space-y-0.5">
+                                {cs.map((c, k) => (
+                                  <div key={k} className="text-[11px] truncate" title={`${c.grade || "Cargo"} ${c.quantity ?? ""}`}>
+                                    <span className="text-foreground">{c.grade || `Cargo ${k + 1}`}</span>
+                                    {c.quantity ? <span className="text-muted-foreground"> · {Math.round(c.quantity).toLocaleString()} mt</span> : null}
+                                  </div>
+                                ))}
+                                {isMulti && (
+                                  <div className="text-[9px] uppercase tracking-wider text-amber-700 dark:text-amber-400 font-semibold mt-0.5">
+                                    Multi-cargo ({cs.length})
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
                     {(() => {
                       const out: JSX.Element[] = [];
                       let lastGroup = "";
@@ -480,18 +552,37 @@ export default function ComparisonPage() {
             </section>
 
             <section className="bg-card border border-border rounded p-3">
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Revenue, Cost & P&L by Sheet ($)</h2>
-              <div style={{ width: "100%", height: 300 }}>
+              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">P&L Waterfall by Sheet ($)</h2>
+              <div style={{ width: "100%", height: Math.max(320, waterfallData.length * 28) }}>
                 <ResponsiveContainer>
-                  <BarChart data={pnlChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                  <BarChart data={waterfallData} layout="vertical" margin={{ top: 10, right: 30, left: 140, bottom: 10 }} barCategoryGap={2}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <ReTooltip formatter={(v: number) => "$" + Math.round(v).toLocaleString()} />
-                    <Legend />
-                    <Bar dataKey="Revenue" fill="hsl(var(--chart-1, 220 70% 50%))" />
-                    <Bar dataKey="Cost" fill="hsl(var(--chart-2, 0 70% 55%))" />
-                    <Bar dataKey="P&L" fill="hsl(var(--chart-3, 140 60% 45%))" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v: number) => "$" + (v / 1000).toFixed(0) + "k"} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={140} interval={0} />
+                    <ReTooltip
+                      formatter={(_v: number, _n: string, p: { payload?: { value?: number; type?: string } }) => {
+                        const val = p?.payload?.value ?? 0;
+                        const label = p?.payload?.type === "neg" ? "Deduction" : p?.payload?.type === "total" ? "P&L" : p?.payload?.type === "start" ? "Revenue" : "Value";
+                        return ["$" + Math.round(val).toLocaleString(), label];
+                      }}
+                    />
+                    <Bar dataKey="base" stackId="wf" fill="transparent" />
+                    <Bar dataKey="delta" stackId="wf">
+                      {waterfallData.map((d, idx) => (
+                        <Cell
+                          key={idx}
+                          fill={
+                            d.type === "start"
+                              ? "hsl(217 91% 60%)"
+                              : d.type === "neg"
+                                ? "hsl(0 72% 51%)"
+                                : d.value >= 0
+                                  ? "hsl(142 71% 45%)"
+                                  : "hsl(0 72% 51%)"
+                          }
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
