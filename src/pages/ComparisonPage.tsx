@@ -81,7 +81,8 @@ const METRICS: Metric[] = [
   { key: "miscCosts", label: "Miscellaneous Cost", group: "Financial Metrics", better: "lower", get: r => r.miscCosts, fmt: $ },
   { key: "voyageCommission", label: "Commission", group: "Financial Metrics", better: "lower", get: r => r.voyageCommission, fmt: $ },
   { key: "totalVoyageCosts", label: "Total Voyage Expense", group: "Financial Metrics", better: "lower", get: r => r.totalVoyageCosts, fmt: $ },
-  { key: "netProfit", label: "P&L (Net Profit)", group: "Financial Metrics", better: "higher", get: r => r.netProfit, fmt: $ },
+  { key: "pAndL", label: "P&L", group: "Financial Metrics", better: "higher", get: r => (r as unknown as { pAndL?: number }).pAndL ?? r.netProfit, fmt: $ },
+  { key: "netProfit", label: "Net Voyage Result", group: "Financial Metrics", better: "higher", get: r => r.netProfit, fmt: $ },
   { key: "gtce", label: "GTCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => (r as unknown as { gtce?: number }).gtce ?? r.tce, fmt: $ },
   { key: "ntce", label: "NTCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => (r as unknown as { ntce?: number }).ntce ?? r.tce, fmt: $ },
   { key: "grossRate", label: "Gross Rate", group: "Financial Metrics", unit: "$/mt", better: "lower", get: r => r.grossRate, fmt: num(2) },
@@ -110,7 +111,7 @@ function worstIndex(values: number[], dir: MetricDir): number {
   return bestIndex(values, dir === "higher" ? "lower" : "higher");
 }
 
-const CHART_METRIC_KEYS = ["netProfit", "gtce", "ntce", "grossRate", "totalBunkerCost", "hireCost", "totalVoyageDays", "totalConsumption", "totalCo2"];
+const CHART_METRIC_KEYS = ["pAndL", "netProfit", "gtce", "ntce", "grossRate", "totalBunkerCost", "hireCost", "totalVoyageDays", "totalConsumption", "totalCo2"];
 
 export default function ComparisonPage() {
   const { compareSheetIds, setCurrentView, openCompare } = useSheets();
