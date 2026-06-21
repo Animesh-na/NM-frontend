@@ -11,8 +11,12 @@ export interface SheetTab {
 
 export interface SheetContextValue {
   // Navigation
-  currentView: "dashboard" | "editor" | "admin";
-  setCurrentView: (view: "dashboard" | "editor" | "admin") => void;
+  currentView: "dashboard" | "editor" | "admin" | "compare";
+  setCurrentView: (view: "dashboard" | "editor" | "admin" | "compare") => void;
+
+  // Compare Sheets
+  compareSheetIds: string[];
+  openCompare: (ids: string[]) => void;
 
   // Tabs
   tabs: SheetTab[];

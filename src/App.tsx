@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import AdminPanel from "./pages/AdminPanel";
 import CalculationBreakdown from "./pages/CalculationBreakdown";
+import ComparisonPage from "./pages/ComparisonPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,10 @@ function SheetRouter() {
 
   if (currentView === "admin") {
     return <AdminPanel onBack={() => setCurrentView("dashboard")} />;
+  }
+
+  if (currentView === "compare") {
+    return <ComparisonPage />;
   }
 
   // Wait for sheet data to load before mounting VoyageProvider

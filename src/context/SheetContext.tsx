@@ -4,9 +4,15 @@ import { getSheet, saveSheet, updateSheet, type SheetDetail } from "@/services/m
 import { toast } from "@/components/ui/sonner";
 
 export function SheetProvider({ children }: { children: ReactNode }) {
-  const [currentView, setCurrentView] = useState<"dashboard" | "editor" | "admin">("dashboard");
+  const [currentView, setCurrentView] = useState<"dashboard" | "editor" | "admin" | "compare">("dashboard");
   const [tabs, setTabs] = useState<SheetTab[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [compareSheetIds, setCompareSheetIds] = useState<string[]>([]);
+
+  const openCompare = useCallback((ids: string[]) => {
+    setCompareSheetIds(ids);
+    setCurrentView("compare");
+  }, []);
 
   const activeTab = tabs.length > 0 ? tabs[activeTabIndex] || null : null;
 
@@ -196,6 +202,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       currentView, setCurrentView,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
       createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
+      compareSheetIds, openCompare,
     }}>
       {children}
     </SheetContext.Provider>
