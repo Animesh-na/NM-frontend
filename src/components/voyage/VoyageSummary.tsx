@@ -203,20 +203,20 @@ export function VoyageSummary() {
                 </span>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-x-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground flex items-center">
+            <div className="grid grid-cols-2 gap-x-2">
+              <div className="flex justify-between items-center gap-1 min-w-0">
+                <span className="text-muted-foreground flex items-center shrink-0 whitespace-nowrap">
                   Net Frt
                   <InfoTooltip formula="Gross Freight × (1 - Commission%)" description="Freight after deducting commissions" />
                 </span>
-                <span className="font-mono tabular-nums">${formatCurrency(results.netFreight)}</span>
+                <span className="font-mono tabular-nums whitespace-nowrap truncate">${formatCurrency(results.netFreight)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground flex items-center">
+              <div className="flex justify-between items-center gap-1 min-w-0">
+                <span className="text-muted-foreground flex items-center shrink-0 whitespace-nowrap">
                   Gross Frt
                   <InfoTooltip formula="Rate × Quantity (or Lumpsum)" description="Total freight before commissions" />
                 </span>
-                <span className="font-mono tabular-nums">${formatCurrency(results.grossFreight)}</span>
+                <span className="font-mono tabular-nums whitespace-nowrap truncate">${formatCurrency(results.grossFreight)}</span>
               </div>
             </div>
             <div className="flex justify-between">
