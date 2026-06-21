@@ -383,7 +383,9 @@ export default function ComparisonPage() {
             {/* Chart */}
             <section className="bg-card border border-border rounded p-3">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Metric Comparison</h2>
+                <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                  Metric Comparison by Sheet — {METRICS.find(x => x.key === chartMetric)?.label}
+                </h2>
                 <select
                   value={chartMetric}
                   onChange={e => setChartMetric(e.target.value)}
@@ -409,6 +411,83 @@ export default function ComparisonPage() {
                     />
                     <Legend />
                     <Bar dataKey="value" name={METRICS.find(x => x.key === chartMetric)?.label || "Value"} fill="hsl(var(--primary))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Inline data table */}
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-[11px] border-collapse">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="text-left px-2 py-1 border border-border">Sheet</th>
+                      <th className="text-right px-2 py-1 border border-border">{METRICS.find(x => x.key === chartMetric)?.label}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chartData.map(d => {
+                      const m = METRICS.find(x => x.key === chartMetric);
+                      return (
+                        <tr key={d.name}>
+                          <td className="px-2 py-1 border border-border">{d.name}</td>
+                          <td className="px-2 py-1 border border-border text-right tabular-nums">{m?.fmt ? m.fmt(d.value) : d.value}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* Graphical Analysis */}
+            <section className="bg-card border border-border rounded p-3">
+              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Bunkering — Fuel Type by Sheet (mt)</h2>
+              <div style={{ width: "100%", height: 300 }}>
+                <ResponsiveContainer>
+                  <BarChart data={fuelChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ReTooltip formatter={(v: number) => v.toFixed(2) + " mt"} />
+                    <Legend />
+                    <Bar dataKey="HSFO" stackId="f" fill="hsl(var(--chart-1, 220 70% 50%))" />
+                    <Bar dataKey="VLSFO" stackId="f" fill="hsl(var(--chart-2, 160 60% 45%))" />
+                    <Bar dataKey="LSMGO" stackId="f" fill="hsl(var(--chart-3, 30 80% 55%))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+
+            <section className="bg-card border border-border rounded p-3">
+              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Voyage Time Breakdown by Sheet (days)</h2>
+              <div style={{ width: "100%", height: 300 }}>
+                <ResponsiveContainer>
+                  <BarChart data={daysChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ReTooltip formatter={(v: number) => v.toFixed(2) + " d"} />
+                    <Legend />
+                    <Bar dataKey="Sea Days" stackId="d" fill="hsl(var(--chart-1, 220 70% 50%))" />
+                    <Bar dataKey="Port Days" stackId="d" fill="hsl(var(--chart-2, 160 60% 45%))" />
+                    <Bar dataKey="Weather/Margin" stackId="d" fill="hsl(var(--chart-3, 30 80% 55%))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+
+            <section className="bg-card border border-border rounded p-3">
+              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Revenue, Cost & P&L by Sheet ($)</h2>
+              <div style={{ width: "100%", height: 300 }}>
+                <ResponsiveContainer>
+                  <BarChart data={pnlChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ReTooltip formatter={(v: number) => "$" + Math.round(v).toLocaleString()} />
+                    <Legend />
+                    <Bar dataKey="Revenue" fill="hsl(var(--chart-1, 220 70% 50%))" />
+                    <Bar dataKey="Cost" fill="hsl(var(--chart-2, 0 70% 55%))" />
+                    <Bar dataKey="P&L" fill="hsl(var(--chart-3, 140 60% 45%))" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
