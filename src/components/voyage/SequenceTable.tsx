@@ -196,7 +196,7 @@ export function SequenceTable() {
                   const hasQty = showQuantityFields(row);
                   const hasBunkering = showBunkeringFields(row);
                   const typeLabel = getTypeLabel(row);
-                  const tdClass = "px-0 py-0";
+                  const tdClass = "px-0 py-0 [&>input]:mx-auto [&>input]:block [&>select]:mx-auto [&>select]:block [&>div]:justify-center";
 
                   return (
                     <tr key={row.id} className="group">
