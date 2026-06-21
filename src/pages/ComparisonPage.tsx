@@ -303,23 +303,6 @@ export default function ComparisonPage() {
           </div>
         ) : (
           <>
-            {/* Summary highlight cards */}
-            <section>
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground mb-2 tracking-wide">Highlights</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
-                {highlightCards.map(h => (
-                  <div key={h.label} className="bg-card border border-border rounded p-2.5">
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
-                      <Trophy className="h-3 w-3 text-amber-500" />
-                      {h.label}
-                    </div>
-                    <div className="text-xs font-semibold text-foreground truncate" title={h.vessel}>{h.vessel}</div>
-                    <div className="text-[11px] text-primary tabular-nums mt-0.5">{h.value}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             {/* Comparison table */}
             <section className="bg-card border border-border rounded overflow-hidden">
               <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
