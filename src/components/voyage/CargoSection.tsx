@@ -44,7 +44,7 @@ export function CargoSection() {
         <div className="flex-1 min-w-0 px-2 py-1 space-y-1">
           {/* Top summary fields */}
           <div className="flex flex-wrap gap-2 items-end">
-            <div className="form-field w-28">
+            <div className="form-field w-24">
               <label className="form-label flex items-center gap-1">
                 NTC
                 <InfoTooltip
@@ -62,7 +62,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field w-20">
+            <div className="form-field w-16">
               <label className="form-label flex items-center gap-1">
                 TC Comm
                 <InfoTooltip formula="Deducted from Net Freight" description="Time Charter Commission %" />
@@ -81,7 +81,7 @@ export function CargoSection() {
                 <span className="unit">%</span>
               </div>
             </div>
-            <div className="form-field w-28">
+            <div className="form-field w-24">
               <label className="form-label flex items-center gap-1">
                 GTC
                 <InfoTooltip
@@ -103,7 +103,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field w-28">
+            <div className="form-field w-24">
               <label className="form-label flex items-center gap-1">
                 Net BB
                 <InfoTooltip formula="Net Ballast Bonus (lumpsum added to hire cost)" description="Net Ballast Bonus" />
@@ -121,7 +121,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field w-28">
+            <div className="form-field w-24">
               <label className="form-label flex items-center gap-1">
                 Gross BB
                 <InfoTooltip formula="Gross BB = Net BB / (1 - TC Comm%)" description="Gross Ballast Bonus" />
@@ -140,7 +140,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field w-28">
+            <div className="form-field w-24">
               <label className="form-label flex items-center gap-1">
                 Vessel cost
                 <InfoTooltip formula="Reference vessel cost $/d" description="Editable vessel cost reference" />
@@ -275,7 +275,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded self-center">
           #{index + 1}
         </span>
-        <div className="form-field w-48">
+        <div className="form-field w-36">
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">
             <input
@@ -296,7 +296,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-36">
+        <div className="form-field w-24">
           <label className="form-label flex items-center gap-1">
             Qty (Seq)
             <InfoTooltip formula="Sum of loading quantities from Sequence" description="Auto-calculated" />
@@ -309,7 +309,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           />
         </div>
 
-        <div className="form-field w-32">
+        <div className="form-field w-24">
           <label className="form-label flex items-center gap-1">
             Lumpsum
             <InfoTooltip formula="Used when rate type is Lump" description="Lumpsum freight value" />
@@ -326,7 +326,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-24">
+        <div className="form-field w-16">
           <label className="form-label flex items-center gap-1">
             Voy Comm
             <InfoTooltip formula="Gross Freight × Voy Comm%" description="Commission" />
@@ -343,7 +343,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-28">
+        <div className="form-field w-24">
           <label className="form-label flex items-center gap-1">
             Demurrage
             <InfoTooltip
@@ -362,7 +362,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-28">
+        <div className="form-field w-24">
           <label className="form-label flex items-center gap-1">
             Despatch
             <InfoTooltip
@@ -381,7 +381,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-20">
+        <div className="form-field w-16">
           <label className="form-label">Avg</label>
           <select 
             className="form-select-sm w-full"
@@ -424,15 +424,15 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <input readOnly className={`${ro} w-full uppercase text-center`}
                     value={r.operation === "loading" ? "load" : r.operation === "discharging" ? "disch" : "-"} />
                 </div>
-                <div className="form-field w-32">
+                <div className="form-field w-28">
                   <label className="form-label">Port</label>
                   <input readOnly className={`${ro} text-left w-full`} value={r.port || "—"} title={r.port} />
                 </div>
-                <div className="form-field w-24">
+                <div className="form-field w-20">
                   <label className="form-label">Demurrage</label>
                   <input type="number" className={edit} value={demVal} onChange={(e) => onCpOverride(r.id, "demurrage", parseFloat(e.target.value) || 0)} />
                 </div>
-                <div className="form-field w-24">
+                <div className="form-field w-20">
                   <label className="form-label">Despatch</label>
                   <input type="number" className={edit} value={despVal} onChange={(e) => onCpOverride(r.id, "despatch", parseFloat(e.target.value) || 0)} />
                 </div>
@@ -440,7 +440,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <label className="form-label">C</label>
                   <input type="number" className={edit} value={opCranes} onChange={(e) => onOpUpdate(r.id, "cranes", parseFloat(e.target.value) || 0)} />
                 </div>
-                <div className="form-field w-24">
+                <div className="form-field w-20">
                   <label className="form-label">Quantity</label>
                   <input
                     type="number"
@@ -449,7 +449,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => onOpUpdate(r.id, "quantity", parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                <div className="form-field w-20">
+                <div className="form-field w-16">
                   <label className="form-label">MT/d</label>
                   <input
                     type="number"
@@ -458,15 +458,15 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => onOpUpdate(r.id, "productivity", parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                <div className="form-field w-16">
+                <div className="form-field w-14">
                   <label className="form-label">Terms</label>
                   <input className={`${edit} uppercase`} value={opTerms} onChange={(e) => onOpUpdate(r.id, "terms", e.target.value)} />
                 </div>
-                <div className="form-field w-16">
+                <div className="form-field w-14">
                   <label className="form-label">Factor</label>
                   <input type="number" step="0.0001" className={edit} value={opFactor} onChange={(e) => onOpUpdate(r.id, "coefficientFactor", parseFloat(e.target.value) || 0)} />
                 </div>
-                <div className="form-field w-16">
+                <div className="form-field w-12">
                   <label className="form-label">Tt</label>
                   <input
                     type="number"
@@ -475,7 +475,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => onOpUpdate(r.id, "turnTime", parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                <div className="form-field w-16">
+                <div className="form-field w-12">
                   <label className="form-label">Et</label>
                   <input
                     type="number"
@@ -484,7 +484,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => onOpUpdate(r.id, "extraTime", parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                <div className="form-field w-20">
+                <div className="form-field w-16">
                   <label className="form-label">Exp DA</label>
                   <input
                     type="number"
@@ -493,7 +493,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => onOpUpdate(r.id, "expDa", parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                <div className="form-field w-20">
+                <div className="form-field w-16">
                   <label className="form-label">Δ Days</label>
                   <input readOnly className={`${ro} w-full ${diffDays > 0 ? "text-green-600" : diffDays < 0 ? "text-red-600" : ""}`} value={diffDays.toFixed(2)} />
                 </div>
