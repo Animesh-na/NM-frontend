@@ -6,6 +6,7 @@ import { listSheets, listOrganizationSheets, listOrganizationUsers, listUserShee
 import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
+import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -179,6 +180,7 @@ export default function Dashboard() {
             <span>Security</span>
             {!mfaEnabled && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
           </button>
+          <CompareSheetsLauncher variant="dashboard" />
           <button
             onClick={logout}
             className="flex items-center gap-1 h-7 px-2.5 rounded-md hover:bg-section-header-foreground/10 transition-colors text-section-header-foreground/70"
