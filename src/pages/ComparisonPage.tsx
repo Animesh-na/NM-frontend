@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, FileSpreadsheet, Loader2, Trophy } from "lucide-react";
+import { ArrowLeft, Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend } from "recharts";
 import { useSheets } from "@/context/sheetContextCore";
@@ -69,6 +69,7 @@ const METRICS: Metric[] = [
   { key: "seaDaysLaden", label: "Laden Days", group: "Voyage Metrics", unit: "d", better: "lower", get: r => r.seaDaysLaden, fmt: num(2) },
   { key: "totalPortDays", label: "Port Days", group: "Voyage Metrics", unit: "d", better: "lower", get: r => r.totalPortDays, fmt: num(2) },
   { key: "extraCanalDays", label: "Canal Days", group: "Voyage Metrics", unit: "d", better: "lower", get: r => r.extraCanalDays, fmt: num(2) },
+  { key: "seaMarginTime", label: "Weather/Sea Margin", group: "Voyage Metrics", unit: "d", better: "lower", get: r => (r as unknown as { seaMarginTime?: number }).seaMarginTime || 0, fmt: num(2) },
 
   // Financial Metrics
   { key: "grossFreight", label: "Freight Revenue", group: "Financial Metrics", better: "higher", get: r => r.grossFreight, fmt: $ },
@@ -79,8 +80,9 @@ const METRICS: Metric[] = [
   { key: "miscCosts", label: "Miscellaneous Cost", group: "Financial Metrics", better: "lower", get: r => r.miscCosts, fmt: $ },
   { key: "voyageCommission", label: "Commission", group: "Financial Metrics", better: "lower", get: r => r.voyageCommission, fmt: $ },
   { key: "totalVoyageCosts", label: "Total Voyage Expense", group: "Financial Metrics", better: "lower", get: r => r.totalVoyageCosts, fmt: $ },
-  { key: "netProfit", label: "Net Profit", group: "Financial Metrics", better: "higher", get: r => r.netProfit, fmt: $ },
-  { key: "tce", label: "TCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => r.tce, fmt: $ },
+  { key: "netProfit", label: "P&L (Net Profit)", group: "Financial Metrics", better: "higher", get: r => r.netProfit, fmt: $ },
+  { key: "gtce", label: "GTCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => (r as unknown as { gtce?: number }).gtce ?? r.tce, fmt: $ },
+  { key: "ntce", label: "NTCE", group: "Financial Metrics", unit: "$/d", better: "higher", get: r => (r as unknown as { ntce?: number }).ntce ?? r.tce, fmt: $ },
   { key: "grossRate", label: "Gross Rate", group: "Financial Metrics", unit: "$/mt", better: "lower", get: r => r.grossRate, fmt: num(2) },
 
   // Fuel Consumption
@@ -95,17 +97,6 @@ const METRICS: Metric[] = [
   { key: "etsCost", label: "ETS Cost", group: "Environmental", better: "lower", get: r => r.etsCost, fmt: $ },
 ];
 
-// Map summary callout → metric key
-const HIGHLIGHTS: { label: string; key: string }[] = [
-  { label: "Best Profit", key: "netProfit" },
-  { label: "Best TCE", key: "tce" },
-  { label: "Best Gross Rate", key: "grossRate" },
-  { label: "Lowest Fuel Cost", key: "totalBunkerCost" },
-  { label: "Lowest Voyage Cost", key: "totalVoyageCosts" },
-  { label: "Lowest Total Consumption", key: "totalConsumption" },
-  { label: "Fastest Voyage", key: "totalVoyageDays" },
-];
-
 function bestIndex(values: number[], dir: MetricDir): number {
   let best = -1; let bestV = dir === "higher" ? -Infinity : Infinity;
   values.forEach((v, i) => {
@@ -118,7 +109,7 @@ function worstIndex(values: number[], dir: MetricDir): number {
   return bestIndex(values, dir === "higher" ? "lower" : "higher");
 }
 
-const CHART_METRIC_KEYS = ["netProfit", "tce", "grossRate", "totalBunkerCost", "hireCost", "totalVoyageDays", "totalConsumption", "totalCo2"];
+const CHART_METRIC_KEYS = ["netProfit", "gtce", "ntce", "grossRate", "totalBunkerCost", "hireCost", "totalVoyageDays", "totalConsumption", "totalCo2"];
 
 export default function ComparisonPage() {
   const { compareSheetIds, setCurrentView, openCompare } = useSheets();
