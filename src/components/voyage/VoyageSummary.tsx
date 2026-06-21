@@ -145,13 +145,6 @@ export function VoyageSummary() {
               </span>
               <span className="font-mono tabular-nums text-success font-semibold">${formatCurrency(results.gtce)}</span>
             </div>
-            <div className="flex justify-between col-span-2">
-              <span className="text-muted-foreground flex items-center">
-                TCE
-                <InfoTooltip formula="NTCE / (1 - TC Commission%)" description="Time Charter Equivalent - equals GTCE in this model" />
-              </span>
-              <span className="font-mono tabular-nums">${formatCurrency(results.tce)}</span>
-            </div>
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
             {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 ? (
