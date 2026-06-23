@@ -5,14 +5,18 @@ import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
 import { calculateCargoDemurrageDespatchFromRows } from "@/utils/demurrageDespatch";
+import { getFieldId, MAX_CARGOS } from "@/utils/validation";
 
 export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, sequence, vesselCost, setVesselCost,
     netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateCargoOpOverride,
+    getFieldError,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
+  const errCls = (msg?: string) =>
+    msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
 
   // NTC is always considered the vessel cost — keep them in sync.
   useEffect(() => {
