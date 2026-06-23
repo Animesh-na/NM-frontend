@@ -36,6 +36,8 @@ export interface NumericFieldConfig {
   required?: boolean;
   /** Speed fields enforce > 0 (not just >= min). */
   speed?: boolean;
+  /** When true, a value of 0 is treated as missing (required check fails). */
+  nonZero?: boolean;
 }
 
 export const VESSEL_FIELDS: Record<string, NumericFieldConfig> = {
@@ -84,7 +86,7 @@ export const SEQUENCE_FIELDS: Record<string, NumericFieldConfig> = {
   distance: { label: "Distance", min: 0, max: 30_000 },
   ecaDistance: { label: "ECA Distance", min: 0, max: 30_000 },
   turnExtra: { label: "Turn + Extra (h)", min: 0, max: 1000 },
-  expDa: { label: "Exp DA", min: 0, max: 10_000_000, required: true },
+  expDa: { label: "Exp DA", min: 0, max: 10_000_000, required: true, nonZero: true },
   quantity: { label: "Quantity (MT)", min: 0, max: 550_000, required: true },
 };
 
@@ -92,7 +94,7 @@ export const CARGO_FIELDS: Record<string, NumericFieldConfig> = {
   rate: { label: "Rate", min: 0, max: 100_000, required: true },
   demurrageRate: { label: "Demurrage ($)", min: 0, max: 1_000_000, required: true },
   despatchRate: { label: "Despatch ($)", min: 0, max: 1_000_000, required: true },
-  gtc: { label: "GTC", min: 0, max: 500_000, required: true },
+  gtc: { label: "GTC", min: 0, max: 500_000, required: true, nonZero: true },
   grossBB: { label: "Gross BB ($)", min: 0, max: 100_000_000, required: true },
   voyageCommission: { label: "Voyage Comm (%)", min: 0, max: 50, required: true },
   tcCommission: { label: "TC Comm (%)", min: 0, max: 50, required: true },
@@ -132,6 +134,9 @@ export function validateNumeric(
   }
   if (!Number.isFinite(num)) {
     return "Only numeric values are allowed";
+  }
+  if (cfg.nonZero && cfg.required && num === 0) {
+    return "This field is required";
   }
   if (cfg.speed && num <= 0) {
     return "Speed must be greater than 0";
