@@ -420,9 +420,12 @@ export function SequenceTable() {
                               <TooltipProvider delayDuration={300}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <input type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
+                                    {(() => { const err = getFieldError("sequence","quantity",row.id); return (
+                                    <input id={getFieldId("sequence","quantity",row.id)} aria-invalid={!!err} title={err || (qtyExceedsDraft ? "Draft exceeds limit" : undefined)}
+                                      type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
                                       value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
                                       onDoubleClick={() => setIntakeRowId(row.id)} />
+                                    );})()}
                                   </TooltipTrigger>
                                   <TooltipContent side="top" className="text-[10px]">
                                     <p>Double-click to open Intake Calculator</p>
@@ -531,16 +534,22 @@ export function SequenceTable() {
                       {/* Turn Time */}
                       <td className={tdClass}>
                         {!isOpen && isPort ? (
-                          <input type="number" step="0.01" className="form-input-sm w-12 font-mono text-right text-[10px]"
+                          (() => { const err = getFieldError("sequence","turnExtra",row.id); return (
+                          <input id={getFieldId("sequence","turnTime",row.id)} aria-invalid={!!err} title={err}
+                            type="number" step="0.01" className={`form-input-sm w-12 font-mono text-right text-[10px] ${errCls(err)}`}
                             value={row.turnTime || ""} onChange={(e) => updateSequenceRow(row.id, "turnTime", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          );})()
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
                       {/* Extra Time */}
                       <td className={tdClass}>
                         {!isOpen && isPort ? (
-                          <input type="number" className="form-input-sm w-12 font-mono text-right text-[10px]"
+                          (() => { const err = getFieldError("sequence","turnExtra",row.id); return (
+                          <input id={getFieldId("sequence","extraTime",row.id)} aria-invalid={!!err} title={err}
+                            type="number" className={`form-input-sm w-12 font-mono text-right text-[10px] ${errCls(err)}`}
                             value={row.extraTime || ""} onChange={(e) => updateSequenceRow(row.id, "extraTime", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          );})()
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
@@ -563,8 +572,11 @@ export function SequenceTable() {
                       {/* Exp DA */}
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
-                          <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
+                          (() => { const err = getFieldError("sequence","expDa",row.id); return (
+                          <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err} title={err}
+                            type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
                             value={row.expDa || ""} onChange={(e) => updateSequenceRow(row.id, "expDa", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          );})()
                         )}
                       </td>
 
