@@ -362,9 +362,12 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </label>
           <div className="input-with-unit">
             <input
+              id={getFieldId("cargo","voyageCommission",cargo.id)}
+              aria-invalid={!!errVoy}
+              title={errVoy}
               type="number"
               step="0.25"
-              className="form-input-sm w-full font-mono text-right"
+              className={`form-input-sm w-full font-mono text-right ${errCls(errVoy)}`}
               value={cargo.voyageCommission}
               onChange={(e) => onUpdate("voyageCommission", parseFloat(e.target.value) || 0)}
             />
@@ -382,8 +385,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </label>
           <div className="input-with-unit">
             <input
+              id={getFieldId("cargo","demurrageRate",cargo.id)}
+              aria-invalid={!!errDem}
+              title={errDem}
               type="number"
-              className="form-input-sm w-full font-mono text-right"
+              className={`form-input-sm w-full font-mono text-right ${errCls(errDem)}`}
               value={cargo.demurrageRate}
               onChange={(e) => onUpdate("demurrageRate", parseFloat(e.target.value) || 0)}
             />
@@ -401,8 +407,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </label>
           <div className="input-with-unit">
             <input
+              id={getFieldId("cargo","despatchRate",cargo.id)}
+              aria-invalid={!!errDesp}
+              title={errDesp}
               type="number"
-              className="form-input-sm w-full font-mono text-right"
+              className={`form-input-sm w-full font-mono text-right ${errCls(errDesp)}`}
               value={cargo.despatchRate}
               onChange={(e) => onUpdate("despatchRate", parseFloat(e.target.value) || 0)}
             />
