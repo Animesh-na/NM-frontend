@@ -1352,6 +1352,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   // Multi-cargo management functions
   const addCargo = useCallback(() => {
     setCargos(prev => {
+      if (prev.length >= MAX_CARGOS) {
+        toast.error("Maximum 5 cargoes are allowed per voyage");
+        return prev;
+      }
       const nextId = Math.max(...prev.map(c => c.id), 0) + 1;
       return [...prev, {
         id: nextId,
