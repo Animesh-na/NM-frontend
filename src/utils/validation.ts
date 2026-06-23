@@ -6,6 +6,8 @@ export interface SequenceRowForValidation {
   id: number;
   type: "open" | "port" | "repos";
   operation?: string;
+  port?: string;
+  portId?: number;
   distance?: number;
   ecaDistance?: number;
   turnTime?: number;
@@ -213,12 +215,33 @@ export function validateSequence(rows: SequenceRowForValidation[]): ValidationIs
     });
   }
 
+  // Identify the first non-open leg and decide whether its distance is exempt.
+  // Rule: if Open Port is not entered, OR Open Port == first port after it,
+  // then default Distance/ECA Distance to 0 and don't flag missing distance.
+  const openRow = rows.find((r) => r.type === "open");
+  const firstLegId = (() => {
+    if (!openRow) return null;
+    const openIdx = rows.indexOf(openRow);
+    for (let i = openIdx + 1; i < rows.length; i++) {
+      if (rows[i].type !== "open") return rows[i].id;
+    }
+    return null;
+  })();
+  const openPortEmpty = !openRow || !(openRow.port && openRow.port.trim());
+  const firstLeg = rows.find((r) => r.id === firstLegId);
+  const sameAsOpen =
+    !!openRow &&
+    !!firstLeg &&
+    ((openRow.portId !== undefined && firstLeg.portId !== undefined && openRow.portId === firstLeg.portId) ||
+      (!!openRow.port && !!firstLeg.port && openRow.port.trim().toLowerCase() === firstLeg.port.trim().toLowerCase()));
+  const exemptFirstLegDistance = firstLegId !== null && (openPortEmpty || sameAsOpen);
+
   rows.forEach((r) => {
     if (r.type === "open") return;
     // Either Distance or ECA Distance is required, both must be non-negative.
     const dist = Number(r.distance) || 0;
     const eca = Number(r.ecaDistance) || 0;
-    if (dist === 0 && eca === 0) {
+    if (dist === 0 && eca === 0 && !(exemptFirstLegDistance && r.id === firstLegId)) {
       const msg = "Either Distance or ECA Distance is required";
       out.push({
         section: "sequence",
