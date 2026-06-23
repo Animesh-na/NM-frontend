@@ -349,8 +349,11 @@ export function SequenceTable() {
                               >
                                 {distanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                               </select>
-                              <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
+                              {(() => { const err = getFieldError("sequence","distance",row.id); return (
+                              <input id={getFieldId("sequence","distance",row.id)} aria-invalid={!!err} title={err}
+                                type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
                                 value={row.distance || ""} onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)} placeholder="0" />
+                              );})()}
                             </div>
                           )
                         )}
@@ -364,8 +367,11 @@ export function SequenceTable() {
                               onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value)}>
                               {ecaDistanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
-                            <input type="number" className="form-input-sm w-12 font-mono text-right text-[10px]"
+                            {(() => { const err = getFieldError("sequence","ecaDistance",row.id); return (
+                            <input id={getFieldId("sequence","ecaDistance",row.id)} aria-invalid={!!err} title={err}
+                              type="number" className={`form-input-sm w-12 font-mono text-right text-[10px] ${errCls(err)}`}
                               value={row.ecaDistance || ""} onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)} placeholder="0" />
+                            );})()}
                           </div>
                         )}
                       </td>
