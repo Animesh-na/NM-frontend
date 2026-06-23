@@ -213,7 +213,12 @@ export function CargoSection() {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={addCargo} className="btn-secondary flex items-center gap-1.5">
+              <button
+                onClick={addCargo}
+                disabled={cargos.length >= MAX_CARGOS}
+                title={cargos.length >= MAX_CARGOS ? "Maximum 5 cargoes are allowed per voyage" : undefined}
+                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <Plus className="h-3.5 w-3.5" />
                 Add Cargo
               </button>
