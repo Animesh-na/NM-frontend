@@ -63,9 +63,13 @@ export function CargoSection() {
                 />
               </label>
               <div className="input-with-unit">
+                {(() => { const err = getFieldError("cargo","gtc","_header"); return (
                 <input
+                  id={getFieldId("cargo","gtc","_header")}
+                  aria-invalid={!!err}
+                  title={err}
                   type="number"
-                  className="form-input-sm w-full font-mono text-right"
+                  className={`form-input-sm w-full font-mono text-right ${errCls(err)}`}
                   value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
                   onChange={(e) => {
                     const gtc = parseFloat(e.target.value) || 0;
@@ -73,6 +77,7 @@ export function CargoSection() {
                     setHireRate(gtc * (1 - tc));
                   }}
                 />
+                );})()}
                 <span className="unit">$/d</span>
               </div>
             </div>
@@ -82,16 +87,21 @@ export function CargoSection() {
                 <InfoTooltip formula="Deducted from Net Freight" description="Time Charter Commission %" />
               </label>
               <div className="input-with-unit">
+                {(() => { const err = getFieldError("cargo","tcCommission",cargos[0]?.id); return (
                 <input
+                  id={getFieldId("cargo","tcCommission",cargos[0]?.id ?? "_")}
+                  aria-invalid={!!err}
+                  title={err}
                   type="number"
                   step="0.25"
-                  className="form-input-sm w-full font-mono text-right"
+                  className={`form-input-sm w-full font-mono text-right ${errCls(err)}`}
                   value={cargos[0]?.tcCommission ?? 3.75}
                   onChange={(e) => {
                     const value = parseFloat(e.target.value);
                     cargos.forEach(c => updateCargoEntry(c.id, "tcCommission", value));
                   }}
                 />
+                );})()}
                 <span className="unit">%</span>
               </div>
             </div>
