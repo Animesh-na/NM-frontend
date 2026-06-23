@@ -1946,6 +1946,9 @@ export function useVoyageContext() {
         repositioningCost: 0,
       },
       cargoValidation: { errors: [], hasErrors: false, usesExplicitMapping: false },
+      validationIssues: [],
+      hasErrors: false,
+      getFieldError: () => undefined,
     } as VoyageContextValue;
   }
   return context;
