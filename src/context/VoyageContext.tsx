@@ -8,6 +8,15 @@ import { isPortEuEea } from "@/utils/euCountries";
 import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
+import {
+  validateVessel,
+  validateSequence,
+  validateCargos,
+  validateCargoHeader,
+  MAX_CARGOS,
+  type ValidationIssue,
+} from "@/utils/validation";
+import { toast } from "sonner";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
@@ -252,6 +261,15 @@ interface VoyageContextValue {
 
    // Cargo assignment validation (route mapping)
    cargoValidation: CargoValidationResult;
+
+   // Field-level validation
+   validationIssues: ValidationIssue[];
+   hasErrors: boolean;
+   getFieldError: (
+     section: "vessel" | "sequence" | "cargo",
+     field: string,
+     rowId?: number | string,
+   ) => string | undefined;
 }
 
 // Fuel accounting mode type
@@ -1334,6 +1352,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   // Multi-cargo management functions
   const addCargo = useCallback(() => {
     setCargos(prev => {
+      if (prev.length >= MAX_CARGOS) {
+        toast.error("Maximum 5 cargoes are allowed per voyage");
+        return prev;
+      }
       const nextId = Math.max(...prev.map(c => c.id), 0) + 1;
       return [...prev, {
         id: nextId,
@@ -1683,6 +1705,66 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     [cargos, sequence],
   );
 
+  // Field-level validation across vessel, sequence, and cargos
+  const validationIssues = useMemo<ValidationIssue[]>(() => {
+    const issues: ValidationIssue[] = [];
+    issues.push(...validateVessel(vessel));
+    issues.push(...validateSequence(sequence));
+
+    // Per-cargo load/discharge balance maps
+    const loaded = new Map<number, number>();
+    const disch = new Map<number, number>();
+    const usesExplicit = sequence.some((r) => (r.assignedCargoIds || []).length > 0);
+    if (usesExplicit) {
+      cargos.forEach((c) => {
+        const l = sequence
+          .filter((r) => r.operation === "loading" && (r.assignedCargoIds || []).includes(c.id))
+          .reduce((s, r) => s + (r.quantity || 0), 0);
+        const d = sequence
+          .filter((r) => r.operation === "discharging" && (r.assignedCargoIds || []).includes(c.id))
+          .reduce((s, r) => s + (r.quantity || 0), 0);
+        loaded.set(c.id, l);
+        disch.set(c.id, d);
+      });
+    } else {
+      // Auto-map by order: cargo[i] gets loading[i] and discharging[i]
+      const loadRows = sequence.filter((r) => r.operation === "loading");
+      const dischRows = sequence.filter((r) => r.operation === "discharging");
+      cargos.forEach((c, i) => {
+        loaded.set(c.id, loadRows[i]?.quantity || 0);
+        disch.set(c.id, dischRows[i]?.quantity || 0);
+      });
+    }
+    issues.push(...validateCargos(cargos, loaded, disch));
+
+    // Header-derived cargo numbers (GTC, Gross BB)
+    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
+    const gtc = tc < 1 ? hireRate / (1 - tc) : 0;
+    const grossBB = tc < 1 ? netBB / (1 - tc) : 0;
+    issues.push(...validateCargoHeader(gtc, grossBB));
+
+    return issues;
+  }, [vessel, sequence, cargos, hireRate, netBB]);
+
+  const hasErrors = validationIssues.length > 0;
+
+  const getFieldError = useCallback(
+    (
+      section: "vessel" | "sequence" | "cargo",
+      field: string,
+      rowId?: number | string,
+    ): string | undefined => {
+      const issue = validationIssues.find(
+        (i) =>
+          i.section === section &&
+          i.field === field &&
+          (rowId === undefined ? i.rowId === undefined : i.rowId === rowId),
+      );
+      return issue?.message;
+    },
+    [validationIssues],
+  );
+
   return (
     <VoyageContext.Provider
       value={{
@@ -1729,6 +1811,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         resetState,
         results,
         cargoValidation,
+        validationIssues,
+        hasErrors,
+        getFieldError,
         suppressDistanceRecalc,
         setDistanceSuppressed,
         departureUtc,
@@ -1865,6 +1950,9 @@ export function useVoyageContext() {
         repositioningCost: 0,
       },
       cargoValidation: { errors: [], hasErrors: false, usesExplicitMapping: false },
+      validationIssues: [],
+      hasErrors: false,
+      getFieldError: () => undefined,
     } as VoyageContextValue;
   }
   return context;

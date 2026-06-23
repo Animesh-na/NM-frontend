@@ -13,9 +13,12 @@ import {
 } from "@/data/vessels";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { getVesselTypes, getVesselSectors, type VesselType, type VesselSector } from "@/services/vesselFuelApi";
+import { getFieldId } from "@/utils/validation";
 
 export function VesselPanel() {
-  const { vessel, setVessel } = useVoyageContext();
+  const { vessel, setVessel, getFieldError } = useVoyageContext();
+  const errCls = (msg?: string) =>
+    msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   const [isExpanded, setIsExpanded] = useState(true);
   const [vesselTypes, setVesselTypes] = useState<VesselType[]>([]);
   const [vesselSectors, setVesselSectors] = useState<VesselSector[]>([]);
@@ -159,23 +162,43 @@ export function VesselPanel() {
             </div>
             <div className="form-field w-20">
               <label className="form-label">DWT (mt)</label>
-              <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.dwt || ""} onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)} placeholder="0" />
+              {(() => { const err = getFieldError("vessel","dwt"); return (
+              <input id={getFieldId("vessel","dwt")} aria-invalid={!!err} title={err}
+                type="number" className={`form-input-sm w-full font-mono tabular-nums text-right ${errCls(err)}`}
+                value={vessel.dwt || ""} onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)} placeholder="0" />
+              );})()}
             </div>
             <div className="form-field w-20">
               <label className="form-label">GT</label>
-              <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.gt || ""} onChange={(e) => handleFieldChange("gt", parseFloat(e.target.value) || 0)} placeholder="0" />
+              {(() => { const err = getFieldError("vessel","gt"); return (
+              <input id={getFieldId("vessel","gt")} aria-invalid={!!err} title={err}
+                type="number" className={`form-input-sm w-full font-mono tabular-nums text-right ${errCls(err)}`}
+                value={vessel.gt || ""} onChange={(e) => handleFieldChange("gt", parseFloat(e.target.value) || 0)} placeholder="0" />
+              );})()}
             </div>
             <div className="form-field w-20">
               <label className="form-label">Cubic (m³)</label>
-              <input type="number" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.cubic || ""} onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)} placeholder="0" />
+              {(() => { const err = getFieldError("vessel","cubic"); return (
+              <input id={getFieldId("vessel","cubic")} aria-invalid={!!err} title={err}
+                type="number" className={`form-input-sm w-full font-mono tabular-nums text-right ${errCls(err)}`}
+                value={vessel.cubic || ""} onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)} placeholder="0" />
+              );})()}
             </div>
             <div className="form-field w-16">
               <label className="form-label">Draft (m)</label>
-              <input type="number" step="0.01" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.draft || ""} onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)} placeholder="0" />
+              {(() => { const err = getFieldError("vessel","draft"); return (
+              <input id={getFieldId("vessel","draft")} aria-invalid={!!err} title={err}
+                type="number" step="0.01" className={`form-input-sm w-full font-mono tabular-nums text-right ${errCls(err)}`}
+                value={vessel.draft || ""} onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)} placeholder="0" />
+              );})()}
             </div>
             <div className="form-field w-16">
               <label className="form-label">TPC (t/cm)</label>
-              <input type="number" step="0.1" className="form-input-sm w-full font-mono tabular-nums text-right" value={vessel.tpcTpi || ""} onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)} placeholder="0" />
+              {(() => { const err = getFieldError("vessel","tpcTpi"); return (
+              <input id={getFieldId("vessel","tpcTpi")} aria-invalid={!!err} title={err}
+                type="number" step="0.1" className={`form-input-sm w-full font-mono tabular-nums text-right ${errCls(err)}`}
+                value={vessel.tpcTpi || ""} onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)} placeholder="0" />
+              );})()}
             </div>
             <div className="form-field w-14">
               <label className="form-label">Scrub</label>

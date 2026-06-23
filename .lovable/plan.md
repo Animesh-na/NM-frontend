@@ -1,71 +1,62 @@
-# Cargo Section Overhaul — Implementation Plan
 
-## 1. Terminology & Daily Hire removal (Cargo Section UI)
-**File:** `src/components/voyage/CargoSection.tsx`
-- Rename label "NTC" → keep, and rename existing "GTC" tooltip to remove "Daily Hire" reference.
-- **Remove** the "Daily Hire" input field entirely.
-- "NTC" becomes the single editable daily-rate field (replaces what Daily Hire was driving).
-- Wiring: `hireRate` in `VoyageContext` is renamed conceptually to "NTC" — same state variable, different label and semantics:
-  - User edits NTC → sets `hireRate` directly (NTC === daily hire mathematically).
-  - GTC stays as derived/editable field: `GTC = NTC / (1 - tcComm%)`, editing GTC back-calculates NTC.
-- Update tooltip strings: replace any "Daily Hire" copy with "NTC".
+## Goal
+Implement field-level validation across Vessel, Sequence, and Cargo sections, plus cross-row rules (cargo qty balance, max 5 cargoes, max 30 sequence rows, distance OR ECA distance required). Block the Voyage Summary until all required fields are valid and display a validation summary.
 
-## 2. Cargo → Route Mapping (new data model)
-**File:** `src/context/VoyageContext.tsx`
-- Add to each loading/discharging `SequenceRowUI`:
-  ```ts
-  assignedCargoIds: number[]; // cargo.id values assigned to this port
-  ```
-- Defaults: when a port is added, `assignedCargoIds = []` (UI shows a selector to assign).
-- Helper: `getCargoLoadPorts(cargoId)` / `getCargoDischargePorts(cargoId)` derived selectors.
+## 1. New shared validation module
+Create `src/utils/validation.ts`:
+- Field config map per section/field with `{ required, min, max, label }` from the spec.
+- `validateNumeric(value, cfg)` returns `{ valid, error }` with messages:
+  - empty → "This field is required"
+  - NaN / non-numeric / Infinity → "Only numeric values are allowed"
+  - negative or out-of-range → "Value must be between {min} and {max}"
+  - speed special-case → "Speed must be greater than 0"
+- `trim` strings before validation; reject NaN/Infinity.
+- `validateVessel(vessel)`, `validateSequence(rows)`, `validateCargos(cargos)` returning a flat `ValidationIssue[]` (`{ id, section, rowId?, field, message }`).
+- Cross-row rules:
+  - Sequence: at each row, at least one of `distance` or `ecaDistance` must be > 0 (port/repos types only; not for "open"). 
+  - Total port-class rows (`port` + `repos`, excluding `open`) ≤ 30 — error message "Maximum 30 ports/legs allowed".
+  - Cargo: total load qty per cargo must equal total discharge qty for that cargo (use existing `cargoValidation`/`getCargoRowMap`). Reuse existing logic if it already covers this; otherwise add it.
+  - Cargos length ≤ 5 (enforce in `addCargo` with toast + return).
 
-**File:** `src/components/voyage/SequenceTable.tsx`
-- Add a small multi-select chip control "Cgo Map" next to the existing cargo/port cell (loading + discharging rows only). Shows chips `#1`, `#2`… Clicking toggles assignment.
-- Max 5 cargos already enforced by add-cargo cap.
+## 2. Wire validation into VoyageContext
+- Compute `validationIssues` via `useMemo` from vessel/sequence/cargos.
+- Expose `validationIssues`, `hasErrors`, helper `getFieldError(section, field, rowId?)` on context.
+- In `addCargo`, guard against >5 with `toast.error("Maximum 5 cargoes are allowed per voyage")`.
 
-## 3. Strict cargo quantity validation
-**New file:** `src/utils/cargoValidation.ts`
-- `validateCargoAssignments(cargos, sequence)` returns `{ errors: { cargoId, message }[] }`.
-- Rules per cargo:
-  - Sum of `quantity` from all loading rows where `assignedCargoIds` includes this cargo === Sum of discharge quantities for same cargo.
-  - No mismatch / over / under discharge.
-  - At least one load port and one discharge port if cargo has rate > 0.
-- Display: inline red banner in CargoSection per cargo + small inline warning icon on offending sequence rows.
-- Block `results` recompute path? No — keep computing but expose `cargoValidationErrors` in context; VoyageSummary shows blocking banner when errors exist.
+## 3. Per-field UI: red borders + tooltips
+Touch only the input cells in:
+- `src/components/voyage/VesselPanel.tsx` (DWT, GT, Cubic, Draft, TPC, Speed B/L, HSFO, VLSFO, LSMGO, AE, AE+Scrubber)
+- `src/components/voyage/SequenceTable.tsx` (Distance, ECA Distance, Turn+Extra, Exp DA, Quantity)
+- `src/components/voyage/CargoSection.tsx` (Rate, Demurrage, Despatch, GTC, Gross BB, Voyage Comm %, TC Comm %)
 
-## 4. Per-cargo Gross Rate (split allocation)
-**File:** `src/hooks/useVoyageCalculation.ts`
-- For each cargo, compute `cargoLoadedQty` = sum of loads assigned.
-- `cargoGrossFreight = rate * cargoLoadedQty` (or lumpsum).
-- `totalGrossFreight = Σ cargoGrossFreight`.
-- New result: `perCargoBreakdown: { cargoId, qty, grossFreight, share, allocatedVoyageCost, allocatedBunker, allocatedPortCosts, grossRate }[]`.
-- `share = cargoGrossFreight / totalGrossFreight` (fallback to qty share when all lumpsum / zero).
+For each, look up the issue via `getFieldError(...)` and apply `aria-invalid` + `className` `border-red-500 focus-visible:ring-red-500` plus a `title` (native tooltip) with the message. No structural rewrites — just className/title conditional additions.
 
-## 5. Route-bounded bunker & port-cost allocation
-**File:** `src/hooks/useVoyageCalculation.ts`
-- For each cargo, identify the contiguous route window: from first assigned load port to last assigned discharge port (in sequence order).
-- Sum bunker fuel days + port DA only for sequence legs **within** that window.
-- Repositioning legs (`type === "repos"`) and any leg outside any cargo's window are accumulated into a separate `repositioningCost` bucket and **excluded** from per-cargo allocation.
-- Overlapping windows (multi-cargo on same legs): split proportionally by cargo qty on that overlap.
+Validation triggers on edit (already, via onChange), paste (covered by onChange), import (state updates flow through memo), and save (see step 5).
 
-## 6. Backward compatibility
-- If `assignedCargoIds` is missing/empty on a port: fall back to current behaviour (qty split equally across cargos, no route bounding) — existing sheets keep working.
-- Validation only fires when at least one cargo has explicit assignments.
+## 4. Voyage Summary gate + error banner
+In `src/components/voyage/VoyageSummary.tsx`:
+- Read `validationIssues` from context.
+- If any **required** vessel/cargo/sequence error or cross-row error: render a compact error panel instead of the summary numbers:
+  - Header: `"X validation errors found"`.
+  - Scrollable list of messages (clickable → scrolls/focuses first invalid field via `document.getElementById` — we assign deterministic ids in each input: `v-${section}-${field}-${rowId|''}`).
+  - "Scroll to first" button focuses the first issue's element.
+- Only when zero errors → show existing summary content.
 
-## 7. Tests
-- Extend `src/test/unit/cargoEconomics.test.ts`:
-  - Multi-cargo split proportional to qty.
-  - Route window excludes repos legs from per-cargo cost.
-  - Validation: load 50k, discharge 30k → error.
-- Add `src/test/unit/cargoMapping.test.ts` for `validateCargoAssignments` and allocation math.
+## 5. Save / import hooks
+- In `Index.tsx` save handler: before `saveCurrentSheet`, if `hasErrors` → `toast.error("X validation errors found")` and abort.
+- In `JsonImportSection.tsx` (admin import): after applying state, run validation; toast count of errors if any. State still loads (so user can fix) but the summary gate blocks the totals.
+
+## 6. Tests (light)
+Add a small unit test `src/test/unit/validation.test.ts` covering:
+- Empty/NaN/negative/out-of-range messages.
+- Speed > 0 special case.
+- Distance OR ECA distance rule.
+- 6th cargo rejection helper.
 
 ## Out of scope
-- No DB schema change (assignments live in sheet JSON which already persists `sequence` and `cargos` whole).
-- No Excel export update in this pass (flagged as follow-up).
+- No changes to calculation engine, context shape beyond exposing validation, or styling beyond red borders + the summary banner.
+- No DB/migration changes.
 
----
-
-### Technical notes
-- `hireRate` state variable name kept (avoid migration); only label/UX changes.
-- Allocation algorithm uses leg-indexed share map keyed by cargoId to keep `useVoyageCalculation` deterministic.
-- All validation runs in a derived `useMemo` in `VoyageContext`, exposed as `cargoValidationErrors`.
+## Files touched
+- add: `src/utils/validation.ts`, `src/test/unit/validation.test.ts`
+- edit: `src/context/VoyageContext.tsx`, `src/components/voyage/VesselPanel.tsx`, `src/components/voyage/SequenceTable.tsx`, `src/components/voyage/CargoSection.tsx`, `src/components/voyage/VoyageSummary.tsx`, `src/components/voyage/JsonImportSection.tsx`, `src/pages/Index.tsx`

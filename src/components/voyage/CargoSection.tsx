@@ -5,14 +5,18 @@ import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
 import { calculateCargoDemurrageDespatchFromRows } from "@/utils/demurrageDespatch";
+import { getFieldId, MAX_CARGOS } from "@/utils/validation";
 
 export function CargoSection() {
   const { 
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, sequence, vesselCost, setVesselCost,
     netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateCargoOpOverride,
+    getFieldError,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
+  const errCls = (msg?: string) =>
+    msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
 
   // NTC is always considered the vessel cost — keep them in sync.
   useEffect(() => {
@@ -59,9 +63,13 @@ export function CargoSection() {
                 />
               </label>
               <div className="input-with-unit">
+                {(() => { const err = getFieldError("cargo","gtc","_header"); return (
                 <input
+                  id={getFieldId("cargo","gtc","_header")}
+                  aria-invalid={!!err}
+                  title={err}
                   type="number"
-                  className="form-input-sm w-full font-mono text-right"
+                  className={`form-input-sm w-full font-mono text-right ${errCls(err)}`}
                   value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? hireRate / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
                   onChange={(e) => {
                     const gtc = parseFloat(e.target.value) || 0;
@@ -69,6 +77,7 @@ export function CargoSection() {
                     setHireRate(gtc * (1 - tc));
                   }}
                 />
+                );})()}
                 <span className="unit">$/d</span>
               </div>
             </div>
@@ -78,16 +87,21 @@ export function CargoSection() {
                 <InfoTooltip formula="Deducted from Net Freight" description="Time Charter Commission %" />
               </label>
               <div className="input-with-unit">
+                {(() => { const err = getFieldError("cargo","tcCommission",cargos[0]?.id); return (
                 <input
+                  id={getFieldId("cargo","tcCommission",cargos[0]?.id ?? "_")}
+                  aria-invalid={!!err}
+                  title={err}
                   type="number"
                   step="0.25"
-                  className="form-input-sm w-full font-mono text-right"
+                  className={`form-input-sm w-full font-mono text-right ${errCls(err)}`}
                   value={cargos[0]?.tcCommission ?? 3.75}
                   onChange={(e) => {
                     const value = parseFloat(e.target.value);
                     cargos.forEach(c => updateCargoEntry(c.id, "tcCommission", value));
                   }}
                 />
+                );})()}
                 <span className="unit">%</span>
               </div>
             </div>
@@ -133,9 +147,13 @@ export function CargoSection() {
                 <InfoTooltip formula="Gross BB = Net BB / (1 - TC Comm%)" description="Gross Ballast Bonus" />
               </label>
               <div className="input-with-unit">
+                {(() => { const err = getFieldError("cargo","grossBB","_header"); return (
                 <input
+                  id={getFieldId("cargo","grossBB","_header")}
+                  aria-invalid={!!err}
+                  title={err}
                   type="number"
-                  className="form-input-sm w-full font-mono text-right"
+                  className={`form-input-sm w-full font-mono text-right ${errCls(err)}`}
                   value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? netBB / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
                   onChange={(e) => {
                     const gross = parseFloat(e.target.value) || 0;
@@ -143,6 +161,7 @@ export function CargoSection() {
                     setNetBB(gross * (1 - tc));
                   }}
                 />
+                );})()}
                 <span className="unit">$</span>
               </div>
             </div>
@@ -194,7 +213,12 @@ export function CargoSection() {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={addCargo} className="btn-secondary flex items-center gap-1.5">
+              <button
+                onClick={addCargo}
+                disabled={cargos.length >= MAX_CARGOS}
+                title={cargos.length >= MAX_CARGOS ? "Maximum 5 cargoes are allowed per voyage" : undefined}
+                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <Plus className="h-3.5 w-3.5" />
                 Add Cargo
               </button>
@@ -234,6 +258,14 @@ interface CargoEntryCardProps {
 
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
+  const { getFieldError } = useVoyageContext();
+  const errCls = (msg?: string) =>
+    msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
+  const errRate = getFieldError("cargo","rate",cargo.id);
+  const errDem = getFieldError("cargo","demurrageRate",cargo.id);
+  const errDesp = getFieldError("cargo","despatchRate",cargo.id);
+  const errVoy = getFieldError("cargo","voyageCommission",cargo.id);
+  const errBal = getFieldError("cargo","quantityBalance",cargo.id);
 
   // ─── Auto-compute Demurrage / Despatch from TOTAL day-diff ───
   // First sum all row differences for this cargo: Σ(CP days − Operational days).
@@ -270,9 +302,12 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">
             <input
+              id={getFieldId("cargo","rate",cargo.id)}
+              aria-invalid={!!errRate}
+              title={errRate}
               type="number"
               step="0.1"
-              className="form-input-sm min-w-0 flex-1 font-mono text-right"
+              className={`form-input-sm min-w-0 flex-1 font-mono text-right ${errCls(errRate)}`}
               value={cargo.rate}
               onChange={(e) => onUpdate("rate", parseFloat(e.target.value) || 0)}
             />
@@ -293,8 +328,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             <InfoTooltip formula="Sum of loading quantities from Sequence" description="Auto-calculated" />
           </label>
           <input
+            id={getFieldId("cargo","quantityBalance",cargo.id)}
+            aria-invalid={!!errBal}
+            title={errBal}
             type="text"
-            className="form-input-sm w-full font-mono text-right bg-muted/30"
+            className={`form-input-sm w-full font-mono text-right bg-muted/30 ${errCls(errBal)}`}
             value={cargoQuantity.toLocaleString()}
             readOnly
           />
@@ -324,9 +362,12 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </label>
           <div className="input-with-unit">
             <input
+              id={getFieldId("cargo","voyageCommission",cargo.id)}
+              aria-invalid={!!errVoy}
+              title={errVoy}
               type="number"
               step="0.25"
-              className="form-input-sm w-full font-mono text-right"
+              className={`form-input-sm w-full font-mono text-right ${errCls(errVoy)}`}
               value={cargo.voyageCommission}
               onChange={(e) => onUpdate("voyageCommission", parseFloat(e.target.value) || 0)}
             />
@@ -344,8 +385,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </label>
           <div className="input-with-unit">
             <input
+              id={getFieldId("cargo","demurrageRate",cargo.id)}
+              aria-invalid={!!errDem}
+              title={errDem}
               type="number"
-              className="form-input-sm w-full font-mono text-right"
+              className={`form-input-sm w-full font-mono text-right ${errCls(errDem)}`}
               value={cargo.demurrageRate}
               onChange={(e) => onUpdate("demurrageRate", parseFloat(e.target.value) || 0)}
             />
@@ -363,8 +407,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </label>
           <div className="input-with-unit">
             <input
+              id={getFieldId("cargo","despatchRate",cargo.id)}
+              aria-invalid={!!errDesp}
+              title={errDesp}
               type="number"
-              className="form-input-sm w-full font-mono text-right"
+              className={`form-input-sm w-full font-mono text-right ${errCls(errDesp)}`}
               value={cargo.despatchRate}
               onChange={(e) => onUpdate("despatchRate", parseFloat(e.target.value) || 0)}
             />

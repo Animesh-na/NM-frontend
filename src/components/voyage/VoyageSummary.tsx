@@ -1,5 +1,6 @@
 import { DollarSign, Clock, TrendingUp, Leaf, Download } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
+import { AlertTriangle } from "lucide-react";
 import { InfoTooltip } from "./InfoTooltip";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,9 +10,68 @@ import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 
 
 export function VoyageSummary() {
-  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact } = useVoyageContext();
+  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact, validationIssues, hasErrors } = useVoyageContext();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+
+  // Block summary visibility until all required fields are valid
+  if (hasErrors) {
+    const scrollTo = (elementId: string) => {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        (el as HTMLElement).focus?.();
+      }
+    };
+    return (
+      <div className="calc-card-compact">
+        <div className="section-header-compact">
+          <TrendingUp className="h-3.5 w-3.5" />
+          <span>Voyage Summary</span>
+        </div>
+        <div className="p-2 space-y-2 text-[10px]">
+          <div className="bg-destructive/10 border border-destructive/40 rounded-sm p-2 space-y-1">
+            <div className="flex items-center gap-1 font-semibold text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {validationIssues.length} validation error{validationIssues.length === 1 ? "" : "s"} found
+            </div>
+            <p className="text-[9px] text-muted-foreground">
+              Voyage Summary is hidden until all required fields are valid.
+            </p>
+            <button
+              type="button"
+              onClick={() => scrollTo(validationIssues[0]?.elementId)}
+              className="text-[10px] underline text-destructive hover:text-destructive/80"
+            >
+              Scroll to first invalid field
+            </button>
+          </div>
+          <ul className="max-h-[60vh] overflow-auto divide-y divide-border border border-border rounded-sm">
+            {validationIssues.map((iss, i) => (
+              <li key={`${iss.section}-${iss.field}-${iss.rowId ?? ""}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => scrollTo(iss.elementId)}
+                  className="w-full text-left px-2 py-1 hover:bg-accent flex items-start gap-1.5"
+                >
+                  <span className="text-destructive">•</span>
+                  <span className="flex-1">
+                    <span className="font-semibold capitalize">{iss.section}</span>
+                    {iss.rowId !== undefined && iss.rowId !== "_header" && (
+                      <span className="text-muted-foreground"> (row #{String(iss.rowId)})</span>
+                    )}
+                    {" — "}
+                    <span className="text-muted-foreground">{iss.label}:</span>{" "}
+                    <span className="text-destructive">{iss.message}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
 
   // Get first cargo for display (or default values)
   const primaryCargo = cargos[0] || { rate: 0, rateType: "mt" };
