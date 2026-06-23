@@ -33,10 +33,10 @@ export function VoyageSummary() {
           <div className="bg-destructive/10 border border-destructive/40 rounded-sm p-2 space-y-1">
             <div className="flex items-center gap-1 font-semibold text-destructive">
               <AlertTriangle className="h-3.5 w-3.5" />
-              {validationIssues.length} validation error{validationIssues.length === 1 ? "" : "s"} found
+              {validationIssues.length} field{validationIssues.length === 1 ? "" : "s"} need attention
             </div>
             <p className="text-[9px] text-muted-foreground">
-              Voyage Summary is hidden until all required fields are valid.
+              Voyage Summary will appear once the fields below are filled with valid values. Click any item to jump to it.
             </p>
             <button
               type="button"

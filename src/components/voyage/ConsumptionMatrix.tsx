@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { type SpeedProfile, type ConsumptionMatrix as ConsumptionMatrixType } from "@/data/vessels";
+import { useVoyageContext } from "@/context/VoyageContext";
+import { getFieldId, matrixFieldKey } from "@/utils/validation";
 
 interface ConsumptionMatrixProps {
   speedProfile: SpeedProfile;
@@ -48,6 +50,7 @@ export function ConsumptionMatrix({
   onConsumptionChange,
 }: ConsumptionMatrixProps) {
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
+  const { getFieldError } = useVoyageContext();
   const speedOnlyColumns: ColumnKey[] = ["ballast", "laden"];
   const thClass = "px-0.5 py-0 text-[9px] font-semibold text-foreground text-center bg-table-header";
 
@@ -150,10 +153,17 @@ export function ConsumptionMatrix({
                     {isSpeedNA ? (
                       <div className="h-4 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                     ) : (
+                      (() => {
+                        const fieldKey = matrixFieldKey(row.key as string, col.key as string);
+                        const err = !isDisabled ? getFieldError("vessel", fieldKey) : undefined;
+                        return (
                       <input
+                        id={getFieldId("vessel", fieldKey)}
+                        aria-invalid={!!err}
+                        title={err}
                         type="text"
                         inputMode="decimal"
-                        className={`form-input-sm w-14 mx-auto block font-mono tabular-nums text-center h-4 text-[9px] px-0.5 ${isDisabled ? "opacity-50" : ""}`}
+                        className={`form-input-sm w-14 mx-auto block font-mono tabular-nums text-center h-4 text-[9px] px-0.5 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
                         value={getDisplayValue(row.key, col.key, value)}
                         onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
                         onFocus={() => handleInputFocus(row.key, col.key, value)}
@@ -161,6 +171,8 @@ export function ConsumptionMatrix({
                         placeholder="0"
                         disabled={isDisabled}
                       />
+                        );
+                      })()
                     )}
                   </td>
                 );
