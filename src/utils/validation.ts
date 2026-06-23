@@ -51,6 +51,33 @@ export const VESSEL_FIELDS: Record<string, NumericFieldConfig> = {
   aeScrubber: { label: "AE + Scrubber", min: 0, max: 100, required: true },
 };
 
+/** Range/required rules for each consumption-matrix row. */
+export const MATRIX_ROW_RULES: Record<
+  string,
+  { label: string; min: number; max: number; speed?: boolean }
+> = {
+  speed: { label: "Speed (kn)", min: 0.1, max: 90, speed: true },
+  hsfo: { label: "HSFO (mt/d)", min: 0, max: 500 },
+  vlsfo: { label: "VLSFO (mt/d)", min: 0, max: 500 },
+  lsmgo: { label: "LSMGO (mt/d)", min: 0, max: 100 },
+  ae: { label: "AE (mt/d)", min: 0, max: 100 },
+  aeScrubber: { label: "AE+Scrubber (mt/d)", min: 0, max: 100 },
+};
+
+const COL_LABELS: Record<string, string> = {
+  ballast: "Ballast",
+  laden: "Laden",
+  canal: "Canal",
+  load: "Load",
+  discharge: "Discharge",
+  idle: "Idle",
+};
+
+/** Field id used for each matrix cell — `matrix_<row>_<col>`. */
+export function matrixFieldKey(row: string, col: string): string {
+  return `matrix_${row}_${col}`;
+}
+
 export const SEQUENCE_FIELDS: Record<string, NumericFieldConfig> = {
   distance: { label: "Distance", min: 0, max: 30_000 },
   ecaDistance: { label: "ECA Distance", min: 0, max: 30_000 },
@@ -145,14 +172,29 @@ export function validateVessel(vessel: VesselData): ValidationIssue[] {
   pushIssue(out, "vessel", "tpcTpi", VESSEL_FIELDS.tpcTpi, vessel.tpcTpi);
 
   if (profile) {
-    pushIssue(out, "vessel", "speedBallast", VESSEL_FIELDS.speedBallast, profile.speed?.ballast);
-    pushIssue(out, "vessel", "speedLaden", VESSEL_FIELDS.speedLaden, profile.speed?.laden);
-    // Use the BALLAST column as the representative consumption value per spec.
-    pushIssue(out, "vessel", "hsfo", VESSEL_FIELDS.hsfo, profile.hsfo?.ballast);
-    pushIssue(out, "vessel", "vlsfo", VESSEL_FIELDS.vlsfo, profile.vlsfo?.ballast);
-    pushIssue(out, "vessel", "lsmgo", VESSEL_FIELDS.lsmgo, profile.lsmgo?.ballast);
-    pushIssue(out, "vessel", "ae", VESSEL_FIELDS.ae, profile.ae?.ballast);
-    pushIssue(out, "vessel", "aeScrubber", VESSEL_FIELDS.aeScrubber, profile.aeScrubber?.ballast);
+    const speedCols: Array<"ballast" | "laden"> = ["ballast", "laden"];
+    const allCols: Array<"ballast" | "laden" | "canal" | "load" | "discharge" | "idle"> = [
+      "ballast", "laden", "canal", "load", "discharge", "idle",
+    ];
+    const lds = !!vessel.loadDischIdleSame;
+
+    Object.entries(MATRIX_ROW_RULES).forEach(([rowKey, rule]) => {
+      const cols = rowKey === "speed" ? speedCols : allCols;
+      cols.forEach((col) => {
+        // When L=D=I is on, discharge & idle mirror load — skip duplicate errors.
+        if (lds && (col === "discharge" || col === "idle")) return;
+        const profileRec = profile as unknown as Record<string, Record<string, number | undefined>>;
+        const value = profileRec[rowKey]?.[col];
+        const cfg: NumericFieldConfig = {
+          label: `${rule.label} · ${COL_LABELS[col]}`,
+          min: rule.min,
+          max: rule.max,
+          required: true,
+          speed: rule.speed,
+        };
+        pushIssue(out, "vessel", matrixFieldKey(rowKey, col), cfg, value);
+      });
+    });
   }
   return out;
 }
