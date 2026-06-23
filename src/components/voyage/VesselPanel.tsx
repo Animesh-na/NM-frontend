@@ -13,9 +13,12 @@ import {
 } from "@/data/vessels";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { getVesselTypes, getVesselSectors, type VesselType, type VesselSector } from "@/services/vesselFuelApi";
+import { getFieldId } from "@/utils/validation";
 
 export function VesselPanel() {
-  const { vessel, setVessel } = useVoyageContext();
+  const { vessel, setVessel, getFieldError } = useVoyageContext();
+  const errCls = (msg?: string) =>
+    msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   const [isExpanded, setIsExpanded] = useState(true);
   const [vesselTypes, setVesselTypes] = useState<VesselType[]>([]);
   const [vesselSectors, setVesselSectors] = useState<VesselSector[]>([]);
