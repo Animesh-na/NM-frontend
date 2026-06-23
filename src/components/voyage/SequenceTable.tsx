@@ -18,6 +18,7 @@ import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { toast } from "@/hooks/use-toast";
+import { getFieldId } from "@/utils/validation";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
@@ -48,8 +49,11 @@ export function SequenceTable() {
   const { 
     sequence, setSequence, updateSequenceRow, addPort, addRepositioning, removeSequence,
     recalculateDistances, autoDistanceEnabled, setAutoDistanceEnabled, distanceLoading, vessel,
-    departureUtc, setDepartureUtc,
+    departureUtc, setDepartureUtc, getFieldError,
   } = useVoyageContext();
+
+  const errCls = (msg?: string) =>
+    msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   
   const [isExpanded, setIsExpanded] = useState(true);
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
