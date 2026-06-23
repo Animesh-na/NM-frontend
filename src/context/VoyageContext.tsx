@@ -1701,6 +1701,66 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     [cargos, sequence],
   );
 
+  // Field-level validation across vessel, sequence, and cargos
+  const validationIssues = useMemo<ValidationIssue[]>(() => {
+    const issues: ValidationIssue[] = [];
+    issues.push(...validateVessel(vessel));
+    issues.push(...validateSequence(sequence));
+
+    // Per-cargo load/discharge balance maps
+    const loaded = new Map<number, number>();
+    const disch = new Map<number, number>();
+    const usesExplicit = sequence.some((r) => (r.assignedCargoIds || []).length > 0);
+    if (usesExplicit) {
+      cargos.forEach((c) => {
+        const l = sequence
+          .filter((r) => r.operation === "loading" && (r.assignedCargoIds || []).includes(c.id))
+          .reduce((s, r) => s + (r.quantity || 0), 0);
+        const d = sequence
+          .filter((r) => r.operation === "discharging" && (r.assignedCargoIds || []).includes(c.id))
+          .reduce((s, r) => s + (r.quantity || 0), 0);
+        loaded.set(c.id, l);
+        disch.set(c.id, d);
+      });
+    } else {
+      // Auto-map by order: cargo[i] gets loading[i] and discharging[i]
+      const loadRows = sequence.filter((r) => r.operation === "loading");
+      const dischRows = sequence.filter((r) => r.operation === "discharging");
+      cargos.forEach((c, i) => {
+        loaded.set(c.id, loadRows[i]?.quantity || 0);
+        disch.set(c.id, dischRows[i]?.quantity || 0);
+      });
+    }
+    issues.push(...validateCargos(cargos, loaded, disch));
+
+    // Header-derived cargo numbers (GTC, Gross BB)
+    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
+    const gtc = tc < 1 ? hireRate / (1 - tc) : 0;
+    const grossBB = tc < 1 ? netBB / (1 - tc) : 0;
+    issues.push(...validateCargoHeader(gtc, grossBB));
+
+    return issues;
+  }, [vessel, sequence, cargos, hireRate, netBB]);
+
+  const hasErrors = validationIssues.length > 0;
+
+  const getFieldError = useCallback(
+    (
+      section: "vessel" | "sequence" | "cargo",
+      field: string,
+      rowId?: number | string,
+    ): string | undefined => {
+      const issue = validationIssues.find(
+        (i) =>
+          i.section === section &&
+          i.field === field &&
+          (rowId === undefined ? i.rowId === undefined : i.rowId === rowId),
+      );
+      return issue?.message;
+    },
+    [validationIssues],
+  );
+
   return (
     <VoyageContext.Provider
       value={{
