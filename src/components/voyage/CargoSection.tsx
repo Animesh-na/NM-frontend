@@ -302,9 +302,12 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">
             <input
+              id={getFieldId("cargo","rate",cargo.id)}
+              aria-invalid={!!errRate}
+              title={errRate}
               type="number"
               step="0.1"
-              className="form-input-sm min-w-0 flex-1 font-mono text-right"
+              className={`form-input-sm min-w-0 flex-1 font-mono text-right ${errCls(errRate)}`}
               value={cargo.rate}
               onChange={(e) => onUpdate("rate", parseFloat(e.target.value) || 0)}
             />
@@ -325,8 +328,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             <InfoTooltip formula="Sum of loading quantities from Sequence" description="Auto-calculated" />
           </label>
           <input
+            id={getFieldId("cargo","quantityBalance",cargo.id)}
+            aria-invalid={!!errBal}
+            title={errBal}
             type="text"
-            className="form-input-sm w-full font-mono text-right bg-muted/30"
+            className={`form-input-sm w-full font-mono text-right bg-muted/30 ${errCls(errBal)}`}
             value={cargoQuantity.toLocaleString()}
             readOnly
           />
