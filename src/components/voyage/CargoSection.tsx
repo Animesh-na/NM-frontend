@@ -524,12 +524,17 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Exp DA</label>
+                  {(() => { const err = getFieldError("sequence","expDa", r.id); return (
                   <input
+                    id={getFieldId("sequence","expDa", r.id)}
+                    aria-invalid={!!err}
+                    title={err}
                     type="number"
-                    className={edit}
+                    className={`${edit} ${errCls(err)}`}
                     value={opExpDa}
                     onChange={(e) => onOpUpdate(r.id, "expDa", parseFloat(e.target.value) || 0)}
                   />
+                  );})()}
                 </div>
                 <div className="form-field w-16">
                   <label className="form-label">Δ Days</label>
