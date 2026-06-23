@@ -147,9 +147,13 @@ export function CargoSection() {
                 <InfoTooltip formula="Gross BB = Net BB / (1 - TC Comm%)" description="Gross Ballast Bonus" />
               </label>
               <div className="input-with-unit">
+                {(() => { const err = getFieldError("cargo","grossBB","_header"); return (
                 <input
+                  id={getFieldId("cargo","grossBB","_header")}
+                  aria-invalid={!!err}
+                  title={err}
                   type="number"
-                  className="form-input-sm w-full font-mono text-right"
+                  className={`form-input-sm w-full font-mono text-right ${errCls(err)}`}
                   value={parseFloat(((cargos[0]?.tcCommission ?? 3.75) < 100 ? netBB / (1 - (cargos[0]?.tcCommission ?? 3.75) / 100) : 0).toFixed(2))}
                   onChange={(e) => {
                     const gross = parseFloat(e.target.value) || 0;
@@ -157,6 +161,7 @@ export function CargoSection() {
                     setNetBB(gross * (1 - tc));
                   }}
                 />
+                );})()}
                 <span className="unit">$</span>
               </div>
             </div>
