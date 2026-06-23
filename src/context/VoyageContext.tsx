@@ -261,6 +261,15 @@ interface VoyageContextValue {
 
    // Cargo assignment validation (route mapping)
    cargoValidation: CargoValidationResult;
+
+   // Field-level validation
+   validationIssues: ValidationIssue[];
+   hasErrors: boolean;
+   getFieldError: (
+     section: "vessel" | "sequence" | "cargo",
+     field: string,
+     rowId?: number | string,
+   ) => string | undefined;
 }
 
 // Fuel accounting mode type
