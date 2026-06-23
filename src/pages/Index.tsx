@@ -14,6 +14,7 @@ import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const Index = () => {
   const { activeTab, activeTabIndex, saveCurrentSheet, markDirty, updateTabData } = useSheets();
@@ -110,12 +111,18 @@ const Index = () => {
   useEffect(() => {
     const handler = (e: Event) => {
       const { name } = (e as CustomEvent).detail;
+      if (voyage.hasErrors) {
+        toast.error(`${voyage.validationIssues.length} validation errors found`, {
+          description: "Fix all invalid fields before saving.",
+        });
+        return;
+      }
       const data = gatherData();
       saveCurrentSheet(name, data);
     };
     window.addEventListener("sheet-save", handler);
     return () => window.removeEventListener("sheet-save", handler);
-  }, [gatherData, saveCurrentSheet]);
+  }, [gatherData, saveCurrentSheet, voyage.hasErrors, voyage.validationIssues.length]);
 
   // Mark dirty on any voyage change — but NOT during hydration
   useEffect(() => {
