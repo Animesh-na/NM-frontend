@@ -258,6 +258,14 @@ interface CargoEntryCardProps {
 
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
+  const { getFieldError } = useVoyageContext();
+  const errCls = (msg?: string) =>
+    msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
+  const errRate = getFieldError("cargo","rate",cargo.id);
+  const errDem = getFieldError("cargo","demurrageRate",cargo.id);
+  const errDesp = getFieldError("cargo","despatchRate",cargo.id);
+  const errVoy = getFieldError("cargo","voyageCommission",cargo.id);
+  const errBal = getFieldError("cargo","quantityBalance",cargo.id);
 
   // ─── Auto-compute Demurrage / Despatch from TOTAL day-diff ───
   // First sum all row differences for this cargo: Σ(CP days − Operational days).
