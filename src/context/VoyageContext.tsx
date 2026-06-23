@@ -8,6 +8,15 @@ import { isPortEuEea } from "@/utils/euCountries";
 import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
+import {
+  validateVessel,
+  validateSequence,
+  validateCargos,
+  validateCargoHeader,
+  MAX_CARGOS,
+  type ValidationIssue,
+} from "@/utils/validation";
+import { toast } from "sonner";
 
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
