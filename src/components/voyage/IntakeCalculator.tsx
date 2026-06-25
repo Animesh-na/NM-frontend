@@ -136,8 +136,8 @@ export function IntakeCalculator({
     const volumeBasedCargo = _sf > 0 ? grainCuFtVal / _sf : Infinity;
 
     // Step 7: Final allowable cargo = min of DWCC and volume
-    const dwccCalc = Math.round(dwcc);
-    const dwccCubic = Math.round(volumeBasedCargo);
+    const dwccCalc = Math.max(0, Math.round(dwcc));
+    const dwccCubic = Math.max(0, Math.round(volumeBasedCargo));
     const finalIntake = Math.max(0, Math.min(dwccCalc, dwccCubic));
 
     return {
