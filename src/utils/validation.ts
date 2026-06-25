@@ -243,6 +243,17 @@ export function validateSequence(rows: SequenceRowForValidation[]): ValidationIs
 
   rows.forEach((r) => {
     if (r.type === "open") return;
+    // Port must be selected for every non-open row.
+    if (!r.port || !r.port.trim()) {
+      out.push({
+        section: "sequence",
+        field: "port",
+        rowId: r.id,
+        message: "Port is required",
+        label: "Port",
+        elementId: getFieldId("sequence", "port", r.id),
+      });
+    }
     // Either Distance or ECA Distance is required, both must be non-negative.
     const dist = Number(r.distance) || 0;
     const eca = Number(r.ecaDistance) || 0;
