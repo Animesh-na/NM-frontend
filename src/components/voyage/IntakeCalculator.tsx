@@ -112,15 +112,18 @@ export function IntakeCalculator({
     if (season === "winter") seasonalDraft = _summerDraft - _summerDraft / 48;
     else if (season === "tropical") seasonalDraft = _summerDraft + _summerDraft / 48;
 
-    // Step 1: Draft Difference (can be negative when port allows more draft)
-    const draftDifference = seasonalDraft - _draft;
+    // Step 1: Seasonal DWT = SummerDWT - (SummerDraft - SeasonalDraft) * TPC * 100
+    const seasonalDwt = _summerDwt - (_summerDraft - seasonalDraft) * (_tpc * 100);
+
+    // Step 2: Draft Difference (Summer Draft - Port Draft)
+    const draftDifference = _summerDraft - _draft;
     const draftDifferenceCm = draftDifference * 100;
 
-    // Step 2: DWT Reduction (negative = DWT increase when port draft > seasonal draft)
+    // Step 3: DWT Reduction (only when port draft restricts; never a bonus)
     const dwtReduction = draftDifferenceCm * _tpc;
 
-    // Step 3: DWT after draft & density correction
-    const dwtAfterDraftDensity = (_summerDwt - dwtReduction) * densityFactor;
+    // Step 4: DWT after draft & density correction — applied to Seasonal DWT
+    const dwtAfterDraftDensity = (seasonalDwt - Math.max(dwtReduction, 0)) * densityFactor;
 
     // Step 4: Total deductions
     const totalDeductions = _constants + _bob + _freshWater;
@@ -138,7 +141,7 @@ export function IntakeCalculator({
     const finalIntake = Math.max(0, Math.min(dwccCalc, dwccCubic));
 
     return {
-      seasonalDraft, draftDifference, draftDifferenceCm, dwtReduction,
+      seasonalDraft, seasonalDwt, draftDifference, draftDifferenceCm, dwtReduction,
       dwtAfterDraftDensity, totalDeductions, dwccCalc, dwccCubic, finalIntake,
       densityFactor,
     };
@@ -248,6 +251,10 @@ export function IntakeCalculator({
                   <span className="font-mono">{calc.seasonalDraft.toFixed(2)} m</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">Seasonal DWT</span>
+                  <span className="font-mono">{Math.round(calc.seasonalDwt).toLocaleString()} mt</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
                   <span className="text-muted-foreground">Draft Diff (m)</span>
                   <span className="font-mono">{calc.draftDifference.toFixed(2)}</span>
                 </div>
@@ -257,7 +264,7 @@ export function IntakeCalculator({
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-muted-foreground">DWT Reduction</span>
-                  <span className="font-mono">{Math.round(calc.dwtReduction).toLocaleString()} mt</span>
+                  <span className="font-mono">{Math.round(Math.max(calc.dwtReduction, 0)).toLocaleString()} mt</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-muted-foreground">Density Factor</span>
