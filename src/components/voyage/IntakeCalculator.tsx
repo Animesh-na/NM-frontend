@@ -13,10 +13,10 @@ type WaterType = "sw" | "bw" | "fw" | "tfw";
 type SeasonType = "summer" | "winter" | "tropical";
 
 const waterOptions: { value: WaterType; label: string; density: number }[] = [
-  { value: "sw", label: "Salt Water (1.025)", density: 1.025 },
-  { value: "bw", label: "Brackish Water (1.0125)", density: 1.0125 },
-  { value: "fw", label: "Fresh Water (1.000)", density: 1.0 },
-  { value: "tfw", label: "Tropical Fresh Water (0.9971)", density: 0.9971 },
+  { value: "sw", label: "Salt Water (SW : 1.0000)", density: 1.025 },
+  { value: "bw", label: "Brackish Water (BW : 0.9878)", density: 1.0125 },
+  { value: "fw", label: "Fresh Water (FW : 0.9756)", density: 1.0 },
+  { value: "tfw", label: "Tropical Fresh Water (TFW : 0.9717)", density: 0.9971 },
 ];
 
 const seasonOptions: { value: SeasonType; label: string }[] = [
@@ -244,52 +244,33 @@ export function IntakeCalculator({
 
             {/* Calculation panel — matches spreadsheet layout */}
             <div>
-              <div className="text-[11px] font-bold text-primary mb-1.5">Calculation</div>
-              <div className="space-y-0.5 mt-1">
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Seasonal Draft</span>
-                  <span className="font-mono">{calc.seasonalDraft.toFixed(2)} m</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Seasonal DWT</span>
-                  <span className="font-mono">{Math.round(calc.seasonalDwt).toLocaleString()} mt</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Draft Diff (m)</span>
-                  <span className="font-mono">{calc.draftDifference.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Draft Diff (cm)</span>
-                  <span className="font-mono">{calc.draftDifferenceCm.toFixed(0)}</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">DWT Reduction</span>
-                  <span className="font-mono">{Math.round(Math.max(calc.dwtReduction, 0)).toLocaleString()} mt</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Density Factor</span>
-                  <span className="font-mono">{calc.densityFactor.toFixed(4)}</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">DWT After D&D</span>
-                  <span className="font-mono">{Math.round(calc.dwtAfterDraftDensity).toLocaleString()} mt</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Deductions</span>
-                  <span className="font-mono">{Math.round(calc.totalDeductions).toLocaleString()} mt</span>
-                </div>
-                <div className="flex justify-between text-[11px] pt-0.5 border-t border-border">
-                  <span className="font-medium">DWCC</span>
-                  <span className="font-mono font-semibold">{calc.dwccCalc.toLocaleString()} mt</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Volume Cargo</span>
-                  <span className="font-mono">{calc.dwccCubic.toLocaleString()} mt</span>
-                </div>
-                <div className="flex justify-between text-[11px] pt-1 border-t border-border">
-                  <span className="font-bold">Final Cargo</span>
-                  <span className="font-mono font-bold text-primary text-sm">{calc.finalIntake.toLocaleString()} mt</span>
-                </div>
+              <div className="flex items-center gap-2 py-0.5">
+                <span className={labelClass}>Vessel</span>
+                <span className="text-[11px] font-semibold truncate">{vessel.name || "—"}</span>
+              </div>
+              <div className="flex justify-between text-[11px] py-0.5">
+                <span className="text-muted-foreground">DWT</span>
+                <span className="font-mono">{Math.round(num(summerDwt)).toLocaleString()} mt</span>
+              </div>
+              <div className="flex justify-between text-[11px] py-0.5">
+                <span className="text-muted-foreground">Draft</span>
+                <span className="font-mono">{calc.seasonalDraft.toFixed(2)} m ({num(summerDraft).toFixed(2)} m)</span>
+              </div>
+              <div className="flex justify-between text-[11px] py-0.5">
+                <span className="text-muted-foreground">TPC/TPI</span>
+                <span className="font-mono">{num(tpc).toFixed(1)} mt/cm ({num(tpc).toFixed(1)} mt/cm)</span>
+              </div>
+              <div className="flex justify-between text-[11px] py-0.5">
+                <span className="text-muted-foreground">DWCC calc</span>
+                <span className="font-mono">{calc.dwccCalc.toLocaleString()} mt</span>
+              </div>
+              <div className="flex justify-between text-[11px] py-0.5">
+                <span className="text-muted-foreground">DWCC cubic</span>
+                <span className="font-mono">{calc.dwccCubic.toLocaleString()} mt</span>
+              </div>
+              <div className="flex justify-between text-[11px] py-0.5 pt-1 border-t border-border">
+                <span className="font-bold">DWCC</span>
+                <span className="font-mono font-bold text-primary">{calc.finalIntake.toLocaleString()} mt</span>
               </div>
             </div>
           </div>
