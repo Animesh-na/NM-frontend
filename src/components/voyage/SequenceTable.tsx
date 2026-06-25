@@ -261,8 +261,14 @@ export function SequenceTable() {
 
                        {/* Port */}
                        <td className={tdClass}>
-                         <div className="flex items-center gap-0.5">
-                           <div className="flex-1 min-w-0">
+                         {(() => { const portErr = getFieldError("sequence","port",row.id); return (
+                         <div
+                           id={getFieldId("sequence","port",row.id)}
+                           className="flex items-center gap-0.5"
+                           aria-invalid={!!portErr}
+                           title={portErr || undefined}
+                         >
+                           <div className={`flex-1 min-w-0 ${portErr ? "ring-1 ring-destructive rounded" : ""}`}>
                              <PortSelect
                                value={row.port}
                                onChange={(port) => handlePortChange(row.id, port)}
@@ -323,6 +329,7 @@ export function SequenceTable() {
                              </Popover>
                            )}
                          </div>
+                         );})()}
                         {(row.legDepartureUtc || row.legArrivalUtc) && (
                           <div className="flex gap-1.5 px-1 text-[8px] text-muted-foreground font-mono leading-tight">
                             {row.type === "open" && row.legDepartureUtc && (

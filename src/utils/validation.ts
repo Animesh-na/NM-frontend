@@ -243,6 +243,17 @@ export function validateSequence(rows: SequenceRowForValidation[]): ValidationIs
 
   rows.forEach((r) => {
     if (r.type === "open") return;
+    // Port must be selected for every non-open row.
+    if (!r.port || !r.port.trim()) {
+      out.push({
+        section: "sequence",
+        field: "port",
+        rowId: r.id,
+        message: "Port is required",
+        label: "Port",
+        elementId: getFieldId("sequence", "port", r.id),
+      });
+    }
     // Either Distance or ECA Distance is required, both must be non-negative.
     const dist = Number(r.distance) || 0;
     const eca = Number(r.ecaDistance) || 0;
@@ -314,7 +325,12 @@ export function validateCargos(
   }
 
   cargos.forEach((c) => {
-    pushIssue(out, "cargo", "rate", CARGO_FIELDS.rate, c.rate, c.id);
+    const loadedForCargo = loadedQtyByCargo?.get(c.id) ?? 0;
+    // Rate becomes mandatory (must be > 0) once a quantity has been loaded for this cargo.
+    const rateCfg: NumericFieldConfig = loadedForCargo > 0
+      ? { ...CARGO_FIELDS.rate, nonZero: true }
+      : CARGO_FIELDS.rate;
+    pushIssue(out, "cargo", "rate", rateCfg, c.rate, c.id);
     pushIssue(out, "cargo", "demurrageRate", CARGO_FIELDS.demurrageRate, c.demurrageRate, c.id);
     pushIssue(out, "cargo", "despatchRate", CARGO_FIELDS.despatchRate, c.despatchRate, c.id);
     pushIssue(out, "cargo", "voyageCommission", CARGO_FIELDS.voyageCommission, c.voyageCommission, c.id);
