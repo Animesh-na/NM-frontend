@@ -91,7 +91,7 @@ export const SEQUENCE_FIELDS: Record<string, NumericFieldConfig> = {
 };
 
 export const CARGO_FIELDS: Record<string, NumericFieldConfig> = {
-  rate: { label: "Rate", min: 0, max: 100_000, required: true, nonZero: true },
+  rate: { label: "Rate", min: 0, max: 100_000, required: true },
   demurrageRate: { label: "Demurrage ($)", min: 0, max: 1_000_000, required: true },
   despatchRate: { label: "Despatch ($)", min: 0, max: 1_000_000, required: true },
   gtc: { label: "GTC", min: 0, max: 500_000, required: true, nonZero: true },
@@ -325,7 +325,12 @@ export function validateCargos(
   }
 
   cargos.forEach((c) => {
-    pushIssue(out, "cargo", "rate", CARGO_FIELDS.rate, c.rate, c.id);
+    const loadedForCargo = loadedQtyByCargo?.get(c.id) ?? 0;
+    // Rate becomes mandatory (must be > 0) once a quantity has been loaded for this cargo.
+    const rateCfg: NumericFieldConfig = loadedForCargo > 0
+      ? { ...CARGO_FIELDS.rate, nonZero: true }
+      : CARGO_FIELDS.rate;
+    pushIssue(out, "cargo", "rate", rateCfg, c.rate, c.id);
     pushIssue(out, "cargo", "demurrageRate", CARGO_FIELDS.demurrageRate, c.demurrageRate, c.id);
     pushIssue(out, "cargo", "despatchRate", CARGO_FIELDS.despatchRate, c.despatchRate, c.id);
     pushIssue(out, "cargo", "voyageCommission", CARGO_FIELDS.voyageCommission, c.voyageCommission, c.id);
