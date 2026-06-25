@@ -91,7 +91,7 @@ export const SEQUENCE_FIELDS: Record<string, NumericFieldConfig> = {
 };
 
 export const CARGO_FIELDS: Record<string, NumericFieldConfig> = {
-  rate: { label: "Rate", min: 0, max: 100_000, required: true },
+  rate: { label: "Rate", min: 0, max: 100_000, required: true, nonZero: true },
   demurrageRate: { label: "Demurrage ($)", min: 0, max: 1_000_000, required: true },
   despatchRate: { label: "Despatch ($)", min: 0, max: 1_000_000, required: true },
   gtc: { label: "GTC", min: 0, max: 500_000, required: true, nonZero: true },
