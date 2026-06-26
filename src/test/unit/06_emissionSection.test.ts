@@ -14,9 +14,9 @@ describe("Emission Section", () => {
     it("totalCo2 ≈ Σ(fuel × emission factor)", () => {
       const r = renderHook(() => useVoyageCalculation(buildInputs())).result.current;
       const expected =
-        r.hsfoConsumption * CO2_EMISSION_FACTORS.HSFO +
-        r.vlsfoConsumption * CO2_EMISSION_FACTORS.VLSFO +
-        r.lsmgoConsumption * CO2_EMISSION_FACTORS.LSMGO;
+        r.hsfoConsumption * CO2_EMISSION_FACTORS.hsfo +
+        r.vlsfoConsumption * CO2_EMISSION_FACTORS.vlsfo +
+        r.lsmgoConsumption * CO2_EMISSION_FACTORS.lsmgo;
       // Allow a small tolerance — engine computes per-leg & rounds.
       expect(r.totalCo2).toBeCloseTo(expected, 0);
     });
