@@ -3,6 +3,10 @@ import { renderHook } from "@testing-library/react";
 import { useVoyageCalculation } from "@/hooks/useVoyageCalculation";
 import { buildInputs, mockCargo, mockCargoLumpsum } from "../helpers/scenarios";
 
+/** grossFreight in the engine = freight + demurrage − despatch. */
+const expectedGross = (rate: number, qty: number, dem = 0, des = 0, lumpsum = false) =>
+  (lumpsum ? rate : rate * qty) + dem - des;
+
 /**
  * UNIT — Cargo Section (freight, commissions, TCE/NTCE/GTCE, P&L)
  */
@@ -10,14 +14,26 @@ describe("Cargo Section", () => {
   describe("Gross Freight", () => {
     it("per-MT cargo: grossFreight = rate × quantity", () => {
       const r = renderHook(() => useVoyageCalculation(buildInputs())).result.current;
-      expect(r.grossFreight).toBeCloseTo(mockCargo.rate * mockCargo.quantity, 2);
+      expect(r.grossFreight).toBeCloseTo(
+        expectedGross(mockCargo.rate, mockCargo.quantity, mockCargo.demurrage, mockCargo.despatch),
+        2,
+      );
     });
 
     it("lumpsum cargo: grossFreight = rate (independent of quantity)", () => {
       const r = renderHook(() =>
         useVoyageCalculation(buildInputs({ cargo: mockCargoLumpsum })),
       ).result.current;
-      expect(r.grossFreight).toBeCloseTo(mockCargoLumpsum.rate, 2);
+      expect(r.grossFreight).toBeCloseTo(
+        expectedGross(
+          mockCargoLumpsum.rate,
+          mockCargoLumpsum.quantity,
+          mockCargoLumpsum.demurrage,
+          mockCargoLumpsum.despatch,
+          true,
+        ),
+        2,
+      );
     });
   });
 
@@ -60,9 +76,8 @@ describe("Cargo Section", () => {
 
   describe("Edge case: zero rate", () => {
     it("rate = 0 → grossFreight 0 and finite NTCE (negative)", () => {
-      const r = renderHook(() =>
-        useVoyageCalculation(buildInputs({ cargo: { ...mockCargo, rate: 0 } })),
-      ).result.current;
+      const cargo = { ...mockCargo, rate: 0, demurrage: 0, despatch: 0 };
+      const r = renderHook(() => useVoyageCalculation(buildInputs({ cargo }))).result.current;
       expect(r.grossFreight).toBe(0);
       expect(Number.isFinite(r.ntce)).toBe(true);
       expect(r.ntce).toBeLessThanOrEqual(0);
