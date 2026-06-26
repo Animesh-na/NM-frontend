@@ -88,9 +88,10 @@ describe("validateVessel", () => {
     expect(validateVessel(mockVessel)).toEqual([]);
   });
 
-  it("dwt = 0 → required error on dwt", () => {
-    const issues = validateVessel({ ...mockVessel, dwt: 0 });
-    expect(issues.some((i) => i.field === "dwt")).toBe(true);
+  it("dwt above max (1_000_000) → range error on dwt", () => {
+    const issues = validateVessel({ ...mockVessel, dwt: 1_000_000 });
+    const dwtErr = issues.find((i) => i.field === "dwt");
+    expect(dwtErr?.message).toContain("between");
   });
 
   it("draft above range (100m) → range error", () => {
