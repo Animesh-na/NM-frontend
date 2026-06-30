@@ -19,6 +19,12 @@ type ConsumptionMatrixInput = Partial<{
   [K in keyof ConsumptionMatrix]: Partial<ExtendedConsumption>;
 }>;
 
+type CustomBunkerValues = Omit<Partial<BunkerData>, "hsfo" | "vlsfo" | "lsmgo"> & {
+  hsfo?: Partial<BunkerData["hsfo"]>;
+  vlsfo?: Partial<BunkerData["vlsfo"]>;
+  lsmgo?: Partial<BunkerData["lsmgo"]>;
+};
+
 function customExtendedConsumption(
   values: Partial<ExtendedConsumption> = {},
 ): ExtendedConsumption {
@@ -135,14 +141,13 @@ export function customCargo(values: Partial<CargoData> = {}): CargoData {
   };
 }
 
-export function customBunker(values: Partial<BunkerData> = {}): BunkerData {
+export function customBunker(values: CustomBunkerValues = {}): BunkerData {
   return {
+    co2Price: values.co2Price ?? 75,
+    rewardFactor: values.rewardFactor ?? 1,
     hsfo: { price: 450, robStart: 500, ...values.hsfo },
     vlsfo: { price: 600, robStart: 300, ...values.vlsfo },
     lsmgo: { price: 800, robStart: 150, ...values.lsmgo },
-    co2Price: 75,
-    rewardFactor: 1,
-    ...values,
   };
 }
 
