@@ -51,8 +51,8 @@ describe("Vessel Section", () => {
 
     it("scrubber vessel burns HSFO instead of VLSFO outside ECA for custom non-ECA legs", () => {
       const sequence = [
-        customLeg({ id: 1, operation: "load", distance: 900, ecaDistance: 0, seaTime: 3, ecaTime: 0, nonEcaTime: 3 }),
-        customLeg({ id: 2, operation: "disch", distance: 1_800, ecaDistance: 0, seaTime: 6, ecaTime: 0, nonEcaTime: 6 }),
+        customLeg({ id: 1, operation: "load", distance: 900, ecaDistance: 0, seaTime: 3, ecaTime: 0, nonEcaTime: 3, portDays: 0, turnTimeHours: 0 }),
+        customLeg({ id: 2, operation: "disch", distance: 1_800, ecaDistance: 0, seaTime: 6, ecaTime: 0, nonEcaTime: 6, portDays: 0, turnTimeHours: 0 }),
       ];
       const bunker = customBunker({ hsfo: { price: 430, robStart: 400 }, vlsfo: { price: 610, robStart: 250 } });
 
