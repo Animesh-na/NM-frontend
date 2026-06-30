@@ -1,24 +1,38 @@
-# Unit Testing — How to Run, Read & Extend
+# Unit Testing — Custom Inputs Per Scenario
 
-All unit tests live under `src/test/unit/` and are grouped **section by section**
-to match the voyage calculator UI:
+All unit tests live under `src/test/unit/` and are grouped section-by-section to
+match the voyage calculator UI.
 
 | File | Covers |
 | --- | --- |
-| `01_vesselSection.test.ts`   | Speed profile, scrubber routing, reward factor |
+| `01_vesselSection.test.ts` | Speed profile, scrubber routing, reward factor |
 | `02_sequenceSection.test.ts` | Distance, sea/port days, total voyage days |
-| `03_bunkerSection.test.ts`   | Fuel consumption, ECA switch, bunker cost |
-| `04_cargoSection.test.ts`    | Gross/Net freight, commissions, TCE/NTCE/GTCE, P&L |
-| `05_miscSection.test.ts`     | Misc, canal, extra-time, cost roll-up |
+| `03_bunkerSection.test.ts` | Fuel consumption, fuel costs, ECA switching |
+| `04_cargoSection.test.ts` | Gross/Net freight, commissions, TCE/NTCE/GTCE, P&L |
+| `05_miscSection.test.ts` | Misc, canal, extra-time, cost roll-up |
 | `06_emissionSection.test.ts` | CO₂ totals, CII rating, EU ETS |
-| `07_validation.test.ts`      | Numeric ranges, required fields, MAX limits |
+| `07_validation.test.ts` | Numeric ranges, required fields, max limits |
 
-Shared inputs live in:
-- `src/test/helpers/mockVesselData.ts` — vessel fixtures
-- `src/test/helpers/mockSequenceData.ts` — sequence / cargo / bunker fixtures
-- `src/test/helpers/scenarios.ts` — **`buildInputs(overrides)`** factory
+## 1. Testing approach
 
-## 1. Running the tests
+Unit tests should use **custom inputs inside each test case**. Do not depend on
+shared business mock voyages for unit scenarios.
+
+Use `src/test/helpers/scenarios.ts` only for shape builders:
+
+- `createVoyageTestInputs(...)`
+- `customVessel(...)`
+- `customConsumptionMatrix(...)`
+- `customLeg(...)`
+- `customCargo(...)`
+- `customBunker(...)`
+- `customMiscCosts(...)`
+- `customExtraTime(...)`
+
+These builders provide valid object structure, but every important value for a
+scenario should be declared in that `it(...)` block.
+
+## 2. Running the tests
 
 ```bash
 # Run everything once
@@ -27,79 +41,112 @@ bun run test
 # Watch mode — re-runs on file save
 bun run test:watch
 
-# Run a single file
+# Run a single unit file
 bun run test src/test/unit/03_bunkerSection.test.ts
 
-# Run a single test by name (substring match)
-bun run test -- -t "totalBunkerCost"
+# Run one scenario by name
+bun run test -- -t "custom totalBunkerCost"
 
 # Verbose console + JSON report saved to test-reports/
 bun run test:report
 ```
 
-The verbose reporter prints each `describe` and `it` line with ✓ / ✗ status and
-the failing expectation. The JSON file (`test-reports/test-report.json`) is
-machine-readable for CI dashboards.
+`test:report` writes:
 
-## 2. Reading the output
+- `test-reports/test-report.log` — readable verbose log
+- `test-reports/test-report.json` — machine-readable result for CI dashboards
 
-```
- ✓ src/test/unit/03_bunkerSection.test.ts (7)
+## 3. Reading the output
+
+```text
+ ✓ src/test/unit/03_bunkerSection.test.ts (6)
    Bunker Section
      Consumption
-       ✓ no-scrubber vessel: HSFO=0, VLSFO>0, LSMGO>0
-       ✓ ECA fuel breakdown is LSMGO-only ...
+       ✓ custom no-scrubber voyage consumes VLSFO and LSMGO but no HSFO
      Cost
-       ✓ totalBunkerCost = Σ(consumption × price)
-       ✗ zero prices → zero total cost
+       ✗ custom zero fuel prices produce zero bunker cost
          AssertionError: expected 12.34 to be 0
 ```
 
-- Each `describe` block = scenario group (e.g. "Cost").
-- Each `it` block = one assertion scenario with a plain-English title.
-- Failure prints the exact expected vs received value with file/line.
+- Each `describe` block is a scenario group.
+- Each `it` block is one business scenario.
+- A failure prints the expected/received values and file line.
 
-## 3. Adding your own test
+## 4. Adding your own custom unit test
 
-Pick the right section file (or create `0X_yourSection.test.ts`) and follow
-this template:
+Pick the correct section file and copy this pattern:
 
 ```ts
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useVoyageCalculation } from "@/hooks/useVoyageCalculation";
-import { buildInputs } from "../helpers/scenarios";
+import {
+  createVoyageTestInputs,
+  customBunker,
+  customCargo,
+  customLeg,
+  customVessel,
+} from "../helpers/scenarios";
 
-describe("My Scenario", () => {
-  it("describes the assertion in plain English", () => {
-    const r = renderHook(() =>
-      useVoyageCalculation(buildInputs({ hireRate: 20000 })),  // 👈 only override what you need
-    ).result.current;
+describe("My Custom Scenario", () => {
+  it("calculates P&L for my exact voyage inputs", () => {
+    const inputs = createVoyageTestInputs({
+      vessel: customVessel({ dwt: 82_000, speedProfile: "eco" }),
+      sequence: [
+        customLeg({ id: 1, operation: "load", distance: 1_200, seaTime: 4, quantity: 55_000 }),
+        customLeg({ id: 2, operation: "disch", distance: 2_400, seaTime: 8, quantity: 55_000 }),
+      ],
+      cargo: customCargo({ quantity: 55_000, rate: 34, rateType: "mt" }),
+      bunker: customBunker({
+        vlsfo: { price: 625, robStart: 300 },
+        lsmgo: { price: 810, robStart: 120 },
+      }),
+      hireRate: 16_000,
+    });
 
-    expect(r.totalVoyageDays).toBeGreaterThan(0);
-    expect(r.pAndL).toBeCloseTo(123456, 0);   // tolerance: 0 decimals
+    const result = renderHook(() => useVoyageCalculation(inputs)).result.current;
+
+    expect(result.grossFreight).toBeCloseTo(55_000 * 34, 2);
+    expect(result.pAndL).toBeGreaterThan(0);
   });
 });
 ```
 
-### Useful matchers
+## 5. Validation tests
+
+For validation scenarios, import the validation function directly and build the
+exact data being tested:
+
+```ts
+const issues = validateSequence([
+  { id: 1, type: "port", operation: "loading", port: "", distance: 500, expDa: 25_000 },
+]);
+
+expect(issues.some((issue) => issue.field === "port")).toBe(true);
+```
+
+## 6. Useful matchers
+
 | Matcher | Use case |
 | --- | --- |
-| `toBe(value)` | exact equality (numbers, strings, booleans) |
-| `toBeCloseTo(value, digits)` | floats — second arg = decimals tolerance |
-| `toBeGreaterThan / toBeLessThan` | range bounds |
+| `toBe(value)` | exact equality |
+| `toBeCloseTo(value, digits)` | decimal / float calculations |
+| `toBeGreaterThan(value)` | minimum business expectation |
+| `toBeLessThan(value)` | maximum business expectation |
 | `toContain(item)` | arrays / strings |
-| `toEqual([])` | deep equality (objects/arrays) |
+| `toEqual(object)` | deep object or array equality |
 
-### Tips
-- **Always override via `buildInputs({ ... })`** — keeps the test minimal and
-  immune to fixture changes.
-- For validation tests, import directly from `@/utils/validation` and assert
-  against the returned `ValidationIssue[]`.
-- Group related assertions inside one `describe` block — Vitest prints the
-  group header once, making failures easier to scan.
+## 7. Rules for maintainable tests
 
-## 4. CI / regression
+- Declare important input values inside the test case.
+- Do not import shared mock voyage fixtures into unit tests.
+- Keep one business scenario per `it(...)` block.
+- Use exact expected values where possible.
+- Use `toBeCloseTo` for maritime calculations with decimals.
+- Add new custom scenarios by copying an existing unit test and changing only
+  the explicit custom input values.
 
-`bun run test` exits with code 0 on success, 1 on any failure. Wire it into
-CI as the gate; `test:report` additionally writes JSON for dashboards.
+## 8. CI / regression
+
+`bun run test` exits with code `0` on success and `1` on any failure. Use it as
+the CI gate. Use `bun run test:report` when you need saved logs and JSON output.
