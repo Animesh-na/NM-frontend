@@ -12,8 +12,8 @@ import {
   MAX_SEQUENCE_PORTS,
   type SequenceRowForValidation,
 } from "@/utils/validation";
-import { mockVessel } from "../helpers/mockVesselData";
 import type { CargoEntry } from "@/context/VoyageContext";
+import { customVessel } from "../helpers/scenarios";
 
 /**
  * UNIT — Input Validation (numeric ranges, required fields, limits)
@@ -84,28 +84,30 @@ describe("VESSEL_FIELDS — published ranges", () => {
 });
 
 describe("validateVessel", () => {
-  it("mockVessel is fully valid", () => {
-    expect(validateVessel(mockVessel)).toEqual([]);
+  it("custom vessel input is fully valid", () => {
+    const vessel = customVessel({ dwt: 75_000, draft: 14.5, tpcTpi: 65 });
+    expect(validateVessel(vessel)).toEqual([]);
   });
 
   it("dwt above max (1_000_000) → range error on dwt", () => {
-    const issues = validateVessel({ ...mockVessel, dwt: 1_000_000 });
+    const issues = validateVessel(customVessel({ dwt: 1_000_000 }));
     const dwtErr = issues.find((i) => i.field === "dwt");
     expect(dwtErr?.message).toContain("between");
   });
 
   it("draft above range (100m) → range error", () => {
-    const issues = validateVessel({ ...mockVessel, draft: 100 });
+    const issues = validateVessel(customVessel({ draft: 100 }));
     const draftErr = issues.find((i) => i.field === "draft");
     expect(draftErr?.message).toContain("between");
   });
 
   it("speed of 0 in matrix → speed error", () => {
+    const vessel = customVessel();
     const broken = {
-      ...mockVessel,
+      ...vessel,
       ecoConsumption: {
-        ...mockVessel.ecoConsumption,
-        speed: { ...mockVessel.ecoConsumption.speed, ballast: 0 },
+        ...vessel.ecoConsumption,
+        speed: { ...vessel.ecoConsumption.speed, ballast: 0 },
       },
     };
     const issues = validateVessel(broken);
