@@ -1,61 +1,60 @@
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useVoyageCalculation } from "@/hooks/useVoyageCalculation";
-import { buildInputs, mockMiscCosts, mockExtraTime } from "../helpers/scenarios";
+import { createVoyageTestInputs, customExtraTime, customMiscCosts } from "../helpers/scenarios";
 
 /**
  * UNIT — Misc Section (misc costs, canal costs, extra time)
  */
 describe("Misc Section", () => {
   describe("Misc costs", () => {
-    it("miscCosts = miscCost + extraFees + extraInsurance", () => {
-      const r = renderHook(() => useVoyageCalculation(buildInputs())).result.current;
-      const expected =
-        mockMiscCosts.miscCost + mockMiscCosts.extraFees + mockMiscCosts.extraInsurance;
-      expect(r.miscCosts).toBeCloseTo(expected, 2);
+    it("custom miscCosts equals miscCost + extraFees + extraInsurance", () => {
+      const misc = customMiscCosts({ miscCost: 7_500, extraFees: 1_250, extraInsurance: 2_750, canalCost1: 0, canalCost2: 0 });
+
+      const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ misc }))).result.current;
+
+      expect(r.miscCosts).toBeCloseTo(11_500, 2);
     });
 
-    it("zero misc inputs → miscCosts = 0", () => {
-      const r = renderHook(() =>
-        useVoyageCalculation(
-          buildInputs({
-            misc: { miscCost: 0, extraFees: 0, extraInsurance: 0, canalCost1: 0, canalCost2: 0 },
-          }),
-        ),
-      ).result.current;
+    it("custom zero misc inputs produce zero miscCosts", () => {
+      const misc = customMiscCosts({ miscCost: 0, extraFees: 0, extraInsurance: 0, canalCost1: 0, canalCost2: 0 });
+
+      const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ misc }))).result.current;
+
       expect(r.miscCosts).toBe(0);
     });
   });
 
   describe("Canal costs", () => {
-    it("canalCosts = canalCost1 + canalCost2", () => {
-      const r = renderHook(() => useVoyageCalculation(buildInputs())).result.current;
-      expect(r.canalCosts).toBeCloseTo(mockMiscCosts.canalCost1 + mockMiscCosts.canalCost2, 2);
+    it("custom canalCosts equals canalCost1 + canalCost2", () => {
+      const misc = customMiscCosts({ canalCost1: 45_000, canalCost2: 12_500 });
+
+      const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ misc }))).result.current;
+
+      expect(r.canalCosts).toBeCloseTo(57_500, 2);
     });
   });
 
   describe("Extra time", () => {
-    it("idle/canal/at-sea extra days flow into totalVoyageDays", () => {
+    it("custom idle/canal/at-sea extra days flow into totalVoyageDays", () => {
       const noExtra = renderHook(() =>
-        useVoyageCalculation(
-          buildInputs({
-            extraTime: { canal1Days: 0, canal2Days: 0, idlePortDays: 0, atSeaDays: 0, atSeaSpeedContext: "EV" },
-          }),
-        ),
+        useVoyageCalculation(createVoyageTestInputs({ extraTime: customExtraTime({ atSeaDays: 0, idlePortDays: 0, canal1Days: 0, canal2Days: 0 }) })),
       ).result.current;
-      const withExtra = renderHook(() => useVoyageCalculation(buildInputs())).result.current;
-      const expectedDelta =
-        (mockExtraTime.canal1Days + mockExtraTime.canal2Days) +
-        mockExtraTime.idlePortDays +
-        mockExtraTime.atSeaDays;
-      expect(withExtra.totalVoyageDays - noExtra.totalVoyageDays).toBeCloseTo(expectedDelta, 4);
+      const withExtra = renderHook(() =>
+        useVoyageCalculation(createVoyageTestInputs({ extraTime: customExtraTime({ atSeaDays: 0.75, idlePortDays: 0.5, canal1Days: 1.25, canal2Days: 0.25 }) })),
+      ).result.current;
+
+      expect(withExtra.totalVoyageDays - noExtra.totalVoyageDays).toBeCloseTo(2.75, 4);
     });
   });
 
   describe("Cost roll-up", () => {
-    it("totalVoyageCosts = bunker + port + misc + canal", () => {
-      const r = renderHook(() => useVoyageCalculation(buildInputs())).result.current;
+    it("custom totalVoyageCosts equals bunker + port + misc + canal", () => {
+      const misc = customMiscCosts({ miscCost: 2_000, extraFees: 3_000, extraInsurance: 4_000, canalCost1: 10_000, canalCost2: 20_000 });
+
+      const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ misc }))).result.current;
       const expected = r.totalBunkerCost + r.portCosts + r.miscCosts + r.canalCosts;
+
       expect(r.totalVoyageCosts).toBeCloseTo(expected, 2);
     });
   });
