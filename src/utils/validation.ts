@@ -8,6 +8,7 @@ export interface SequenceRowForValidation {
   operation?: string;
   port?: string;
   portId?: number;
+  portUnloc?: string;
   distance?: number;
   ecaDistance?: number;
   turnTime?: number;
@@ -241,6 +242,22 @@ export function validateSequence(rows: SequenceRowForValidation[]): ValidationIs
       (!!openRow.port && !!firstLeg.port && openRow.port.trim().toLowerCase() === firstLeg.port.trim().toLowerCase()));
   const exemptFirstLegDistance = firstLegId !== null && (openPortEmpty || sameAsOpen);
 
+  // Build a map of legs exempt from the distance requirement because the
+  // previous row is the same port (back-to-back same-port → 0 distance by
+  // definition). Applies regardless of auto-distance mode.
+  const samePortExempt = new Set<number>();
+  const orderedNonOpen = rows.filter((r) => r.type !== "open");
+  for (let i = 1; i < orderedNonOpen.length; i++) {
+    const prev = orderedNonOpen[i - 1];
+    const curr = orderedNonOpen[i];
+    const sameUnloc = !!prev.portUnloc && !!curr.portUnloc && prev.portUnloc === curr.portUnloc;
+    const samePortName =
+      !prev.portUnloc && !curr.portUnloc &&
+      !!prev.port && !!curr.port &&
+      prev.port.trim().toLowerCase() === curr.port.trim().toLowerCase();
+    if (sameUnloc || samePortName) samePortExempt.add(curr.id);
+  }
+
   rows.forEach((r) => {
     if (r.type === "open") return;
     // Port must be selected for every non-open row.
@@ -257,7 +274,9 @@ export function validateSequence(rows: SequenceRowForValidation[]): ValidationIs
     // Either Distance or ECA Distance is required, both must be non-negative.
     const dist = Number(r.distance) || 0;
     const eca = Number(r.ecaDistance) || 0;
-    if (dist === 0 && eca === 0 && !(exemptFirstLegDistance && r.id === firstLegId)) {
+    const isExempt =
+      (exemptFirstLegDistance && r.id === firstLegId) || samePortExempt.has(r.id);
+    if (dist === 0 && eca === 0 && !isExempt) {
       const msg = "Either Distance or ECA Distance is required";
       out.push({
         section: "sequence",
