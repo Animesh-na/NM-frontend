@@ -235,11 +235,22 @@ export function validateSequence(rows: SequenceRowForValidation[]): ValidationIs
   })();
   const openPortEmpty = !openRow || !(openRow.port && openRow.port.trim());
   const firstLeg = rows.find((r) => r.id === firstLegId);
-  const sameAsOpen =
-    !!openRow &&
-    !!firstLeg &&
-    ((openRow.portId !== undefined && firstLeg.portId !== undefined && openRow.portId === firstLeg.portId) ||
-      (!!openRow.port && !!firstLeg.port && openRow.port.trim().toLowerCase() === firstLeg.port.trim().toLowerCase()));
+  const sameAsOpen = (() => {
+    if (!openRow || !firstLeg) return false;
+    // Prefer UNLOC match; only truthy non-empty strings count.
+    if (openRow.portUnloc && firstLeg.portUnloc) {
+      return openRow.portUnloc === firstLeg.portUnloc;
+    }
+    // Numeric portId, only if both are truthy (>0) and equal.
+    if (openRow.portId && firstLeg.portId) {
+      return openRow.portId === firstLeg.portId;
+    }
+    // Name fallback.
+    if (openRow.port && firstLeg.port) {
+      return openRow.port.trim().toLowerCase() === firstLeg.port.trim().toLowerCase();
+    }
+    return false;
+  })();
   const exemptFirstLegDistance = firstLegId !== null && (openPortEmpty || sameAsOpen);
 
   // Build a map of legs exempt from the distance requirement because the
