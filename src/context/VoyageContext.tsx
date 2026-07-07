@@ -1096,6 +1096,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
           distance: Math.round(nonEcaDist),
           ecaDistance: Math.round(ecaDist),
           weatherDelayHours: result.delayHours,
+          weatherDelayFailed: result.delayHours === undefined,
           eta: result.eta,
         });
       } catch (error) {
@@ -1122,14 +1123,29 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
           const fallback = calculateSeaRouteDistance(prevPort, currPort);
           if (fallback.success && fallback.distance > 0) {
             console.log(`[Distance] searoute-js fallback for leg ${i}: ${fallback.distance} nm (no ECA breakdown)`);
-            distanceResults.set(currRow.id, { distance: fallback.distance, ecaDistance: 0 });
+            distanceResults.set(currRow.id, {
+              distance: fallback.distance,
+              ecaDistance: 0,
+              weatherDelayHours: undefined,
+              weatherDelayFailed: true,
+            });
           } else {
             console.error(`[Distance] searoute-js returned no route for leg ${i}:`, fallback.error);
-            distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+            distanceResults.set(currRow.id, {
+              distance: 0,
+              ecaDistance: 0,
+              weatherDelayHours: undefined,
+              weatherDelayFailed: true,
+            });
           }
         } catch (fallbackErr) {
           console.error(`[Distance] searoute-js threw for leg ${i}:`, fallbackErr);
-          distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+          distanceResults.set(currRow.id, {
+            distance: 0,
+            ecaDistance: 0,
+            weatherDelayHours: undefined,
+            weatherDelayFailed: true,
+          });
         }
       }
     }
@@ -1158,7 +1174,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       const currentVessel = vesselRef.current;
       const updatedRows = prev.map((row) => {
         const dist = distanceResults.get(row.id);
-        return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance, weatherDelayHours: dist.weatherDelayHours, eta: dist.eta } : row;
+        return dist ? {
+          ...row,
+          distance: dist.distance,
+          ecaDistance: dist.ecaDistance,
+          weatherDelayHours: dist.weatherDelayHours,
+          weatherDelayFailed: dist.weatherDelayFailed,
+          eta: dist.eta,
+        } : row;
       });
 
       return recalculateDerivedSequenceRows(updatedRows, currentVessel, true, departureUtc);
