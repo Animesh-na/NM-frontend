@@ -115,6 +115,9 @@ export interface SequenceRowUI {
   
   // Weather delay from API (hours) - used when auto distance is ON
   weatherDelayHours?: number;
+  // True when the distance API failed for this leg (searoute-js fallback used)
+  // — makes the sea-margin input editable even while auto-distance is on.
+  weatherDelayFailed?: boolean;
   // ETA from distance API
   eta?: string;
   // Cascading leg departure/arrival UTC (computed from cumulative time)
