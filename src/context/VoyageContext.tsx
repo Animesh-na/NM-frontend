@@ -1068,6 +1068,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         const nonEcaDist = result.non_eca_distance_nm != null
           ? result.non_eca_distance_nm
           : Math.max(0, totalDist - ecaDist);
+        // If API returned no usable distance, throw to trigger searoute-js fallback
+        if (totalDist <= 0 && nonEcaDist <= 0 && ecaDist <= 0) {
+          throw new Error("Distance API returned zero distance");
+        }
         distanceResults.set(currRow.id, {
           distance: Math.round(nonEcaDist),
           ecaDistance: Math.round(ecaDist),
@@ -1075,20 +1079,36 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
           eta: result.eta,
         });
       } catch (error) {
-         console.error(`Distance API error for leg ${i}:`, error);
-         // Fallback: use client-side searoute-js library (no ECA breakdown)
+        console.warn(`[Distance] API failed for leg ${i} (${prevRow.port} → ${currRow.port}), falling back to searoute-js:`, error);
+        // Fallback: use client-side searoute-js library with lat/lon from port API
+        // (coordinates are [lon, lat] as returned by /ports/search)
         try {
-          const prevPort: Port = { id: 0, unloc: '', name: prevRow.port || '', city: '', country: '', coordinates: prevRow.coordinates };
-          const currPort: Port = { id: 0, unloc: '', name: currRow.port || '', city: '', country: '', coordinates: currRow.coordinates };
+          const prevPort: Port = {
+            id: 0,
+            unloc: prevRow.portUnloc || '',
+            name: prevRow.port || '',
+            city: '',
+            country: prevRow.portCountry || '',
+            coordinates: prevRow.coordinates,
+          };
+          const currPort: Port = {
+            id: 0,
+            unloc: currRow.portUnloc || '',
+            name: currRow.port || '',
+            city: '',
+            country: currRow.portCountry || '',
+            coordinates: currRow.coordinates,
+          };
           const fallback = calculateSeaRouteDistance(prevPort, currPort);
           if (fallback.success && fallback.distance > 0) {
-             console.log(`Fallback for leg ${i}: ${fallback.distance} nm (no ECA breakdown)`);
+            console.log(`[Distance] searoute-js fallback for leg ${i}: ${fallback.distance} nm (no ECA breakdown)`);
             distanceResults.set(currRow.id, { distance: fallback.distance, ecaDistance: 0 });
           } else {
+            console.error(`[Distance] searoute-js returned no route for leg ${i}:`, fallback.error);
             distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
           }
         } catch (fallbackErr) {
-          console.error(`Fallback searoute-js also failed for leg ${i}:`, fallbackErr);
+          console.error(`[Distance] searoute-js threw for leg ${i}:`, fallbackErr);
           distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
         }
       }
