@@ -995,7 +995,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     const runId = ++recalcRunIdRef.current;
 
     // Collect distance results for legs that have valid coordinates
-    const distanceResults: Map<number, { distance: number; ecaDistance: number; weatherDelayHours?: number; eta?: string }> = new Map();
+    const distanceResults: Map<number, { distance: number; ecaDistance: number; weatherDelayHours?: number; weatherDelayFailed?: boolean; eta?: string }> = new Map();
      const newComputedLegs = new Map<number, string>();
 
     for (let i = 1; i < snapshot.length; i++) {
@@ -1015,6 +1015,23 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       // Rule: Skip if previous port is not selected
       if (!prevRow.port || !prevRow.portUnloc) {
         distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+        continue;
+      }
+
+      // Rule: Back-to-back same ports → zero distance, no API call, no fallback.
+      const sameUnloc = !!prevRow.portUnloc && prevRow.portUnloc === currRow.portUnloc;
+      const sameCoords =
+        prevRow.coordinates && currRow.coordinates &&
+        prevRow.coordinates[0] === currRow.coordinates[0] &&
+        prevRow.coordinates[1] === currRow.coordinates[1];
+      if (sameUnloc || sameCoords) {
+        console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): same port, distance = 0`);
+        distanceResults.set(currRow.id, {
+          distance: 0,
+          ecaDistance: 0,
+          weatherDelayHours: 0,
+          weatherDelayFailed: false,
+        });
         continue;
       }
 
