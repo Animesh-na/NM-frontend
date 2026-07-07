@@ -1345,6 +1345,20 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     }
   }, [portCoordsKey, autoDistanceEnabled]);
 
+  // Trigger a recalculation immediately when the user toggles auto-distance ON
+  // (even if ports have not changed since last edit).
+  const prevAutoDistRef = useRef(autoDistanceEnabled);
+  useEffect(() => {
+    const wasOff = prevAutoDistRef.current === false;
+    prevAutoDistRef.current = autoDistanceEnabled;
+    if (wasOff && autoDistanceEnabled && portCoordsKey) {
+      const timer = setTimeout(() => {
+        recalcRef.current();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [autoDistanceEnabled, portCoordsKey]);
+
   // Auto-populate missing port metadata so ETS logic still works for
   // JSON-imported rows and API results that do not include a port code.
   useEffect(() => {
