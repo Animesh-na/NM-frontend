@@ -115,6 +115,9 @@ export interface SequenceRowUI {
   
   // Weather delay from API (hours) - used when auto distance is ON
   weatherDelayHours?: number;
+  // True when the distance API failed for this leg (searoute-js fallback used)
+  // — makes the sea-margin input editable even while auto-distance is on.
+  weatherDelayFailed?: boolean;
   // ETA from distance API
   eta?: string;
   // Cascading leg departure/arrival UTC (computed from cumulative time)
@@ -428,7 +431,7 @@ function calculateSeaTime(
   
     // When auto-distance with weather delay: use delayHours from API instead of sea margin %
     // API returns negative delayHours when weather helps (faster). We convert to positive and add as weather delay.
-    if (useWeatherDelay && row.weatherDelayHours !== undefined) {
+    if (useWeatherDelay && row.weatherDelayHours !== undefined && !row.weatherDelayFailed) {
       const weatherDelayHours = Math.abs(row.weatherDelayHours);
       const weatherDelayDays = weatherDelayHours / 24;
       const seaMarginTime = weatherDelayDays;
@@ -992,7 +995,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     const runId = ++recalcRunIdRef.current;
 
     // Collect distance results for legs that have valid coordinates
-    const distanceResults: Map<number, { distance: number; ecaDistance: number; weatherDelayHours?: number; eta?: string }> = new Map();
+    const distanceResults: Map<number, { distance: number; ecaDistance: number; weatherDelayHours?: number; weatherDelayFailed?: boolean; eta?: string }> = new Map();
      const newComputedLegs = new Map<number, string>();
 
     for (let i = 1; i < snapshot.length; i++) {
@@ -1012,6 +1015,23 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       // Rule: Skip if previous port is not selected
       if (!prevRow.port || !prevRow.portUnloc) {
         distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+        continue;
+      }
+
+      // Rule: Back-to-back same ports → zero distance, no API call, no fallback.
+      const sameUnloc = !!prevRow.portUnloc && prevRow.portUnloc === currRow.portUnloc;
+      const sameCoords =
+        prevRow.coordinates && currRow.coordinates &&
+        prevRow.coordinates[0] === currRow.coordinates[0] &&
+        prevRow.coordinates[1] === currRow.coordinates[1];
+      if (sameUnloc || sameCoords) {
+        console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): same port, distance = 0`);
+        distanceResults.set(currRow.id, {
+          distance: 0,
+          ecaDistance: 0,
+          weatherDelayHours: 0,
+          weatherDelayFailed: false,
+        });
         continue;
       }
 
@@ -1076,6 +1096,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
           distance: Math.round(nonEcaDist),
           ecaDistance: Math.round(ecaDist),
           weatherDelayHours: result.delayHours,
+          weatherDelayFailed: result.delayHours === undefined,
           eta: result.eta,
         });
       } catch (error) {
@@ -1102,14 +1123,29 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
           const fallback = calculateSeaRouteDistance(prevPort, currPort);
           if (fallback.success && fallback.distance > 0) {
             console.log(`[Distance] searoute-js fallback for leg ${i}: ${fallback.distance} nm (no ECA breakdown)`);
-            distanceResults.set(currRow.id, { distance: fallback.distance, ecaDistance: 0 });
+            distanceResults.set(currRow.id, {
+              distance: fallback.distance,
+              ecaDistance: 0,
+              weatherDelayHours: undefined,
+              weatherDelayFailed: true,
+            });
           } else {
             console.error(`[Distance] searoute-js returned no route for leg ${i}:`, fallback.error);
-            distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+            distanceResults.set(currRow.id, {
+              distance: 0,
+              ecaDistance: 0,
+              weatherDelayHours: undefined,
+              weatherDelayFailed: true,
+            });
           }
         } catch (fallbackErr) {
           console.error(`[Distance] searoute-js threw for leg ${i}:`, fallbackErr);
-          distanceResults.set(currRow.id, { distance: 0, ecaDistance: 0 });
+          distanceResults.set(currRow.id, {
+            distance: 0,
+            ecaDistance: 0,
+            weatherDelayHours: undefined,
+            weatherDelayFailed: true,
+          });
         }
       }
     }
@@ -1138,7 +1174,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       const currentVessel = vesselRef.current;
       const updatedRows = prev.map((row) => {
         const dist = distanceResults.get(row.id);
-        return dist ? { ...row, distance: dist.distance, ecaDistance: dist.ecaDistance, weatherDelayHours: dist.weatherDelayHours, eta: dist.eta } : row;
+        return dist ? {
+          ...row,
+          distance: dist.distance,
+          ecaDistance: dist.ecaDistance,
+          weatherDelayHours: dist.weatherDelayHours,
+          weatherDelayFailed: dist.weatherDelayFailed,
+          eta: dist.eta,
+        } : row;
       });
 
       return recalculateDerivedSequenceRows(updatedRows, currentVessel, true, departureUtc);
