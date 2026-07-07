@@ -8,6 +8,7 @@ export interface SequenceRowForValidation {
   operation?: string;
   port?: string;
   portId?: number;
+  portUnloc?: string;
   distance?: number;
   ecaDistance?: number;
   turnTime?: number;
