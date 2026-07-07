@@ -277,7 +277,11 @@ export function validateSequence(rows: SequenceRowForValidation[]): ValidationIs
     const isExempt =
       (exemptFirstLegDistance && r.id === firstLegId) || samePortExempt.has(r.id);
     if (dist === 0 && eca === 0 && !isExempt) {
-      const msg = "Either Distance or ECA Distance is required";
+      const isFirstLegDiffFromOpen =
+        firstLegId !== null && r.id === firstLegId && !exemptFirstLegDistance && !!openRow;
+      const msg = isFirstLegDiffFromOpen
+        ? `Distance is required between open port (${openRow?.port ?? ""}) and ${r.port ?? "first port"}`
+        : "Either Distance or ECA Distance is required";
       out.push({
         section: "sequence",
         field: "distance",

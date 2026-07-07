@@ -929,6 +929,11 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   const addPort = useCallback((operation: PortOperation) => {
     setSequence(prev => {
+      const currentPortCount = prev.filter(r => r.type !== "open").length;
+      if (currentPortCount >= 30) {
+        toast.error("Maximum 30 ports/legs allowed per voyage");
+        return prev;
+      }
       const nextId = Math.max(...prev.map(s => s.id), 0) + 1;
       const newRow = createNewRow("port", nextId, operation, vessel.speedProfile, 4, vessel.hasScrubber);
       
@@ -941,6 +946,11 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
   const addRepositioning = useCallback(() => {
     setSequence(prev => {
+      const currentPortCount = prev.filter(r => r.type !== "open").length;
+      if (currentPortCount >= 30) {
+        toast.error("Maximum 30 ports/legs allowed per voyage");
+        return prev;
+      }
       const nextId = Math.max(...prev.map(s => s.id), 0) + 1;
       const newRow = createNewRow("repos", nextId, undefined, vessel.speedProfile, 4, vessel.hasScrubber);
       return [...prev, newRow];
@@ -1334,6 +1344,20 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       return () => clearTimeout(timer);
     }
   }, [portCoordsKey, autoDistanceEnabled]);
+
+  // Trigger a recalculation immediately when the user toggles auto-distance ON
+  // (even if ports have not changed since last edit).
+  const prevAutoDistRef = useRef(autoDistanceEnabled);
+  useEffect(() => {
+    const wasOff = prevAutoDistRef.current === false;
+    prevAutoDistRef.current = autoDistanceEnabled;
+    if (wasOff && autoDistanceEnabled && portCoordsKey) {
+      const timer = setTimeout(() => {
+        recalcRef.current();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [autoDistanceEnabled, portCoordsKey]);
 
   // Auto-populate missing port metadata so ETS logic still works for
   // JSON-imported rows and API results that do not include a port code.
