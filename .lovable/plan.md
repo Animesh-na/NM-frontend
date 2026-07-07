@@ -1,54 +1,42 @@
-## Plan: Custom input option for every unit test
+# Distance handling edge cases
 
-I will refactor the unit testing approach so each scenario can define its own explicit custom input data, instead of depending on shared mock vessel/sequence/cargo/bunker fixtures.
+Three related rules to add to the sequence distance layer.
 
-### 1. Add a custom input test builder
-- Replace the current `buildInputs(overrides)` pattern that starts from shared mock data.
-- Add a new helper such as `createVoyageTestInputs(customInput)` that builds a complete `VoyageInputs` object from scenario-local data.
-- Keep small reusable helpers only for empty/default shapes, not business mock values.
+## 1. Mandatory distance when open port ≠ first operational port
 
-### 2. Make every unit test scenario self-contained
-- Update each unit test file so every `it(...)` block declares the exact vessel, sequence, cargo, bunker, hire, misc, and extra-time inputs needed for that scenario.
-- Avoid importing `mockVessel`, `mockSimpleSequence`, `mockCargo`, etc. into unit tests.
-- Each test will be easier to modify because all relevant input values will be visible inside the test or local scenario factory.
+When the Open port and the first following port (load / bunker / pssg / discharge / repos) resolve to different `portUnloc` codes, the distance for that leg must be > 0. If the leg's `distance + ecaDistance = 0`, the leg is invalid.
 
-### 3. Support easy custom scenario creation
-- Add a readable pattern like:
+- Add a validation entry in `src/utils/validation.ts` (or wherever sequence validation lives) that flags the first non-open leg when its total distance is 0 while the ports differ.
+- Surface the error inline in `SequenceTable.tsx`: red border on the distance input (V and L cells) and an error tooltip "Distance is required between {openPort} and {firstPort}".
+- Also block save via the existing `hasErrors` gate in `Index.tsx`.
 
-```ts
-const inputs = createVoyageTestInputs({
-  vessel: customVessel({ speedProfile: "eco" }),
-  sequence: [customLeg({ distance: 1000, ecaDistance: 100 })],
-  cargo: customCargo({ quantity: 50000, rate: 35 }),
-  bunker: customBunker({ vlsfoPrice: 600 }),
-});
-```
+## 2. Back-to-back same ports → distance forced to 0
 
-- This gives full custom input control while avoiding repeated boilerplate.
+When two consecutive rows share the same `portUnloc` (or identical coordinates when unloc is empty), the leg distance and ECA distance are 0 by definition — no API call, no fallback.
 
-### 4. Update validation tests similarly
-- Validation tests will define exact invalid/valid inputs per scenario.
-- Required-field and number-range tests will no longer depend on hidden mock defaults.
+- In `VoyageContext.recalculateDistances()`, add a pre-check inside the leg loop: if `prevRow.portUnloc === currRow.portUnloc` (and both non-empty), set `{ distance: 0, ecaDistance: 0, weatherDelayHours: 0 }` and `continue` before the API call.
+- Also update `legKey` so cache correctly identifies this "same port" state and doesn't re-trigger.
+- Ensure `calculateSeaTime` returns 0 leg time for this case (already true since distance is 0).
 
-### 5. Update documentation
-- Rewrite `docs/TESTING.md` to explain the new custom-input approach.
-- Include examples for:
-  - running all tests
-  - running one test file
-  - running one scenario by name
-  - adding a new custom unit test
+## 3. Editable sea margin when distance/weather-delay API fails
 
-### Technical details
-- Files expected to change:
-  - `src/test/helpers/scenarios.ts`
-  - `src/test/unit/01_vesselSection.test.ts`
-  - `src/test/unit/02_sequenceSection.test.ts`
-  - `src/test/unit/03_bunkerSection.test.ts`
-  - `src/test/unit/04_cargoSection.test.ts`
-  - `src/test/unit/05_miscSection.test.ts`
-  - `src/test/unit/06_emissionSection.test.ts`
-  - `src/test/unit/07_validation.test.ts`
-  - `docs/TESTING.md`
+Currently the sea-margin cell in `SequenceTable.tsx` becomes read-only whenever `autoDistanceEnabled` is true (it displays `weatherDelayHours` from the API). When the API fails and we fall back to searoute-js, no weather delay is available — but the cell stays locked, so the user can't compensate.
 
-### Result
-After this change, every unit case can be tested with its own custom inputs, and future test cases can be added by copying a small scenario template and changing the exact input values.
+- Track per-leg fallback state: when the searoute-js fallback path runs (or when `weatherDelayHours` is `undefined` after a completed recalc), mark the row with `weatherDelayFailed: true` in the distance result and merged sequence state.
+- In `SequenceTable.tsx`, change the sea-margin cell condition from `autoDistanceEnabled ? readonly : input` to:
+  - Show editable `seaMargin %` input when `!autoDistanceEnabled` OR `row.weatherDelayFailed === true` OR `row.weatherDelayHours === undefined`.
+  - Show read-only weather delay hours only when API returned a valid `weatherDelayHours` value.
+- In `calculateSeaTime` (`VoyageContext.tsx`), when `useWeatherDelay` is true but `weatherDelayHours` is undefined for a leg, fall back to applying the manual `seaMargin %` for that leg. This keeps totals sane during partial failures.
+- No checkbox change — the fallback is automatic and transparent per leg.
+
+## Files to change
+
+- `src/context/VoyageContext.tsx` — same-port short-circuit in `recalculateDistances`; add `weatherDelayFailed` flag on fallback path; adjust `calculateSeaTime` weather-delay branch.
+- `src/components/voyage/SequenceTable.tsx` — sea-margin cell renders editable input when API/weather delay unavailable; add red-border error state on distance cell for the mandatory-distance case.
+- `src/utils/validation.ts` — add "distance required between open and first port" validation rule.
+
+## Out of scope
+
+- Changing the auto-distance checkbox UX.
+- Changing how the Marine API proxy is called (already covered by prior searoute-js fallback).
+- Historical sheets: existing saved rows without the `weatherDelayFailed` flag default to false, so behavior is backward-compatible.
