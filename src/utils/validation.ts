@@ -260,6 +260,10 @@ export function validateSequence(rows: SequenceRowForValidation[]): ValidationIs
 
   rows.forEach((r) => {
     if (r.type === "open") return;
+    if (typeof window !== "undefined") {
+      // eslint-disable-next-line no-console
+      console.log("[validateSequence]", { id: r.id, type: r.type, port: r.port, portUnloc: r.portUnloc, distance: r.distance, ecaDistance: r.ecaDistance, firstLegId, exemptFirstLegDistance, samePortExempt: Array.from(samePortExempt) });
+    }
     // Port must be selected for every non-open row.
     if (!r.port || !r.port.trim()) {
       out.push({
