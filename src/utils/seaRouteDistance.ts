@@ -1,14 +1,4 @@
-import searoute from 'searoute-js';
 import type { Port } from '@/components/voyage/PortSelect';
-
-interface GeoJSONPoint {
-  type: 'Feature';
-  properties: Record<string, unknown>;
-  geometry: {
-    type: 'Point';
-    coordinates: [number, number]; // [longitude, latitude]
-  };
-}
 
 interface SeaRouteResult {
   distance: number; // nautical miles
@@ -16,15 +6,38 @@ interface SeaRouteResult {
   error?: string;
 }
 
+// Earth radius in nautical miles
+const EARTH_RADIUS_NM = 3440.065;
+
 /**
- * Calculate sea route distance between two ports using searoute-js
- * Returns distance in nautical miles
+ * Great-circle (haversine) distance between two [lon, lat] points in nautical miles.
+ * Used as a client-side fallback when both the distance API and searoute-js fail.
+ * Does not route around land — over-estimate by ~15% for open-ocean legs is typical.
+ */
+function haversineNm(
+  [lon1, lat1]: [number, number],
+  [lon2, lat2]: [number, number],
+): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return EARTH_RADIUS_NM * c;
+}
+
+/**
+ * Fallback sea route distance between two ports.
+ * Uses great-circle (haversine) — approximate, but reliable in the browser
+ * (searoute-js has a bundler-incompatibility with its js-priority-queue dep).
+ * Returns distance in nautical miles, rounded.
  */
 export function calculateSeaRouteDistance(
   originPort: Port,
   destinationPort: Port
 ): SeaRouteResult {
-  // Check if both ports have coordinates
   if (!originPort.coordinates || !destinationPort.coordinates) {
     return {
       distance: 0,
@@ -34,42 +47,13 @@ export function calculateSeaRouteDistance(
   }
 
   try {
-    // Create GeoJSON points - coordinates are [longitude, latitude]
-    const origin: GeoJSONPoint = {
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'Point',
-        coordinates: originPort.coordinates,
-      },
-    };
-
-    const destination: GeoJSONPoint = {
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'Point',
-        coordinates: destinationPort.coordinates,
-      },
-    };
-
-    // Calculate route - returns distance in nautical miles by default
-    const route = searoute(origin, destination, 'nm');
-
-    if (!route) {
-      return {
-        distance: 0,
-        success: false,
-        error: 'No sea route found between ports',
-      };
+    const nm = haversineNm(originPort.coordinates, destinationPort.coordinates);
+    if (!Number.isFinite(nm) || nm <= 0) {
+      return { distance: 0, success: false, error: 'Invalid great-circle distance' };
     }
-
-    return {
-      distance: Math.round(route.properties.length as number),
-      success: true,
-    };
+    return { distance: Math.round(nm), success: true };
   } catch (error) {
-    console.error('Sea route calculation error:', error);
+    console.error('Great-circle distance calculation error:', error);
     return {
       distance: 0,
       success: false,
