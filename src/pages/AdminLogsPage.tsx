@@ -77,7 +77,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   };
 
   const resetFilters = () => {
-    setLevel(""); setUserId(""); setSessionId(""); setFromDate(""); setToDate(""); setSearch(""); setPage(1);
+    setLevel(""); setUserId(""); setUserEmail(""); setSessionId(""); setFromDate(""); setToDate(""); setSearch(""); setPage(1);
   };
 
   return (
@@ -122,6 +122,8 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
           </select>
           <input value={userId} onChange={(e) => { setPage(1); setUserId(e.target.value); }}
             placeholder="User ID" className="form-input h-8 text-xs" />
+          <input value={userEmail} onChange={(e) => { setPage(1); setUserEmail(e.target.value); }}
+            placeholder="User email" className="form-input h-8 text-xs" />
           <input type="date" value={fromDate} onChange={(e) => { setPage(1); setFromDate(e.target.value); }}
             className="form-input h-8 text-xs" />
           <input type="date" value={toDate} onChange={(e) => { setPage(1); setToDate(e.target.value); }}
