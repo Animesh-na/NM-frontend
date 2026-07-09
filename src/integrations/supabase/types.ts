@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_logs: {
+        Row: {
+          browser: string | null
+          client_timestamp: string | null
+          component: string | null
+          context: Json | null
+          created_at: string
+          fingerprint: string | null
+          id: number
+          ip_address: string | null
+          level: Database["public"]["Enums"]["log_level"]
+          message: string
+          page: string | null
+          session_id: string | null
+          stack_trace: string | null
+          url: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          client_timestamp?: string | null
+          component?: string | null
+          context?: Json | null
+          created_at?: string
+          fingerprint?: string | null
+          id?: number
+          ip_address?: string | null
+          level?: Database["public"]["Enums"]["log_level"]
+          message: string
+          page?: string | null
+          session_id?: string | null
+          stack_trace?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          client_timestamp?: string | null
+          component?: string | null
+          context?: Json | null
+          created_at?: string
+          fingerprint?: string | null
+          id?: number
+          ip_address?: string | null
+          level?: Database["public"]["Enums"]["log_level"]
+          message?: string
+          page?: string | null
+          session_id?: string | null
+          stack_trace?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +82,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      log_level: "debug" | "info" | "warn" | "error" | "fatal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +209,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      log_level: ["debug", "info", "warn", "error", "fatal"],
+    },
   },
 } as const
