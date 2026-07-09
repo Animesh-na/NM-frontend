@@ -2,6 +2,7 @@ import { useState, useCallback, type ReactNode } from "react";
 import { SheetContext, type SheetTab } from "@/context/sheetContextCore";
 import { getSheet, saveSheet, updateSheet, type SheetDetail } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
+import { logger } from "@/services/logger";
 
 export function SheetProvider({ children }: { children: ReactNode }) {
   const [currentView, setCurrentView] = useState<"dashboard" | "editor" | "admin" | "compare">("dashboard");
@@ -17,6 +18,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   const activeTab = tabs.length > 0 ? tabs[activeTabIndex] || null : null;
 
   const createNewSheet = useCallback(() => {
+    logger.info("Sheet created (blank)", { component: "SheetContext" });
     const newTab: SheetTab = {
       id: null,
       name: `New Sheet ${tabs.length + 1}`,
@@ -46,6 +48,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   }, [tabs, activeTabIndex]);
 
   const openSheet = useCallback(async (id: string, name: string) => {
+    logger.info("Sheet opened", { component: "SheetContext", sheet_id: id, sheet_name: name });
     // Check if already open
     setTabs(prev => {
       const existingIdx = prev.findIndex(t => t.id === id);
@@ -84,6 +87,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const openOrganizationSheet = useCallback(async (id: string, name: string) => {
+    logger.info("Organization sheet opened", { component: "SheetContext", sheet_id: id, sheet_name: name });
     // Open an organization sheet as a read-only tab. We use a synthetic tab id
     // (prefixed with "org:") so it can't collide with an editable sheet of the
     // same id and so save/update calls won't accidentally overwrite the original.
@@ -125,6 +129,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
 
   const closeTab = useCallback((index: number): boolean => {
     const tab = tabs[index];
+    if (tab) logger.info("Sheet closed", { component: "SheetContext", sheet_id: tab.id, sheet_name: tab.name });
     if (tab?.isDirty) {
       const confirmed = window.confirm(`"${tab.name}" has unsaved changes. Close anyway?`);
       if (!confirmed) return false;
@@ -172,11 +177,14 @@ export function SheetProvider({ children }: { children: ReactNode }) {
           data: result!.data || data,
           isDirty: false,
         } : t));
+        logger.info(tab.id ? "Sheet updated" : "Sheet saved", { component: "SheetContext", sheet_id: result.id, sheet_name: result.name });
         toast.success(tab.id ? "Sheet updated" : "Sheet saved");
       } else {
+        logger.error("Sheet save returned no result", { component: "SheetContext", sheet_id: tab.id });
         toast.error("Failed to save sheet");
       }
-    } catch {
+    } catch (err) {
+      logger.error("Sheet save failed", { component: "SheetContext", sheet_id: tab.id, stack: (err as Error)?.stack });
       toast.error("Error saving sheet");
     }
   }, [tabs, activeTabIndex]);

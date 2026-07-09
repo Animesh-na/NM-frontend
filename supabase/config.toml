@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.vessel-fuel-api]
 verify_jwt = false
+
+[functions.logs]
+verify_jwt = false
