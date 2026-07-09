@@ -189,6 +189,11 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-5xl mx-auto">
 
+          {/* ═══ LOGS VIEW ═══ */}
+          {view === "logs" && (
+            <AdminLogsPage onBack={() => setView("users")} />
+          )}
+
           {/* ═══ USERS VIEW ═══ */}
           {view === "users" && (
             <>
