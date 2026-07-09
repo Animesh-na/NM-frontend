@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Search, RefreshCcw, Download, X } from "lucide-react";
+import { ArrowLeft, RefreshCcw, Download, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { LogLevelBadge } from "@/components/logs/LogLevelBadge";
 import { fetchLogs, fetchLogStats, type LogRow, type LogQuery } from "@/services/logsApi";
 import { toast } from "@/components/ui/sonner";
+import { adminListUsers, type AdminUser } from "@/services/adminApi";
 
 const PAGE_SIZE = 50;
 const LEVELS = ["", "debug", "info", "warn", "error", "fatal"];
@@ -22,21 +23,14 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   // Filters
   const [level, setLevel] = useState("");
   const [userId, setUserId] = useState("");
-  const [userEmail, setUserEmail] = useState("");
-  const [sessionId, setSessionId] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
+  const [users, setUsers] = useState<AdminUser[]>([]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const query: LogQuery = useMemo(() => ({
     page, limit: PAGE_SIZE, level: level || undefined, user_id: userId || undefined,
-    user_email: userEmail || undefined,
-    session_id: sessionId || undefined, from_date: fromDate || undefined,
-    to_date: toDate || undefined, search: search || undefined, sort,
-  }), [page, level, userId, userEmail, sessionId, fromDate, toDate, search, sort]);
+    sort: "desc",
+  }), [page, level, userId]);
 
   const load = async () => {
     if (!token) return;
@@ -62,6 +56,15 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [query, token]);
   useEffect(() => { loadStats(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token]);
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const res = await adminListUsers(1, 200);
+        setUsers(res.users);
+      } catch { /* ignore */ }
+    })();
+  }, [token]);
 
   const exportCsv = () => {
     const header = ["timestamp","level","user","message","page","component","session","browser","ip","fingerprint"];
@@ -79,7 +82,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   };
 
   const resetFilters = () => {
-    setLevel(""); setUserId(""); setUserEmail(""); setSessionId(""); setFromDate(""); setToDate(""); setSearch(""); setPage(1);
+    setLevel(""); setUserId(""); setPage(1);
   };
 
   return (
@@ -112,32 +115,21 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
         </div>
 
         {/* Filters */}
-        <div className="bg-card border border-border rounded-md p-3 grid grid-cols-1 md:grid-cols-6 gap-2">
-          <div className="md:col-span-2 relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-            <input value={search} onChange={(e) => { setPage(1); setSearch(e.target.value); }}
-              placeholder="Search message…"
-              className="form-input w-full h-8 pl-7 pr-2 text-xs" />
-          </div>
+        <div className="bg-card border border-border rounded-md p-3 flex flex-wrap items-center gap-2">
+          <label className="text-xs text-muted-foreground">User</label>
+          <select value={userId} onChange={(e) => { setPage(1); setUserId(e.target.value); }}
+            className="form-input h-8 text-xs min-w-[240px]">
+            <option value="">All users</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>{u.email}</option>
+            ))}
+          </select>
+          <label className="text-xs text-muted-foreground ml-2">Level</label>
           <select value={level} onChange={(e) => { setPage(1); setLevel(e.target.value); }} className="form-input h-8 text-xs">
             {LEVELS.map(l => <option key={l} value={l}>{l ? l.toUpperCase() : "All levels"}</option>)}
           </select>
-          <input value={userId} onChange={(e) => { setPage(1); setUserId(e.target.value); }}
-            placeholder="User ID" className="form-input h-8 text-xs" />
-          <input value={userEmail} onChange={(e) => { setPage(1); setUserEmail(e.target.value); }}
-            placeholder="User email" className="form-input h-8 text-xs" />
-          <input type="date" value={fromDate} onChange={(e) => { setPage(1); setFromDate(e.target.value); }}
-            className="form-input h-8 text-xs" />
-          <input type="date" value={toDate} onChange={(e) => { setPage(1); setToDate(e.target.value); }}
-            className="form-input h-8 text-xs" />
-          <input value={sessionId} onChange={(e) => { setPage(1); setSessionId(e.target.value); }}
-            placeholder="Session ID" className="form-input h-8 text-xs md:col-span-2" />
-          <select value={sort} onChange={(e) => setSort(e.target.value as "asc" | "desc")} className="form-input h-8 text-xs">
-            <option value="desc">Newest first</option>
-            <option value="asc">Oldest first</option>
-          </select>
-          <button onClick={resetFilters} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted md:col-span-2">
-            Reset filters
+          <button onClick={resetFilters} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted ml-auto">
+            Reset
           </button>
         </div>
 
