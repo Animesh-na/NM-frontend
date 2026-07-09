@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Ship, Users, FileText, LogOut, ChevronLeft, ChevronRight, Loader2,
-  Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck
+  Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck, Activity
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
@@ -12,7 +12,9 @@ import {
 } from "@/services/adminApi";
 import { toast } from "@/components/ui/sonner";
 
-type AdminView = "users" | "user-sheets";
+import AdminLogsPage from "@/pages/AdminLogsPage";
+
+type AdminView = "users" | "user-sheets" | "logs";
 
 const MFA_LABEL: Record<string, string> = {
   totp: "Authenticator app",
@@ -160,6 +162,13 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
           {currentUser && (
             <span className="text-section-header-foreground/70">{currentUser.email}</span>
           )}
+          <button
+            onClick={() => setView("logs")}
+            className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
+          >
+            <Activity className="h-3.5 w-3.5" />
+            <span>Logs</span>
+          </button>
           <button
             onClick={onBack}
             className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
