@@ -26,9 +26,8 @@ interface LogEntry {
   client_timestamp: string;
 }
 
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
-const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-const ENDPOINT = `https://${PROJECT_ID}.functions.supabase.co/logs`;
+import { MARINE_API_BASE } from "@/services/apiConfig";
+const ENDPOINT = `${MARINE_API_BASE}/logs`;
 
 const STORAGE_KEY = "voyagecalc_pending_logs";
 const SESSION_KEY = "voyagecalc_log_session";
@@ -121,17 +120,18 @@ async function flush() {
   flushing = true;
   const batch = buffer.slice(0, BATCH_SIZE);
   try {
-    const res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: ANON_KEY,
-        Authorization: `Bearer ${ANON_KEY}`,
-      },
-      body: JSON.stringify(batch),
-      keepalive: true,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Upstream accepts one log per request — POST each entry sequentially.
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (currentUser.token) headers.Authorization = `Bearer ${currentUser.token}`;
+    for (const entry of batch) {
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(entry),
+        keepalive: true,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    }
     buffer = buffer.slice(batch.length);
     persist();
     backoffMs = 1000;
@@ -201,8 +201,11 @@ export function initLogger() {
   window.addEventListener("beforeunload", () => {
     try {
       if (buffer.length === 0) return;
-      const blob = new Blob([JSON.stringify(buffer.slice(0, BATCH_SIZE))], { type: "application/json" });
-      navigator.sendBeacon?.(ENDPOINT, blob);
+      // sendBeacon can't set Authorization headers; send each entry as best-effort.
+      for (const entry of buffer.slice(0, BATCH_SIZE)) {
+        const blob = new Blob([JSON.stringify(entry)], { type: "application/json" });
+        navigator.sendBeacon?.(ENDPOINT, blob);
+      }
     } catch { /* noop */ }
   });
 
@@ -228,7 +231,7 @@ export function initLogger() {
   const origFetch = window.fetch.bind(window);
   window.fetch = async (input, init) => {
     const url = typeof input === "string" ? input : (input as Request).url;
-    if (url.includes("/functions/v1/logs") || url.startsWith(ENDPOINT)) {
+    if (url.startsWith(ENDPOINT)) {
       return origFetch(input, init);
     }
     const method = (init?.method || (typeof input !== "string" ? (input as Request).method : "GET") || "GET").toUpperCase();
