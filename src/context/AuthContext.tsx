@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { toast } from "@/hooks/use-toast";
 import { clearStoredAuthSession, getStoredAuthToken, isAuthTokenExpired, SESSION_EXPIRED_EVENT } from "@/utils/authToken";
 import { buildMarineUrl, marineHeaders } from "@/services/apiConfig";
+import { logger } from "@/services/logger";
 
 export type MfaMethod = "" | "email_otp" | "totp";
 
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleSessionExpired = useCallback((message?: string) => {
     if (sessionExpiredShownRef.current) return;
     sessionExpiredShownRef.current = true;
+    logger.warn("Session expired", { component: "AuthContext", message });
 
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -173,7 +175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const fallback = response.status === 403
           ? "Your account is inactive or expired."
           : "Invalid credentials";
-        return { success: false, error: errData.error || errData.message || fallback };
+        const errMsg = errData.error || errData.message || fallback;
+        logger.warn("Login failed", { component: "AuthContext", email, status: response.status, reason: errMsg });
+        return { success: false, error: errMsg };
       }
 
       const data = await response.json();
@@ -190,6 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.token && data.user) {
         persistSession(data.token, data.user);
+        logger.info("User logged in", { component: "AuthContext", user_id: data.user.id, email: data.user.email });
         return { success: true };
       }
 
@@ -265,6 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    logger.info("User logged out", { component: "AuthContext" });
     sessionExpiredShownRef.current = false;
     clearSession();
   }, [clearSession]);

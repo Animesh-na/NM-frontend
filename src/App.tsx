@@ -15,6 +15,11 @@ import CalculationBreakdown from "./pages/CalculationBreakdown";
 import ComparisonPage from "./pages/ComparisonPage";
 import NotFound from "./pages/NotFound";
 import { useExcelNavigation } from "@/hooks/useExcelNavigation";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { initLogger, logger, setLoggerUser } from "@/services/logger";
+import { useEffect } from "react";
+
+initLogger();
 
 const queryClient = new QueryClient();
 
@@ -55,6 +60,10 @@ function AppContent() {
   const { isAuthenticated, user } = useAuth();
   useExcelNavigation();
 
+  useEffect(() => {
+    setLoggerUser(user ? { id: user.id, email: user.email } : null);
+  }, [user]);
+
   if (!isAuthenticated) {
     return <Login />;
   }
@@ -70,9 +79,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <AppContent />
+        <ErrorBoundary>
+          <Toaster />
+          <Sonner />
+          <AppContent />
+        </ErrorBoundary>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
