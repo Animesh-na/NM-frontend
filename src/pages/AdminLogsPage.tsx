@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, RefreshCcw, Download, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { LogLevelBadge } from "@/components/logs/LogLevelBadge";
 import { fetchLogs, fetchLogStats, type LogRow, type LogQuery } from "@/services/logsApi";
 import { toast } from "@/components/ui/sonner";
 import { adminListUsers, type AdminUser } from "@/services/adminApi";
@@ -229,6 +228,24 @@ function StatCard({ label, value, tone }: { label: string; value: number | strin
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={`text-xl font-semibold ${toneClass}`}>{value}</div>
     </div>
+  );
+}
+
+function LogLevelBadge({ level }: { level: string }) {
+  const key = (level || "info").toLowerCase();
+  const toneClass =
+    key === "fatal"
+      ? "bg-destructive text-destructive-foreground"
+      : key === "error"
+        ? "bg-destructive/10 text-destructive"
+        : key === "warn"
+          ? "bg-muted text-foreground"
+          : "bg-muted text-muted-foreground";
+
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${toneClass}`}>
+      {key}
+    </span>
   );
 }
 
