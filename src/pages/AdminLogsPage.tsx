@@ -22,6 +22,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   // Filters
   const [level, setLevel] = useState("");
   const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -32,9 +33,10 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
 
   const query: LogQuery = useMemo(() => ({
     page, limit: PAGE_SIZE, level: level || undefined, user_id: userId || undefined,
+    user_email: userEmail || undefined,
     session_id: sessionId || undefined, from_date: fromDate || undefined,
     to_date: toDate || undefined, search: search || undefined, sort,
-  }), [page, level, userId, sessionId, fromDate, toDate, search, sort]);
+  }), [page, level, userId, userEmail, sessionId, fromDate, toDate, search, sort]);
 
   const load = async () => {
     if (!token) return;
@@ -77,7 +79,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   };
 
   const resetFilters = () => {
-    setLevel(""); setUserId(""); setSessionId(""); setFromDate(""); setToDate(""); setSearch(""); setPage(1);
+    setLevel(""); setUserId(""); setUserEmail(""); setSessionId(""); setFromDate(""); setToDate(""); setSearch(""); setPage(1);
   };
 
   return (
@@ -122,6 +124,8 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
           </select>
           <input value={userId} onChange={(e) => { setPage(1); setUserId(e.target.value); }}
             placeholder="User ID" className="form-input h-8 text-xs" />
+          <input value={userEmail} onChange={(e) => { setPage(1); setUserEmail(e.target.value); }}
+            placeholder="User email" className="form-input h-8 text-xs" />
           <input type="date" value={fromDate} onChange={(e) => { setPage(1); setFromDate(e.target.value); }}
             className="form-input h-8 text-xs" />
           <input type="date" value={toDate} onChange={(e) => { setPage(1); setToDate(e.target.value); }}

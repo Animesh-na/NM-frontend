@@ -2,6 +2,7 @@
 // ⚠️ Requires upstream CORS allow-listing of every browser origin this app runs on.
 import { dispatchSessionExpired, getStoredAuthToken } from "@/utils/authToken";
 import { buildMarineUrl, marineHeaders } from "./apiConfig";
+import { logger } from "@/services/logger";
 
 // Types
 export interface VesselType {
@@ -136,6 +137,13 @@ export async function getSeaRouteDistance(
   vesselSpeed?: number,
   departureUtc?: string
 ): Promise<SeaRouteResponse & { delayHours?: number; eta?: string }> {
+  logger.info("Sea route distance requested", {
+    component: "marineApi.getSeaRouteDistance",
+    origin: originPortCode ?? `${originLat},${originLon}`,
+    dest: destPortCode ?? `${destLat},${destLon}`,
+    vessel_speed: vesselSpeed,
+    weather_routing: !!(vesselSpeed && departureUtc),
+  });
   // Build the ports parameter: use valid port codes if available, otherwise lat,lon format
   // Valid codes: from port search API, formatted as country+code (e.g. EGGUOS, EGSUZ, ZARCB)
   // Invalid: "NaN", empty, fallback "PORT-*"/"COORD-*", or legacy sea-ports short codes (<=4 chars)

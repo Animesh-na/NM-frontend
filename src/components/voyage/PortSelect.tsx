@@ -4,6 +4,7 @@ import { Search, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchPorts as searchMarinePorts, type MarinePort } from "@/services/marineApi";
 import { isPortEuEea } from "@/utils/euCountries";
+import { logger } from "@/services/logger";
 
 // Extended Port interface to include coordinates from API
 export interface Port {
@@ -139,6 +140,15 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
     setSearch(port.name);
     onChange(port);
     setIsOpen(false);
+    logger.info(`Port selected: ${port.name}`, {
+      component: "PortSelect",
+      port_id: port.id,
+      port_name: port.name,
+      country: port.country,
+      unloc: port.unloc,
+      eca_zone: port.ecaZone,
+      is_eu_eea: port.isEuEea,
+    });
   };
 
   const handleClear = () => {

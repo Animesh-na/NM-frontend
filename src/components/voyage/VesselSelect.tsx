@@ -11,6 +11,7 @@ import {
 import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { cn } from "@/lib/utils";
 import { searchVesselsWithFuel, type VesselWithFuel, type FuelConsumptionResult } from "@/services/vesselFuelApi";
+import { logger } from "@/services/logger";
 
 interface VesselSelectProps {
   value: string;
@@ -180,6 +181,14 @@ export function VesselSelect({
   const handleSelect = async (v: VesselWithFuel) => {
     setSearch(v.name);
     setIsOpen(false);
+    logger.info(`Vessel selected: ${v.name}`, {
+      component: "VesselSelect",
+      vessel_id: v.id,
+      vessel_name: v.name,
+      imo: v.imo,
+      dwt: v.dwt,
+      type: v.type,
+    });
 
     // The search was done in eco mode (default). Now fetch full_speed data for the same vessel.
     let fullSpeedFuel: FuelConsumptionResult | null = null;

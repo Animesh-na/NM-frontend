@@ -26,6 +26,7 @@ export interface LogQuery {
   page?: number;
   limit?: number;
   user_id?: string;
+  user_email?: string;
   level?: string;
   session_id?: string;
   browser?: string;
