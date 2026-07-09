@@ -112,10 +112,9 @@ const Index = () => {
     const handler = (e: Event) => {
       const { name } = (e as CustomEvent).detail;
       if (voyage.hasErrors) {
-        toast.error(`${voyage.validationIssues.length} validation errors found`, {
-          description: "Fix all invalid fields before saving.",
+        toast.warning(`Saved with ${voyage.validationIssues.length} validation issue(s)`, {
+          description: "Sheet saved. Review flagged fields when ready.",
         });
-        return;
       }
       const data = gatherData();
       saveCurrentSheet(name, data);
