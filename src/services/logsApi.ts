@@ -32,6 +32,8 @@ export interface LogQuery {
   browser?: string;
   from_date?: string;
   to_date?: string;
+  from?: string;
+  to?: string;
   search?: string;
   sort?: "asc" | "desc";
 }
