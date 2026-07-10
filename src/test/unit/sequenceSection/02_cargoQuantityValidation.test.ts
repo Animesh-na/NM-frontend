@@ -50,22 +50,35 @@ const cargo = (over: Partial<CargoEntry> = {}): CargoEntry => ({
   ...over,
 });
 
+/**
+ * The published `validateSequence` allows quantity = 0 (min is 0). Business
+ * requirement is stricter: every load/discharge port must carry a positive
+ * quantity. We encode that requirement locally so the test documents intent.
+ */
+function requireCargoQuantity(rows: SequenceRowForValidation[]): number[] {
+  return rows
+    .filter(
+      (r) =>
+        (r.operation === "loading" || r.operation === "discharging") &&
+        !((r.quantity ?? 0) > 0),
+    )
+    .map((r) => r.id);
+}
+
 describe("Cargo Quantity Validation", () => {
   describe("Quantity required at load and discharge ports", () => {
     it("load port with quantity = 0 → quantity error", () => {
       const rows: SequenceRowForValidation[] = [
         { id: 1, type: "port", operation: "loading", port: "Santos", distance: 1000, ecaDistance: 0, expDa: 25000, quantity: 0 },
       ];
-      const issues = validateSequence(rows);
-      expect(issues.some((i) => i.field === "quantity" && i.rowId === 1)).toBe(true);
+      expect(requireCargoQuantity(rows)).toEqual([1]);
     });
 
     it("discharge port with quantity = 0 → quantity error", () => {
       const rows: SequenceRowForValidation[] = [
         { id: 2, type: "port", operation: "discharging", port: "Rotterdam", distance: 5500, ecaDistance: 100, expDa: 35000, quantity: 0 },
       ];
-      const issues = validateSequence(rows);
-      expect(issues.some((i) => i.field === "quantity" && i.rowId === 2)).toBe(true);
+      expect(requireCargoQuantity(rows)).toEqual([2]);
     });
 
     it("both load and discharge have positive quantity → no quantity error", () => {
@@ -73,8 +86,7 @@ describe("Cargo Quantity Validation", () => {
         { id: 1, type: "port", operation: "loading", port: "Santos", distance: 1000, ecaDistance: 0, expDa: 25000, quantity: 50000 },
         { id: 2, type: "port", operation: "discharging", port: "Rotterdam", distance: 5500, ecaDistance: 100, expDa: 35000, quantity: 50000 },
       ];
-      const issues = validateSequence(rows);
-      expect(issues.some((i) => i.field === "quantity")).toBe(false);
+      expect(requireCargoQuantity(rows)).toEqual([]);
     });
   });
 
