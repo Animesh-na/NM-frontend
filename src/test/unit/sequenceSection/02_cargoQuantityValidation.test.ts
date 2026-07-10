@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateSequence, validateCargos, type SequenceRowForValidation } from "@/utils/validation";
+import { validateCargos, type SequenceRowForValidation } from "@/utils/validation";
 import { validateCargoAssignments } from "@/utils/cargoValidation";
 import type { CargoEntry, SequenceRowUI } from "@/context/VoyageContext";
 
