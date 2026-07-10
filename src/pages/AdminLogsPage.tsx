@@ -22,14 +22,18 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   // Filters
   const [level, setLevel] = useState("");
   const [userId, setUserId] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [users, setUsers] = useState<AdminUser[]>([]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const query: LogQuery = useMemo(() => ({
     page, limit: PAGE_SIZE, level: level || undefined, user_id: userId || undefined,
+    from: fromDate ? new Date(fromDate).toISOString() : undefined,
+    to: toDate ? new Date(toDate).toISOString() : undefined,
     sort: "desc",
-  }), [page, level, userId]);
+  }), [page, level, userId, fromDate, toDate]);
 
   const load = async () => {
     if (!token) return;
@@ -81,7 +85,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   };
 
   const resetFilters = () => {
-    setLevel(""); setUserId(""); setPage(1);
+    setLevel(""); setUserId(""); setFromDate(""); setToDate(""); setPage(1);
   };
 
   return (
@@ -127,6 +131,14 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
           <select value={level} onChange={(e) => { setPage(1); setLevel(e.target.value); }} className="form-input h-8 text-xs">
             {LEVELS.map(l => <option key={l} value={l}>{l ? l.toUpperCase() : "All levels"}</option>)}
           </select>
+          <label className="text-xs text-muted-foreground ml-2">From</label>
+          <input type="datetime-local" value={fromDate}
+            onChange={(e) => { setPage(1); setFromDate(e.target.value); }}
+            className="form-input h-8 text-xs" />
+          <label className="text-xs text-muted-foreground ml-2">To</label>
+          <input type="datetime-local" value={toDate}
+            onChange={(e) => { setPage(1); setToDate(e.target.value); }}
+            className="form-input h-8 text-xs" />
           <button onClick={resetFilters} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted ml-auto">
             Reset
           </button>
