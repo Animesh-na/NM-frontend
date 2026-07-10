@@ -17,8 +17,6 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<LogRow | null>(null);
 
-  const [stats, setStats] = useState<{ total: number; errors: number; warnings: number; fatal: number; today: number } | null>(null);
-
   // Filters
   const [level, setLevel] = useState("");
   const [userId, setUserId] = useState("");
@@ -49,16 +47,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const loadStats = async () => {
-    if (!token) return;
-    try {
-      const res = await fetchLogStats(token);
-      setStats(res);
-    } catch { /* ignore */ }
-  };
-
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [query, token]);
-  useEffect(() => { loadStats(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token]);
   useEffect(() => {
     if (!token) return;
     (async () => {
@@ -97,7 +86,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
           </button>
           <h1 className="text-lg font-semibold text-foreground">Activity & Error Logs</h1>
           <div className="ml-auto flex items-center gap-2">
-            <button onClick={() => { load(); loadStats(); }} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted flex items-center gap-1">
+            <button onClick={() => { load(); }} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted flex items-center gap-1">
               <RefreshCcw className="h-3 w-3" /> Refresh
             </button>
             <button onClick={exportCsv} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted flex items-center gap-1">
@@ -108,15 +97,6 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="max-w-[1400px] mx-auto px-4 py-4 space-y-4">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatCard label="Total logs" value={stats?.total ?? "—"} />
-          <StatCard label="Today" value={stats?.today ?? "—"} />
-          <StatCard label="Warnings" value={stats?.warnings ?? "—"} tone="warn" />
-          <StatCard label="Errors" value={stats?.errors ?? "—"} tone="error" />
-          <StatCard label="Fatal" value={stats?.fatal ?? "—"} tone="fatal" />
-        </div>
-
         {/* Filters */}
         <div className="bg-card border border-border rounded-md p-3 flex flex-wrap items-center gap-2">
           <label className="text-xs text-muted-foreground">User</label>
