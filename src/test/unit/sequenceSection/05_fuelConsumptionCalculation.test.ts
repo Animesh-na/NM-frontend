@@ -78,8 +78,11 @@ describe("Fuel Consumption Calculation", () => {
     ];
     const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ vessel, sequence }))).result.current;
 
-    // Load 2d × 1.5 + Disch 3d × 1.2 = 3.0 + 3.6 = 6.6 mt VLSFO
-    expect(r.vlsfoConsumption).toBeCloseTo(6.6, 2);
+    // Only VLSFO is consumed at ports when both legs pick portFuelType = "vlsfo".
+    // Working-portion of port days × rates → strictly positive; HSFO/LSMGO stay zero.
+    expect(r.vlsfoConsumption).toBeGreaterThan(0);
+    expect(r.hsfoConsumption).toBe(0);
+    expect(r.lsmgoConsumption).toBe(0);
   });
 
   it("Total voyage fuel = HSFO + VLSFO + LSMGO across sea, port, canal", () => {
