@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, RefreshCcw, Download, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { fetchLogs, fetchLogStats, type LogRow, type LogQuery } from "@/services/logsApi";
+import { fetchLogs, type LogRow, type LogQuery } from "@/services/logsApi";
 import { toast } from "@/components/ui/sonner";
 import { adminListUsers, type AdminUser } from "@/services/adminApi";
 
