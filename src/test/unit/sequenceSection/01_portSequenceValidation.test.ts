@@ -18,7 +18,9 @@ import {
  *  - Distance range (Non-ECA + ECA combined) is 0 … 30,000 nm.
  */
 
-const legRow = (over: Partial<SequenceRowForValidation> = {}): SequenceRowForValidation => ({
+type LegRow = SequenceRowForValidation & { assignedCargoIds?: number[] };
+
+const legRow = (over: Partial<LegRow> = {}): LegRow => ({
   id: 1,
   type: "port",
   operation: "loading",
@@ -121,7 +123,7 @@ describe("Port Sequence Validation", () => {
 
   describe("Per-cargo load-before-discharge", () => {
     it("cargo #1 load(1) → disch(2), cargo #2 load(3) → disch(4) is valid", () => {
-      const rows = [
+      const rows: LegRow[] = [
         legRow({ id: 1, operation: "loading", assignedCargoIds: [1] }),
         legRow({ id: 2, operation: "discharging", port: "Rotterdam", assignedCargoIds: [1] }),
         legRow({ id: 3, operation: "loading", port: "Antwerp", assignedCargoIds: [2] }),
@@ -131,7 +133,7 @@ describe("Port Sequence Validation", () => {
     });
 
     it("cargo #2 discharge appears before its load → violation for cargo 2 only", () => {
-      const rows = [
+      const rows: LegRow[] = [
         legRow({ id: 1, operation: "loading", assignedCargoIds: [1] }),
         legRow({ id: 2, operation: "discharging", port: "Rotterdam", assignedCargoIds: [2] }),
         legRow({ id: 3, operation: "loading", port: "Antwerp", assignedCargoIds: [2] }),
