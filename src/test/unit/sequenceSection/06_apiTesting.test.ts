@@ -64,7 +64,7 @@ describe("API — Auto distance (FleetGo)", () => {
 
     expect(result.total_distance_nm).toBe(1000);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    const secondCallUrl = fetchMock.mock.calls[1][0] as string;
+    const secondCallUrl = decodeURIComponent(fetchMock.mock.calls[1][0] as string);
     expect(secondCallUrl).toContain(":1,1_:2,2");
   });
 
