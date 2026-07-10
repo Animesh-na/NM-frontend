@@ -57,12 +57,12 @@ function SheetRouter() {
 }
 
 function AppContent() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
   useExcelNavigation();
 
   useEffect(() => {
-    setLoggerUser(user ? { id: user.id, email: user.email } : null);
-  }, [user]);
+    setLoggerUser(user ? { id: user.id, email: user.email, token: token ?? undefined } : null);
+  }, [user, token]);
 
   if (!isAuthenticated) {
     return <Login />;
