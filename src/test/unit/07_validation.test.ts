@@ -145,9 +145,9 @@ describe("validateSequence", () => {
     expect(issues.some((i) => i.field === "distance")).toBe(true);
   });
 
-  it("expDa = 0 → required error (nonZero)", () => {
+  it("expDa = 0 is allowed (DA is optional)", () => {
     const issues = validateSequence([goodRow({ expDa: 0 })]);
-    expect(issues.some((i) => i.field === "expDa")).toBe(true);
+    expect(issues.some((i) => i.field === "expDa")).toBe(false);
   });
 
   it("more than MAX_SEQUENCE_PORTS rows → count error", () => {
@@ -215,7 +215,7 @@ describe("Published constants", () => {
     expect(CARGO_FIELDS.gtc.nonZero).toBe(true);
     expect(CARGO_FIELDS.gtc.required).toBe(true);
   });
-  it("SEQUENCE_FIELDS.expDa requires non-zero", () => {
-    expect(SEQUENCE_FIELDS.expDa.nonZero).toBe(true);
+  it("SEQUENCE_FIELDS.expDa is optional (DA can be 0)", () => {
+    expect(SEQUENCE_FIELDS.expDa.required).toBe(false);
   });
 });

@@ -87,7 +87,7 @@ export const SEQUENCE_FIELDS: Record<string, NumericFieldConfig> = {
   distance: { label: "Distance", min: 0, max: 30_000 },
   ecaDistance: { label: "ECA Distance", min: 0, max: 30_000 },
   turnExtra: { label: "Turn + Extra (h)", min: 0, max: 1000 },
-  expDa: { label: "Exp DA", min: 0, max: 10_000_000, required: true, nonZero: true },
+  expDa: { label: "Exp DA", min: 0, max: 10_000_000, required: false },
   quantity: { label: "Quantity (MT)", min: 0, max: 550_000, required: true },
 };
 
