@@ -82,9 +82,9 @@ describe("Sequence — boundary values propagate through validateSequence", () =
     expect(issues.some((i) => i.field === "distance")).toBe(true);
   });
 
-  it("expDa at zero → required (nonZero) error", () => {
+  it("expDa at zero is accepted (DA is optional)", () => {
     const issues = validateSequence([baseRow({ expDa: 0 })]);
-    expect(issues.some((i) => i.field === "expDa")).toBe(true);
+    expect(issues.some((i) => i.field === "expDa")).toBe(false);
   });
 
   it("quantity above 550,000 MT is rejected", () => {
