@@ -552,6 +552,20 @@ export function VoyageSummary() {
               <span>Reward Factor</span>
               <span className="font-mono">{results.fuelEuResult.rewardFactor.toFixed(2)}</span>
             </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Year / GHG Limit</span>
+              <span className="font-mono">{results.fuelEuResult.voyageYear} · {results.fuelEuResult.ghgLimit.toFixed(2)} g/MJ</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Voyage GHG (WtW)</span>
+              <span className="font-mono">{results.fuelEuResult.voyageGhg.toFixed(2)} g/MJ</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Compliance Balance</span>
+              <span className={`font-mono ${results.fuelEuResult.totalBalance < 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                {(results.fuelEuResult.totalBalance / 1e6).toFixed(2)} t·CO₂eq·MJ
+              </span>
+            </div>
            </div>
 
           {/* Static Cost Per Ton & Costs */}
