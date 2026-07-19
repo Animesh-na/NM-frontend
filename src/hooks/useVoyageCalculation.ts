@@ -1018,11 +1018,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
-        // Per leg-uniform ETS rule: port fuel at the destination port of this
-        // leg is covered at the SAME percentage as the sea leg that arrived
-        // here (0% / 50% / 100%). This keeps fuel allocation consistent at
-        // the leg level instead of jumping between sea% and port 0/100%.
-        const portEuFactor = seaEuFactor;
+        // Per EU ETS spec: port stay coverage depends ONLY on whether the port
+        // itself is in the EU (port.eu_zone). 100% if EU, 0% otherwise.
+        // Independent of the sea leg that arrived here.
+        const portEuFactor = leg.isEuEea === true ? 1.0 : 0.0;
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
@@ -1097,8 +1096,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             coverageLabel = 'Cargo(Non-EU) → Cargo(Non-EU): 0%';
           }
           
-          // Port coverage label — port inherits the sea leg coverage %
-          const portLabel = leg.portDays > 0 ? ` | Port: ${coveragePct}%` : '';
+          // Port coverage label — port stay uses its own EU flag (100% EU / 0% non-EU)
+          const portLabel = leg.portDays > 0 ? ` | Port: ${portEuFactor * 100}%` : '';
           
           const chargeableCo2 = 
             legChargeHsfo * CO2_EMISSION_FACTORS.hsfo +
