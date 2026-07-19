@@ -1085,15 +1085,15 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const originEu = bracketOriginIsEu[index];
           const destEu = bracketDestIsEu[index];
           let coverageLabel = '';
-          if (seaEuFactor === 1.0) coverageLabel = 'Cargo(EU) → Cargo(EU): 100%';
+          if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
           else if (seaEuFactor === 0.5) {
             coverageLabel = originEu
-              ? 'Cargo(EU) → Cargo(Non-EU): 50%'
-              : 'Cargo(Non-EU) → Cargo(EU): 50%';
+              ? 'EU → Non-EU: 50%'
+              : 'Non-EU → EU: 50%';
           } else if (originEu === null || destEu === null) {
-            coverageLabel = 'No cargo bracket: 0%';
+            coverageLabel = 'Origin leg: 0%';
           } else {
-            coverageLabel = 'Cargo(Non-EU) → Cargo(Non-EU): 0%';
+            coverageLabel = 'Non-EU → Non-EU: 0%';
           }
           
           // Port coverage label — port stay uses its own EU flag (100% EU / 0% non-EU)
