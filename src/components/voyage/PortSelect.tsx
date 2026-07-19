@@ -42,7 +42,9 @@ function marinePortToPort(port: MarinePort): Port {
     city: port.port_name,
     country: port.country,
     coordinates: [port.longitude, port.latitude],
-    isEuEea: isPortEuEea({ isEuEea: port.is_eu_eea, ecaZone: port.eca_zone, country: port.country }),
+    // EU ETS: strictly use the API's eu_zone flag. Fall back to legacy is_eu_eea
+    // only when eu_zone is absent (older API responses). Never infer from country.
+    isEuEea: port.eu_zone === true || (port.eu_zone === undefined && port.is_eu_eea === true),
     ecaZone: port.eca_zone === true,
     ukEts: port.uk_ets === true,
     ukZone: port.uk_zone ?? null,
