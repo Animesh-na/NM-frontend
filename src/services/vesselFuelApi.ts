@@ -161,7 +161,7 @@ export async function searchVesselsWithFuel(
     const modeKey: OperatingMode = options?.mode ?? 'full_speed';
     const mode = MODES[modeKey];
     const data = await upstream<{ results?: any[]; vessels?: any[] } | any[]>(
-      "/vessels",
+      "/vessels/search",
       { q: query, limit: options?.limit ?? 10 },
     );
     const raw = Array.isArray(data) ? data : (data.results || data.vessels || []);
