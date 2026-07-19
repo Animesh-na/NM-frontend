@@ -111,6 +111,7 @@ export interface VoyageInputs {
   extraTime?: ExtraTimeData;
   applyEuaImpact?: boolean;
   applyFuelEuImpact?: boolean;
+  applyUkEtsImpact?: boolean;
   /** Optional per-cargo entries used for per-cargo gross-rate breakdown. */
   cargos?: Array<{
     id: number;
