@@ -80,6 +80,8 @@ export interface BunkerData {
   lsmgo: { price: number; robStart: number };
   co2Price: number;
   rewardFactor?: number; // Multiplier for wind-assisted propulsion (default 1.0)
+  euEtsPrice?: number;
+  ukEtsPrice?: number;
 }
 
 // Extra time data for calculation
