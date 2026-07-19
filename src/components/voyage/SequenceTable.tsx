@@ -120,7 +120,7 @@ export function SequenceTable() {
   const handlePortChange = (id: number, port: Port | null) => {
     setSequence(prev => prev.map(row => {
       if (row.id !== id) return row;
-      const updated = { ...row, port: port?.name || "", portUnloc: port?.unloc || "", portId: port?.id, coordinates: port?.coordinates, isEuEea: port?.isEuEea, portCountry: port?.country };
+      const updated = { ...row, port: port?.name || "", portUnloc: port?.unloc || "", portId: port?.id, coordinates: port?.coordinates, isEuEea: port?.isEuEea, portCountry: port?.country, ukEts: port?.ukEts, ukZone: port?.ukZone ?? null };
       // Auto-set port fuel to LSMGO if port is in ECA zone
       if (port?.ecaZone) {
         updated.portFuelType = "lsmgo";
