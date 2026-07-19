@@ -16,6 +16,8 @@ export interface Port {
   coordinates?: [number, number];
   isEuEea?: boolean;
   ecaZone?: boolean;
+  ukEts?: boolean;
+  ukZone?: "gb" | "ni" | null;
 }
 
 interface PortSelectProps {
@@ -42,6 +44,8 @@ function marinePortToPort(port: MarinePort): Port {
     coordinates: [port.longitude, port.latitude],
     isEuEea: isPortEuEea({ isEuEea: port.is_eu_eea, ecaZone: port.eca_zone, country: port.country }),
     ecaZone: port.eca_zone === true,
+    ukEts: port.uk_ets === true,
+    ukZone: port.uk_zone ?? null,
   };
 }
 
