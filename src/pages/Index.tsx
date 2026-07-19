@@ -43,10 +43,11 @@ const Index = () => {
     netBB: voyage.netBB,
     applyEuaImpact: voyage.applyEuaImpact,
     applyFuelEuImpact: voyage.applyFuelEuImpact,
+    applyUkEtsImpact: voyage.applyUkEtsImpact,
     departureUtc: voyage.departureUtc,
     autoDistanceEnabled: voyage.autoDistanceEnabled,
     notes: voyage.notes,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.autoDistanceEnabled, voyage.notes]);
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.autoDistanceEnabled, voyage.notes]);
 
   // Snapshot current voyage data back to the previous tab when switching tabs
   useEffect(() => {
@@ -92,6 +93,7 @@ const Index = () => {
       if (d.netBB !== undefined) voyage.setNetBB(d.netBB);
       if (d.applyEuaImpact !== undefined) voyage.setApplyEuaImpact(d.applyEuaImpact);
       if (d.applyFuelEuImpact !== undefined) voyage.setApplyFuelEuImpact(d.applyFuelEuImpact);
+      if (d.applyUkEtsImpact !== undefined) voyage.setApplyUkEtsImpact(d.applyUkEtsImpact);
       if (d.departureUtc !== undefined) voyage.setDepartureUtc(d.departureUtc as string);
       voyage.setAutoDistanceEnabled(d.autoDistanceEnabled === true);
       voyage.setNotes(typeof d.notes === "string" ? d.notes : "");
@@ -129,7 +131,7 @@ const Index = () => {
       markDirty();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.departureUtc, voyage.notes]);
+  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.departureUtc, voyage.notes]);
 
   if (activeTab?.isLoading) {
     return (
