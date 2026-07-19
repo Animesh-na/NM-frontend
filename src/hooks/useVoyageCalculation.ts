@@ -414,15 +414,15 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       };
       
       if (operation === "load" || operation === "loading") {
-        loadingDays += workingDays;
-        idleDays += turnExtraDays;
-        addPortDays(workingDays, turnExtraDays);
-        vlog(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays`);
+        const totalLoadDays = workingDays + turnExtraDays;
+        loadingDays += totalLoadDays;
+        addPortDays(totalLoadDays, 0);
+        vlog(`    → LOADING (${legPortFuel}): totalDays=${totalLoadDays} (working=${workingDays} + turnExtra=${turnExtraDays}) all counted at load rate`);
       } else if (operation === "disch" || operation === "discharging") {
-        dischargingDays += workingDays;
-        idleDays += turnExtraDays;
-        addDischDays(workingDays, turnExtraDays);
-        vlog(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays`);
+        const totalDischDays = workingDays + turnExtraDays;
+        dischargingDays += totalDischDays;
+        addDischDays(totalDischDays, 0);
+        vlog(`    → DISCHARGING (${legPortFuel}): totalDays=${totalDischDays} (working=${workingDays} + turnExtra=${turnExtraDays}) all counted at discharge rate`);
       } else if (operation === "waiting" || operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
