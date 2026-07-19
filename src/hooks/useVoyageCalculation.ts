@@ -785,31 +785,22 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       return o === 'disch' || o === 'discharging';
     };
     const isCargoPortCall = (op?: string) => isLoadOp(op) || isDischargeOp(op);
-    const isEtsCoveredPort = (leg: SequenceRow): boolean =>
-      leg.isEuEea === true || isEuPort(leg.portUnloc || '') || (leg.ecaDistance || 0) > 0;
-
+    // EU ETS coverage uses ONLY the port API's eu_zone flag (surfaced as leg.isEuEea).
+    // Never infer from country name or ECA distance.
+    //   Sea leg (from → to): both EU = 100%, one EU = 50%, none = 0%
+    //   Port stay: 100% if port is EU, else 0%
     const bracketOriginIsEu: (boolean | null)[] = sequence.map(() => null);
     const bracketDestIsEu: (boolean | null)[] = sequence.map(() => null);
     {
-      const cargoPortIndexes = sequence
-        .map((leg, i) => (isCargoPortCall(leg.operation) ? i : -1))
-        .filter(i => i >= 0);
-      let cargoOnBoardBeforeLeg = 0;
-
+      let prevIdx = -1;
       for (let i = 0; i < sequence.length; i++) {
-        if (cargoOnBoardBeforeLeg > 0) {
-          const originIdx = [...cargoPortIndexes].reverse().find(idx => idx < i);
-          const destIdx = cargoPortIndexes.find(idx => idx >= i);
-
-          if (originIdx !== undefined && destIdx !== undefined && originIdx !== destIdx) {
-            bracketOriginIsEu[i] = isEtsCoveredPort(sequence[originIdx]);
-            bracketDestIsEu[i] = isEtsCoveredPort(sequence[destIdx]);
-          }
+        const hasPort = !!getLegPortKey(sequence[i]);
+        if (!hasPort) continue;
+        if (prevIdx >= 0) {
+          bracketOriginIsEu[i] = sequence[prevIdx].isEuEea === true;
+          bracketDestIsEu[i] = sequence[i].isEuEea === true;
         }
-
-        const qty = Math.max(0, sequence[i].quantity || 0);
-        if (isLoadOp(sequence[i].operation)) cargoOnBoardBeforeLeg += qty;
-        else if (isDischargeOp(sequence[i].operation)) cargoOnBoardBeforeLeg = Math.max(0, cargoOnBoardBeforeLeg - qty);
+        prevIdx = i;
       }
     }
     const computeSeaEuFactor = (legIdx: number): number => {
@@ -1027,11 +1018,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
-        // Per leg-uniform ETS rule: port fuel at the destination port of this
-        // leg is covered at the SAME percentage as the sea leg that arrived
-        // here (0% / 50% / 100%). This keeps fuel allocation consistent at
-        // the leg level instead of jumping between sea% and port 0/100%.
-        const portEuFactor = seaEuFactor;
+        // Per EU ETS spec: port stay coverage depends ONLY on whether the port
+        // itself is in the EU (port.eu_zone). 100% if EU, 0% otherwise.
+        // Independent of the sea leg that arrived here.
+        const portEuFactor = leg.isEuEea === true ? 1.0 : 0.0;
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
@@ -1095,19 +1085,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const originEu = bracketOriginIsEu[index];
           const destEu = bracketDestIsEu[index];
           let coverageLabel = '';
-          if (seaEuFactor === 1.0) coverageLabel = 'Cargo(EU) → Cargo(EU): 100%';
+          if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
           else if (seaEuFactor === 0.5) {
             coverageLabel = originEu
-              ? 'Cargo(EU) → Cargo(Non-EU): 50%'
-              : 'Cargo(Non-EU) → Cargo(EU): 50%';
+              ? 'EU → Non-EU: 50%'
+              : 'Non-EU → EU: 50%';
           } else if (originEu === null || destEu === null) {
-            coverageLabel = 'No cargo bracket: 0%';
+            coverageLabel = 'Origin leg: 0%';
           } else {
-            coverageLabel = 'Cargo(Non-EU) → Cargo(Non-EU): 0%';
+            coverageLabel = 'Non-EU → Non-EU: 0%';
           }
           
-          // Port coverage label — port inherits the sea leg coverage %
-          const portLabel = leg.portDays > 0 ? ` | Port: ${coveragePct}%` : '';
+          // Port coverage label — port stay uses its own EU flag (100% EU / 0% non-EU)
+          const portLabel = leg.portDays > 0 ? ` | Port: ${portEuFactor * 100}%` : '';
           
           const chargeableCo2 = 
             legChargeHsfo * CO2_EMISSION_FACTORS.hsfo +

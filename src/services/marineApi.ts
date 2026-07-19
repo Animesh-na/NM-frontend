@@ -38,6 +38,8 @@ export interface MarinePort {
   longitude: number;
   is_eu_eea?: boolean;
   eca_zone?: boolean;
+  /** Official EU ETS flag from port API. Preferred over is_eu_eea/country lookups. */
+  eu_zone?: boolean;
   uk_ets?: boolean;
   uk_zone?: "gb" | "ni" | null;
   source_table?: string;
