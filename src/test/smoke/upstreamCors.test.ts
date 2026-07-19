@@ -22,7 +22,6 @@ const ORIGINS = [
 const ENDPOINTS: Array<{ path: string; method: "GET" | "POST" | "PUT" | "DELETE" }> = [
   { path: "/vessel-types", method: "GET" },
   { path: "/vessels", method: "GET" },
-  { path: "/vessels/search", method: "GET" },
   { path: "/ports/search", method: "GET" },
   { path: "/fleetgo/distbl", method: "GET" },
   { path: "/sheets", method: "GET" },
