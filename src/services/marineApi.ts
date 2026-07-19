@@ -38,6 +38,8 @@ export interface MarinePort {
   longitude: number;
   is_eu_eea?: boolean;
   eca_zone?: boolean;
+  uk_ets?: boolean;
+  uk_zone?: "gb" | "ni" | null;
   source_table?: string;
 }
 

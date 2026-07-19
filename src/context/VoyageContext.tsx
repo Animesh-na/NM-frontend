@@ -112,6 +112,9 @@ export interface SequenceRowUI {
   isEuEea?: boolean;
   // Country name for EU/EEA fallback detection
   portCountry?: string;
+  // UK ETS flags from port API (independent from EU ETS)
+  ukEts?: boolean;
+  ukZone?: "gb" | "ni" | null;
   
   // Weather delay from API (hours) - used when auto distance is ON
   weatherDelayHours?: number;
@@ -1375,7 +1378,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
     let cancelled = false;
     (async () => {
-      const updates: Record<number, Partial<Pick<SequenceRowUI, "portId" | "portUnloc" | "coordinates" | "isEuEea" | "portCountry">>> = {};
+      const updates: Record<number, Partial<Pick<SequenceRowUI, "portId" | "portUnloc" | "coordinates" | "isEuEea" | "portCountry" | "ukEts" | "ukZone">>> = {};
       for (const row of portsNeedingLookup) {
         if (cancelled) return;
         try {
@@ -1403,6 +1406,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
                   : undefined),
               isEuEea: isPortEuEea({ isEuEea: match.is_eu_eea, ecaZone: match.eca_zone, country: match.country }),
               portCountry: match.country,
+              ukEts: match.uk_ets === true,
+              ukZone: match.uk_zone ?? null,
             };
           } else {
             // No API match — keep what we have and fall back to country detection.
@@ -1737,6 +1742,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       extraTimeHours: effExtraTime || 0, // Extra time in hours
       portFuelType: row.portFuelType, // Port fuel type per leg
       isEuEea: row.isEuEea, // EU/EEA flag from port API
+      ukEts: row.ukEts,
+      ukZone: row.ukZone ?? null,
       // Pass through for per-cargo route-bounded allocation
       type: row.type,
       assignedCargoIds: row.assignedCargoIds,
@@ -2035,6 +2042,19 @@ export function useVoyageContext() {
         etsLegDetails: [],
         perCargoBreakdown: [],
         repositioningCost: 0,
+        ukEtsResult: {
+          phaseIn: 0,
+          ukCoveredFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
+          ukCoveredCo2: 0,
+          chargeableCo2: 0,
+          ukEtsCost: 0,
+          ukVoyageCoverage: 0,
+          legBreakdown: [],
+        },
+        ukEtsCost: 0,
+        ukChargeableCo2: 0,
+        ukEtsVoyageCoverage: 0,
+        ukEtsPhaseIn: 0,
       },
       cargoValidation: { errors: [], hasErrors: false, usesExplicitMapping: false },
       validationIssues: [],

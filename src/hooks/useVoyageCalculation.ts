@@ -18,6 +18,16 @@ import {
   type FuelEuResult,
 } from "@/utils/emissionCalculations";
 import { vlog, vlogBegin, vlogEnd, exposeVoyageDebug } from "@/utils/voyageLogger";
+import {
+  getUkEtsSeaCoverage,
+  getUkEtsPortCoverage,
+  getUkEtsPhaseIn,
+  ukCo2FromFuel,
+  emptyUkEtsResult,
+  type UkEtsResult,
+  type UkEtsLegDetail,
+  type UkZone,
+} from "@/utils/ukEtsCalculations";
 
 // Types for voyage calculation inputs
 export interface SequenceRow {
@@ -45,6 +55,9 @@ export interface SequenceRow {
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
   // EU/EEA flag from port API
   isEuEea?: boolean;
+  // UK ETS flags from port API (independent from EU ETS)
+  ukEts?: boolean;
+  ukZone?: UkZone;
   // Row type: "open" | "port" | "repos"  (used for repositioning detection in per-cargo allocation)
   type?: string;
   // Cargo assignment for per-cargo gross rate & route-bounded cost allocation
@@ -202,6 +215,13 @@ export interface VoyageResults {
   
   // Leg-by-leg ETS breakdown
   etsLegDetails: EtsLegDetail[];
+
+  // UK ETS metrics (independent from EU ETS)
+  ukEtsResult: UkEtsResult;
+  ukEtsCost: number;
+  ukChargeableCo2: number;
+  ukEtsVoyageCoverage: number;
+  ukEtsPhaseIn: number;
   
   // Validation
   emissionWarnings: string[];
@@ -915,6 +935,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let euCoveredVlsfo = 0;
     let euCoveredLsmgo = 0;
     const etsLegDetails: EtsLegDetail[] = [];
+
+    // ── UK ETS accumulators (independent from EU ETS) ──
+    const ukPhaseIn = getUkEtsPhaseIn();
+    let ukCoveredHsfo = 0;
+    let ukCoveredVlsfo = 0;
+    let ukCoveredLsmgo = 0;
+    const ukEtsLegDetails: UkEtsLegDetail[] = [];
+    let prevUkZone: UkZone = null;
+    let ukLegIdx = 0;
+    let ukTotalSeaTime = 0;
+    let ukWeightedSeaFactor = 0;
     
     {
       let prevIsEuEea = false;
@@ -1117,6 +1148,54 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           prevPortName = currentPortName;
           prevIsEuEea = leg.isEuEea === true;
         }
+
+        // ── UK ETS per-leg (independent from EU ETS) ──
+        if (currentPortKey) {
+          const currentUkZone: UkZone = (leg.ukZone ?? null) as UkZone;
+          const seaUkFactor = prevUkZone
+            ? getUkEtsSeaCoverage(prevUkZone, currentUkZone)
+            : 0;
+          const portUkFactor = getUkEtsPortCoverage(leg.ukEts);
+
+          const ukSeaHsfo = legSeaHsfo * seaUkFactor;
+          const ukSeaVlsfo = legSeaVlsfo * seaUkFactor;
+          const ukSeaLsmgo = legSeaLsmgo * seaUkFactor;
+          const ukPortHsfo = legPortHsfo * portUkFactor;
+          const ukPortVlsfo = legPortVlsfo * portUkFactor;
+          const ukPortLsmgo = legPortLsmgo * portUkFactor;
+
+          ukCoveredHsfo += ukSeaHsfo + ukPortHsfo;
+          ukCoveredVlsfo += ukSeaVlsfo + ukPortVlsfo;
+          ukCoveredLsmgo += ukSeaLsmgo + ukPortLsmgo;
+
+          const legSeaTimeTotal = leg.seaTime || 0;
+          ukTotalSeaTime += legSeaTimeTotal;
+          ukWeightedSeaFactor += legSeaTimeTotal * seaUkFactor;
+
+          const hasAny = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
+          if (hasAny && (prevUkZone !== null || (leg.seaTime || 0) > 0 || portUkFactor > 0)) {
+            const legUkFuel = {
+              hsfo: ukSeaHsfo + ukPortHsfo,
+              vlsfo: ukSeaVlsfo + ukPortVlsfo,
+              lsmgo: ukSeaLsmgo + ukPortLsmgo,
+            };
+            const legUkCo2 = ukCo2FromFuel(legUkFuel);
+            ukEtsLegDetails.push({
+              legIndex: ukLegIdx++,
+              originPort: originPortName,
+              originZone: prevUkZone,
+              destPort: currentPortName,
+              destZone: currentUkZone,
+              seaCoveragePct: seaUkFactor * 100,
+              portCoveragePct: portUkFactor * 100,
+              ukCoveredFuel: legUkFuel,
+              ukCoveredCo2: legUkCo2,
+              chargeableCo2: legUkCo2 * ukPhaseIn,
+            });
+          }
+
+          prevUkZone = currentUkZone;
+        }
       });
       
       // ── Handle extra time from Misc section ──
@@ -1161,6 +1240,49 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
       }
     }
+
+    // ── UK ETS: extra sea/canal misc fuel inherits weighted UK sea factor ──
+    if (ukTotalSeaTime > 0) {
+      const avgUkSeaFactor = ukWeightedSeaFactor / ukTotalSeaTime;
+      if (avgUkSeaFactor > 0) {
+        if (extraSeaDays > 0) {
+          if (hasScrubber) {
+            ukCoveredHsfo += extraSeaDays * (profile.hsfo.laden || 0) * rewardFactor * avgUkSeaFactor;
+          } else {
+            ukCoveredVlsfo += extraSeaDays * (profile.vlsfo.laden || 0) * rewardFactor * avgUkSeaFactor;
+          }
+          const aeRates = hasScrubber ? profile.aeScrubber : profile.ae;
+          ukCoveredLsmgo += extraSeaDays * (aeRates.laden || 0) * rewardFactor * avgUkSeaFactor;
+        }
+        if (extraCanalDays > 0) {
+          if (hasScrubber) {
+            ukCoveredHsfo += extraCanalDays * (profile.hsfo.canal || 0) * avgUkSeaFactor;
+          } else {
+            ukCoveredVlsfo += extraCanalDays * (profile.vlsfo.canal || 0) * avgUkSeaFactor;
+          }
+        }
+      }
+    }
+
+    const ukCoveredFuel = { hsfo: ukCoveredHsfo, vlsfo: ukCoveredVlsfo, lsmgo: ukCoveredLsmgo };
+    const ukCo2 = ukCo2FromFuel(ukCoveredFuel);
+    const ukChargeableCo2 = ukCo2 * ukPhaseIn;
+    const ukEtsCost = ukChargeableCo2 * (bunker.co2Price || 0);
+    const ukVoyageCoverage = ukTotalSeaTime > 0 ? ukWeightedSeaFactor / ukTotalSeaTime : 0;
+    const ukEtsResult: UkEtsResult = {
+      phaseIn: ukPhaseIn,
+      ukCoveredFuel,
+      ukCoveredCo2: ukCo2,
+      chargeableCo2: ukChargeableCo2,
+      ukEtsCost,
+      ukVoyageCoverage,
+      legBreakdown: ukEtsLegDetails,
+    };
+
+    vlog(`\n[Step 12b] UK ETS (bottom-up):
+    UK Fuel: HSFO=${ukCoveredHsfo.toFixed(2)}t, VLSFO=${ukCoveredVlsfo.toFixed(2)}t, LSMGO=${ukCoveredLsmgo.toFixed(2)}t
+    UK CO₂ from fuel = ${ukCo2.toFixed(2)} mt × ${ukPhaseIn} (phase-in) = ${ukChargeableCo2.toFixed(2)} mt
+    UK ETS Cost = ${ukChargeableCo2.toFixed(2)} × $${bunker.co2Price} = $${ukEtsCost.toFixed(2)}`);
     
     const euCoveredFuel = { hsfo: euCoveredHsfo, vlsfo: euCoveredVlsfo, lsmgo: euCoveredLsmgo };
     
@@ -1591,6 +1713,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       etsLegDetails,
       perCargoBreakdown,
       repositioningCost,
+      // UK ETS
+      ukEtsResult,
+      ukEtsCost,
+      ukChargeableCo2,
+      ukEtsVoyageCoverage: ukVoyageCoverage,
+      ukEtsPhaseIn: ukPhaseIn,
     };
 
     // Final compact summary table — easy to scan in DevTools.
