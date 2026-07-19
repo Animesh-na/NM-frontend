@@ -1378,7 +1378,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
     let cancelled = false;
     (async () => {
-      const updates: Record<number, Partial<Pick<SequenceRowUI, "portId" | "portUnloc" | "coordinates" | "isEuEea" | "portCountry">>> = {};
+      const updates: Record<number, Partial<Pick<SequenceRowUI, "portId" | "portUnloc" | "coordinates" | "isEuEea" | "portCountry" | "ukEts" | "ukZone">>> = {};
       for (const row of portsNeedingLookup) {
         if (cancelled) return;
         try {
@@ -1406,6 +1406,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
                   : undefined),
               isEuEea: isPortEuEea({ isEuEea: match.is_eu_eea, ecaZone: match.eca_zone, country: match.country }),
               portCountry: match.country,
+              ukEts: match.uk_ets === true,
+              ukZone: match.uk_zone ?? null,
             };
           } else {
             // No API match — keep what we have and fall back to country detection.
