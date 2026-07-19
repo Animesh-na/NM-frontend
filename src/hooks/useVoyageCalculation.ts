@@ -1148,6 +1148,54 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           prevPortName = currentPortName;
           prevIsEuEea = leg.isEuEea === true;
         }
+
+        // ── UK ETS per-leg (independent from EU ETS) ──
+        if (currentPortKey) {
+          const currentUkZone: UkZone = (leg.ukZone ?? null) as UkZone;
+          const seaUkFactor = prevUkZone
+            ? getUkEtsSeaCoverage(prevUkZone, currentUkZone)
+            : 0;
+          const portUkFactor = getUkEtsPortCoverage(leg.ukEts);
+
+          const ukSeaHsfo = legSeaHsfo * seaUkFactor;
+          const ukSeaVlsfo = legSeaVlsfo * seaUkFactor;
+          const ukSeaLsmgo = legSeaLsmgo * seaUkFactor;
+          const ukPortHsfo = legPortHsfo * portUkFactor;
+          const ukPortVlsfo = legPortVlsfo * portUkFactor;
+          const ukPortLsmgo = legPortLsmgo * portUkFactor;
+
+          ukCoveredHsfo += ukSeaHsfo + ukPortHsfo;
+          ukCoveredVlsfo += ukSeaVlsfo + ukPortVlsfo;
+          ukCoveredLsmgo += ukSeaLsmgo + ukPortLsmgo;
+
+          const legSeaTimeTotal = leg.seaTime || 0;
+          ukTotalSeaTime += legSeaTimeTotal;
+          ukWeightedSeaFactor += legSeaTimeTotal * seaUkFactor;
+
+          const hasAny = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
+          if (hasAny && (prevUkZone !== null || (leg.seaTime || 0) > 0 || portUkFactor > 0)) {
+            const legUkFuel = {
+              hsfo: ukSeaHsfo + ukPortHsfo,
+              vlsfo: ukSeaVlsfo + ukPortVlsfo,
+              lsmgo: ukSeaLsmgo + ukPortLsmgo,
+            };
+            const legUkCo2 = ukCo2FromFuel(legUkFuel);
+            ukEtsLegDetails.push({
+              legIndex: ukLegIdx++,
+              originPort: originPortName,
+              originZone: prevUkZone,
+              destPort: currentPortName,
+              destZone: currentUkZone,
+              seaCoveragePct: seaUkFactor * 100,
+              portCoveragePct: portUkFactor * 100,
+              ukCoveredFuel: legUkFuel,
+              ukCoveredCo2: legUkCo2,
+              chargeableCo2: legUkCo2 * ukPhaseIn,
+            });
+          }
+
+          prevUkZone = currentUkZone;
+        }
       });
       
       // ── Handle extra time from Misc section ──
