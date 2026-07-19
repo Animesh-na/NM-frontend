@@ -1409,23 +1409,18 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
                 (match.longitude != null && match.latitude != null
                   ? [match.longitude, match.latitude]
                   : undefined),
-              isEuEea: isPortEuEea({ isEuEea: match.is_eu_eea, ecaZone: match.eca_zone, country: match.country }),
+              // EU ETS: use API's eu_zone field. Never infer from country name.
+              isEuEea: match.eu_zone === true || (match.eu_zone === undefined && match.is_eu_eea === true),
               portCountry: match.country,
               ukEts: match.uk_ets === true,
               ukZone: match.uk_zone ?? null,
             };
           } else {
-            // No API match — keep what we have and fall back to country detection.
-            updates[row.id] = {
-              isEuEea: isPortEuEea({ country: row.portCountry }),
-              portCountry: row.portCountry,
-            };
+            // No API match — leave EU flag unchanged; do NOT infer from country.
+            updates[row.id] = { portCountry: row.portCountry };
           }
         } catch {
-          updates[row.id] = {
-            isEuEea: isPortEuEea({ country: row.portCountry }),
-            portCountry: row.portCountry,
-          };
+          updates[row.id] = { portCountry: row.portCountry };
         }
       }
       if (!cancelled) {
