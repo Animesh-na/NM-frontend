@@ -59,9 +59,15 @@ export function BunkerSection() {
           {/* Global Controls - single line */}
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-muted-foreground">CO₂</span>
+              <span className="text-[10px] text-muted-foreground">EU ETS</span>
               <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
-                value={bunker.co2Price || ""} onChange={(e) => updateBunkerField("co2Price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                value={bunker.euEtsPrice || ""} onChange={(e) => updateBunkerField("euEtsPrice", parseFloat(e.target.value) || 0)} placeholder="0" />
+              <span className="text-[10px] text-muted-foreground">$/t</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground">UK ETS</span>
+              <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
+                value={bunker.ukEtsPrice || ""} onChange={(e) => updateBunkerField("ukEtsPrice", parseFloat(e.target.value) || 0)} placeholder="0" />
               <span className="text-[10px] text-muted-foreground">$/t</span>
             </div>
             <RadioGroup value={bunker.fuelMode} onValueChange={(value) => updateBunkerField("fuelMode", value as FuelAccountingMode)} className="flex gap-3 items-center">
