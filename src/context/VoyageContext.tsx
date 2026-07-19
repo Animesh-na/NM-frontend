@@ -112,6 +112,9 @@ export interface SequenceRowUI {
   isEuEea?: boolean;
   // Country name for EU/EEA fallback detection
   portCountry?: string;
+  // UK ETS flags from port API (independent from EU ETS)
+  ukEts?: boolean;
+  ukZone?: "gb" | "ni" | null;
   
   // Weather delay from API (hours) - used when auto distance is ON
   weatherDelayHours?: number;
