@@ -223,6 +223,7 @@ export interface VoyageResults {
   ukChargeableCo2: number;
   ukEtsVoyageCoverage: number;
   ukEtsPhaseIn: number;
+  ukEtsFreightImpact: number;
   
   // Validation
   emissionWarnings: string[];
