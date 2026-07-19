@@ -785,31 +785,22 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       return o === 'disch' || o === 'discharging';
     };
     const isCargoPortCall = (op?: string) => isLoadOp(op) || isDischargeOp(op);
-    const isEtsCoveredPort = (leg: SequenceRow): boolean =>
-      leg.isEuEea === true || isEuPort(leg.portUnloc || '') || (leg.ecaDistance || 0) > 0;
-
+    // EU ETS coverage uses ONLY the port API's eu_zone flag (surfaced as leg.isEuEea).
+    // Never infer from country name or ECA distance.
+    //   Sea leg (from → to): both EU = 100%, one EU = 50%, none = 0%
+    //   Port stay: 100% if port is EU, else 0%
     const bracketOriginIsEu: (boolean | null)[] = sequence.map(() => null);
     const bracketDestIsEu: (boolean | null)[] = sequence.map(() => null);
     {
-      const cargoPortIndexes = sequence
-        .map((leg, i) => (isCargoPortCall(leg.operation) ? i : -1))
-        .filter(i => i >= 0);
-      let cargoOnBoardBeforeLeg = 0;
-
+      let prevIdx = -1;
       for (let i = 0; i < sequence.length; i++) {
-        if (cargoOnBoardBeforeLeg > 0) {
-          const originIdx = [...cargoPortIndexes].reverse().find(idx => idx < i);
-          const destIdx = cargoPortIndexes.find(idx => idx >= i);
-
-          if (originIdx !== undefined && destIdx !== undefined && originIdx !== destIdx) {
-            bracketOriginIsEu[i] = isEtsCoveredPort(sequence[originIdx]);
-            bracketDestIsEu[i] = isEtsCoveredPort(sequence[destIdx]);
-          }
+        const hasPort = !!getLegPortKey(sequence[i]);
+        if (!hasPort) continue;
+        if (prevIdx >= 0) {
+          bracketOriginIsEu[i] = sequence[prevIdx].isEuEea === true;
+          bracketDestIsEu[i] = sequence[i].isEuEea === true;
         }
-
-        const qty = Math.max(0, sequence[i].quantity || 0);
-        if (isLoadOp(sequence[i].operation)) cargoOnBoardBeforeLeg += qty;
-        else if (isDischargeOp(sequence[i].operation)) cargoOnBoardBeforeLeg = Math.max(0, cargoOnBoardBeforeLeg - qty);
+        prevIdx = i;
       }
     }
     const computeSeaEuFactor = (legIdx: number): number => {
