@@ -18,6 +18,16 @@ import {
   type FuelEuResult,
 } from "@/utils/emissionCalculations";
 import { vlog, vlogBegin, vlogEnd, exposeVoyageDebug } from "@/utils/voyageLogger";
+import {
+  getUkEtsSeaCoverage,
+  getUkEtsPortCoverage,
+  getUkEtsPhaseIn,
+  ukCo2FromFuel,
+  emptyUkEtsResult,
+  type UkEtsResult,
+  type UkEtsLegDetail,
+  type UkZone,
+} from "@/utils/ukEtsCalculations";
 
 // Types for voyage calculation inputs
 export interface SequenceRow {
@@ -45,6 +55,9 @@ export interface SequenceRow {
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
   // EU/EEA flag from port API
   isEuEea?: boolean;
+  // UK ETS flags from port API (independent from EU ETS)
+  ukEts?: boolean;
+  ukZone?: UkZone;
   // Row type: "open" | "port" | "repos"  (used for repositioning detection in per-cargo allocation)
   type?: string;
   // Cargo assignment for per-cargo gross rate & route-bounded cost allocation
