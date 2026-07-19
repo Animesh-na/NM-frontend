@@ -1240,6 +1240,49 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
       }
     }
+
+    // ── UK ETS: extra sea/canal misc fuel inherits weighted UK sea factor ──
+    if (ukTotalSeaTime > 0) {
+      const avgUkSeaFactor = ukWeightedSeaFactor / ukTotalSeaTime;
+      if (avgUkSeaFactor > 0) {
+        if (extraSeaDays > 0) {
+          if (hasScrubber) {
+            ukCoveredHsfo += extraSeaDays * (profile.hsfo.laden || 0) * rewardFactor * avgUkSeaFactor;
+          } else {
+            ukCoveredVlsfo += extraSeaDays * (profile.vlsfo.laden || 0) * rewardFactor * avgUkSeaFactor;
+          }
+          const aeRates = hasScrubber ? profile.aeScrubber : profile.ae;
+          ukCoveredLsmgo += extraSeaDays * (aeRates.laden || 0) * rewardFactor * avgUkSeaFactor;
+        }
+        if (extraCanalDays > 0) {
+          if (hasScrubber) {
+            ukCoveredHsfo += extraCanalDays * (profile.hsfo.canal || 0) * avgUkSeaFactor;
+          } else {
+            ukCoveredVlsfo += extraCanalDays * (profile.vlsfo.canal || 0) * avgUkSeaFactor;
+          }
+        }
+      }
+    }
+
+    const ukCoveredFuel = { hsfo: ukCoveredHsfo, vlsfo: ukCoveredVlsfo, lsmgo: ukCoveredLsmgo };
+    const ukCo2 = ukCo2FromFuel(ukCoveredFuel);
+    const ukChargeableCo2 = ukCo2 * ukPhaseIn;
+    const ukEtsCost = ukChargeableCo2 * (bunker.co2Price || 0);
+    const ukVoyageCoverage = ukTotalSeaTime > 0 ? ukWeightedSeaFactor / ukTotalSeaTime : 0;
+    const ukEtsResult: UkEtsResult = {
+      phaseIn: ukPhaseIn,
+      ukCoveredFuel,
+      ukCoveredCo2: ukCo2,
+      chargeableCo2: ukChargeableCo2,
+      ukEtsCost,
+      ukVoyageCoverage,
+      legBreakdown: ukEtsLegDetails,
+    };
+
+    vlog(`\n[Step 12b] UK ETS (bottom-up):
+    UK Fuel: HSFO=${ukCoveredHsfo.toFixed(2)}t, VLSFO=${ukCoveredVlsfo.toFixed(2)}t, LSMGO=${ukCoveredLsmgo.toFixed(2)}t
+    UK CO₂ from fuel = ${ukCo2.toFixed(2)} mt × ${ukPhaseIn} (phase-in) = ${ukChargeableCo2.toFixed(2)} mt
+    UK ETS Cost = ${ukChargeableCo2.toFixed(2)} × $${bunker.co2Price} = $${ukEtsCost.toFixed(2)}`);
     
     const euCoveredFuel = { hsfo: euCoveredHsfo, vlsfo: euCoveredVlsfo, lsmgo: euCoveredLsmgo };
     
