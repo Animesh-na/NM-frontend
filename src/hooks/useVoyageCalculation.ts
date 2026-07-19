@@ -414,15 +414,15 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       };
       
       if (operation === "load" || operation === "loading") {
-        loadingDays += workingDays;
-        idleDays += turnExtraDays;
-        addPortDays(workingDays, turnExtraDays);
-        vlog(`    → LOADING (${legPortFuel}): workingDays=${workingDays} added to loadingDays, turnExtra=${turnExtraDays} added to idleDays`);
+        const totalLoadDays = workingDays + turnExtraDays;
+        loadingDays += totalLoadDays;
+        addPortDays(totalLoadDays, 0);
+        vlog(`    → LOADING (${legPortFuel}): totalDays=${totalLoadDays} (working=${workingDays} + turnExtra=${turnExtraDays}) all counted at load rate`);
       } else if (operation === "disch" || operation === "discharging") {
-        dischargingDays += workingDays;
-        idleDays += turnExtraDays;
-        addDischDays(workingDays, turnExtraDays);
-        vlog(`    → DISCHARGING (${legPortFuel}): workingDays=${workingDays} added to dischargingDays, turnExtra=${turnExtraDays} added to idleDays`);
+        const totalDischDays = workingDays + turnExtraDays;
+        dischargingDays += totalDischDays;
+        addDischDays(totalDischDays, 0);
+        vlog(`    → DISCHARGING (${legPortFuel}): totalDays=${totalDischDays} (working=${workingDays} + turnExtra=${turnExtraDays}) all counted at discharge rate`);
       } else if (operation === "waiting" || operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
@@ -1040,19 +1040,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           };
           
           if (legOperation === 'load' || legOperation === 'loading') {
-            addFuel(legPortFuel, workingDaysLeg * (profile[legPortFuel]?.load || 0));
-            addFuel(legPortFuel, turnTimeDays * (profile[legPortFuel]?.idle || 0));
-            addFuel(legPortFuel, extraTimeDays * (profile[legPortFuel]?.idle || 0));
-            portLsmgo += workingDaysLeg * (aeRates.load || 0);
-            portLsmgo += turnTimeDays * (aeRates.idle || 0);
-            portLsmgo += extraTimeDays * (aeRates.idle || 0);
+            const totalLoadDays = workingDaysLeg + turnTimeDays + extraTimeDays;
+            addFuel(legPortFuel, totalLoadDays * (profile[legPortFuel]?.load || 0));
+            portLsmgo += totalLoadDays * (aeRates.load || 0);
           } else if (legOperation === 'disch' || legOperation === 'discharging') {
-            addFuel(legPortFuel, workingDaysLeg * (profile[legPortFuel]?.discharge || 0));
-            addFuel(legPortFuel, turnTimeDays * (profile[legPortFuel]?.idle || 0));
-            addFuel(legPortFuel, extraTimeDays * (profile[legPortFuel]?.idle || 0));
-            portLsmgo += workingDaysLeg * (aeRates.discharge || 0);
-            portLsmgo += turnTimeDays * (aeRates.idle || 0);
-            portLsmgo += extraTimeDays * (aeRates.idle || 0);
+            const totalDischDays = workingDaysLeg + turnTimeDays + extraTimeDays;
+            addFuel(legPortFuel, totalDischDays * (profile[legPortFuel]?.discharge || 0));
+            portLsmgo += totalDischDays * (aeRates.discharge || 0);
           } else if (legOperation === 'bunkering') {
             addFuel(legPortFuel, (leg.portDays || 0) * (profile[legPortFuel]?.idle || 0));
             portLsmgo += (leg.portDays || 0) * (aeRates.idle || 0);
