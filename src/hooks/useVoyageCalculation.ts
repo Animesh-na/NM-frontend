@@ -111,6 +111,7 @@ export interface VoyageInputs {
   extraTime?: ExtraTimeData;
   applyEuaImpact?: boolean;
   applyFuelEuImpact?: boolean;
+  applyUkEtsImpact?: boolean;
   /** Optional per-cargo entries used for per-cargo gross-rate breakdown. */
   cargos?: Array<{
     id: number;
@@ -222,6 +223,7 @@ export interface VoyageResults {
   ukChargeableCo2: number;
   ukEtsVoyageCoverage: number;
   ukEtsPhaseIn: number;
+  ukEtsFreightImpact: number;
   
   // Validation
   emissionWarnings: string[];
@@ -1335,6 +1337,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let regulatoryCost = 0;
     if (inputs.applyEuaImpact) regulatoryCost += euaCo2Cost;
     if (inputs.applyFuelEuImpact) regulatoryCost += fuelEuResult.totalPenalty;
+    if (inputs.applyUkEtsImpact) regulatoryCost += ukEtsCost;
 
     const adjustedVoyageCostExclHire = voyageCostExclHire + regulatoryCost;
     const adjustedVoyageCostInclHire = voyageCostInclHire + regulatoryCost;
@@ -1719,6 +1722,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       ukChargeableCo2,
       ukEtsVoyageCoverage: ukVoyageCoverage,
       ukEtsPhaseIn: ukPhaseIn,
+      ukEtsFreightImpact: cargo.quantity > 0 ? ukEtsCost / cargo.quantity : 0,
     };
 
     // Final compact summary table — easy to scan in DevTools.

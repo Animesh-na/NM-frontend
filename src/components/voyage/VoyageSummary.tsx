@@ -10,7 +10,7 @@ import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 
 
 export function VoyageSummary() {
-  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact, validationIssues, hasErrors } = useVoyageContext();
+  const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact, applyUkEtsImpact, setApplyUkEtsImpact, validationIssues, hasErrors } = useVoyageContext();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
@@ -487,6 +487,26 @@ export function VoyageSummary() {
                 ${formatCurrency(results.ukEtsCost)}
               </span>
             </div>
+            <div className="flex justify-between items-center pt-1">
+              <span className="text-muted-foreground flex items-center">
+                UK ETS Freight Impact
+                <InfoTooltip
+                  formula="UK ETS Cost / Cargo Quantity"
+                  description="UK ETS cost per metric ton of cargo"
+                />
+              </span>
+              <span className="font-mono tabular-nums font-semibold text-regulatory">
+                ${results.ukEtsFreightImpact.toFixed(2)} /mt
+              </span>
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox
+                checked={applyUkEtsImpact}
+                onCheckedChange={(v) => setApplyUkEtsImpact(!!v)}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-[9px] text-regulatory font-medium">Apply UK ETS Freight Impact</span>
+            </label>
           </div>
 
           {/* EUA Freight Impact with checkbox */}

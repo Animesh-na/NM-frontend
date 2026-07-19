@@ -190,6 +190,8 @@ interface VoyageContextValue {
   setApplyEuaImpact: (v: boolean) => void;
   applyFuelEuImpact: boolean;
   setApplyFuelEuImpact: (v: boolean) => void;
+  applyUkEtsImpact: boolean;
+  setApplyUkEtsImpact: (v: boolean) => void;
   vessel: VesselData;
   setVessel: (vessel: VesselData) => void;
   
@@ -839,6 +841,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   );
   const [applyFuelEuImpact, setApplyFuelEuImpact] = useState(() =>
     initialData?.applyFuelEuImpact === true
+  );
+  const [applyUkEtsImpact, setApplyUkEtsImpact] = useState(() =>
+    initialData?.applyUkEtsImpact === true
   );
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [departureUtc, setDepartureUtc] = useState(() =>
@@ -1790,6 +1795,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     },
     applyEuaImpact,
     applyFuelEuImpact,
+    applyUkEtsImpact,
   };
 
   const results = useVoyageCalculation(voyageInputs);
@@ -1866,6 +1872,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         setApplyEuaImpact,
         applyFuelEuImpact,
         setApplyFuelEuImpact,
+        applyUkEtsImpact,
+        setApplyUkEtsImpact,
         vessel,
         setVessel,
         sequence,
@@ -1932,6 +1940,8 @@ export function useVoyageContext() {
       setApplyEuaImpact: () => {},
       applyFuelEuImpact: false,
       setApplyFuelEuImpact: () => {},
+      applyUkEtsImpact: false,
+      setApplyUkEtsImpact: () => {},
       vessel: defaultVessel,
       setVessel: () => {},
       sequence: [],
@@ -2055,6 +2065,7 @@ export function useVoyageContext() {
         ukChargeableCo2: 0,
         ukEtsVoyageCoverage: 0,
         ukEtsPhaseIn: 0,
+        ukEtsFreightImpact: 0,
       },
       cargoValidation: { errors: [], hasErrors: false, usesExplicitMapping: false },
       validationIssues: [],
