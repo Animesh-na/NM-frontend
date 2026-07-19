@@ -461,6 +461,34 @@ export function VoyageSummary() {
             </div>
           </div>
 
+          {/* UK ETS (independent from EU ETS) */}
+          <div className="mt-1 pt-1 border-t border-border space-y-1">
+            <div className="flex justify-between text-[10px]">
+              <span className="text-muted-foreground flex items-center">
+                UK ETS Coverage
+                <InfoTooltip
+                  formula="GB↔GB=100%, NI↔NI=100%, GB↔NI=50%, else 0%. Port stay = 100% if uk_ets."
+                  description="UK ETS uses uk_zone (gb/ni) for sea legs and uk_ets flag for port stays."
+                />
+              </span>
+              <span className="font-mono">
+                {(results.ukEtsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.ukEtsPhaseIn * 100).toFixed(0)}%)
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">UK Chargeable CO₂</span>
+              <span className="font-mono tabular-nums">
+                {results.ukChargeableCo2.toFixed(2)} t
+              </span>
+            </div>
+            <div className="flex justify-between text-[9px]">
+              <span className="text-muted-foreground pl-2">UK ETS cost</span>
+              <span className="font-mono tabular-nums font-semibold text-primary">
+                ${formatCurrency(results.ukEtsCost)}
+              </span>
+            </div>
+          </div>
+
           {/* EUA Freight Impact with checkbox */}
           <div className="mt-1 pt-1 border-t border-border space-y-1">
             <div className="flex justify-between items-center">
