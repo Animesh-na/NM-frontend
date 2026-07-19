@@ -1722,6 +1722,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       ukChargeableCo2,
       ukEtsVoyageCoverage: ukVoyageCoverage,
       ukEtsPhaseIn: ukPhaseIn,
+      ukEtsFreightImpact: cargo.quantity > 0 ? ukEtsCost / cargo.quantity : 0,
     };
 
     // Final compact summary table — easy to scan in DevTools.
