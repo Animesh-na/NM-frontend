@@ -105,7 +105,7 @@ export async function searchVessels(
     if (typeId) {
       params.type_id = typeId;
     }
-    const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels/search", params, { authenticated: true });
+    const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels", params, { authenticated: true });
     return data.vessels || [];
   } catch (error) {
     console.error("Failed to search vessels:", error);
