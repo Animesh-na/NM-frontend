@@ -215,6 +215,13 @@ export interface VoyageResults {
   
   // Leg-by-leg ETS breakdown
   etsLegDetails: EtsLegDetail[];
+
+  // UK ETS metrics (independent from EU ETS)
+  ukEtsResult: UkEtsResult;
+  ukEtsCost: number;
+  ukChargeableCo2: number;
+  ukEtsVoyageCoverage: number;
+  ukEtsPhaseIn: number;
   
   // Validation
   emissionWarnings: string[];
