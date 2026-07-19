@@ -1740,6 +1740,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       extraTimeHours: effExtraTime || 0, // Extra time in hours
       portFuelType: row.portFuelType, // Port fuel type per leg
       isEuEea: row.isEuEea, // EU/EEA flag from port API
+      ukEts: row.ukEts,
+      ukZone: row.ukZone ?? null,
       // Pass through for per-cargo route-bounded allocation
       type: row.type,
       assignedCargoIds: row.assignedCargoIds,
