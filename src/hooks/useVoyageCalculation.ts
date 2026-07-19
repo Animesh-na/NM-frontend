@@ -935,6 +935,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let euCoveredVlsfo = 0;
     let euCoveredLsmgo = 0;
     const etsLegDetails: EtsLegDetail[] = [];
+
+    // ── UK ETS accumulators (independent from EU ETS) ──
+    const ukPhaseIn = getUkEtsPhaseIn();
+    let ukCoveredHsfo = 0;
+    let ukCoveredVlsfo = 0;
+    let ukCoveredLsmgo = 0;
+    const ukEtsLegDetails: UkEtsLegDetail[] = [];
+    let prevUkZone: UkZone = null;
+    let ukLegIdx = 0;
+    let ukTotalSeaTime = 0;
+    let ukWeightedSeaFactor = 0;
     
     {
       let prevIsEuEea = false;
