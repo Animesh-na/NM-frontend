@@ -80,6 +80,8 @@ export interface BunkerData {
   lsmgo: { price: number; robStart: number };
   co2Price: number;
   rewardFactor?: number; // Multiplier for wind-assisted propulsion (default 1.0)
+  euEtsPrice?: number;
+  ukEtsPrice?: number;
 }
 
 // Extra time data for calculation
@@ -1253,7 +1255,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const ukCoveredFuel = { hsfo: ukCoveredHsfo, vlsfo: ukCoveredVlsfo, lsmgo: ukCoveredLsmgo };
     const ukCo2 = ukCo2FromFuel(ukCoveredFuel);
     const ukChargeableCo2 = ukCo2 * ukPhaseIn;
-    const ukEtsCost = ukChargeableCo2 * (bunker.co2Price || 0);
+    const ukEtsPriceEff = bunker.ukEtsPrice || bunker.co2Price || 0;
+    const ukEtsCost = ukChargeableCo2 * ukEtsPriceEff;
     const ukVoyageCoverage = ukTotalSeaTime > 0 ? ukWeightedSeaFactor / ukTotalSeaTime : 0;
     const ukEtsResult: UkEtsResult = {
       phaseIn: ukPhaseIn,
@@ -1268,7 +1271,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     vlog(`\n[Step 12b] UK ETS (bottom-up):
     UK Fuel: HSFO=${ukCoveredHsfo.toFixed(2)}t, VLSFO=${ukCoveredVlsfo.toFixed(2)}t, LSMGO=${ukCoveredLsmgo.toFixed(2)}t
     UK CO₂ from fuel = ${ukCo2.toFixed(2)} mt × ${ukPhaseIn} (phase-in) = ${ukChargeableCo2.toFixed(2)} mt
-    UK ETS Cost = ${ukChargeableCo2.toFixed(2)} × $${bunker.co2Price} = $${ukEtsCost.toFixed(2)}`);
+    UK ETS Cost = ${ukChargeableCo2.toFixed(2)} × $${ukEtsPriceEff} = $${ukEtsCost.toFixed(2)}`);
     
     const euCoveredFuel = { hsfo: euCoveredHsfo, vlsfo: euCoveredVlsfo, lsmgo: euCoveredLsmgo };
     
@@ -1284,7 +1287,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       euCoveredLsmgo * CO2_EMISSION_FACTORS.lsmgo;
     
     totalChargeableCo2 = euCo2FromFuel * phaseInPercentage;
-    etsCost = totalChargeableCo2 * (bunker.co2Price || 0);
+    const euEtsPriceEff = bunker.euEtsPrice || bunker.co2Price || 0;
+    etsCost = totalChargeableCo2 * euEtsPriceEff;
     
     // Finalize ETS result with bottom-up values
     etsResult = {
@@ -1300,7 +1304,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     EU Fuel: HSFO=${euCoveredHsfo.toFixed(2)}t, VLSFO=${euCoveredVlsfo.toFixed(2)}t, LSMGO=${euCoveredLsmgo.toFixed(2)}t
     EU CO₂ from fuel = (${euCoveredHsfo.toFixed(2)}×${CO2_EMISSION_FACTORS.hsfo}) + (${euCoveredVlsfo.toFixed(2)}×${CO2_EMISSION_FACTORS.vlsfo}) + (${euCoveredLsmgo.toFixed(2)}×${CO2_EMISSION_FACTORS.lsmgo}) = ${euCo2FromFuel.toFixed(2)} mt
     Chargeable CO₂ EUA = ${euCo2FromFuel.toFixed(2)} × ${phaseInPercentage} (phase-in) = ${totalChargeableCo2.toFixed(2)} mt
-    ETS Cost = ${totalChargeableCo2.toFixed(2)} × $${bunker.co2Price} = $${etsCost.toFixed(2)}`);
+    ETS Cost = ${totalChargeableCo2.toFixed(2)} × $${euEtsPriceEff} = $${etsCost.toFixed(2)}`);
     
     // Total CO2 cost (all CO2 × price)
     const totalCo2Cost = totalCo2 * (bunker.co2Price || 0);

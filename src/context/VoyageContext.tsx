@@ -330,6 +330,9 @@ interface BunkerState {
   
   // CO2 price for emission compliance
   co2Price: number;
+  // Separate carbon prices per scheme (fallback to co2Price when 0/undefined)
+  euEtsPrice: number;
+  ukEtsPrice: number;
   
   // Fuel accounting mode
   fuelMode: FuelAccountingMode;
@@ -765,6 +768,8 @@ const initialBunker: BunkerState = {
   vlsfo: { price: 450, robStart: 1234 },
   lsmgo: { price: 750, robStart: 0 },
   co2Price: 0,
+  euEtsPrice: 0,
+  ukEtsPrice: 0,
   fuelMode: "average",
   ignoreBOB: false,
   rewardFactor: 1.0,
@@ -1304,6 +1309,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       vlsfo: { price: 0, robStart: 0 },
       lsmgo: { price: 0, robStart: 0 },
       co2Price: 0,
+      euEtsPrice: 0,
+      ukEtsPrice: 0,
       fuelMode: "average",
       ignoreBOB: false,
       rewardFactor: 1.0,
@@ -1762,6 +1769,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       vlsfo: { price: bunker.vlsfo.price, robStart: bunker.vlsfo.robStart },
       lsmgo: { price: bunker.lsmgo.price, robStart: bunker.lsmgo.robStart },
       co2Price: bunker.co2Price,
+      euEtsPrice: bunker.euEtsPrice,
+      ukEtsPrice: bunker.ukEtsPrice,
       rewardFactor: bunker.rewardFactor,
     },
     hireRate,
@@ -1969,6 +1978,8 @@ export function useVoyageContext() {
         vlsfo: { price: 0, robStart: 0 }, 
         lsmgo: { price: 0, robStart: 0 }, 
         co2Price: 0,
+        euEtsPrice: 0,
+        ukEtsPrice: 0,
         fuelMode: "average" as const,
         ignoreBOB: false,
         rewardFactor: 1.0,
