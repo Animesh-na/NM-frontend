@@ -1713,6 +1713,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       etsLegDetails,
       perCargoBreakdown,
       repositioningCost,
+      // UK ETS
+      ukEtsResult,
+      ukEtsCost,
+      ukChargeableCo2,
+      ukEtsVoyageCoverage: ukVoyageCoverage,
+      ukEtsPhaseIn: ukPhaseIn,
     };
 
     // Final compact summary table — easy to scan in DevTools.
