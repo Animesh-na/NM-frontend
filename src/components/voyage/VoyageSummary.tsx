@@ -461,8 +461,38 @@ export function VoyageSummary() {
             </div>
           </div>
 
-          {/* UK ETS (independent from EU ETS) */}
-          <div className="mt-1 pt-1 border-t border-border space-y-1">
+          {/* EUA Freight Impact (own section) */}
+          <div className="mt-2 pt-2 border-t border-border space-y-1">
+            <div className="flex items-center gap-1 mb-1">
+              <span className="font-medium">EUA Freight Impact</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center">
+                EUA Freight Impact
+                <InfoTooltip
+                  formula="EUA CO₂ Cost / Cargo Quantity"
+                  description="EU ETS cost per metric ton of cargo"
+                />
+              </span>
+              <span className="font-mono tabular-nums font-semibold text-regulatory">
+                ${results.euaFreightImpact.toFixed(2)} /mt
+              </span>
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox
+                checked={applyEuaImpact}
+                onCheckedChange={(v) => setApplyEuaImpact(!!v)}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-[9px] text-regulatory font-medium">Apply EUA Freight Impact</span>
+            </label>
+          </div>
+
+          {/* UK ETS (independent section) */}
+          <div className="mt-2 pt-2 border-t border-border space-y-1">
+            <div className="flex items-center gap-1 mb-1">
+              <span className="font-medium">UK ETS</span>
+            </div>
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground flex items-center">
                 UK ETS Coverage
@@ -509,29 +539,6 @@ export function VoyageSummary() {
             </label>
           </div>
 
-          {/* EUA Freight Impact with checkbox */}
-          <div className="mt-1 pt-1 border-t border-border space-y-1">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground flex items-center">
-                EUA Freight Impact
-                <InfoTooltip 
-                  formula="EUA CO₂ Cost / Cargo Quantity" 
-                  description="EU ETS cost per metric ton of cargo"
-                />
-              </span>
-              <span className="font-mono tabular-nums font-semibold text-regulatory">
-                ${results.euaFreightImpact.toFixed(2)} /mt
-              </span>
-            </div>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <Checkbox
-                checked={applyEuaImpact}
-                onCheckedChange={(v) => setApplyEuaImpact(!!v)}
-                className="h-3.5 w-3.5"
-              />
-              <span className="text-[9px] text-regulatory font-medium">Apply EUA Freight Impact</span>
-            </label>
-          </div>
         </div>
 
         {/* FuelEU Maritime Section */}
