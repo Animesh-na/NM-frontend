@@ -1337,6 +1337,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let regulatoryCost = 0;
     if (inputs.applyEuaImpact) regulatoryCost += euaCo2Cost;
     if (inputs.applyFuelEuImpact) regulatoryCost += fuelEuResult.totalPenalty;
+    if (inputs.applyUkEtsImpact) regulatoryCost += ukEtsCost;
 
     const adjustedVoyageCostExclHire = voyageCostExclHire + regulatoryCost;
     const adjustedVoyageCostInclHire = voyageCostInclHire + regulatoryCost;
