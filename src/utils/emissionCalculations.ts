@@ -447,58 +447,21 @@ export function requiresCiiCorrectiveAction(rating: string): boolean {
 }
 
 // ===========================================
-// FUEL EU MARITIME COMPLIANCE (Sheet-Aligned)
+// FUEL EU MARITIME COMPLIANCE
 // ===========================================
-
-// Static FuelEU cost per ton of bunker ($/ton) — from sheet
-export const FUEL_EU_COST_PER_TON: Record<string, number> = {
-  hsfo: 71.64,
-  vlsfo: 61.94,
-  lsmgo: 45.37,
-};
-
-export interface FuelEuFuelDetail {
-  costPerTon: number;     // static $/ton from sheet
-  euQuantity: number;     // EU-covered fuel quantity (t)
-  cost: number;           // euQuantity × costPerTon ($)
-}
-
-export interface FuelEuResult {
-  rewardFactor: number;
-  fuels: {
-    hsfo: FuelEuFuelDetail;
-    vlsfo: FuelEuFuelDetail;
-    lsmgo: FuelEuFuelDetail;
-  };
-  totalPenalty: number;
-  costPerTon: { hsfo: number; vlsfo: number; lsmgo: number };
-}
-
-/**
- * Calculate FuelEU Maritime cost using sheet-aligned static $/ton values.
- *
- * FuelEU cost = EU_fuel × static_cost_per_ton
- * Total = sum of all fuel costs
- */
-export function calculateFuelEuPenalty(
-  euCoveredFuel: { hsfo: number; vlsfo: number; lsmgo: number },
-  rewardFactor: number = 1.0,
-  _year?: number
-): FuelEuResult {
-  const calc = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo'): FuelEuFuelDetail => {
-    const costPerTon = FUEL_EU_COST_PER_TON[fuelType];
-    const qty = euCoveredFuel[fuelType];
-    return { costPerTon, euQuantity: qty, cost: qty * costPerTon };
-  };
-
-  const hsfo = calc('hsfo');
-  const vlsfo = calc('vlsfo');
-  const lsmgo = calc('lsmgo');
-
-  return {
-    rewardFactor,
-    fuels: { hsfo, vlsfo, lsmgo },
-    totalPenalty: hsfo.cost + vlsfo.cost + lsmgo.cost,
-    costPerTon: { hsfo: hsfo.costPerTon, vlsfo: vlsfo.costPerTon, lsmgo: lsmgo.costPerTon },
-  };
-}
+// The FuelEU Maritime module lives in its own file to keep it fully
+// independent from EU ETS / UK ETS / ECA / fuel-consumption logic.
+// We re-export from here for backwards compatibility with existing
+// imports (calculateFuelEuPenalty, FuelEuResult, FuelEuFuelDetail).
+export {
+  calculateFuelEu as calculateFuelEuPenalty,
+  FUEL_EU_PROPERTIES,
+  FUEL_EU_GHG_LIMITS,
+  getFuelEuGhgLimit,
+} from './fuelEuMaritime';
+export type {
+  FuelEuResult,
+  FuelEuFuelDetail,
+  FuelEuLegInput,
+  FuelEuLegOutput,
+} from './fuelEuMaritime';
