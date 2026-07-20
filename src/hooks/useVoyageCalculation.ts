@@ -996,7 +996,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           // Sea EU factor uses the bracketing LOAD↔DISCHARGE ports, NOT
           // adjacent ports. Passing/bunkering ports inherit the factor of
           // the surrounding cargo movement.
-          seaEuFactor = computeSeaEuFactor(index);
+          // Also constrained to the commercial voyage window
+          // (first load → last discharge).
+          seaEuFactor = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
           if (!prevPortUnloc) {
             originPortName = currentPortName;
             originUnloc = currentPortKey;
@@ -1042,7 +1044,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // Per EU ETS spec: port stay coverage depends ONLY on whether the port
         // itself is in the EU (port.eu_zone). 100% if EU, 0% otherwise.
         // Independent of the sea leg that arrived here.
-        const portEuFactor = leg.isEuEea === true ? 1.0 : 0.0;
+        // Port stays are only counted within the commercial voyage window
+        // (first load port through last discharge port, inclusive).
+        const portEuFactor = (leg.isEuEea === true && inEuPortWindow(index)) ? 1.0 : 0.0;
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
