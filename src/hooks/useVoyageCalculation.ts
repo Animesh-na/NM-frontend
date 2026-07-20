@@ -777,9 +777,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const legCoverages: number[] = []; // Store per-leg EU coverage
     let previousPort = '';
 
-    // EU ETS sea-leg coverage is determined by the adjacent cargo ports of call
-    // that bracket the sea segment. Passing/bunkering/open/repositioning rows do
-    // not create a new ETS bracket; they inherit the nearest cargo-operation ports.
+    // EU ETS sea-leg coverage is determined independently by the adjacent ports
+    // of call that bracket each sea segment. Intermediate stops are included.
     const isLoadOp = (op?: string) => {
       const o = (op || '').toLowerCase();
       return o === 'load' || o === 'loading';
@@ -998,9 +997,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // ── 1. SEA FUEL for this segment ──
         if (currentPortKey) {
           const currentIsEuEea = leg.isEuEea === true;
-          // Sea EU factor uses the bracketing LOAD↔DISCHARGE ports, NOT
-          // adjacent ports. Passing/bunkering ports inherit the factor of
-          // the surrounding cargo movement.
+          // Sea EU factor uses the adjacent origin and destination ports for
+          // this segment. Intermediate passing/bunkering stops are evaluated.
           // Also constrained to the commercial voyage window
           // (first load → last discharge).
           seaEuFactor = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
@@ -1110,8 +1108,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         if (currentPortKey && hasSeaOrPort && withinEuWindow && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
           const isPortOnly = index === firstLoadIdx;
           const coveragePct = seaEuFactor * 100;
-          // Coverage label reflects the bracketing cargo-operation pair
-          // (load/discharge to next cargo call), not passing/bunkering ports.
+          // Coverage label reflects this adjacent port-to-port segment.
           const originEu = bracketOriginIsEu[index];
           const destEu = bracketDestIsEu[index];
           let coverageLabel = '';
