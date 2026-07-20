@@ -814,6 +814,25 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       return 0;
     };
 
+    // ── Commercial voyage window for EU ETS ──
+    // EU ETS applies only between the first LOAD operation and the last
+    // DISCHARGE operation. Ballast positioning before first load and
+    // repositioning after last discharge are excluded entirely.
+    let firstLoadIdx = -1;
+    let lastDischargeIdx = -1;
+    for (let i = 0; i < sequence.length; i++) {
+      const op = (sequence[i].operation || '').toLowerCase();
+      if (firstLoadIdx === -1 && (op === 'load' || op === 'loading')) firstLoadIdx = i;
+      if (op === 'disch' || op === 'discharging') lastDischargeIdx = i;
+    }
+    const euWindowValid = firstLoadIdx !== -1 && lastDischargeIdx !== -1 && firstLoadIdx <= lastDischargeIdx;
+    // Sea leg at index `i` corresponds to sailing INTO port at `i`.
+    // Include sea legs strictly AFTER first load (the sail into first load is excluded)
+    // and UP TO AND INCLUDING the sail into last discharge.
+    const inEuSeaWindow = (i: number) => euWindowValid && i > firstLoadIdx && i <= lastDischargeIdx;
+    // Port stays include first load through last discharge (inclusive).
+    const inEuPortWindow = (i: number) => euWindowValid && i >= firstLoadIdx && i <= lastDischargeIdx;
+
     sequence.forEach((leg, index) => {
       const currentPortKey = getLegPortKey(leg);
       const currentPortLabel = getLegPortLabel(leg);
@@ -823,7 +842,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           // Normal segment: previousPort → currentPort
           const legSeaTime = leg.seaTime || 0;
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
-          const coverage = computeSeaEuFactor(index);
+          const coverage = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
 
           voyageLegs.push({
             origin: previousPort,
@@ -835,7 +854,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const nextLeg = sequence.find((s, si) => si > index && getLegPortKey(s));
           const legSeaTime = leg.seaTime || 0;
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
-          const coverage = computeSeaEuFactor(index);
+          const coverage = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
 
           if (legSeaTime > 0) {
             voyageLegs.push({
@@ -977,7 +996,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           // Sea EU factor uses the bracketing LOAD↔DISCHARGE ports, NOT
           // adjacent ports. Passing/bunkering ports inherit the factor of
           // the surrounding cargo movement.
-          seaEuFactor = computeSeaEuFactor(index);
+          // Also constrained to the commercial voyage window
+          // (first load → last discharge).
+          seaEuFactor = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
           if (!prevPortUnloc) {
             originPortName = currentPortName;
             originUnloc = currentPortKey;
@@ -1023,7 +1044,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // Per EU ETS spec: port stay coverage depends ONLY on whether the port
         // itself is in the EU (port.eu_zone). 100% if EU, 0% otherwise.
         // Independent of the sea leg that arrived here.
-        const portEuFactor = leg.isEuEea === true ? 1.0 : 0.0;
+        // Port stays are only counted within the commercial voyage window
+        // (first load port through last discharge port, inclusive).
+        const portEuFactor = (leg.isEuEea === true && inEuPortWindow(index)) ? 1.0 : 0.0;
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
@@ -1081,7 +1104,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const originEu = bracketOriginIsEu[index];
           const destEu = bracketDestIsEu[index];
           let coverageLabel = '';
-          if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
+          if (!inEuSeaWindow(index) && (leg.seaTime || 0) > 0) {
+            coverageLabel = index <= firstLoadIdx
+              ? 'Before first load: excluded'
+              : 'After last discharge: excluded';
+          } else if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
           else if (seaEuFactor === 0.5) {
             coverageLabel = originEu
               ? 'EU → Non-EU: 50%'
@@ -1093,7 +1120,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           }
           
           // Port coverage label — port stay uses its own EU flag (100% EU / 0% non-EU)
-          const portLabel = leg.portDays > 0 ? ` | Port: ${portEuFactor * 100}%` : '';
+          const portLabel = leg.portDays > 0
+            ? (inEuPortWindow(index)
+                ? ` | Port: ${portEuFactor * 100}%`
+                : ' | Port: excluded (outside cargo voyage)')
+            : '';
           
           const chargeableCo2 = 
             legChargeHsfo * CO2_EMISSION_FACTORS.hsfo +
