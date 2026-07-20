@@ -706,23 +706,36 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
 
       {/* Result Summary */}
       <div className="mt-6 pt-4 border-t border-border">
-        <h3 className="text-sm font-medium mb-3">Summary Results</h3>
-        <div className="grid grid-cols-5 gap-3">
+        <h3 className="text-sm font-medium mb-3">Regulatory Summary — EU ETS · UK ETS · FuelEU</h3>
+        <div className="grid grid-cols-3 gap-3 mb-3">
           <div className="bg-muted/50 rounded-lg p-3 text-center">
             <div className="text-xs text-muted-foreground">Total CO₂</div>
             <div className="font-mono font-semibold text-lg">{results.totalCo2.toFixed(1)} t</div>
+            <div className="text-[10px] text-muted-foreground mt-1">All voyage fuel</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <div className="text-xs text-muted-foreground">Chargeable CO₂ EUA</div>
+            <div className="text-xs text-muted-foreground">EU ETS Chargeable</div>
             <div className="font-mono font-semibold text-lg">{results.chargeableCo2.toFixed(1)} t</div>
+            <div className="text-[10px] text-muted-foreground mt-1">{(results.etsVoyageCoverage * 100).toFixed(0)}% cov · {(results.etsPhaseIn * 100).toFixed(0)}% phase-in</div>
           </div>
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">UK ETS Chargeable</div>
+            <div className="font-mono font-semibold text-lg">{results.ukChargeableCo2.toFixed(1)} t</div>
+            <div className="text-[10px] text-muted-foreground mt-1">{(results.ukEtsVoyageCoverage * 100).toFixed(0)}% cov · {(results.ukEtsPhaseIn * 100).toFixed(0)}% phase-in</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-3">
           <div className="bg-primary/10 rounded-lg p-3 text-center">
-            <div className="text-xs text-muted-foreground">ETS Cost</div>
+            <div className="text-xs text-muted-foreground">EU ETS Cost</div>
             <div className="font-mono font-semibold text-lg text-primary">€{results.etsCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
           </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <div className="text-xs text-muted-foreground">Actual CII</div>
-            <div className="font-mono font-semibold text-lg">{results.afrCii.toFixed(2)}</div>
+          <div className="bg-red-500/10 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">UK ETS Cost</div>
+            <div className="font-mono font-semibold text-lg text-red-600">${results.ukEtsCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+          </div>
+          <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">FuelEU Penalty</div>
+            <div className="font-mono font-semibold text-lg text-emerald-700">€{results.fuelEuTotalPenalty.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
           </div>
           <div className={`rounded-lg p-3 text-center ${getCiiColor(results.ciiRating)}`}>
             <div className="text-xs text-white/80">CII Rating</div>
