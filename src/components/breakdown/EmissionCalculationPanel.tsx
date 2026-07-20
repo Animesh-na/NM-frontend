@@ -28,6 +28,8 @@ interface BunkerState {
   euEtsHsfo: number;
   euEtsVlsfo: number;
   euEtsLsmgo: number;
+  euEtsPrice?: number;
+  ukEtsPrice?: number;
 }
 
 interface SequenceRow {
