@@ -1104,7 +1104,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const originEu = bracketOriginIsEu[index];
           const destEu = bracketDestIsEu[index];
           let coverageLabel = '';
-          if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
+          if (!inEuSeaWindow(index) && (leg.seaTime || 0) > 0) {
+            coverageLabel = index <= firstLoadIdx
+              ? 'Before first load: excluded'
+              : 'After last discharge: excluded';
+          } else if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
           else if (seaEuFactor === 0.5) {
             coverageLabel = originEu
               ? 'EU → Non-EU: 50%'
@@ -1116,7 +1120,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           }
           
           // Port coverage label — port stay uses its own EU flag (100% EU / 0% non-EU)
-          const portLabel = leg.portDays > 0 ? ` | Port: ${portEuFactor * 100}%` : '';
+          const portLabel = leg.portDays > 0
+            ? (inEuPortWindow(index)
+                ? ` | Port: ${portEuFactor * 100}%`
+                : ' | Port: excluded (outside cargo voyage)')
+            : '';
           
           const chargeableCo2 = 
             legChargeHsfo * CO2_EMISSION_FACTORS.hsfo +
