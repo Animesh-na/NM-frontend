@@ -93,7 +93,9 @@ describe("Emission Section", () => {
         seaVlsfo: 0,
         seaLsmgo: 0,
       });
-      expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Trincomalee", "Marghera"]);
+      expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Marghera"]);
+      expect(r.etsLegDetails[1].originPort).toBe("Paradip");
+      expect(r.etsLegDetails.some((leg) => leg.destPort === "Trincomalee")).toBe(false);
       expect(r.etsLegDetails.some((leg) => leg.destPort === "Gibraltar")).toBe(false);
     });
 
