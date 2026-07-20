@@ -814,6 +814,25 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       return 0;
     };
 
+    // ── Commercial voyage window for EU ETS ──
+    // EU ETS applies only between the first LOAD operation and the last
+    // DISCHARGE operation. Ballast positioning before first load and
+    // repositioning after last discharge are excluded entirely.
+    let firstLoadIdx = -1;
+    let lastDischargeIdx = -1;
+    for (let i = 0; i < sequence.length; i++) {
+      const op = (sequence[i].operation || '').toLowerCase();
+      if (firstLoadIdx === -1 && (op === 'load' || op === 'loading')) firstLoadIdx = i;
+      if (op === 'disch' || op === 'discharging') lastDischargeIdx = i;
+    }
+    const euWindowValid = firstLoadIdx !== -1 && lastDischargeIdx !== -1 && firstLoadIdx <= lastDischargeIdx;
+    // Sea leg at index `i` corresponds to sailing INTO port at `i`.
+    // Include sea legs strictly AFTER first load (the sail into first load is excluded)
+    // and UP TO AND INCLUDING the sail into last discharge.
+    const inEuSeaWindow = (i: number) => euWindowValid && i > firstLoadIdx && i <= lastDischargeIdx;
+    // Port stays include first load through last discharge (inclusive).
+    const inEuPortWindow = (i: number) => euWindowValid && i >= firstLoadIdx && i <= lastDischargeIdx;
+
     sequence.forEach((leg, index) => {
       const currentPortKey = getLegPortKey(leg);
       const currentPortLabel = getLegPortLabel(leg);
@@ -823,7 +842,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           // Normal segment: previousPort → currentPort
           const legSeaTime = leg.seaTime || 0;
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
-          const coverage = computeSeaEuFactor(index);
+          const coverage = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
 
           voyageLegs.push({
             origin: previousPort,
@@ -835,7 +854,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const nextLeg = sequence.find((s, si) => si > index && getLegPortKey(s));
           const legSeaTime = leg.seaTime || 0;
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
-          const coverage = computeSeaEuFactor(index);
+          const coverage = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
 
           if (legSeaTime > 0) {
             voyageLegs.push({
