@@ -440,7 +440,7 @@ export function VoyageSummary() {
               </span>
             </div>
             <div className="flex justify-between text-[9px]">
-              <span className="text-muted-foreground pl-2">ETS Coverage</span>
+              <span className="text-muted-foreground pl-2">Commercial Sea Coverage</span>
               <span className="font-mono">{(results.etsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.etsPhaseIn * 100).toFixed(0)}%)</span>
             </div>
             <div className="flex justify-between">

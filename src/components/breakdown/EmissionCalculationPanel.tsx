@@ -281,7 +281,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
                     <TableCell className="font-mono text-xs py-2">Leg {leg.legIndex + 1}</TableCell>
                     <TableCell className="text-xs py-2">
                       <span className={leg.originIsEu ? 'text-blue-500 font-medium' : 'text-muted-foreground'}>
-                        {leg.originPort?.substring(0, 12) || leg.originUnloc}
+                        {leg.isPortOnly ? '—' : (leg.originPort?.substring(0, 12) || leg.originUnloc)}
                       </span>
                       {leg.originIsEu && <span className="ml-1 text-[10px] bg-blue-500/10 text-blue-500 px-1 rounded">EU</span>}
                     </TableCell>
@@ -293,7 +293,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
                     </TableCell>
                     <TableCell className="text-xs text-right py-2">
                       <span className={`font-mono font-medium ${leg.coveragePct === 100 ? 'text-green-600' : leg.coveragePct === 50 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                        {leg.coveragePct}%
+                        {leg.isPortOnly ? '—' : `${leg.coveragePct}%`}
                       </span>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-right py-2">{(leg.seaVlsfo + leg.seaHsfo).toFixed(2)}</TableCell>
