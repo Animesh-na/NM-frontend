@@ -8,7 +8,8 @@
 //   GB ↔ GB : 100%
 //   NI ↔ NI : 100%
 //   GB ↔ NI : 50%
-//   any null : 0%
+//   UK ↔ non-UK (either origin or destination is UK) : 100%
+//   non-UK ↔ non-UK : 0%
 //
 // Port-stay coverage: 100% if port.uk_ets === true, else 0%.
 
@@ -34,13 +35,16 @@ export function getUkEtsPhaseIn(year?: number): number {
 
 /** Coverage % for a sea leg between two ports (by uk_zone). */
 export function getUkEtsSeaCoverage(originZone: UkZone, destZone: UkZone): number {
-  if (!originZone || !destZone) return 0;
-  const a = originZone.toLowerCase();
-  const b = destZone.toLowerCase();
-  if (a === "gb" && b === "gb") return 1.0;
-  if (a === "ni" && b === "ni") return 1.0;
+  const a = originZone ? originZone.toLowerCase() : null;
+  const b = destZone ? destZone.toLowerCase() : null;
+  const aUk = a === "gb" || a === "ni";
+  const bUk = b === "gb" || b === "ni";
+  // Neither side UK → no coverage
+  if (!aUk && !bUk) return 0;
+  // GB ↔ NI split
   if ((a === "gb" && b === "ni") || (a === "ni" && b === "gb")) return 0.5;
-  return 0;
+  // Either end is UK (UK↔UK same-zone, or UK↔non-UK inbound/outbound) → full coverage
+  return 1.0;
 }
 
 /** Coverage for the port stay itself. */
