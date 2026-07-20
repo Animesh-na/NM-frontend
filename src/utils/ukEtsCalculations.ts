@@ -5,32 +5,29 @@
 //   - uk_zone : "gb" | "ni" | null — regulatory zone
 //
 // Sea-leg coverage rules (based on origin & destination zones):
-//   GB ↔ GB : 100%
-//   NI ↔ NI : 100%
-//   GB ↔ NI : 50%
-//   UK ↔ non-UK (either origin or destination is UK) : 100%
-//   non-UK ↔ non-UK : 0%
+// UK ETS Maritime — Phase 1 (from 1 July 2026):
+//   UK ↔ UK (GB↔GB, NI↔NI)       : 100%
+//   GB ↔ NI (Irish Sea)          : 50%
+//   UK ↔ non-UK                  : 0%   (out of scope in Phase 1)
+//   UK ↔ Crown Dep / OT          : 0%   (Isle of Man, Jersey, Guernsey, Gibraltar, Bermuda, …)
+//   non-UK ↔ non-UK              : 0%
 //
-// Port-stay coverage: 100% if port.uk_ets === true, else 0%.
+// Port-stay coverage: 100% at UK ports, 0% at non-UK ports.
+// No phase-in: 100% of covered emissions are chargeable from 1 Jul 2026.
 
 import { CO2_EMISSION_FACTORS } from "./emissionCalculations";
 
 export type UkZone = "gb" | "ni" | null | undefined;
 
 // UK ETS Maritime phase-in (mirrors published UK plan; adjust when finalized).
-export const UK_ETS_PHASE_IN: Record<number, number> = {
-  2026: 0.40,
-  2027: 0.70,
-  2028: 1.00,
-  2029: 1.00,
-  2030: 1.00,
-};
+// UK ETS Maritime has NO phase-in. Owners surrender 100% of covered
+// emissions from the scheme start date (1 July 2026).
+export const UK_ETS_START = new Date("2026-07-01T00:00:00Z");
 
-export function getUkEtsPhaseIn(year?: number): number {
-  const y = year || new Date().getFullYear();
-  if (y < 2026) return 0;
-  if (y >= 2028) return 1.0;
-  return UK_ETS_PHASE_IN[y] ?? 1.0;
+export function getUkEtsPhaseIn(_year?: number): number {
+  // Kept for API compatibility; UK ETS applies at 100% once the scheme is live.
+  const now = new Date();
+  return now >= UK_ETS_START ? 1.0 : 0.0;
 }
 
 /** Coverage % for a sea leg between two ports (by uk_zone). */
@@ -39,11 +36,11 @@ export function getUkEtsSeaCoverage(originZone: UkZone, destZone: UkZone): numbe
   const b = destZone ? destZone.toLowerCase() : null;
   const aUk = a === "gb" || a === "ni";
   const bUk = b === "gb" || b === "ni";
-  // Neither side UK → no coverage
-  if (!aUk && !bUk) return 0;
-  // GB ↔ NI split
+  // Both ends must be UK for any coverage under Phase 1
+  if (!aUk || !bUk) return 0;
+  // GB ↔ NI (Irish Sea) → 50%
   if ((a === "gb" && b === "ni") || (a === "ni" && b === "gb")) return 0.5;
-  // Either end is UK (UK↔UK same-zone, or UK↔non-UK inbound/outbound) → full coverage
+  // UK ↔ UK same-zone (GB↔GB, NI↔NI) → 100%
   return 1.0;
 }
 
