@@ -269,6 +269,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
                   <TableHead className="text-xs text-right">Sea Coverage</TableHead>
                   <TableHead className="text-xs text-right">Sea VLSFO</TableHead>
                   <TableHead className="text-xs text-right">Sea LSMGO</TableHead>
+                  <TableHead className="text-xs text-right">Port Coverage</TableHead>
                   <TableHead className="text-xs text-right">Port Fuel</TableHead>
                   <TableHead className="text-xs text-right">EU VLSFO</TableHead>
                   <TableHead className="text-xs text-right">EU LSMGO</TableHead>
@@ -298,6 +299,11 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
                     </TableCell>
                     <TableCell className="font-mono text-xs text-right py-2">{(leg.seaVlsfo + leg.seaHsfo).toFixed(2)}</TableCell>
                     <TableCell className="font-mono text-xs text-right py-2">{leg.seaLsmgo.toFixed(2)}</TableCell>
+                    <TableCell className="text-xs text-right py-2">
+                      <span className={`font-mono font-medium ${leg.portCoveragePct === 100 ? 'text-green-600' : leg.portCoveragePct === 50 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                        {(leg.portVlsfo + leg.portHsfo + leg.portLsmgo) > 0 ? `${leg.portCoveragePct}%` : '—'}
+                      </span>
+                    </TableCell>
                     <TableCell className="font-mono text-xs text-right py-2">
                       {(leg.portVlsfo + leg.portHsfo + leg.portLsmgo).toFixed(2)}
                       {leg.destIsEu && <span className="ml-1 text-[10px] text-blue-500">EU</span>}
@@ -316,6 +322,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
                   <TableCell className="font-mono text-xs text-right py-2">
                     {legDetails.reduce((s, l) => s + l.seaLsmgo, 0).toFixed(2)}
                   </TableCell>
+                  <TableCell className="text-xs text-right py-2" />
                   <TableCell className="font-mono text-xs text-right py-2">
                     {legDetails.reduce((s, l) => s + l.portVlsfo + l.portHsfo + l.portLsmgo, 0).toFixed(2)}
                   </TableCell>
