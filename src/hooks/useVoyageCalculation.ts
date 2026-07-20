@@ -1053,7 +1053,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // Port stays are only counted within the commercial voyage window
         // (first load port through last discharge port, inclusive).
         const isRegulatoryPortCall = isEuRegulatoryPortCall(leg);
-        const portEuFactor = (isRegulatoryPortCall && leg.isEuEea === true && inEuPortWindow(index)) ? 1.0 : 0.0;
+        // Port stay coverage: any port (including passage/bunkering waypoints)
+        // within the commercial voyage window contributes port fuel per its own
+        // eu_zone flag. Only regulatory calls (load/disch/etc.) act as sea-leg
+        // boundaries — pssg ports keep their sailing fuel grouped into the next
+        // regulatory leg but still count their own port stay here.
+        const portEuFactor = (!!currentPortKey && leg.isEuEea === true && inEuPortWindow(index)) ? 1.0 : 0.0;
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
@@ -1105,9 +1110,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // last discharge port.
         const hasSeaOrPort = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
         const withinEuWindow = inEuSeaWindow(index) || inEuPortWindow(index);
-        if (currentPortKey && isRegulatoryPortCall && hasSeaOrPort && withinEuWindow && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
+        if (currentPortKey && hasSeaOrPort && withinEuWindow && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
           const isPortOnly = index === firstLoadIdx;
-          const coveragePct = seaEuFactor * 100;
+          // Intermediate (non-regulatory) ports — e.g. pssg / bunkering — show
+          // their port stay only. Their sailing fuel is aggregated into the
+          // next regulatory leg's row, so we render sea columns as 0 here and
+          // do NOT flush the pending sea accumulators.
+          const isIntermediateStop = !isRegulatoryPortCall && !isPortOnly;
+          const coveragePct = isIntermediateStop ? 0 : seaEuFactor * 100;
           // Coverage label reflects this adjacent port-to-port segment.
           const originEu = bracketOriginIsEu[index];
           const destEu = bracketDestIsEu[index];
@@ -1132,9 +1142,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
                 : ' | Port: excluded (outside cargo voyage)')
             : '';
           
-          const detailChargeHsfo = pendingChargeHsfo + (legPortHsfo * portEuFactor);
-          const detailChargeVlsfo = pendingChargeVlsfo + (legPortVlsfo * portEuFactor);
-          const detailChargeLsmgo = pendingChargeLsmgo + (legPortLsmgo * portEuFactor);
+          const detailChargeHsfo = (isIntermediateStop ? 0 : pendingChargeHsfo) + (legPortHsfo * portEuFactor);
+          const detailChargeVlsfo = (isIntermediateStop ? 0 : pendingChargeVlsfo) + (legPortVlsfo * portEuFactor);
+          const detailChargeLsmgo = (isIntermediateStop ? 0 : pendingChargeLsmgo) + (legPortLsmgo * portEuFactor);
           const chargeableCo2 =
             detailChargeHsfo * CO2_EMISSION_FACTORS.hsfo +
             detailChargeVlsfo * CO2_EMISSION_FACTORS.vlsfo +
@@ -1142,22 +1152,27 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
           const originIdx = bracketOriginIdx[index];
           const detailOrigin = originIdx >= 0 ? sequence[originIdx] : undefined;
+          // For intermediate stops, show the immediately preceding port as
+          // origin instead of the bracketed regulatory-port origin.
+          const intermediateOrigin = isIntermediateStop
+            ? { name: prevPortName, unloc: prevPortUnloc, isEu: prevIsEuEea }
+            : null;
           
           etsLegDetails.push({
             legIndex: legIdx++,
             isPortOnly,
-            originPort: isPortOnly ? '' : (detailOrigin ? getLegPortLabel(detailOrigin) : originPortName),
-            originUnloc: isPortOnly ? '' : (detailOrigin ? getLegPortKey(detailOrigin) : originUnloc),
-            originIsEu: isPortOnly ? false : (detailOrigin ? detailOrigin.isEuEea === true : originIsEu),
+            originPort: isPortOnly ? '' : (intermediateOrigin ? intermediateOrigin.name : (detailOrigin ? getLegPortLabel(detailOrigin) : originPortName)),
+            originUnloc: isPortOnly ? '' : (intermediateOrigin ? intermediateOrigin.unloc : (detailOrigin ? getLegPortKey(detailOrigin) : originUnloc)),
+            originIsEu: isPortOnly ? false : (intermediateOrigin ? intermediateOrigin.isEu : (detailOrigin ? detailOrigin.isEuEea === true : originIsEu)),
             destPort: currentPortName,
             destUnloc: currentPortKey,
             destIsEu: leg.isEuEea === true,
             coveragePct,
             portCoveragePct: portEuFactor * 100,
             coverageLabel: coverageLabel + portLabel,
-            seaVlsfo: isPortOnly ? 0 : pendingSeaVlsfo,
-            seaLsmgo: isPortOnly ? 0 : pendingSeaLsmgo,
-            seaHsfo: isPortOnly ? 0 : pendingSeaHsfo,
+            seaVlsfo: isPortOnly || isIntermediateStop ? 0 : pendingSeaVlsfo,
+            seaLsmgo: isPortOnly || isIntermediateStop ? 0 : pendingSeaLsmgo,
+            seaHsfo: isPortOnly || isIntermediateStop ? 0 : pendingSeaHsfo,
             portVlsfo: legPortVlsfo,
             portLsmgo: legPortLsmgo,
             portHsfo: legPortHsfo,
@@ -1167,12 +1182,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             chargeableCo2,
           });
 
-          pendingSeaHsfo = 0;
-          pendingSeaVlsfo = 0;
-          pendingSeaLsmgo = 0;
-          pendingChargeHsfo = 0;
-          pendingChargeVlsfo = 0;
-          pendingChargeLsmgo = 0;
+          if (!isIntermediateStop) {
+            pendingSeaHsfo = 0;
+            pendingSeaVlsfo = 0;
+            pendingSeaLsmgo = 0;
+            pendingChargeHsfo = 0;
+            pendingChargeVlsfo = 0;
+            pendingChargeLsmgo = 0;
+          }
         }
         
         // Update cargo tracker
