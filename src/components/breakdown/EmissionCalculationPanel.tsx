@@ -358,10 +358,242 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
             formula="Final EUA Liability × Carbon Price"
             inputs={[
               { label: "EUA Liability", value: `${results.chargeableCo2.toFixed(2)} t`, source: "Calc" },
-              { label: "Carbon Price", value: `€${bunker.co2Price}/t`, source: "Bunker" },
+              { label: "Carbon Price", value: `€${bunker.euEtsPrice || bunker.co2Price}/t`, source: "Bunker" },
             ]}
             result={{ label: "Total ETS Cost", value: `€${results.etsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }}
           />
+        </div>
+      </div>
+
+      {/* ═══════════════════ UK ETS COVERAGE ═══════════════════ */}
+      <div className="mt-6 pt-4 border-t border-border">
+        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+          <Flag className="h-4 w-4 text-red-600" />
+          UK ETS — Coverage & Chargeable CO₂
+          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-600">
+            Phase-In: {(results.ukEtsPhaseIn * 100).toFixed(0)}%
+          </span>
+        </h3>
+
+        <div className="bg-muted/50 rounded-lg p-3 mb-3 space-y-1 text-xs text-muted-foreground">
+          <div className="font-medium text-sm text-foreground mb-1">Coverage Rules (uk_zone)</div>
+          <div>• GB ↔ GB: <span className="font-mono font-medium">100% (1.0)</span></div>
+          <div>• NI ↔ NI: <span className="font-mono font-medium">100% (1.0)</span></div>
+          <div>• GB ↔ NI: <span className="font-mono font-medium">50% (0.5)</span></div>
+          <div>• Any leg with no UK zone: <span className="font-mono font-medium">0%</span></div>
+          <div>• Port stay: <span className="font-mono font-medium">100%</span> if <code>uk_ets = true</code>, else 0%</div>
+        </div>
+
+        {results.ukEtsResult.legBreakdown.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Leg</TableHead>
+                  <TableHead className="text-xs">Origin</TableHead>
+                  <TableHead className="text-xs">Destination</TableHead>
+                  <TableHead className="text-xs text-right">Sea Cov</TableHead>
+                  <TableHead className="text-xs text-right">Port Cov</TableHead>
+                  <TableHead className="text-xs text-right">Factor</TableHead>
+                  <TableHead className="text-xs text-right">UK HSFO (t)</TableHead>
+                  <TableHead className="text-xs text-right">UK VLSFO (t)</TableHead>
+                  <TableHead className="text-xs text-right">UK LSMGO (t)</TableHead>
+                  <TableHead className="text-xs text-right">UK CO₂ (t)</TableHead>
+                  <TableHead className="text-xs text-right">Chargeable CO₂ (t)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {results.ukEtsResult.legBreakdown.map((l) => (
+                  <TableRow key={l.legIndex}>
+                    <TableCell className="font-mono text-xs py-2">Leg {l.legIndex + 1}</TableCell>
+                    <TableCell className="text-xs py-2">
+                      {l.originPort}
+                      <span className="ml-1 text-[10px] uppercase text-muted-foreground">{l.originZone ?? "—"}</span>
+                    </TableCell>
+                    <TableCell className="text-xs py-2">
+                      {l.destPort}
+                      <span className="ml-1 text-[10px] uppercase text-muted-foreground">{l.destZone ?? "—"}</span>
+                    </TableCell>
+                    <TableCell className={`font-mono text-xs text-right py-2 ${l.seaCoveragePct === 100 ? 'text-green-600' : l.seaCoveragePct === 50 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                      {l.seaCoveragePct}%
+                    </TableCell>
+                    <TableCell className={`font-mono text-xs text-right py-2 ${l.portCoveragePct === 100 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {l.portCoveragePct}%
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2">
+                      {(Math.max(l.seaCoveragePct, l.portCoveragePct) / 100).toFixed(2)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2">{l.ukCoveredFuel.hsfo.toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2">{l.ukCoveredFuel.vlsfo.toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2">{l.ukCoveredFuel.lsmgo.toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2 text-primary">{l.ukCoveredCo2.toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs text-right py-2 font-semibold">{l.chargeableCo2.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="border-t-2 border-border font-semibold">
+                  <TableCell colSpan={6} className="text-xs py-2">TOTAL</TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2">{results.ukEtsResult.ukCoveredFuel.hsfo.toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2">{results.ukEtsResult.ukCoveredFuel.vlsfo.toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2">{results.ukEtsResult.ukCoveredFuel.lsmgo.toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2 text-primary">{results.ukEtsResult.ukCoveredCo2.toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-xs text-right py-2 font-bold">{results.ukChargeableCo2.toFixed(2)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-4 text-center">
+            No UK-relevant legs (no port has <code>uk_ets = true</code>).
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-3 mt-4">
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">UK Voyage Coverage</div>
+            <div className="font-mono font-semibold text-lg">{(results.ukEtsVoyageCoverage * 100).toFixed(1)}%</div>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">Chargeable CO₂ (post phase-in)</div>
+            <div className="font-mono font-semibold text-lg">{results.ukChargeableCo2.toFixed(2)} t</div>
+          </div>
+          <div className="bg-red-500/10 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">UK ETS Cost</div>
+            <div className="font-mono font-semibold text-lg text-red-600">
+              ${results.ukEtsCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-1">
+              @ ${bunker.ukEtsPrice || bunker.co2Price || 0}/t
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════ FUEL EU MARITIME COVERAGE ═══════════════════ */}
+      <div className="mt-6 pt-4 border-t border-border">
+        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+          <Fuel className="h-4 w-4 text-emerald-600" />
+          FuelEU Maritime — Coverage & Compliance
+          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600">
+            Year {results.fuelEuResult.voyageYear} · Target ≤ {results.fuelEuResult.ghgLimit.toFixed(2)} gCO₂eq/MJ
+          </span>
+        </h3>
+
+        <div className="bg-muted/50 rounded-lg p-3 mb-3 space-y-1 text-xs text-muted-foreground">
+          <div className="font-medium text-sm text-foreground mb-1">EU Coverage Factor (per leg, eu_zone)</div>
+          <div>• EU ↔ EU: <span className="font-mono font-medium">100% (1.0)</span> of sea fuel counts</div>
+          <div>• EU ↔ Non-EU: <span className="font-mono font-medium">50% (0.5)</span> of sea fuel counts</div>
+          <div>• Non-EU ↔ Non-EU: <span className="font-mono font-medium">0% (0.0)</span></div>
+          <div>• Port stay at EU port: <span className="font-mono font-medium">100%</span> of port fuel counts</div>
+          <div className="pt-1">Penalty rate: <span className="font-mono font-medium">€2,400 / t CO₂eq</span> shortfall (WtW).</div>
+        </div>
+
+        {/* Reuse EU ETS leg table for coverage (FuelEU uses the same eu_zone factor) */}
+        {legDetails.length > 0 && (
+          <div className="overflow-x-auto mb-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Leg</TableHead>
+                  <TableHead className="text-xs">Origin</TableHead>
+                  <TableHead className="text-xs">Destination</TableHead>
+                  <TableHead className="text-xs text-right">EU Factor</TableHead>
+                  <TableHead className="text-xs text-right">EU HSFO (t)</TableHead>
+                  <TableHead className="text-xs text-right">EU VLSFO (t)</TableHead>
+                  <TableHead className="text-xs text-right">EU LSMGO (t)</TableHead>
+                  <TableHead className="text-xs text-right">EU Energy (GJ)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {legDetails.map((l) => {
+                  const factor = l.coveragePct / 100;
+                  const gj =
+                    (l.chargeableHsfo * FUEL_EU_PROPERTIES.hsfo.lcv +
+                      l.chargeableVlsfo * FUEL_EU_PROPERTIES.vlsfo.lcv +
+                      l.chargeableLsmgo * FUEL_EU_PROPERTIES.lsmgo.lcv) * 1000;
+                  return (
+                    <TableRow key={l.legIndex}>
+                      <TableCell className="font-mono text-xs py-2">Leg {l.legIndex + 1}</TableCell>
+                      <TableCell className="text-xs py-2">
+                        {l.originPort}
+                        <span className={`ml-1 text-[10px] ${l.originIsEu ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                          {l.originIsEu ? 'EU' : 'Non-EU'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs py-2">
+                        {l.destPort}
+                        <span className={`ml-1 text-[10px] ${l.destIsEu ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                          {l.destIsEu ? 'EU' : 'Non-EU'}
+                        </span>
+                      </TableCell>
+                      <TableCell className={`font-mono text-xs text-right py-2 ${factor === 1 ? 'text-green-600' : factor === 0.5 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                        {factor.toFixed(2)} ({l.coveragePct}%)
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-right py-2">{l.chargeableHsfo.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs text-right py-2">{l.chargeableVlsfo.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs text-right py-2">{l.chargeableLsmgo.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs text-right py-2 text-primary">{gj.toFixed(1)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Per-fuel compliance balance */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {(['hsfo', 'vlsfo', 'lsmgo'] as const).map((ft) => {
+            const f = results.fuelEuResult.fuels[ft];
+            const compliant = f.balance >= 0;
+            return (
+              <div key={ft} className="bg-muted/50 rounded-lg p-3 space-y-1">
+                <div className="text-xs font-medium uppercase">{ft}</div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">EU Qty</span>
+                  <span className="font-mono">{f.euQuantity.toFixed(2)} t</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">WtW GHG</span>
+                  <span className="font-mono">{f.ghg.toFixed(2)} gCO₂eq/MJ</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">Balance</span>
+                  <span className={`font-mono font-semibold ${compliant ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {(f.balance / 1e6).toFixed(2)} tCO₂eq
+                  </span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">Penalty</span>
+                  <span className={`font-mono font-semibold ${f.penaltyEur > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    €{f.penaltyEur.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-4 gap-3">
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">Total EU Energy</div>
+            <div className="font-mono font-semibold text-sm">{(results.fuelEuResult.totalEuEnergy / 1e6).toFixed(1)} GJ</div>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">Voyage GHG (WtW)</div>
+            <div className="font-mono font-semibold text-sm">{results.fuelEuResult.voyageGhg.toFixed(2)} gCO₂eq/MJ</div>
+          </div>
+          <div className={`rounded-lg p-3 text-center ${results.fuelEuResult.totalBalance >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+            <div className="text-xs text-muted-foreground">Total Balance</div>
+            <div className={`font-mono font-semibold text-sm ${results.fuelEuResult.totalBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {(results.fuelEuResult.totalBalance / 1e6).toFixed(2)} tCO₂eq
+            </div>
+          </div>
+          <div className="bg-red-500/10 rounded-lg p-3 text-center">
+            <div className="text-xs text-muted-foreground">FuelEU Penalty</div>
+            <div className="font-mono font-semibold text-lg text-red-600">
+              €{results.fuelEuTotalPenalty.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </div>
+          </div>
         </div>
       </div>
 
