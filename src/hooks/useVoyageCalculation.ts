@@ -127,6 +127,7 @@ export interface VoyageInputs {
 // Per-leg ETS detail for UI breakdown table
 export interface EtsLegDetail {
   legIndex: number;
+  isPortOnly: boolean;
   originPort: string;
   originUnloc: string;
   originIsEu: boolean;
@@ -134,6 +135,7 @@ export interface EtsLegDetail {
   destUnloc: string;
   destIsEu: boolean;
   coveragePct: number; // 0, 50, or 100
+  portCoveragePct: number; // 0 or 100
   coverageLabel: string; // e.g. "NonEU → EU: 50%"
   // Total fuel consumed on this leg (sea + port at destination)
   seaVlsfo: number;
@@ -844,19 +846,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
           const coverage = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
 
-          voyageLegs.push({
-            origin: previousPort,
-            destination: currentPortLabel || currentPortKey,
-            co2: legCo2,
-          });
-          legCoverages.push(coverage);
+          if (inEuSeaWindow(index)) {
+            voyageLegs.push({
+              origin: previousPort,
+              destination: currentPortLabel || currentPortKey,
+              co2: legCo2,
+            });
+            legCoverages.push(coverage);
+          }
         } else {
           const nextLeg = sequence.find((s, si) => si > index && getLegPortKey(s));
           const legSeaTime = leg.seaTime || 0;
           const legCo2 = totalSeaDays > 0 ? totalCo2 * (legSeaTime / totalSeaDays) : 0;
           const coverage = inEuSeaWindow(index) ? computeSeaEuFactor(index) : 0;
 
-          if (legSeaTime > 0) {
+          if (legSeaTime > 0 && inEuSeaWindow(index)) {
             voyageLegs.push({
               origin: currentPortLabel || currentPortKey,
               destination: nextLeg ? (getLegPortLabel(nextLeg) || getLegPortKey(nextLeg)) : (currentPortLabel || currentPortKey),
@@ -888,8 +892,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       });
     });
 
-    const etsVoyageCoverage = totalCo2 > 0 && etsLegBreakdown.length > 0
-      ? etsLegBreakdown.reduce((sum, leg) => sum + (leg.co2 / totalCo2) * leg.coverage, 0)
+    const commercialSeaCo2 = etsLegBreakdown.reduce((sum, leg) => sum + leg.co2, 0);
+    const etsVoyageCoverage = commercialSeaCo2 > 0
+      ? etsLegBreakdown.reduce((sum, leg) => sum + (leg.co2 / commercialSeaCo2) * leg.coverage, 0)
       : 0;
 
     // NOTE: Chargeable CO2 EUA is computed AFTER EU fuel allocation below (bottom-up approach).
@@ -1103,16 +1108,15 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         const hasSeaOrPort = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
         const withinEuWindow = inEuSeaWindow(index) || inEuPortWindow(index);
         if (currentPortKey && hasSeaOrPort && withinEuWindow && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
+          const isPortOnly = index === firstLoadIdx;
           const coveragePct = seaEuFactor * 100;
           // Coverage label reflects the bracketing cargo-operation pair
           // (load/discharge to next cargo call), not passing/bunkering ports.
           const originEu = bracketOriginIsEu[index];
           const destEu = bracketDestIsEu[index];
           let coverageLabel = '';
-          if (!inEuSeaWindow(index) && (leg.seaTime || 0) > 0) {
-            coverageLabel = index <= firstLoadIdx
-              ? 'Before first load: excluded'
-              : 'After last discharge: excluded';
+          if (isPortOnly) {
+            coverageLabel = 'Commercial voyage starts at first load';
           } else if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
           else if (seaEuFactor === 0.5) {
             coverageLabel = originEu
@@ -1138,17 +1142,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           
           etsLegDetails.push({
             legIndex: legIdx++,
-            originPort: originPortName,
-            originUnloc,
-            originIsEu,
+            isPortOnly,
+            originPort: isPortOnly ? '' : originPortName,
+            originUnloc: isPortOnly ? '' : originUnloc,
+            originIsEu: isPortOnly ? false : originIsEu,
             destPort: currentPortName,
             destUnloc: currentPortKey,
             destIsEu: leg.isEuEea === true,
             coveragePct,
+            portCoveragePct: portEuFactor * 100,
             coverageLabel: coverageLabel + portLabel,
-            seaVlsfo: legSeaVlsfo,
-            seaLsmgo: legSeaLsmgo,
-            seaHsfo: legSeaHsfo,
+            seaVlsfo: isPortOnly ? 0 : legSeaVlsfo,
+            seaLsmgo: isPortOnly ? 0 : legSeaLsmgo,
+            seaHsfo: isPortOnly ? 0 : legSeaHsfo,
             portVlsfo: legPortVlsfo,
             portLsmgo: legPortLsmgo,
             portHsfo: legPortHsfo,

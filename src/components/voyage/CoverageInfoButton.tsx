@@ -44,8 +44,8 @@ export function CoverageInfoButton({ mode, results }: Props) {
                     <th className="text-left font-medium py-0.5">#</th>
                     <th className="text-left font-medium py-0.5">From</th>
                     <th className="text-left font-medium py-0.5">To</th>
-                    <th className="text-right font-medium py-0.5">Coverage</th>
-                    <th className="text-right font-medium py-0.5">Factor</th>
+                    <th className="text-right font-medium py-0.5">Sea</th>
+                    <th className="text-right font-medium py-0.5">Port</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -53,10 +53,12 @@ export function CoverageInfoButton({ mode, results }: Props) {
                     <tr key={l.legIndex} className="border-b border-border/40">
                       <td className="py-0.5 text-muted-foreground">{l.legIndex + 1}</td>
                       <td className="py-0.5 truncate max-w-[110px]">
-                        {l.originPort}
+                        {l.isPortOnly ? "—" : l.originPort}
+                        {!l.isPortOnly && (
                         <span className={`ml-1 text-[9px] ${l.originIsEu ? "text-emerald-600" : "text-muted-foreground"}`}>
                           {l.originIsEu ? "EU" : "Non-EU"}
                         </span>
+                        )}
                       </td>
                       <td className="py-0.5 truncate max-w-[110px]">
                         {l.destPort}
@@ -64,8 +66,12 @@ export function CoverageInfoButton({ mode, results }: Props) {
                           {l.destIsEu ? "EU" : "Non-EU"}
                         </span>
                       </td>
-                      <td className="py-0.5 text-right font-mono tabular-nums">{l.coveragePct}%</td>
-                      <td className="py-0.5 text-right font-mono tabular-nums">{factorFromPct(l.coveragePct)}</td>
+                      <td className="py-0.5 text-right font-mono tabular-nums">
+                        {l.isPortOnly ? "—" : `${l.coveragePct}% (${factorFromPct(l.coveragePct)})`}
+                      </td>
+                      <td className="py-0.5 text-right font-mono tabular-nums">
+                        {l.portCoveragePct}% ({factorFromPct(l.portCoveragePct)})
+                      </td>
                     </tr>
                   ))}
                 </tbody>

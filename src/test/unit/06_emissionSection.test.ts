@@ -74,5 +74,27 @@ describe("Emission Section", () => {
         expect(high.etsCost).toBe(low.etsCost);
       }
     });
+
+    it("starts the frontend breakdown at the first load port and excludes positioning sea fuel", () => {
+      const sequence = [
+        customLeg({ id: 1, operation: "", port: "Chittagong", portUnloc: "BDCGP", seaTime: 0, portDays: 0 }),
+        customLeg({ id: 2, operation: "loading", port: "Paradip", portUnloc: "INPRT", seaTime: 5, portDays: 2, quantity: 27_500 }),
+        customLeg({ id: 3, operation: "pssg", port: "Trincomalee", portUnloc: "LKTCO", seaTime: 3, portDays: 0.5, quantity: 0 }),
+        customLeg({ id: 4, operation: "discharging", port: "Marghera", portUnloc: "ITMRH", isEuEea: true, seaTime: 10, portDays: 4, quantity: 27_500 }),
+        customLeg({ id: 5, operation: "repos", port: "Gibraltar", portUnloc: "GIGIB", seaTime: 4, portDays: 0.5, quantity: 0 }),
+      ];
+
+      const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ sequence }))).result.current;
+
+      expect(r.etsLegDetails[0]).toMatchObject({
+        isPortOnly: true,
+        originPort: "",
+        destPort: "Paradip",
+        seaVlsfo: 0,
+        seaLsmgo: 0,
+      });
+      expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Trincomalee", "Marghera"]);
+      expect(r.etsLegDetails.some((leg) => leg.destPort === "Gibraltar")).toBe(false);
+    });
   });
 });
