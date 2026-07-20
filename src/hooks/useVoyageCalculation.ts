@@ -1047,18 +1047,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
-        // Per EU ETS spec: port stay coverage depends ONLY on whether the port
-        // itself is in the EU (port.eu_zone). 100% if EU, 0% otherwise.
-        // Independent of the sea leg that arrived here.
-        // Port stays are only counted within the commercial voyage window
-        // (first load port through last discharge port, inclusive).
-        const isRegulatoryPortCall = isEuRegulatoryPortCall(leg);
-        // Port stay coverage: any port (including passage/bunkering waypoints)
-        // within the commercial voyage window contributes port fuel per its own
-        // eu_zone flag. Only regulatory calls (load/disch/etc.) act as sea-leg
-        // boundaries — pssg ports keep their sailing fuel grouped into the next
-        // regulatory leg but still count their own port stay here.
-        const portEuFactor = (!!currentPortKey && leg.isEuEea === true && inEuPortWindow(index)) ? 1.0 : 0.0;
+        // Per requested methodology:
+        //   - EU port stay      → 100%
+        //   - Non-EU port stay  → min(arriving sea leg factor, departing sea leg factor)
+        //   - Outside commercial voyage window → 0%
+        // This lets intermediate waypoints (pssg / bunkering) inherit the
+        // "voyage-to-EU" coverage (0.5) while the loading/final ports drop to 0
+        // when either side of the voyage is fully non-EU.
+        const arrivingSeaFactor = inEuSeaWindow(index) ? seaEuFactor : 0;
+        const nextIndex = index + 1;
+        const departingSeaFactor = (nextIndex < sequence.length && inEuSeaWindow(nextIndex))
+          ? computeSeaEuFactor(nextIndex)
+          : 0;
+        const portEuFactor = (!currentPortKey || !inEuPortWindow(index))
+          ? 0
+          : (leg.isEuEea === true ? 1.0 : Math.min(arrivingSeaFactor, departingSeaFactor));
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
