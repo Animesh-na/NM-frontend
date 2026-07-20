@@ -1047,18 +1047,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
-        // Per EU ETS spec: port stay coverage depends ONLY on whether the port
-        // itself is in the EU (port.eu_zone). 100% if EU, 0% otherwise.
-        // Independent of the sea leg that arrived here.
-        // Port stays are only counted within the commercial voyage window
-        // (first load port through last discharge port, inclusive).
-        const isRegulatoryPortCall = isEuRegulatoryPortCall(leg);
-        // Port stay coverage: any port (including passage/bunkering waypoints)
-        // within the commercial voyage window contributes port fuel per its own
-        // eu_zone flag. Only regulatory calls (load/disch/etc.) act as sea-leg
-        // boundaries — pssg ports keep their sailing fuel grouped into the next
-        // regulatory leg but still count their own port stay here.
-        const portEuFactor = (!!currentPortKey && leg.isEuEea === true && inEuPortWindow(index)) ? 1.0 : 0.0;
+        // Per requested methodology:
+        //   - EU port stay      → 100%
+        //   - Non-EU port stay  → min(arriving sea leg factor, departing sea leg factor)
+        //   - Outside commercial voyage window → 0%
+        // This lets intermediate waypoints (pssg / bunkering) inherit the
+        // "voyage-to-EU" coverage (0.5) while the loading/final ports drop to 0
+        // when either side of the voyage is fully non-EU.
+        const arrivingSeaFactor = inEuSeaWindow(index) ? seaEuFactor : 0;
+        const nextIndex = index + 1;
+        const departingSeaFactor = (nextIndex < sequence.length && inEuSeaWindow(nextIndex))
+          ? computeSeaEuFactor(nextIndex)
+          : 0;
+        const portEuFactor = (!currentPortKey || !inEuPortWindow(index))
+          ? 0
+          : (leg.isEuEea === true ? 1.0 : Math.min(arrivingSeaFactor, departingSeaFactor));
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
@@ -1112,12 +1115,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         const withinEuWindow = inEuSeaWindow(index) || inEuPortWindow(index);
         if (currentPortKey && hasSeaOrPort && withinEuWindow && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
           const isPortOnly = index === firstLoadIdx;
-          // Intermediate (non-regulatory) ports — e.g. pssg / bunkering — show
-          // their port stay only. Their sailing fuel is aggregated into the
-          // next regulatory leg's row, so we render sea columns as 0 here and
-          // do NOT flush the pending sea accumulators.
-          const isIntermediateStop = !isRegulatoryPortCall && !isPortOnly;
-          const coveragePct = isIntermediateStop ? 0 : seaEuFactor * 100;
+          // Every sub-leg (including passage/bunkering waypoints) is shown as
+          // its own row with its own sea fuel and coverage factor. Coverage is
+          // computed using bracketed EU flags so a run of non-EU waypoints on
+          // a voyage-to-EU inherits the 50% factor.
+          const coveragePct = seaEuFactor * 100;
           // Coverage label reflects this adjacent port-to-port segment.
           const originEu = bracketOriginIsEu[index];
           const destEu = bracketDestIsEu[index];
@@ -1142,9 +1144,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
                 : ' | Port: excluded (outside cargo voyage)')
             : '';
           
-          const detailChargeHsfo = (isIntermediateStop ? 0 : pendingChargeHsfo) + (legPortHsfo * portEuFactor);
-          const detailChargeVlsfo = (isIntermediateStop ? 0 : pendingChargeVlsfo) + (legPortVlsfo * portEuFactor);
-          const detailChargeLsmgo = (isIntermediateStop ? 0 : pendingChargeLsmgo) + (legPortLsmgo * portEuFactor);
+          const detailSeaHsfo = isPortOnly ? 0 : legSeaHsfo;
+          const detailSeaVlsfo = isPortOnly ? 0 : legSeaVlsfo;
+          const detailSeaLsmgo = isPortOnly ? 0 : legSeaLsmgo;
+          const detailChargeHsfo = (detailSeaHsfo * seaEuFactor) + (legPortHsfo * portEuFactor);
+          const detailChargeVlsfo = (detailSeaVlsfo * seaEuFactor) + (legPortVlsfo * portEuFactor);
+          const detailChargeLsmgo = (detailSeaLsmgo * seaEuFactor) + (legPortLsmgo * portEuFactor);
           const chargeableCo2 =
             detailChargeHsfo * CO2_EMISSION_FACTORS.hsfo +
             detailChargeVlsfo * CO2_EMISSION_FACTORS.vlsfo +
@@ -1152,9 +1157,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
           const originIdx = bracketOriginIdx[index];
           const detailOrigin = originIdx >= 0 ? sequence[originIdx] : undefined;
-          // For intermediate stops, show the immediately preceding port as
-          // origin instead of the bracketed regulatory-port origin.
-          const intermediateOrigin = isIntermediateStop
+          // Show the immediately preceding port as origin for every sub-leg,
+          // so intermediate hops appear as real port→port sailings.
+          const intermediateOrigin = !isPortOnly
             ? { name: prevPortName, unloc: prevPortUnloc, isEu: prevIsEuEea }
             : null;
           
@@ -1170,9 +1175,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             coveragePct,
             portCoveragePct: portEuFactor * 100,
             coverageLabel: coverageLabel + portLabel,
-            seaVlsfo: isPortOnly || isIntermediateStop ? 0 : pendingSeaVlsfo,
-            seaLsmgo: isPortOnly || isIntermediateStop ? 0 : pendingSeaLsmgo,
-            seaHsfo: isPortOnly || isIntermediateStop ? 0 : pendingSeaHsfo,
+            seaVlsfo: detailSeaVlsfo,
+            seaLsmgo: detailSeaLsmgo,
+            seaHsfo: detailSeaHsfo,
             portVlsfo: legPortVlsfo,
             portLsmgo: legPortLsmgo,
             portHsfo: legPortHsfo,
@@ -1181,15 +1186,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             chargeableHsfo: detailChargeHsfo,
             chargeableCo2,
           });
-
-          if (!isIntermediateStop) {
-            pendingSeaHsfo = 0;
-            pendingSeaVlsfo = 0;
-            pendingSeaLsmgo = 0;
-            pendingChargeHsfo = 0;
-            pendingChargeVlsfo = 0;
-            pendingChargeLsmgo = 0;
-          }
         }
         
         // Update cargo tracker

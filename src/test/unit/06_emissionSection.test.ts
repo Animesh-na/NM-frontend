@@ -94,15 +94,13 @@ describe("Emission Section", () => {
         seaLsmgo: 0,
       });
       // Intermediate ports (e.g. Trincomalee pssg) between first load and last
-      // discharge are now included so their port-stay fuel is charged per
-      // eu_zone. Ports outside the window (Gibraltar repos) stay excluded.
+      // discharge are included with their own sub-leg sea fuel and inherit the
+      // bracketed EU coverage factor. Ports outside the window (Gibraltar
+      // repos) stay excluded.
       expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Trincomalee", "Marghera"]);
       expect(r.etsLegDetails.some((leg) => leg.destPort === "Gibraltar")).toBe(false);
-      // Intermediate stop shows 0 sea fuel — its sailing is grouped into the
-      // next regulatory leg (Paradip → Marghera).
       const trin = r.etsLegDetails.find((leg) => leg.destPort === "Trincomalee")!;
-      expect(trin.seaVlsfo).toBe(0);
-      expect(trin.seaLsmgo).toBe(0);
+      expect(trin.coveragePct).toBe(50);
     });
 
     it("does not treat a passage waypoint as the EU ETS leg origin", () => {
@@ -115,17 +113,15 @@ describe("Emission Section", () => {
 
       const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ sequence }))).result.current;
 
-      // Port Said (pssg) now appears as an intermediate stop within the
-      // commercial window, but does NOT reset the leg origin: the Marghera row
-      // still shows Paradip → Marghera 50%, with the passage sailing fuel
-      // aggregated into that row.
+      // Port Said (pssg) appears as its own sub-leg row within the commercial
+      // window and inherits the bracketed 50% coverage (Paradip → Marghera).
       expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Port Said", "Marghera"]);
       const marghera = r.etsLegDetails.find((leg) => leg.destPort === "Marghera")!;
-      expect(marghera).toMatchObject({ originPort: "Paradip", coveragePct: 50 });
+      expect(marghera).toMatchObject({ originPort: "Port Said", coveragePct: 50 });
       expect(marghera.seaVlsfo).toBeGreaterThan(0);
       const portSaid = r.etsLegDetails.find((leg) => leg.destPort === "Port Said")!;
-      expect(portSaid.seaVlsfo).toBe(0);
-      expect(portSaid.coveragePct).toBe(0);
+      expect(portSaid.coveragePct).toBe(50);
+      expect(portSaid.seaVlsfo).toBeGreaterThan(0);
     });
   });
 });
