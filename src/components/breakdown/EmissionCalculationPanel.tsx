@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Leaf, RefreshCw, Ship, Anchor, Navigation } from "lucide-react";
+import { AlertTriangle, Leaf, RefreshCw, Ship, Anchor, Navigation, Flag, Fuel } from "lucide-react";
 import { BreakdownCard, FormulaBlock, ValueRow } from "./BreakdownCard";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -7,6 +7,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import { CO2_EMISSION_FACTORS, getEtsPhaseInPercentage } from "@/utils/emissionCalculations";
+import { FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
 
 interface BunkerState {
   hsfo: { price: number; robStart: number };
