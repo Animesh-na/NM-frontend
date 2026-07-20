@@ -778,15 +778,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
     // EU ETS sea-leg coverage is determined independently by the adjacent ports
     // of call that bracket each sea segment. Intermediate stops are included.
-    const isLoadOp = (op?: string) => {
-      const o = (op || '').toLowerCase();
-      return o === 'load' || o === 'loading';
-    };
-    const isDischargeOp = (op?: string) => {
-      const o = (op || '').toLowerCase();
-      return o === 'disch' || o === 'discharging';
-    };
-    const isCargoPortCall = (op?: string) => isLoadOp(op) || isDischargeOp(op);
     // A passage waypoint (for example Port Said entered as `pssg`) is not a
     // regulatory port call. It must not reset the origin of an EU ETS sea leg.
     // Its sailing time/fuel remains part of the voyage between the surrounding
@@ -798,7 +789,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     //   Sea leg (from → to): both EU = 100%, one EU = 50%, none = 0%
     //   Port stay: 100% if port is EU, else 0%
     const bracketOriginIdx: number[] = sequence.map(() => -1);
-    const bracketDestIdx: number[] = sequence.map(() => -1);
     const bracketOriginIsEu: (boolean | null)[] = sequence.map(() => null);
     const bracketDestIsEu: (boolean | null)[] = sequence.map(() => null);
     {
@@ -818,7 +808,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         const destIdx = currentIsRegulatoryPort ? i : nextRegulatoryPortIdx[i];
         if (prevIdx >= 0 && destIdx >= 0) {
           bracketOriginIdx[i] = prevIdx;
-          bracketDestIdx[i] = destIdx;
           bracketOriginIsEu[i] = sequence[prevIdx].isEuEea === true;
           bracketDestIsEu[i] = sequence[destIdx].isEuEea === true;
         }
@@ -996,7 +985,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         // Per-leg fuel accumulators
         let legSeaHsfo = 0, legSeaVlsfo = 0, legSeaLsmgo = 0;
         let legPortHsfo = 0, legPortVlsfo = 0, legPortLsmgo = 0;
-        let legChargeHsfo = 0, legChargeVlsfo = 0, legChargeLsmgo = 0;
         let seaEuFactor = 0;
         let originPortName = prevPortName;
         let originUnloc = prevPortUnloc;
@@ -1044,10 +1032,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           legSeaLsmgo = segLsmgoEca + segLsmgoAeSea;
           
           // EU-chargeable sea fuel
-          legChargeHsfo += legSeaHsfo * seaEuFactor;
-          legChargeVlsfo += legSeaVlsfo * seaEuFactor;
-          legChargeLsmgo += legSeaLsmgo * seaEuFactor;
-          
           euCoveredHsfo += legSeaHsfo * seaEuFactor;
           euCoveredVlsfo += legSeaVlsfo * seaEuFactor;
           euCoveredLsmgo += legSeaLsmgo * seaEuFactor;
@@ -1109,10 +1093,6 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           legPortLsmgo = portLsmgo;
           
           // EU-chargeable port fuel (100% if EU port, 0% otherwise)
-          legChargeHsfo += portHsfo * portEuFactor;
-          legChargeVlsfo += portVlsfo * portEuFactor;
-          legChargeLsmgo += portLsmgo * portEuFactor;
-          
           euCoveredHsfo += portHsfo * portEuFactor;
           euCoveredVlsfo += portVlsfo * portEuFactor;
           euCoveredLsmgo += portLsmgo * portEuFactor;
