@@ -1095,9 +1095,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           euCoveredLsmgo += portLsmgo * portEuFactor;
         }
         
-        // Build leg detail for UI (skip first port if no sea time — it's origin only)
+        // Build leg detail for UI (skip first port if no sea time — it's origin only).
+        // Also skip entirely any leg outside the commercial voyage window
+        // (ballast before first load, repositioning after last discharge) so the
+        // EU ETS breakdown table starts at the first load port and ends at the
+        // last discharge port.
         const hasSeaOrPort = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
-        if (currentPortKey && hasSeaOrPort && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
+        const withinEuWindow = inEuSeaWindow(index) || inEuPortWindow(index);
+        if (currentPortKey && hasSeaOrPort && withinEuWindow && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
           const coveragePct = seaEuFactor * 100;
           // Coverage label reflects the bracketing cargo-operation pair
           // (load/discharge to next cargo call), not passing/bunkering ports.
