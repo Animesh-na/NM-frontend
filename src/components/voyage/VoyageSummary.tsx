@@ -2,6 +2,7 @@ import { DollarSign, Clock, TrendingUp, Leaf, Download } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { AlertTriangle } from "lucide-react";
 import { InfoTooltip } from "./InfoTooltip";
+import { CoverageInfoButton } from "./CoverageInfoButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
@@ -383,6 +384,7 @@ export function VoyageSummary() {
         <div className="space-y-1 border-t border-border pt-2">
           <div className="flex items-center gap-1 mb-2">
             <span className="font-medium">CO₂ & EU ETS</span>
+            <CoverageInfoButton mode="eu" results={results} />
           </div>
 
           {/* Validation warnings */}
@@ -492,6 +494,7 @@ export function VoyageSummary() {
           <div className="mt-2 pt-2 border-t border-border space-y-1">
             <div className="flex items-center gap-1 mb-1">
               <span className="font-medium">UK ETS</span>
+              <CoverageInfoButton mode="uk" results={results} />
             </div>
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground flex items-center">
@@ -545,6 +548,7 @@ export function VoyageSummary() {
         <div className="space-y-1 border-t border-border pt-2">
           <div className="flex items-center gap-1 mb-2">
             <span className="font-medium">Fuel EU Maritime</span>
+            <CoverageInfoButton mode="fueleu" results={results} />
           </div>
           
           <div className="bg-muted rounded-sm p-1.5 space-y-0.5 text-[9px]">
