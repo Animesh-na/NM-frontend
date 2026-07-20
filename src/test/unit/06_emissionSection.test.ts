@@ -93,10 +93,16 @@ describe("Emission Section", () => {
         seaVlsfo: 0,
         seaLsmgo: 0,
       });
-      expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Marghera"]);
-      expect(r.etsLegDetails[1].originPort).toBe("Paradip");
-      expect(r.etsLegDetails.some((leg) => leg.destPort === "Trincomalee")).toBe(false);
+      // Intermediate ports (e.g. Trincomalee pssg) between first load and last
+      // discharge are now included so their port-stay fuel is charged per
+      // eu_zone. Ports outside the window (Gibraltar repos) stay excluded.
+      expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Trincomalee", "Marghera"]);
       expect(r.etsLegDetails.some((leg) => leg.destPort === "Gibraltar")).toBe(false);
+      // Intermediate stop shows 0 sea fuel — its sailing is grouped into the
+      // next regulatory leg (Paradip → Marghera).
+      const trin = r.etsLegDetails.find((leg) => leg.destPort === "Trincomalee")!;
+      expect(trin.seaVlsfo).toBe(0);
+      expect(trin.seaLsmgo).toBe(0);
     });
 
     it("does not treat a passage waypoint as the EU ETS leg origin", () => {
@@ -109,14 +115,17 @@ describe("Emission Section", () => {
 
       const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ sequence }))).result.current;
 
-      expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Marghera"]);
-      expect(r.etsLegDetails[1]).toMatchObject({
-        originPort: "Paradip",
-        destPort: "Marghera",
-        coveragePct: 50,
-      });
-      expect(r.etsLegDetails[1].seaVlsfo).toBeGreaterThan(0);
-      expect(r.etsLegDetails.some((leg) => leg.originPort === "Port Said" || leg.destPort === "Port Said")).toBe(false);
+      // Port Said (pssg) now appears as an intermediate stop within the
+      // commercial window, but does NOT reset the leg origin: the Marghera row
+      // still shows Paradip → Marghera 50%, with the passage sailing fuel
+      // aggregated into that row.
+      expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Port Said", "Marghera"]);
+      const marghera = r.etsLegDetails.find((leg) => leg.destPort === "Marghera")!;
+      expect(marghera).toMatchObject({ originPort: "Paradip", coveragePct: 50 });
+      expect(marghera.seaVlsfo).toBeGreaterThan(0);
+      const portSaid = r.etsLegDetails.find((leg) => leg.destPort === "Port Said")!;
+      expect(portSaid.seaVlsfo).toBe(0);
+      expect(portSaid.coveragePct).toBe(0);
     });
   });
 });
