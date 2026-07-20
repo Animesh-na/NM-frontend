@@ -8,7 +8,8 @@
 //   GB ↔ GB : 100%
 //   NI ↔ NI : 100%
 //   GB ↔ NI : 50%
-//   any null : 0%
+//   UK ↔ non-UK (either origin or destination is UK) : 100%
+//   non-UK ↔ non-UK : 0%
 //
 // Port-stay coverage: 100% if port.uk_ets === true, else 0%.
 
