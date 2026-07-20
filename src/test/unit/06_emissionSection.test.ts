@@ -96,5 +96,25 @@ describe("Emission Section", () => {
       expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Trincomalee", "Marghera"]);
       expect(r.etsLegDetails.some((leg) => leg.destPort === "Gibraltar")).toBe(false);
     });
+
+    it("does not treat a passage waypoint as the EU ETS leg origin", () => {
+      const sequence = [
+        customLeg({ id: 1, operation: "", port: "Chittagong", portUnloc: "BDCGP", seaTime: 0, portDays: 0 }),
+        customLeg({ id: 2, operation: "loading", port: "Paradip", portUnloc: "INPRT", seaTime: 5, nonEcaTime: 5, portDays: 2, quantity: 27_500 }),
+        customLeg({ id: 3, operation: "pssg", port: "Port Said", portUnloc: "EGPSD", seaTime: 8, nonEcaTime: 8, portDays: 0.5, quantity: 0 }),
+        customLeg({ id: 4, operation: "discharging", port: "Marghera", portUnloc: "ITMRH", isEuEea: true, seaTime: 4, nonEcaTime: 4, portDays: 4, quantity: 27_500 }),
+      ];
+
+      const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ sequence }))).result.current;
+
+      expect(r.etsLegDetails.map((leg) => leg.destPort)).toEqual(["Paradip", "Marghera"]);
+      expect(r.etsLegDetails[1]).toMatchObject({
+        originPort: "Paradip",
+        destPort: "Marghera",
+        coveragePct: 50,
+      });
+      expect(r.etsLegDetails[1].seaVlsfo).toBeGreaterThan(0);
+      expect(r.etsLegDetails.some((leg) => leg.originPort === "Port Said" || leg.destPort === "Port Said")).toBe(false);
+    });
   });
 });
