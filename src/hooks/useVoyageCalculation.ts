@@ -835,12 +835,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       if (op === 'disch' || op === 'discharging') lastDischargeIdx = i;
     }
     const euWindowValid = firstLoadIdx !== -1 && lastDischargeIdx !== -1 && firstLoadIdx <= lastDischargeIdx;
+    // Edge case: if the voyage's ballast start (open port) is inside the EU/EEA,
+    // the ballast leg itself is EU-covered, so the window starts at the open port
+    // instead of the first load port. Otherwise the window is unchanged.
+    const ballastStartsInEu = sequence.length > 0 && sequence[0].isEuEea === true;
+    const euStartIdx = euWindowValid && ballastStartsInEu && firstLoadIdx > 0 ? 0 : firstLoadIdx;
     // Sea leg at index `i` corresponds to sailing INTO port at `i`.
     // Include sea legs strictly AFTER first load (the sail into first load is excluded)
     // and UP TO AND INCLUDING the sail into last discharge.
-    const inEuSeaWindow = (i: number) => euWindowValid && i > firstLoadIdx && i <= lastDischargeIdx;
+    const inEuSeaWindow = (i: number) => euWindowValid && i > euStartIdx && i <= lastDischargeIdx;
     // Port stays include first load through last discharge (inclusive).
-    const inEuPortWindow = (i: number) => euWindowValid && i >= firstLoadIdx && i <= lastDischargeIdx;
+    const inEuPortWindow = (i: number) => euWindowValid && i >= euStartIdx && i <= lastDischargeIdx;
 
     // Build one informational sea leg per actual regulatory port call. Passage
     // rows between calls are grouped into the surrounding commercial leg.
@@ -1114,7 +1119,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         const hasSeaOrPort = (leg.seaTime || 0) > 0 || (leg.portDays || 0) > 0;
         const withinEuWindow = inEuSeaWindow(index) || inEuPortWindow(index);
         if (currentPortKey && hasSeaOrPort && withinEuWindow && (prevPortUnloc || (leg.seaTime || 0) > 0)) {
-          const isPortOnly = index === firstLoadIdx;
+          const isPortOnly = index === euStartIdx;
           // Every sub-leg (including passage/bunkering waypoints) is shown as
           // its own row with its own sea fuel and coverage factor. Coverage is
           // computed using bracketed EU flags so a run of non-EU waypoints on
@@ -1125,7 +1130,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const destEu = bracketDestIsEu[index];
           let coverageLabel = '';
           if (isPortOnly) {
-            coverageLabel = 'Commercial voyage starts at first load';
+            coverageLabel = euStartIdx === 0
+              ? 'Voyage starts at EU open port (ballast leg covered)'
+              : 'Commercial voyage starts at first load';
           } else if (seaEuFactor === 1.0) coverageLabel = 'EU → EU: 100%';
           else if (seaEuFactor === 0.5) {
             coverageLabel = originEu
