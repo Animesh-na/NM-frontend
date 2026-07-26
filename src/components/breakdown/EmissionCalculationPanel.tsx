@@ -605,6 +605,16 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
 
         {results.ukEtsResult.legBreakdown.length > 0 ? (
           <div className="overflow-x-auto">
+            {/* Screenshot-style compact UK Allowances table */}
+            <div className="mb-4">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                UK Allowances (UKAs) — per segment &amp; port
+              </div>
+              {renderAllowanceTable(ukAllowanceRows, "UKAs (t CO₂)", ukAllowanceTotal)}
+              <div className="text-[10px] text-muted-foreground mt-1">
+                GB↔GB / NI↔NI = 100%, GB↔NI = 50%, UK↔Non-UK = 0%. UK port stay = 100%.
+              </div>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
