@@ -21,6 +21,7 @@ export function SequenceSummary() {
     from: string;
     to: string;
     isLaden: boolean;
+    hsfo: number;
     vlsfo: number;
     lsmgo: number;
   }> = [];
@@ -33,8 +34,12 @@ export function SequenceSummary() {
     const totalSeaDays = r.totalLegTime || 0;
     const ecaDays = r.ecaTime || 0;
     const nonEcaDays = Math.max(0, totalSeaDays - ecaDays);
+    let hsfo = 0;
     let vlsfo = 0;
-    if (!hasScrubber) {
+    if (hasScrubber) {
+      const rate = isLaden ? profile.hsfo.laden || 0 : profile.hsfo.ballast || 0;
+      hsfo = nonEcaDays * rate;
+    } else {
       const rate = isLaden ? profile.vlsfo.laden || 0 : profile.vlsfo.ballast || 0;
       vlsfo = nonEcaDays * rate;
     }
@@ -47,6 +52,7 @@ export function SequenceSummary() {
       from: prevPort,
       to: r.port || "(unset)",
       isLaden,
+      hsfo,
       vlsfo,
       lsmgo: meLsmgoEca + aeLsmgo,
     });
@@ -78,9 +84,11 @@ export function SequenceSummary() {
         workingMode !== "none" ? workingDays * meRateAt(workingMode) : 0;
       const idleConsumed = turnExtra * meRateAt("idle");
       const totalMe = workingConsumed + idleConsumed;
+      let hsfo = 0;
       let vlsfo = 0;
       let lsmgoMe = 0;
-      if (fuel === "vlsfo") vlsfo = totalMe;
+      if (fuel === "hsfo") hsfo = totalMe;
+      else if (fuel === "vlsfo") vlsfo = totalMe;
       else if (fuel === "lsmgo") lsmgoMe = totalMe;
       const aeLoad = workingMode === "load" ? workingDays * (profile.ae.load || 0) : 0;
       const aeDischarge =
@@ -91,18 +99,19 @@ export function SequenceSummary() {
         id: r.id,
         port: r.port || "(unset)",
         operation: r.operation || "-",
+        hsfo,
         vlsfo,
         lsmgo: lsmgoMe + aeLsmgo,
       };
     });
 
   const legTotals = legFuelRows.reduce(
-    (a, r) => ({ vlsfo: a.vlsfo + r.vlsfo, lsmgo: a.lsmgo + r.lsmgo }),
-    { vlsfo: 0, lsmgo: 0 }
+    (a, r) => ({ hsfo: a.hsfo + r.hsfo, vlsfo: a.vlsfo + r.vlsfo, lsmgo: a.lsmgo + r.lsmgo }),
+    { hsfo: 0, vlsfo: 0, lsmgo: 0 }
   );
   const portTotals = portFuelRows.reduce(
-    (a, r) => ({ vlsfo: a.vlsfo + r.vlsfo, lsmgo: a.lsmgo + r.lsmgo }),
-    { vlsfo: 0, lsmgo: 0 }
+    (a, r) => ({ hsfo: a.hsfo + r.hsfo, vlsfo: a.vlsfo + r.vlsfo, lsmgo: a.lsmgo + r.lsmgo }),
+    { hsfo: 0, vlsfo: 0, lsmgo: 0 }
   );
 
   // Calculate totals from sequence rows
