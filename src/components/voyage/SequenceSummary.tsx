@@ -360,15 +360,16 @@ export function SequenceSummary() {
                     )}
                     <th className="text-right font-medium pb-0.5 text-blue-600">VLSFO (mt)</th>
                     <th className="text-right font-medium pb-0.5 text-emerald-600">LSMGO (mt)</th>
+                    <th className="text-right font-medium pb-0.5 text-rose-600">HSFO (mt)</th>
                     <th className="text-right font-medium pb-0.5">Total (mt)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fuelView === "leg" && legFuelRows.length === 0 && (
-                    <tr><td colSpan={5} className="py-1 text-center text-muted-foreground">No sea legs.</td></tr>
+                    <tr><td colSpan={6} className="py-1 text-center text-muted-foreground">No sea legs.</td></tr>
                   )}
                   {fuelView === "port" && portFuelRows.length === 0 && (
-                    <tr><td colSpan={5} className="py-1 text-center text-muted-foreground">No port legs.</td></tr>
+                    <tr><td colSpan={6} className="py-1 text-center text-muted-foreground">No port legs.</td></tr>
                   )}
                   {fuelView === "leg" &&
                     legFuelRows.map((r) => (
@@ -391,8 +392,9 @@ export function SequenceSummary() {
                         </td>
                         <td className="py-0.5 text-right font-mono tabular-nums">{r.vlsfo.toFixed(2)}</td>
                         <td className="py-0.5 text-right font-mono tabular-nums">{r.lsmgo.toFixed(2)}</td>
+                        <td className="py-0.5 text-right font-mono tabular-nums">{r.hsfo.toFixed(2)}</td>
                         <td className="py-0.5 text-right font-mono tabular-nums font-medium">
-                          {(r.vlsfo + r.lsmgo).toFixed(2)}
+                          {(r.vlsfo + r.lsmgo + r.hsfo).toFixed(2)}
                         </td>
                       </tr>
                     ))}
@@ -403,8 +405,9 @@ export function SequenceSummary() {
                         <td className="py-0.5 capitalize text-muted-foreground">{r.operation}</td>
                         <td className="py-0.5 text-right font-mono tabular-nums">{r.vlsfo.toFixed(2)}</td>
                         <td className="py-0.5 text-right font-mono tabular-nums">{r.lsmgo.toFixed(2)}</td>
+                        <td className="py-0.5 text-right font-mono tabular-nums">{r.hsfo.toFixed(2)}</td>
                         <td className="py-0.5 text-right font-mono tabular-nums font-medium">
-                          {(r.vlsfo + r.lsmgo).toFixed(2)}
+                          {(r.vlsfo + r.lsmgo + r.hsfo).toFixed(2)}
                         </td>
                       </tr>
                     ))}
@@ -420,9 +423,14 @@ export function SequenceSummary() {
                     <td className="py-0.5 text-right font-mono tabular-nums text-emerald-600">
                       {(fuelView === "leg" ? legTotals.lsmgo : portTotals.lsmgo).toFixed(2)}
                     </td>
+                    <td className="py-0.5 text-right font-mono tabular-nums text-rose-600">
+                      {(fuelView === "leg" ? legTotals.hsfo : portTotals.hsfo).toFixed(2)}
+                    </td>
                     <td className="py-0.5 text-right font-mono tabular-nums text-primary">
                       {(
-                        (fuelView === "leg" ? legTotals.vlsfo + legTotals.lsmgo : portTotals.vlsfo + portTotals.lsmgo)
+                        (fuelView === "leg"
+                          ? legTotals.vlsfo + legTotals.lsmgo + legTotals.hsfo
+                          : portTotals.vlsfo + portTotals.lsmgo + portTotals.hsfo)
                       ).toFixed(2)}
                     </td>
                   </tr>
@@ -434,8 +442,11 @@ export function SequenceSummary() {
                     <td className="py-0.5 text-right font-mono tabular-nums">
                       {(legTotals.lsmgo + portTotals.lsmgo).toFixed(2)}
                     </td>
+                    <td className="py-0.5 text-right font-mono tabular-nums">
+                      {(legTotals.hsfo + portTotals.hsfo).toFixed(2)}
+                    </td>
                     <td className="py-0.5 text-right font-mono tabular-nums font-semibold">
-                      {(legTotals.vlsfo + legTotals.lsmgo + portTotals.vlsfo + portTotals.lsmgo).toFixed(2)}
+                      {(legTotals.vlsfo + legTotals.lsmgo + legTotals.hsfo + portTotals.vlsfo + portTotals.lsmgo + portTotals.hsfo).toFixed(2)}
                     </td>
                   </tr>
                 </tfoot>
