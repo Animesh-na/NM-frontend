@@ -125,7 +125,9 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
       const seaCo2 = co2FromFuel(l.seaHsfo, l.seaVlsfo, l.seaLsmgo) * seaFactor;
       const portCo2 = co2FromFuel(l.portHsfo, l.portVlsfo, l.portLsmgo) * portFactor;
 
-      if (!l.isPortOnly && (l.seaHsfo + l.seaVlsfo + l.seaLsmgo) > 0) {
+      // Always emit the sea segment row (even with zero fuel) so ballast legs
+      // from an EU open port are visible in the allowance table.
+      if (!l.isPortOnly) {
         rows.push({
           key: `sea-${l.legIndex}`,
           label: `${l.originPort || "—"} > ${l.destPort}`,
