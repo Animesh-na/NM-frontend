@@ -2,12 +2,37 @@
 // Based on IMO regulations and EU ETS requirements
 
 // ===========================================
-// EMISSION FACTORS (t CO₂ per ton fuel)
+// EMISSION FACTORS (t per ton fuel) — Tank-to-Wake, IMO MEPC.364(79)
+// CO2e is derived (not hardcoded) using IPCC AR5 GWP100:
+//   CO2 = 1, CH4 = 28, N2O = 265
 // ===========================================
+export const GWP100 = { co2: 1, ch4: 28, n2o: 265 } as const;
+
+export interface FuelEmissionFactors {
+  co2: number; // tCO2 / t fuel
+  ch4: number; // tCH4 / t fuel
+  n2o: number; // tN2O / t fuel
+}
+
+// Official Tank-to-Wake emission factors per fuel type
+export const TTW_EMISSION_FACTORS: Record<'hsfo' | 'vlsfo' | 'lsmgo', FuelEmissionFactors> = {
+  hsfo:  { co2: 3.114, ch4: 0.00005, n2o: 0.00018 },
+  vlsfo: { co2: 3.151, ch4: 0.00005, n2o: 0.00018 },
+  lsmgo: { co2: 3.206, ch4: 0.00005, n2o: 0.00018 },
+};
+
+/** Derive CO2e emission factor (tCO2e / t fuel) from TTW factors using GWP100. */
+export function calculateCo2eFactor(f: FuelEmissionFactors): number {
+  const raw = f.co2 * GWP100.co2 + f.ch4 * GWP100.ch4 + f.n2o * GWP100.n2o;
+  return Math.round(raw * 1000) / 1000;
+}
+
+// Derived CO2e emission factors — DO NOT hardcode; computed from TTW factors + GWP100.
+// HSFO  ≈ 3.163, VLSFO ≈ 3.200, LSMGO ≈ 3.255
 export const CO2_EMISSION_FACTORS = {
-  hsfo: 3.114, // Heavy Fuel Oil
-  vlsfo: 3.151, // Very Low Sulphur Fuel Oil
-  lsmgo: 3.206, // Low Sulphur Marine Gas Oil
+  hsfo:  calculateCo2eFactor(TTW_EMISSION_FACTORS.hsfo),
+  vlsfo: calculateCo2eFactor(TTW_EMISSION_FACTORS.vlsfo),
+  lsmgo: calculateCo2eFactor(TTW_EMISSION_FACTORS.lsmgo),
 } as const;
 
 // ===========================================
