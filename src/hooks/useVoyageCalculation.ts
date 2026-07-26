@@ -1052,21 +1052,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
-        // Per requested methodology:
-        //   - EU port stay      → 100%
-        //   - Non-EU port stay  → min(arriving sea leg factor, departing sea leg factor)
+        // Per regulation (and requested methodology):
+        //   - EU/EEA port stay (eu_zone === true) → 100%
+        //   - Any non-EU port stay (e.g. Gibraltar) → 0%
         //   - Outside commercial voyage window → 0%
-        // This lets intermediate waypoints (pssg / bunkering) inherit the
-        // "voyage-to-EU" coverage (0.5) while the loading/final ports drop to 0
-        // when either side of the voyage is fully non-EU.
         const arrivingSeaFactor = inEuSeaWindow(index) ? seaEuFactor : 0;
         const nextIndex = index + 1;
         const departingSeaFactor = (nextIndex < sequence.length && inEuSeaWindow(nextIndex))
           ? computeSeaEuFactor(nextIndex)
           : 0;
+        void arrivingSeaFactor; void departingSeaFactor;
         const portEuFactor = (!currentPortKey || !inEuPortWindow(index))
           ? 0
-          : (leg.isEuEea === true ? 1.0 : Math.min(arrivingSeaFactor, departingSeaFactor));
+          : (leg.isEuEea === true ? 1.0 : 0);
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
