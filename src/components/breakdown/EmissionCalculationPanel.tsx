@@ -83,6 +83,206 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
   const totalChargeableHsfo = legDetails.reduce((s, l) => s + l.chargeableHsfo, 0);
   const totalChargeableCo2PrePhaseIn = legDetails.reduce((s, l) => s + l.chargeableCo2, 0);
 
+  // ---------- Compact "Allowances" rows (screenshot-style) ----------
+  // Each sea leg and each port stay become independent rows with a clear
+  // Operation label and a single chargeable-CO₂ (EUAs / UKAs) value.
+  type AllowanceRow = {
+    key: string;
+    label: string;              // "Origin > Destination" for sea, "Port" for port stay
+    operation: string;          // Ballast / Laden / Load / Discharge / Stop / ...
+    coveragePct: number;        // 0 / 50 / 100
+    seaOrPort: "sea" | "port";
+    chargeableCo2: number;
+  };
+
+  const opLabel = (op?: string, fallback = "Stop"): string => {
+    const o = (op || "").toLowerCase();
+    if (o === "loading" || o === "load") return "Load";
+    if (o === "discharging" || o === "disch" || o === "discharge") return "Discharge";
+    if (o === "pssg" || o === "passage") return "Stop";
+    if (o === "bunker" || o === "bunkering") return "Bunker";
+    if (o === "repos" || o === "repositioning") return "Repos";
+    return op ? op.charAt(0).toUpperCase() + op.slice(1) : fallback;
+  };
+
+  const co2FromFuel = (h: number, v: number, l: number) =>
+    h * CO2_EMISSION_FACTORS.hsfo +
+    v * CO2_EMISSION_FACTORS.vlsfo +
+    l * CO2_EMISSION_FACTORS.lsmgo;
+
+  // Build EU allowance rows by walking legDetails and tracking laden state
+  // from destination-port operations (Load -> laden onward, Discharge -> ballast).
+  const buildEuAllowanceRows = (): AllowanceRow[] => {
+    const rows: AllowanceRow[] = [];
+    let cargoOnBoard = 0;
+    legDetails.forEach((l) => {
+      const destSeq = sequence.find((s) => s.port === l.destPort);
+      const destOp = destSeq?.operation || "";
+      const seaOp = cargoOnBoard > 0 ? "Laden" : "Ballast";
+      const seaFactor = l.coveragePct / 100;
+      const portFactor = l.portCoveragePct / 100;
+
+      const seaCo2 = co2FromFuel(l.seaHsfo, l.seaVlsfo, l.seaLsmgo) * seaFactor;
+      const portCo2 = co2FromFuel(l.portHsfo, l.portVlsfo, l.portLsmgo) * portFactor;
+
+      if (!l.isPortOnly && (l.seaHsfo + l.seaVlsfo + l.seaLsmgo) > 0) {
+        rows.push({
+          key: `sea-${l.legIndex}`,
+          label: `${l.originPort || "—"} > ${l.destPort}`,
+          operation: seaOp,
+          coveragePct: l.coveragePct,
+          seaOrPort: "sea",
+          chargeableCo2: seaCo2,
+        });
+      }
+      rows.push({
+        key: `port-${l.legIndex}`,
+        label: l.destPort,
+        operation: opLabel(destOp),
+        coveragePct: l.portCoveragePct,
+        seaOrPort: "port",
+        chargeableCo2: portCo2,
+      });
+
+      const op = destOp.toLowerCase();
+      const qty = Math.max(0, Number((destSeq as unknown as { quantity?: number })?.quantity) || 0);
+      if (op === "loading" || op === "load") cargoOnBoard += qty;
+      else if (op === "discharging" || op === "disch" || op === "discharge")
+        cargoOnBoard = Math.max(0, cargoOnBoard - qty);
+    });
+    return rows;
+  };
+
+  const euAllowanceRows = buildEuAllowanceRows();
+  const euAllowanceTotal = euAllowanceRows.reduce((s, r) => s + r.chargeableCo2, 0);
+
+  // UK allowance rows from ukEtsResult.legBreakdown (already per-leg)
+  const ukAllowanceRows: AllowanceRow[] = [];
+  {
+    let cargoOnBoard = 0;
+    const ukPhaseIn = results.ukEtsResult.phaseIn ?? 1;
+    results.ukEtsResult.legBreakdown.forEach((l) => {
+      const destSeq = sequence.find((s) => s.port === l.destPort);
+      const destOp = destSeq?.operation || "";
+      const seaOp = cargoOnBoard > 0 ? "Laden" : "Ballast";
+
+      // We only have combined ukCoveredFuel / ukCoveredCo2 per leg – split by
+      // coverage: if sea coverage > 0 emit a sea row for the leg CO2 minus port
+      // portion; use portCoveragePct portion for the port row.
+      // Approximation: chargeable × (sea share vs port share).
+      const seaChargeable =
+        l.seaCoveragePct > 0 ? l.chargeableCo2 * (l.seaCoveragePct / (l.seaCoveragePct + l.portCoveragePct || 1)) : 0;
+      const portChargeable =
+        l.portCoveragePct > 0
+          ? l.chargeableCo2 * (l.portCoveragePct / (l.seaCoveragePct + l.portCoveragePct || 1))
+          : 0;
+
+      if (l.seaCoveragePct > 0) {
+        ukAllowanceRows.push({
+          key: `uk-sea-${l.legIndex}`,
+          label: `${l.originPort} > ${l.destPort}`,
+          operation: seaOp,
+          coveragePct: l.seaCoveragePct,
+          seaOrPort: "sea",
+          chargeableCo2: seaChargeable,
+        });
+      }
+      if (l.portCoveragePct > 0) {
+        ukAllowanceRows.push({
+          key: `uk-port-${l.legIndex}`,
+          label: l.destPort,
+          operation: opLabel(destOp),
+          coveragePct: l.portCoveragePct,
+          seaOrPort: "port",
+          chargeableCo2: portChargeable,
+        });
+      }
+
+      const op = destOp.toLowerCase();
+      const qty = Math.max(0, Number((destSeq as unknown as { quantity?: number })?.quantity) || 0);
+      if (op === "loading" || op === "load") cargoOnBoard += qty;
+      else if (op === "discharging" || op === "disch" || op === "discharge")
+        cargoOnBoard = Math.max(0, cargoOnBoard - qty);
+
+      // Silence unused var (phase-in is baked in chargeableCo2 already)
+      void ukPhaseIn;
+    });
+  }
+  const ukAllowanceTotal = ukAllowanceRows.reduce((s, r) => s + r.chargeableCo2, 0);
+
+  const renderAllowanceTable = (
+    rows: AllowanceRow[],
+    unitLabel: string,
+    total: number,
+  ) => (
+    <div className="rounded-md border border-border overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/50">
+          <tr>
+            <th className="text-left font-medium py-1 px-2">Segment / Port</th>
+            <th className="text-left font-medium py-1 px-2">Operation</th>
+            <th className="text-right font-medium py-1 px-2">Cov</th>
+            <th className="text-right font-medium py-1 px-2">{unitLabel}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 && (
+            <tr>
+              <td colSpan={4} className="py-2 px-2 text-center text-muted-foreground">
+                No covered legs.
+              </td>
+            </tr>
+          )}
+          {rows.map((r) => (
+            <tr
+              key={r.key}
+              className={`border-t border-border/50 ${r.seaOrPort === "port" ? "bg-muted/20" : ""}`}
+            >
+              <td className="py-1 px-2 truncate max-w-[280px]">
+                {r.seaOrPort === "sea" ? (
+                  <span className="font-medium">{r.label}</span>
+                ) : (
+                  <span className="text-muted-foreground">{r.label}</span>
+                )}
+              </td>
+              <td className="py-1 px-2">
+                <span
+                  className={`inline-block rounded px-1.5 py-0.5 text-[10px] ${
+                    r.operation === "Laden"
+                      ? "bg-amber-500/15 text-amber-700"
+                      : r.operation === "Ballast"
+                      ? "bg-sky-500/15 text-sky-700"
+                      : r.operation === "Load"
+                      ? "bg-emerald-500/15 text-emerald-700"
+                      : r.operation === "Discharge"
+                      ? "bg-purple-500/15 text-purple-700"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {r.operation}
+                </span>
+              </td>
+              <td className="py-1 px-2 text-right font-mono tabular-nums">
+                {r.coveragePct}%
+              </td>
+              <td className="py-1 px-2 text-right font-mono tabular-nums font-medium">
+                {r.chargeableCo2.toFixed(2)}
+              </td>
+            </tr>
+          ))}
+          <tr className="border-t-2 border-border bg-muted/40 font-semibold">
+            <td className="py-1 px-2" colSpan={3}>
+              Total
+            </td>
+            <td className="py-1 px-2 text-right font-mono tabular-nums">
+              {total.toFixed(2)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <BreakdownCard 
       title="CO₂ Emission & EU ETS Compliance" 
@@ -257,6 +457,18 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
           <Navigation className="h-4 w-4" />
           Step 3: Leg-by-Leg ETS Responsibility
         </h3>
+
+        {/* Screenshot-style compact EU Allowances table */}
+        <div className="mb-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+            EU Allowances (EUAs) — per segment &amp; port
+          </div>
+          {renderAllowanceTable(euAllowanceRows, "EUAs (t CO₂)", euAllowanceTotal)}
+          <div className="text-[10px] text-muted-foreground mt-1">
+            Sea rows use the leg&apos;s sea coverage (EU↔EU 100%, EU↔Non-EU 50%, else 0%).
+            Port rows use the port stay coverage (EU port 100%, else the bracketed factor).
+          </div>
+        </div>
         
         {legDetails.length > 0 ? (
           <div className="overflow-x-auto">
@@ -393,6 +605,16 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
 
         {results.ukEtsResult.legBreakdown.length > 0 ? (
           <div className="overflow-x-auto">
+            {/* Screenshot-style compact UK Allowances table */}
+            <div className="mb-4">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                UK Allowances (UKAs) — per segment &amp; port
+              </div>
+              {renderAllowanceTable(ukAllowanceRows, "UKAs (t CO₂)", ukAllowanceTotal)}
+              <div className="text-[10px] text-muted-foreground mt-1">
+                GB↔GB / NI↔NI = 100%, GB↔NI = 50%, UK↔Non-UK = 0%. UK port stay = 100%.
+              </div>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
