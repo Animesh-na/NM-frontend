@@ -2,6 +2,12 @@ import { useVoyageContext } from "@/context/VoyageContext";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { InfoTooltip } from "./InfoTooltip";
+import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
+
+const co2eOf = (hsfo: number, vlsfo: number, lsmgo: number) =>
+  hsfo * CO2_EMISSION_FACTORS.hsfo +
+  vlsfo * CO2_EMISSION_FACTORS.vlsfo +
+  lsmgo * CO2_EMISSION_FACTORS.lsmgo;
 
 export function SequenceSummary() {
   const { sequence, results, vessel } = useVoyageContext();
@@ -362,14 +368,15 @@ export function SequenceSummary() {
                     <th className="text-right font-medium pb-0.5 text-emerald-600">LSMGO (mt)</th>
                     <th className="text-right font-medium pb-0.5 text-rose-600">HSFO (mt)</th>
                     <th className="text-right font-medium pb-0.5">Total (mt)</th>
+                    <th className="text-right font-medium pb-0.5 text-primary">CO₂e (mt)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fuelView === "leg" && legFuelRows.length === 0 && (
-                    <tr><td colSpan={6} className="py-1 text-center text-muted-foreground">No sea legs.</td></tr>
+                    <tr><td colSpan={7} className="py-1 text-center text-muted-foreground">No sea legs.</td></tr>
                   )}
                   {fuelView === "port" && portFuelRows.length === 0 && (
-                    <tr><td colSpan={6} className="py-1 text-center text-muted-foreground">No port legs.</td></tr>
+                    <tr><td colSpan={7} className="py-1 text-center text-muted-foreground">No port legs.</td></tr>
                   )}
                   {fuelView === "leg" &&
                     legFuelRows.map((r) => (
@@ -396,6 +403,9 @@ export function SequenceSummary() {
                         <td className="py-0.5 text-right font-mono tabular-nums font-medium">
                           {(r.vlsfo + r.lsmgo + r.hsfo).toFixed(2)}
                         </td>
+                        <td className="py-0.5 text-right font-mono tabular-nums text-primary">
+                          {co2eOf(r.hsfo, r.vlsfo, r.lsmgo).toFixed(2)}
+                        </td>
                       </tr>
                     ))}
                   {fuelView === "port" &&
@@ -408,6 +418,9 @@ export function SequenceSummary() {
                         <td className="py-0.5 text-right font-mono tabular-nums">{r.hsfo.toFixed(2)}</td>
                         <td className="py-0.5 text-right font-mono tabular-nums font-medium">
                           {(r.vlsfo + r.lsmgo + r.hsfo).toFixed(2)}
+                        </td>
+                        <td className="py-0.5 text-right font-mono tabular-nums text-primary">
+                          {co2eOf(r.hsfo, r.vlsfo, r.lsmgo).toFixed(2)}
                         </td>
                       </tr>
                     ))}
@@ -433,6 +446,12 @@ export function SequenceSummary() {
                           : portTotals.vlsfo + portTotals.lsmgo + portTotals.hsfo)
                       ).toFixed(2)}
                     </td>
+                    <td className="py-0.5 text-right font-mono tabular-nums text-primary">
+                      {(fuelView === "leg"
+                        ? co2eOf(legTotals.hsfo, legTotals.vlsfo, legTotals.lsmgo)
+                        : co2eOf(portTotals.hsfo, portTotals.vlsfo, portTotals.lsmgo)
+                      ).toFixed(2)}
+                    </td>
                   </tr>
                   <tr className="border-t border-border/50 text-muted-foreground">
                     <td className="py-0.5" colSpan={2}>Voyage Total (Sea + Port)</td>
@@ -447,6 +466,13 @@ export function SequenceSummary() {
                     </td>
                     <td className="py-0.5 text-right font-mono tabular-nums font-semibold">
                       {(legTotals.vlsfo + legTotals.lsmgo + legTotals.hsfo + portTotals.vlsfo + portTotals.lsmgo + portTotals.hsfo).toFixed(2)}
+                    </td>
+                    <td className="py-0.5 text-right font-mono tabular-nums font-semibold text-primary">
+                      {co2eOf(
+                        legTotals.hsfo + portTotals.hsfo,
+                        legTotals.vlsfo + portTotals.vlsfo,
+                        legTotals.lsmgo + portTotals.lsmgo,
+                      ).toFixed(2)}
                     </td>
                   </tr>
                 </tfoot>
