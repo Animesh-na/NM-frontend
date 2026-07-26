@@ -457,6 +457,18 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
           <Navigation className="h-4 w-4" />
           Step 3: Leg-by-Leg ETS Responsibility
         </h3>
+
+        {/* Screenshot-style compact EU Allowances table */}
+        <div className="mb-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+            EU Allowances (EUAs) — per segment &amp; port
+          </div>
+          {renderAllowanceTable(euAllowanceRows, "EUAs (t CO₂)", euAllowanceTotal)}
+          <div className="text-[10px] text-muted-foreground mt-1">
+            Sea rows use the leg&apos;s sea coverage (EU↔EU 100%, EU↔Non-EU 50%, else 0%).
+            Port rows use the port stay coverage (EU port 100%, else the bracketed factor).
+          </div>
+        </div>
         
         {legDetails.length > 0 ? (
           <div className="overflow-x-auto">
