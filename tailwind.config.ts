@@ -16,8 +16,27 @@ export default {
       fontFamily: {
         sans: ['Helvetica Neue', 'Arial Nova Condensed', 'sans-serif'],
         mono: ['Helvetica Neue', 'Arial Nova Condensed', 'monospace'],
+        display: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
+        ocean: {
+          DEFAULT: "hsl(var(--ocean))",
+          600: "hsl(var(--ocean-600))",
+          400: "hsl(var(--ocean-400))",
+        },
+        teal: {
+          DEFAULT: "hsl(var(--teal))",
+          foreground: "hsl(var(--teal-foreground))",
+        },
+        danger: "hsl(var(--danger))",
+        dash: {
+          bg: "hsl(var(--dash-bg))",
+          surface: "hsl(var(--dash-surface))",
+          border: "hsl(var(--dash-border))",
+          sidebar: "hsl(var(--dash-sidebar))",
+          "sidebar-foreground": "hsl(var(--dash-sidebar-foreground))",
+          muted: "hsl(var(--dash-muted))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

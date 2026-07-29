@@ -13,7 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    --primary: 214 100% 15%;
+    --primary: 211 92% 18%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 213 14% 90%;
@@ -22,24 +22,40 @@
     --muted: 213 14% 88%;
     --muted-foreground: 215 15% 45%;
 
-    --accent: 214 100% 15%;
+    --accent: 178 62% 34%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 70% 35%;
+    --success: 152 62% 36%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 94% 48%;
     --warning-foreground: 0 0% 100%;
 
     --border: 213 14% 78%;
     --input: 213 14% 78%;
     --input-background: 0 0% 100%;
-    --ring: 214 100% 15%;
+    --ring: 211 92% 18%;
 
     --radius: 0.5rem;
+
+    /* Dashboard / enterprise theme tokens */
+    --ocean: 211 92% 18%;
+    --ocean-600: 211 78% 27%;
+    --ocean-400: 208 62% 45%;
+    --teal: 178 62% 34%;
+    --teal-foreground: 0 0% 100%;
+    --danger: 0 72% 51%;
+    --dash-bg: 214 24% 97%;
+    --dash-surface: 0 0% 100%;
+    --dash-border: 214 20% 90%;
+    --dash-sidebar: 213 62% 11%;
+    --dash-sidebar-foreground: 210 30% 88%;
+    --dash-muted: 215 16% 47%;
+    --shadow-card: 0 1px 2px hsl(213 30% 12% / 0.06), 0 1px 3px hsl(213 30% 12% / 0.05);
+    --shadow-card-hover: 0 6px 18px -6px hsl(213 40% 15% / 0.16);
 
     /* Maritime specific tokens */
     --section-header: 213 16% 55%;
@@ -106,6 +122,21 @@
     --money-positive: 142 60% 45%;
     --money-negative: 0 60% 50%;
     
+    --ocean: 211 70% 30%;
+    --ocean-600: 210 62% 40%;
+    --ocean-400: 208 60% 55%;
+    --teal: 178 55% 42%;
+    --teal-foreground: 0 0% 100%;
+    --danger: 0 62% 50%;
+    --dash-bg: 215 25% 10%;
+    --dash-surface: 215 25% 13%;
+    --dash-border: 215 20% 22%;
+    --dash-sidebar: 214 40% 9%;
+    --dash-sidebar-foreground: 210 25% 82%;
+    --dash-muted: 215 15% 62%;
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.4);
+    --shadow-card-hover: 0 8px 22px -8px hsl(0 0% 0% / 0.6);
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -284,4 +315,54 @@
   .scrollable-section {
     @apply flex-1 overflow-y-auto;
   }
+
+  /* ---------- Dashboard (enterprise SaaS) ---------- */
+  .dash-root {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    background-color: hsl(var(--dash-bg));
+    color: hsl(var(--foreground));
+  }
+
+  .dash-card {
+    @apply rounded-xl border transition-all duration-200;
+    background-color: hsl(var(--dash-surface));
+    border-color: hsl(var(--dash-border));
+    box-shadow: var(--shadow-card);
+  }
+
+  .dash-card-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+  }
+
+  .dash-muted {
+    color: hsl(var(--dash-muted));
+  }
+
+  .dash-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold;
+  }
+
+  .dash-badge-success { @apply dash-badge; background-color: hsl(var(--success) / 0.12); color: hsl(var(--success)); }
+  .dash-badge-warning { @apply dash-badge; background-color: hsl(var(--warning) / 0.15); color: hsl(38 92% 36%); }
+  .dash-badge-danger  { @apply dash-badge; background-color: hsl(var(--danger) / 0.12); color: hsl(var(--danger)); }
+  .dash-badge-info    { @apply dash-badge; background-color: hsl(var(--teal) / 0.13); color: hsl(var(--teal)); }
+  .dash-badge-neutral { @apply dash-badge; background-color: hsl(var(--dash-muted) / 0.12); color: hsl(var(--dash-muted)); }
+
+  .dash-btn {
+    @apply inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[13px] font-semibold transition-all duration-200;
+  }
+  .dash-btn-primary {
+    @apply dash-btn text-primary-foreground;
+    background-color: hsl(var(--ocean));
+  }
+  .dash-btn-primary:hover { background-color: hsl(var(--ocean-600)); box-shadow: var(--shadow-card-hover); }
+  .dash-btn-ghost {
+    @apply dash-btn border;
+    background-color: hsl(var(--dash-surface));
+    border-color: hsl(var(--dash-border));
+    color: hsl(var(--foreground));
+  }
+  .dash-btn-ghost:hover { background-color: hsl(var(--dash-bg)); }
 }

@@ -1,5 +1,8 @@
-import { useState, useEffect, useCallback, Fragment } from "react";
-import { Ship, Plus, FileText, LogOut, ChevronLeft, ChevronRight, Loader2, Trash2, Shield, ShieldCheck, Users, Calendar, Hash, ChevronDown, UserCircle2 } from "lucide-react";
+import { useState, useEffect, useCallback, Fragment, Suspense, lazy, useMemo } from "react";
+import {
+  Ship, Plus, FileText, ChevronLeft, ChevronRight, Loader2, Trash2, Users, ChevronDown,
+  UserCircle2, Search, LogOut, Shield, ShieldCheck, Anchor, Fuel, Leaf, DollarSign, ScrollText, Menu,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
 import { listSheets, listOrganizationSheets, listOrganizationUsers, listUserSheets, deleteSheet, type SheetListItem, type OrganizationUser } from "@/services/marineApi";
@@ -8,8 +11,21 @@ import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
 import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
 import { MODE_LABELS } from "@/services/apiMode";
+import { DashboardSidebar, type DashSection } from "@/components/dashboard/DashboardSidebar";
+import { KpiCard } from "@/components/dashboard/KpiCard";
+import { VoyageStatusCards } from "@/components/dashboard/VoyageStatusCards";
+
+const FleetOverviewChart = lazy(() => import("@/components/dashboard/FleetOverviewChart"));
+const AnalyticsCharts = lazy(() => import("@/components/dashboard/AnalyticsCharts"));
+const VesselMap = lazy(() => import("@/components/dashboard/VesselMap"));
+const AlertsActivityPanel = lazy(() => import("@/components/dashboard/AlertsActivityPanel"));
+const FleetPerformanceTable = lazy(() => import("@/components/dashboard/FleetPerformanceTable"));
 
 const ITEMS_PER_PAGE = 10;
+
+const ChartSkeleton = () => (
+  <div className="dash-card h-[280px] animate-pulse" />
+);
 
 export default function Dashboard() {
   const { logout, user, mode, setMode, availableModes } = useAuth();
@@ -17,16 +33,19 @@ export default function Dashboard() {
   const isAdmin = user?.role === "admin";
   const mfaEnabled = !!user?.mfa_method;
   const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
-  const [tab, setTab] = useState<"mine" | "users" | "org">("mine");
+  const [section, setSection] = useState<DashSection>("overview");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [query, setQuery] = useState("");
   const [orgUsers, setOrgUsers] = useState<OrganizationUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | number | null>(null);
   const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[]; page: number; total: number }>>({});
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+  const tab: "mine" | "users" | "org" = section === "overview" ? "mine" : section;
 
   const fetchSheets = useCallback(async () => {
     if (tab === "users") return;
@@ -135,410 +154,392 @@ export default function Dashboard() {
     }
   };
 
-  return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="bg-section-header text-section-header-foreground h-12 flex items-center justify-between px-5 text-xs flex-shrink-0 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
-            <Ship className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div>
-            <span className="font-semibold text-sm block leading-tight">VoyageCalc</span>
-            <span className="text-[10px] text-section-header-foreground/60">Voyage Estimation System</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {availableModes.length > 1 && (
-            <div className="flex items-center rounded-md border border-section-header-foreground/20 overflow-hidden mr-1">
-              {availableModes.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMode(m)}
-                  className={`h-7 px-3 text-xs font-medium transition-colors ${
-                    mode === m
-                      ? "bg-primary text-primary-foreground"
-                      : "text-section-header-foreground/70 hover:bg-section-header-foreground/10"
-                  }`}
-                >
-                  {MODE_LABELS[m]}
-                </button>
-              ))}
-            </div>
-          )}
-          {user && (
-            <div className="flex items-center gap-2 mr-2">
-              <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
-                <span className="text-[10px] font-semibold text-primary">
-                  {user.email.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-xs text-section-header-foreground block leading-tight">{user.email}</span>
-                <span className={`text-[10px] font-medium ${isAdmin ? 'text-primary' : 'text-section-header-foreground/50'}`}>
-                  {user.role?.toUpperCase() || 'USER'}
-                </span>
-              </div>
-            </div>
-          )}
-          {isAdmin && (
-            <button
-              onClick={() => setCurrentView("admin")}
-              className="flex items-center gap-1.5 h-7 px-3 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors text-xs font-medium"
-            >
-              <Shield className="h-3.5 w-3.5" />
-              <span>Admin Panel</span>
-            </button>
-          )}
-          <button
-            onClick={() => setMfaDialogOpen(true)}
-            className="flex items-center gap-1.5 h-7 px-3 rounded-md hover:bg-section-header-foreground/10 transition-colors text-xs font-medium text-section-header-foreground/70"
-            title="Two-factor authentication"
-          >
-            <ShieldCheck className={`h-3.5 w-3.5 ${mfaEnabled ? "text-green-500" : ""}`} />
-            <span>Security</span>
-            {!mfaEnabled && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
-          </button>
-          <CompareSheetsLauncher variant="dashboard" />
-          <button
-            onClick={logout}
-            className="flex items-center gap-1 h-7 px-2.5 rounded-md hover:bg-section-header-foreground/10 transition-colors text-section-header-foreground/70"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </header>
+  const visibleSheets = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return sheets;
+    return sheets.filter(s =>
+      s.name?.toLowerCase().includes(q) || s.owner_email?.toLowerCase().includes(q)
+    );
+  }, [sheets, query]);
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Welcome + Stats Row */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground mb-1">
-              Welcome back{user ? `, ${user.email.split('@')[0]}` : ''}
-            </h1>
-            <p className="text-sm text-muted-foreground">Manage your voyage estimation sheets</p>
-          </div>
+  const sectionTitle: Record<DashSection, string> = {
+    overview: "Fleet Overview",
+    mine: "My Sheets",
+    users: "Organization Users",
+    org: "Organization Sheets",
+  };
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Hash className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-foreground tabular-nums">{total}</p>
-                <p className="text-[11px] text-muted-foreground">Total Sheets</p>
-              </div>
-            </div>
-            <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-                <FileText className="h-4 w-4 text-success" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-foreground tabular-nums">{sheets.length}</p>
-                <p className="text-[11px] text-muted-foreground">On This Page</p>
-              </div>
-            </div>
-            {isAdmin && (
-              <button
-                onClick={() => setCurrentView("admin")}
-                className="bg-card border border-primary/30 rounded-lg p-4 flex items-center gap-3 hover:border-primary/60 hover:bg-primary/5 transition-colors text-left group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Users className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-primary">Admin Panel</p>
-                  <p className="text-[11px] text-muted-foreground">Manage users & sheets</p>
-                </div>
-              </button>
-            )}
-            {!isAdmin && (
-              <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <Calendar className="h-4 w-4 text-accent" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-foreground tabular-nums">{totalPages}</p>
-                  <p className="text-[11px] text-muted-foreground">Total Pages</p>
-                </div>
-              </div>
-            )}
-          </div>
+  const navigate = (s: DashSection) => {
+    setSection(s);
+    setMobileNavOpen(false);
+  };
 
-          {/* Title + Create */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-1 border border-border rounded-md p-0.5 bg-card">
-              <button
-                onClick={() => setTab("mine")}
-                className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
-                  tab === "mine" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                <FileText className="h-3.5 w-3.5" />
-                My Sheets
-              </button>
-              <button
-                onClick={() => setTab("users")}
-                className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
-                  tab === "users" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                <UserCircle2 className="h-3.5 w-3.5" />
-                Organization Users
-              </button>
-              <button
-                onClick={() => setTab("org")}
-                className={`flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium transition-colors ${
-                  tab === "org" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                <Users className="h-3.5 w-3.5" />
-                Organization Sheets
-              </button>
-            </div>
-            <button
-              onClick={handleCreate}
-              className="btn-primary flex items-center gap-1.5 h-8 px-4 text-xs rounded-md"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New Sheet
-            </button>
-          </div>
-
-          {/* Sheet List */}
-          {tab === "users" ? (
-            usersLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading users...</span>
-              </div>
-            ) : orgUsers.length === 0 ? (
-              <div className="text-center py-20 border border-dashed border-border rounded-lg bg-card">
-                <UserCircle2 className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">No users found</p>
-              </div>
-            ) : (
-              <div className="border border-border rounded-lg overflow-hidden bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-table-header text-muted-foreground text-xs">
-                      <th className="text-left px-4 py-2.5 font-medium w-10"></th>
-                      <th className="text-left px-4 py-2.5 font-medium">Email</th>
-                      <th className="text-left px-4 py-2.5 font-medium">Role</th>
-                      <th className="text-right px-4 py-2.5 font-medium">Sheets</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orgUsers.map((u) => {
-                      const key = String(u.id);
-                      const expanded = expandedUserId === u.id;
-                      const entry = userSheetsMap[key];
-                      const isSelf = !!user?.email && u.email?.toLowerCase() === user.email.toLowerCase();
-                      return (
-                        <Fragment key={key}>
-                          <tr
-                            className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                            onClick={() => toggleUserExpand(u)}
-                          >
-                            <td className="px-4 py-2.5">
-                              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
-                            </td>
-                            <td className="px-4 py-2.5 font-medium text-foreground">
-                              {u.email}
-                              {isSelf && <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-semibold uppercase">You</span>}
-                            </td>
-                            <td className="px-4 py-2.5 text-muted-foreground text-xs uppercase">{u.role || "user"}</td>
-                            <td className="px-4 py-2.5 text-right text-muted-foreground text-xs tabular-nums">
-                              {u.sheet_count ?? entry?.total ?? (
-                                <FileText className="h-3.5 w-3.5 inline text-muted-foreground/50" />
-                              )}
-                            </td>
-                          </tr>
-                          {expanded && (
-                            <tr className="border-t border-border bg-muted/20">
-                              <td colSpan={4} className="px-4 py-3">
-                                {entry?.loading && entry.sheets.length === 0 ? (
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading sheets...
-                                  </div>
-                                ) : !entry || entry.sheets.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground">No sheets for this user.</p>
-                                ) : (
-                                  <>
-                                    <div className="space-y-1">
-                                      {entry.sheets.map((s) => (
-                                        <div key={s.id} className="flex items-center justify-between bg-card border border-border rounded px-3 py-1.5">
-                                          <div className="flex items-center gap-2">
-                                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                                            <span className="text-xs font-medium text-foreground">{s.name}</span>
-                                            {!isSelf && (
-                                              <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-semibold uppercase">Read-only</span>
-                                            )}
-                                            <span className="text-[10px] text-muted-foreground">{new Date(s.updated_at || s.created_at).toLocaleString()}</span>
-                                          </div>
-                                          <button
-                                            onClick={() => handleOpenUserSheet(s, u.email)}
-                                            className="btn-primary h-6 px-3 text-[11px] rounded"
-                                          >
-                                            {isSelf ? "Open" : "View"}
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    {(() => {
-                                      const uTotalPages = Math.max(1, Math.ceil((entry.total || 0) / ITEMS_PER_PAGE));
-                                      if (uTotalPages <= 1) return null;
-                                      return (
-                                        <div className="flex items-center justify-between mt-3 text-[11px] text-muted-foreground">
-                                          <span>Page {entry.page} of {uTotalPages} ({entry.total} sheets)</span>
-                                          <div className="flex items-center gap-1">
-                                            <button
-                                              onClick={() => loadUserSheetsPage(u, Math.max(1, entry.page - 1))}
-                                              disabled={entry.page <= 1 || entry.loading}
-                                              className="btn-secondary h-6 px-2 disabled:opacity-40"
-                                            >
-                                              <ChevronLeft className="h-3 w-3" />
-                                            </button>
-                                            <button
-                                              onClick={() => loadUserSheetsPage(u, Math.min(uTotalPages, entry.page + 1))}
-                                              disabled={entry.page >= uTotalPages || entry.loading}
-                                              className="btn-secondary h-6 px-2 disabled:opacity-40"
-                                            >
-                                              <ChevronRight className="h-3 w-3" />
-                                            </button>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )
-          ) : loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="ml-2 text-sm text-muted-foreground">Loading sheets...</span>
-            </div>
-          ) : sheets.length === 0 ? (
-            <div className="text-center py-20 border border-dashed border-border rounded-lg bg-card">
-              <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground text-sm mb-1">No sheets yet</p>
-              <p className="text-xs text-muted-foreground/70 mb-4">Create your first voyage estimation sheet</p>
-              <button
-                onClick={handleCreate}
-                className="btn-primary h-8 px-5 text-xs rounded-md"
-              >
-                Create Sheet
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="border border-border rounded-lg overflow-hidden bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-table-header text-muted-foreground text-xs">
-                      <th className="text-left px-4 py-2.5 font-medium w-12">#</th>
-                      <th className="text-left px-4 py-2.5 font-medium">Sheet Name</th>
-                      {(isAdmin || tab === "org") && <th className="text-left px-4 py-2.5 font-medium">Owner</th>}
-                      <th className="text-left px-4 py-2.5 font-medium">Last Updated</th>
-                      <th className="text-right px-4 py-2.5 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sheets.map((sheet, idx) => (
-                      (() => {
-                      const isOwn = !!sheet.owner_email && !!user?.email && sheet.owner_email.toLowerCase() === user.email.toLowerCase();
-                      return (
-                      <tr
-                        key={sheet.id}
-                        className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer group"
-                        onDoubleClick={() => handleOpen(sheet)}
-                      >
-                        <td className="px-4 py-2.5 text-muted-foreground text-xs tabular-nums">
-                          {(page - 1) * ITEMS_PER_PAGE + idx + 1}
-                        </td>
-                        <td className="px-4 py-2.5 font-medium text-foreground group-hover:text-primary transition-colors">
-                          {sheet.name}
-                          {tab === "org" && !isOwn && (
-                            <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9px] font-semibold uppercase">Read-only</span>
-                          )}
-                          {tab === "org" && isOwn && (
-                            <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-semibold uppercase">Yours</span>
-                          )}
-                        </td>
-                        {(isAdmin || tab === "org") && (
-                          <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                            {sheet.owner_email || "—"}
-                          </td>
-                        )}
-                        <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                          {new Date(sheet.updated_at || sheet.created_at).toLocaleString()}
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+  const renderSheetsTable = () => (
+    loading ? (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "hsl(var(--ocean))" }} />
+        <span className="ml-2 text-[13px] dash-muted">Loading sheets...</span>
+      </div>
+    ) : visibleSheets.length === 0 ? (
+      <div className="dash-card border-dashed py-20 text-center">
+        <FileText className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
+        <p className="mb-1 text-[13px] dash-muted">{query ? "No sheets match your search" : "No sheets yet"}</p>
+        {!query && (
+          <>
+            <p className="mb-4 text-[12px] dash-muted opacity-80">Create your first voyage estimation sheet</p>
+            <button onClick={handleCreate} className="dash-btn-primary">Create Sheet</button>
+          </>
+        )}
+      </div>
+    ) : (
+      <>
+        <div className="dash-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-[13px]">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-wide dash-muted" style={{ background: "hsl(var(--dash-bg))" }}>
+                  <th className="w-12 px-5 py-2.5 font-semibold">#</th>
+                  <th className="px-5 py-2.5 font-semibold">Sheet Name</th>
+                  {(isAdmin || tab === "org") && <th className="px-5 py-2.5 font-semibold">Owner</th>}
+                  <th className="px-5 py-2.5 font-semibold">Last Updated</th>
+                  <th className="px-5 py-2.5 text-right font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleSheets.map((sheet, idx) => {
+                  const isOwn = !!sheet.owner_email && !!user?.email && sheet.owner_email.toLowerCase() === user.email.toLowerCase();
+                  return (
+                    <tr
+                      key={sheet.id}
+                      className="group cursor-pointer border-t transition-colors hover:bg-dash-bg"
+                      style={{ borderColor: "hsl(var(--dash-border))" }}
+                      onDoubleClick={() => handleOpen(sheet)}
+                    >
+                      <td className="px-5 py-3 text-[12px] tabular-nums dash-muted">
+                        {(page - 1) * ITEMS_PER_PAGE + idx + 1}
+                      </td>
+                      <td className="px-5 py-3 font-semibold transition-colors group-hover:text-ocean">
+                        {sheet.name}
+                        {tab === "org" && !isOwn && <span className="ml-2 dash-badge-warning">Read-only</span>}
+                        {tab === "org" && isOwn && <span className="ml-2 dash-badge-success">Yours</span>}
+                      </td>
+                      {(isAdmin || tab === "org") && (
+                        <td className="px-5 py-3 text-[12px] dash-muted">{sheet.owner_email || "—"}</td>
+                      )}
+                      <td className="px-5 py-3 text-[12px] dash-muted">
+                        {new Date(sheet.updated_at || sheet.created_at).toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button onClick={() => handleOpen(sheet)} className="dash-btn-primary h-7 px-3 text-[12px]">
+                            {tab === "org" && !isOwn ? "View" : "Open"}
+                          </button>
+                          {(tab === "mine" || isOwn) && (
                             <button
-                              onClick={() => handleOpen(sheet)}
-                              className="btn-primary h-6 px-3 text-[11px] rounded"
+                              onClick={() => handleDelete(sheet)}
+                              className="flex h-7 w-7 items-center justify-center rounded-lg text-destructive/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              title="Delete sheet"
                             >
-                              {tab === "org" && !isOwn ? "View" : "Open"}
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
-                            {(tab === "mine" || isOwn) && (
-                              <button
-                                onClick={() => handleDelete(sheet)}
-                                className="h-6 w-6 flex items-center justify-center text-destructive/60 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
-                                title="Delete sheet"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            )}
-                          </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between text-[12px] dash-muted">
+            <span>Page {page} of {totalPages} ({total} sheets)</span>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="dash-btn-ghost h-8 px-2 disabled:opacity-40">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="dash-btn-ghost h-8 px-2 disabled:opacity-40">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    )
+  );
+
+  const renderUsers = () => (
+    usersLoading ? (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "hsl(var(--ocean))" }} />
+        <span className="ml-2 text-[13px] dash-muted">Loading users...</span>
+      </div>
+    ) : orgUsers.length === 0 ? (
+      <div className="dash-card border-dashed py-20 text-center">
+        <UserCircle2 className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
+        <p className="text-[13px] dash-muted">No users found</p>
+      </div>
+    ) : (
+      <div className="dash-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-[13px]">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide dash-muted" style={{ background: "hsl(var(--dash-bg))" }}>
+                <th className="w-10 px-5 py-2.5 font-semibold"></th>
+                <th className="px-5 py-2.5 font-semibold">Email</th>
+                <th className="px-5 py-2.5 font-semibold">Role</th>
+                <th className="px-5 py-2.5 text-right font-semibold">Sheets</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orgUsers.map((u) => {
+                const key = String(u.id);
+                const expanded = expandedUserId === u.id;
+                const entry = userSheetsMap[key];
+                const isSelf = !!user?.email && u.email?.toLowerCase() === user.email.toLowerCase();
+                return (
+                  <Fragment key={key}>
+                    <tr
+                      className="cursor-pointer border-t transition-colors hover:bg-dash-bg"
+                      style={{ borderColor: "hsl(var(--dash-border))" }}
+                      onClick={() => toggleUserExpand(u)}
+                    >
+                      <td className="px-5 py-3">
+                        <ChevronDown className={`h-4 w-4 dash-muted transition-transform ${expanded ? "rotate-180" : ""}`} />
+                      </td>
+                      <td className="px-5 py-3 font-semibold">
+                        {u.email}
+                        {isSelf && <span className="ml-2 dash-badge-success">You</span>}
+                      </td>
+                      <td className="px-5 py-3 text-[12px] uppercase dash-muted">{u.role || "user"}</td>
+                      <td className="px-5 py-3 text-right text-[12px] tabular-nums dash-muted">
+                        {u.sheet_count ?? entry?.total ?? <FileText className="inline h-3.5 w-3.5 opacity-50" />}
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr className="border-t" style={{ borderColor: "hsl(var(--dash-border))", background: "hsl(var(--dash-bg))" }}>
+                        <td colSpan={4} className="px-5 py-3">
+                          {entry?.loading && entry.sheets.length === 0 ? (
+                            <div className="flex items-center gap-2 text-[12px] dash-muted">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading sheets...
+                            </div>
+                          ) : !entry || entry.sheets.length === 0 ? (
+                            <p className="text-[12px] dash-muted">No sheets for this user.</p>
+                          ) : (
+                            <>
+                              <div className="space-y-1.5">
+                                {entry.sheets.map((s) => (
+                                  <div
+                                    key={s.id}
+                                    className="flex items-center justify-between rounded-lg border px-3 py-2"
+                                    style={{ background: "hsl(var(--dash-surface))", borderColor: "hsl(var(--dash-border))" }}
+                                  >
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <FileText className="h-3.5 w-3.5 dash-muted" />
+                                      <span className="text-[12px] font-semibold">{s.name}</span>
+                                      {!isSelf && <span className="dash-badge-warning">Read-only</span>}
+                                      <span className="text-[11px] dash-muted">{new Date(s.updated_at || s.created_at).toLocaleString()}</span>
+                                    </div>
+                                    <button onClick={() => handleOpenUserSheet(s, u.email)} className="dash-btn-primary h-7 px-3 text-[12px]">
+                                      {isSelf ? "Open" : "View"}
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                              {(() => {
+                                const uTotalPages = Math.max(1, Math.ceil((entry.total || 0) / ITEMS_PER_PAGE));
+                                if (uTotalPages <= 1) return null;
+                                return (
+                                  <div className="mt-3 flex items-center justify-between text-[11px] dash-muted">
+                                    <span>Page {entry.page} of {uTotalPages} ({entry.total} sheets)</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        onClick={() => loadUserSheetsPage(u, Math.max(1, entry.page - 1))}
+                                        disabled={entry.page <= 1 || entry.loading}
+                                        className="dash-btn-ghost h-7 px-2 disabled:opacity-40"
+                                      >
+                                        <ChevronLeft className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => loadUserSheetsPage(u, Math.min(uTotalPages, entry.page + 1))}
+                                        disabled={entry.page >= uTotalPages || entry.loading}
+                                        className="dash-btn-ghost h-7 px-2 disabled:opacity-40"
+                                      >
+                                        <ChevronRight className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </>
+                          )}
                         </td>
                       </tr>
-                      );
-                      })()
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
-                  <span>
-                    Page {page} of {totalPages} ({total} sheets)
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page <= 1}
-                      className="btn-secondary h-7 px-2 disabled:opacity-40"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                      disabled={page >= totalPages}
-                      className="btn-secondary h-7 px-2 disabled:opacity-40"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+      </div>
+    )
+  );
+
+  return (
+    <div className="dash-root flex h-screen overflow-hidden">
+      <DashboardSidebar
+        section={section}
+        onSelect={navigate}
+        isAdmin={!!isAdmin}
+        mfaEnabled={mfaEnabled}
+        onAdmin={() => setCurrentView("admin")}
+        onSecurity={() => setMfaDialogOpen(true)}
+        onLogout={logout}
+        userEmail={user?.email}
+        userRole={user?.role}
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Header */}
+        <header
+          className="flex h-16 shrink-0 items-center justify-between gap-3 border-b px-4 sm:px-6"
+          style={{ background: "hsl(var(--dash-surface))", borderColor: "hsl(var(--dash-border))" }}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              className="lg:hidden flex h-9 w-9 items-center justify-center rounded-lg border"
+              style={{ borderColor: "hsl(var(--dash-border))" }}
+              onClick={() => setMobileNavOpen(v => !v)}
+              aria-label="Toggle navigation"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="truncate text-[17px] font-extrabold tracking-tight">{sectionTitle[section]}</h1>
+              <p className="truncate text-[12px] dash-muted">
+                Welcome back{user ? `, ${user.email.split("@")[0]}` : ""} — {MODE_LABELS[mode]} operations
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {section !== "overview" && section !== "users" && (
+              <div className="relative hidden md:block">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 dash-muted" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search sheets..."
+                  className="h-9 w-56 rounded-lg border pl-8 pr-3 text-[13px] outline-none transition-colors focus:ring-2"
+                  style={{ borderColor: "hsl(var(--dash-border))", background: "hsl(var(--dash-bg))" }}
+                />
+              </div>
+            )}
+            {availableModes.length > 1 && (
+              <div className="flex items-center overflow-hidden rounded-lg border" style={{ borderColor: "hsl(var(--dash-border))" }}>
+                {availableModes.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMode(m)}
+                    className="h-9 px-3 text-[12px] font-semibold transition-colors"
+                    style={
+                      mode === m
+                        ? { background: "hsl(var(--ocean))", color: "#fff" }
+                        : { color: "hsl(var(--dash-muted))" }
+                    }
+                  >
+                    {MODE_LABELS[m]}
+                  </button>
+                ))}
+              </div>
+            )}
+            <CompareSheetsLauncher variant="dashboard" />
+            <button onClick={handleCreate} className="dash-btn-primary">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">New Sheet</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Mobile nav */}
+        {mobileNavOpen && (
+          <div className="lg:hidden border-b p-3" style={{ background: "hsl(var(--dash-surface))", borderColor: "hsl(var(--dash-border))" }}>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                ["overview", "Overview", Ship],
+                ["mine", "My Sheets", FileText],
+                ["users", "Org Users", UserCircle2],
+                ["org", "Org Sheets", Users],
+              ] as const).map(([key, label, Icon]) => (
+                <button
+                  key={key}
+                  onClick={() => navigate(key)}
+                  className="dash-btn-ghost justify-start"
+                  style={section === key ? { background: "hsl(var(--ocean))", color: "#fff", borderColor: "hsl(var(--ocean))" } : undefined}
+                >
+                  <Icon className="h-4 w-4" /> {label}
+                </button>
+              ))}
+              {isAdmin && (
+                <button onClick={() => setCurrentView("admin")} className="dash-btn-ghost justify-start">
+                  <Shield className="h-4 w-4" /> Admin
+                </button>
+              )}
+              <button onClick={() => setMfaDialogOpen(true)} className="dash-btn-ghost justify-start">
+                <ShieldCheck className="h-4 w-4" /> Security
+              </button>
+              <button onClick={logout} className="dash-btn-ghost justify-start">
+                <LogOut className="h-4 w-4" /> Logout
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="mx-auto max-w-[1400px] space-y-5">
+            {section === "overview" ? (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                  <KpiCard label="Active Voyages" value="24" delta={8} deltaLabel="vs last month" icon={Anchor} tone="ocean" />
+                  <KpiCard label="Fleet Size" value="32" unit="vessels" delta={3} deltaLabel="2 newbuilds" icon={Ship} tone="teal" />
+                  <KpiCard label="Fuel Consumption" value="2,278" unit="mt" delta={-4} deltaLabel="month to date" icon={Fuel} tone="warning" />
+                  <KpiCard label="CO₂ Emissions" value="7,025" unit="t CO₂e" delta={-6} deltaLabel="month to date" icon={Leaf} tone="success" />
+                  <KpiCard label="Profit" value="$4.82M" delta={12} deltaLabel="net voyage result" icon={DollarSign} tone="success" />
+                  <KpiCard label="Charter Parties" value="18" unit="active" delta={5} deltaLabel="3 renewals due" icon={ScrollText} tone="ocean" />
+                </div>
+
+                <VoyageStatusCards />
+
+                <Suspense fallback={<ChartSkeleton />}>
+                  <div className="grid gap-4 xl:grid-cols-3">
+                    <div className="xl:col-span-2"><VesselMap /></div>
+                    <FleetOverviewChart />
+                  </div>
+                </Suspense>
+
+                <Suspense fallback={<ChartSkeleton />}>
+                  <AlertsActivityPanel />
+                </Suspense>
+
+                <Suspense fallback={<ChartSkeleton />}>
+                  <AnalyticsCharts />
+                </Suspense>
+
+                <Suspense fallback={<ChartSkeleton />}>
+                  <FleetPerformanceTable />
+                </Suspense>
+              </>
+            ) : section === "users" ? (
+              renderUsers()
+            ) : (
+              renderSheetsTable()
+            )}
+          </div>
+        </main>
       </div>
 
       <MfaManageDialog open={mfaDialogOpen} onOpenChange={setMfaDialogOpen} />
