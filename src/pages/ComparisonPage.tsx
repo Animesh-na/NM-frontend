@@ -119,6 +119,7 @@ export default function ComparisonPage() {
   const [loading, setLoading] = useState(true);
   const [chartMetric, setChartMetric] = useState("pAndL");
   const [sortKey, setSortKey] = useState<string | null>(null);
+  const [view, setView] = useState<"table" | "metric" | "fuel" | "time" | "pnl">("table");
 
   useEffect(() => {
     let cancelled = false;
@@ -312,45 +313,62 @@ export default function ComparisonPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col overflow-hidden sheet-shell">
       {/* Hidden calculators */}
       {entries.map(e => (
         <HiddenRunner key={e.id} data={e.data} onResult={handleResult(e.id)} />
       ))}
 
       {/* Header */}
-      <header className="bg-section-header text-section-header-foreground h-12 flex items-center justify-between px-5 text-xs flex-shrink-0 border-b border-border print:hidden">
+      <header className="sheet-topbar h-12 flex items-center justify-between px-5 text-xs flex-shrink-0 print:hidden">
         <div className="flex items-center gap-3">
-          <button onClick={() => setCurrentView("dashboard")} className="flex items-center gap-1 px-2 h-7 rounded hover:bg-section-header-foreground/10">
+          <button onClick={() => setCurrentView("dashboard")} className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-white/10 hover:bg-white/20 transition-colors font-medium">
             <ArrowLeft className="h-3.5 w-3.5" /> <span>Back</span>
           </button>
           <div>
-            <h1 className="font-semibold text-sm leading-tight">Voyage Sheet Comparison</h1>
-            <p className="text-[10px] text-section-header-foreground/60">{entries.length} vessels compared</p>
+            <h1 className="font-semibold text-[13px] leading-tight tracking-tight">Voyage Sheet Comparison</h1>
+            <p className="text-[9px] uppercase tracking-[0.14em] text-primary-foreground/60">{entries.length} vessels compared</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleChangeSelection} className="h-7 px-3 rounded text-xs hover:bg-section-header-foreground/10">Change Selection</button>
-          <button onClick={exportExcel} className="h-7 px-3 rounded bg-primary text-primary-foreground hover:bg-primary/90 text-xs flex items-center gap-1.5">
+          <button onClick={handleChangeSelection} className="h-7 px-3 rounded-lg text-xs bg-white/10 hover:bg-white/20 transition-colors font-medium">Change Selection</button>
+          <button onClick={exportExcel} className="h-7 px-3 rounded-lg bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))] hover:opacity-90 text-xs font-semibold flex items-center gap-1.5 transition-opacity">
             <FileSpreadsheet className="h-3.5 w-3.5" /> Export Excel
           </button>
-          <button onClick={exportPdf} className="h-7 px-3 rounded border border-border hover:bg-section-header-foreground/10 text-xs flex items-center gap-1.5">
+          <button onClick={exportPdf} className="h-7 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium flex items-center gap-1.5 transition-colors">
             <Download className="h-3.5 w-3.5" /> Export PDF
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* View switcher */}
+      {!loading && allReady && (
+        <div className="flex-shrink-0 flex items-center gap-1 px-4 py-2 bg-[hsl(var(--dash-surface))] border-b border-[hsl(var(--dash-border))] print:hidden">
+          {([
+            ["table", "Comparison Table"],
+            ["metric", "Metric Chart"],
+            ["fuel", "Bunkering"],
+            ["time", "Voyage Time"],
+            ["pnl", "P&L Waterfall"],
+          ] as const).map(([k, label]) => (
+            <button key={k} onClick={() => setView(k)} className={`seg-tab ${view === k ? "seg-tab-active" : ""}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex-1 min-h-0 overflow-hidden p-4">
         {loading || !allReady ? (
           <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
             <Loader2 className="h-5 w-5 animate-spin mr-2" />
             {loading ? "Loading sheet data..." : "Calculating voyages..."}
           </div>
         ) : (
-          <>
+          <div className="h-full min-h-0">
             {/* Comparison table */}
-            <section className="bg-card border border-border rounded overflow-hidden">
-              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+            <section className={`dash-card h-full flex flex-col overflow-hidden ${view === "table" ? "" : "hidden print:flex"}`}>
+              <div className="flex-1 min-h-0 overflow-auto sheet-scroll">
                 <table className="w-full text-xs border-collapse">
                   <thead className="sticky top-0 z-10 bg-table-header">
                     <tr>
@@ -457,15 +475,15 @@ export default function ComparisonPage() {
             </section>
 
             {/* Chart */}
-            <section className="bg-card border border-border rounded p-3">
+            <section className={`dash-card h-full flex flex-col p-3 overflow-hidden ${view === "metric" ? "" : "hidden print:flex"}`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                <h2 className="text-[11px] font-bold uppercase dash-muted tracking-[0.12em]">
                   Metric Comparison by Sheet — {METRICS.find(x => x.key === chartMetric)?.label}
                 </h2>
                 <select
                   value={chartMetric}
                   onChange={e => setChartMetric(e.target.value)}
-                  className="form-input-sm h-7 text-xs"
+                  className="form-input-sm h-7 text-xs rounded-lg"
                 >
                   {CHART_METRIC_KEYS.map(k => {
                     const m = METRICS.find(x => x.key === k);
@@ -473,7 +491,7 @@ export default function ComparisonPage() {
                   })}
                 </select>
               </div>
-              <div style={{ width: "100%", height: 320 }}>
+              <div className="flex-1 min-h-0 w-full">
                 <ResponsiveContainer>
                   <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -491,7 +509,7 @@ export default function ComparisonPage() {
                 </ResponsiveContainer>
               </div>
               {/* Inline data table */}
-              <div className="mt-3 overflow-x-auto">
+              <div className="mt-3 max-h-40 overflow-auto sheet-scroll flex-shrink-0">
                 <table className="w-full text-[11px] border-collapse">
                   <thead className="bg-muted/40">
                     <tr>
@@ -515,9 +533,9 @@ export default function ComparisonPage() {
             </section>
 
             {/* Graphical Analysis */}
-            <section className="bg-card border border-border rounded p-3">
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Bunkering — Fuel Type by Sheet (mt)</h2>
-              <div style={{ width: "100%", height: 300 }}>
+            <section className={`dash-card h-full flex flex-col p-3 overflow-hidden ${view === "fuel" ? "" : "hidden print:flex"}`}>
+              <h2 className="text-[11px] font-bold uppercase dash-muted tracking-[0.12em] mb-3">Bunkering — Fuel Type by Sheet (mt)</h2>
+              <div className="flex-1 min-h-0 w-full">
                 <ResponsiveContainer>
                   <BarChart data={fuelChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -533,9 +551,9 @@ export default function ComparisonPage() {
               </div>
             </section>
 
-            <section className="bg-card border border-border rounded p-3">
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Voyage Time Breakdown by Sheet (days)</h2>
-              <div style={{ width: "100%", height: 300 }}>
+            <section className={`dash-card h-full flex flex-col p-3 overflow-hidden ${view === "time" ? "" : "hidden print:flex"}`}>
+              <h2 className="text-[11px] font-bold uppercase dash-muted tracking-[0.12em] mb-3">Voyage Time Breakdown by Sheet (days)</h2>
+              <div className="flex-1 min-h-0 w-full">
                 <ResponsiveContainer>
                   <BarChart data={daysChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -551,9 +569,10 @@ export default function ComparisonPage() {
               </div>
             </section>
 
-            <section className="bg-card border border-border rounded p-3">
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">P&L Waterfall by Sheet ($)</h2>
-              <div style={{ width: "100%", height: Math.max(320, waterfallData.length * 28) }}>
+            <section className={`dash-card h-full flex flex-col p-3 overflow-hidden ${view === "pnl" ? "" : "hidden print:flex"}`}>
+              <h2 className="text-[11px] font-bold uppercase dash-muted tracking-[0.12em] mb-3">P&L Waterfall by Sheet ($)</h2>
+              <div className="flex-1 min-h-0 overflow-auto sheet-scroll" style={{ width: "100%" }}>
+                <div style={{ width: "100%", height: Math.max(280, waterfallData.length * 26) }}>
                 <ResponsiveContainer>
                   <BarChart data={waterfallData} layout="vertical" margin={{ top: 10, right: 30, left: 140, bottom: 10 }} barCategoryGap={2}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -585,9 +604,10 @@ export default function ComparisonPage() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                </div>
               </div>
             </section>
-          </>
+          </div>
         )}
       </div>
     </div>

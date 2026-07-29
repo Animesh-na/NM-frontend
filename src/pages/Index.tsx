@@ -143,7 +143,7 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
+    <div className="h-screen flex flex-col overflow-hidden sheet-shell">
       {/* Header */}
       <CompactHeader />
       
@@ -151,7 +151,7 @@ const Index = () => {
       <SheetTabs />
 
       {activeTab?.readOnly && (
-        <div className="bg-amber-500/10 border-b border-amber-500/30 text-amber-700 dark:text-amber-300 px-3 py-1.5 text-[11px] flex items-center justify-between flex-shrink-0">
+        <div className="bg-warning/10 border-b border-warning/30 text-amber-700 dark:text-amber-300 px-4 py-1.5 text-[11px] flex items-center justify-between flex-shrink-0">
           <span>This sheet belongs to another user in your organization and is read-only. Use <strong>Copy Sheet</strong> to create your own editable copy.</span>
         </div>
       )}
@@ -160,7 +160,7 @@ const Index = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
         <div
-          className={`flex-1 overflow-y-auto p-3 space-y-2.5 ${
+          className={`flex-1 overflow-y-auto sheet-scroll p-3 space-y-2.5 ${
             isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
           }`}
         >
@@ -175,7 +175,7 @@ const Index = () => {
         
         {/* Right Panel - Summary */}
         <div
-          className={`w-80 flex-shrink-0 border-l border-border overflow-y-auto bg-background ${
+          className={`w-80 flex-shrink-0 border-l border-[hsl(var(--dash-border))] overflow-y-auto sheet-scroll bg-[hsl(var(--dash-surface))] ${
             isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
           }`}
         >
@@ -189,15 +189,15 @@ const Index = () => {
       </div>
       
       {/* Footer */}
-      <footer className="bg-primary border-t border-border px-3 py-1.5 text-[10px] text-primary-foreground flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
+      <footer className="sheet-topbar border-t border-[hsl(var(--dash-border))] px-4 py-1.5 text-[10px] flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2 text-primary-foreground/80">
           <span>© 2026 VoyageCalc</span>
-          <span className="text-muted-foreground/50">|</span>
+          <span className="opacity-40">|</span>
           <span>Session: {new Date().toLocaleTimeString()}</span>
         </div>
         <div className="flex items-center gap-1.5">
           {!activeTab?.readOnly && <button
-            className="bg-primary/80 text-primary-foreground px-2.5 py-0.5 rounded text-[10px] font-medium hover:bg-primary/70 transition-colors flex items-center gap-1"
+            className="bg-white/15 hover:bg-white/25 text-primary-foreground px-3 py-1 rounded-lg text-[10px] font-semibold transition-colors flex items-center gap-1"
             onClick={() => {
               if (activeTab) {
                 window.dispatchEvent(new CustomEvent("sheet-save", { detail: { name: activeTab.name } }));
