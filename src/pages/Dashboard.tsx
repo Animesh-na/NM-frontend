@@ -429,7 +429,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            {section !== "overview" && section !== "users" && (
+            {(section === "mine" || section === "org") && (
               <div className="relative hidden md:block">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 dash-muted" />
                 <input
