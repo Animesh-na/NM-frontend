@@ -2,6 +2,7 @@
 // ⚠️ Requires upstream CORS allow-listing of every browser origin this app runs on.
 import { dispatchSessionExpired, getStoredAuthToken } from "@/utils/authToken";
 import { buildMarineUrl, marineHeaders } from "./apiConfig";
+import { modePath } from "./apiMode";
 import { logger } from "@/services/logger";
 
 // Types
@@ -86,7 +87,7 @@ export async function apiRequest<T>(
 // 1. Get Vessel Types
 export async function getVesselTypes(): Promise<VesselType[]> {
   try {
-    const data = await apiRequest<{ types: VesselType[] }>("/vessel-types", undefined, { authenticated: true });
+    const data = await apiRequest<{ types: VesselType[] }>(modePath("/vessel-types"), undefined, { authenticated: true });
     return data.types || [];
   } catch (error) {
     console.error("Failed to fetch vessel types:", error);
@@ -246,7 +247,7 @@ export interface SheetDetail {
 // 5. List all sheets with pagination
 export async function listSheets(page: number = 1, limit: number = 10): Promise<SheetListResponse> {
   try {
-    const data = await apiRequest<SheetListResponse>("/sheets", { page, limit }, { authenticated: true });
+    const data = await apiRequest<SheetListResponse>(modePath("/sheets"), { page, limit }, { authenticated: true });
     return data;
   } catch (error) {
     console.error("Failed to list sheets:", error);
@@ -257,7 +258,7 @@ export async function listSheets(page: number = 1, limit: number = 10): Promise<
 // 5b. List organization sheets (read-only view of other users' sheets in the org)
 export async function listOrganizationSheets(page: number = 1, limit: number = 10): Promise<SheetListResponse> {
   try {
-    const data = await apiRequest<SheetListResponse>("/organization/sheets", { page, limit }, { authenticated: true });
+    const data = await apiRequest<SheetListResponse>(modePath("/organization/sheets"), { page, limit }, { authenticated: true });
     return data;
   } catch (error) {
     console.error("Failed to list organization sheets:", error);
@@ -288,7 +289,7 @@ export interface OrganizationUsersResponse {
 export async function listOrganizationUsers(page: number = 1, limit: number = 50): Promise<OrganizationUsersResponse> {
   try {
     const data = await apiRequest<OrganizationUsersResponse & { organization?: { users?: OrganizationUser[] } }>(
-      "/organization/users",
+      modePath("/organization/users"),
       { page, limit },
       { authenticated: true }
     );
@@ -303,7 +304,7 @@ export async function listOrganizationUsers(page: number = 1, limit: number = 50
 // 5d. List sheets owned by a specific organization user
 export async function listUserSheets(userId: string | number, page: number = 1, limit: number = 50): Promise<SheetListResponse> {
   try {
-    const data = await apiRequest<SheetListResponse>(`/organization/users/${userId}/sheets`, { page, limit }, { authenticated: true });
+    const data = await apiRequest<SheetListResponse>(modePath(`/organization/users/${userId}/sheets`), { page, limit }, { authenticated: true });
     return data;
   } catch (error) {
     console.error("Failed to list user sheets:", error);
@@ -314,7 +315,7 @@ export async function listUserSheets(userId: string | number, page: number = 1, 
 // 6. Save (create) a new sheet
 export async function saveSheet(name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
   try {
-    const data = await apiRequest<{ sheet: SheetDetail }>("/sheets", undefined, {
+    const data = await apiRequest<{ sheet: SheetDetail }>(modePath("/sheets"), undefined, {
       method: 'POST',
       body: { name, data: sheetData },
       authenticated: true,
@@ -329,7 +330,7 @@ export async function saveSheet(name: string, sheetData: Record<string, unknown>
 // 7. Update an existing sheet
 export async function updateSheet(id: string, name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
   try {
-    const data = await apiRequest<{ sheet: SheetDetail }>("/sheets", undefined, {
+    const data = await apiRequest<{ sheet: SheetDetail }>(modePath("/sheets"), undefined, {
       method: 'POST',
       body: { id, name, data: sheetData },
       authenticated: true,
@@ -344,7 +345,7 @@ export async function updateSheet(id: string, name: string, sheetData: Record<st
 // 8. Get a single sheet by ID
 export async function getSheet(id: string): Promise<SheetDetail | null> {
   try {
-    const data = await apiRequest<{ sheet: SheetDetail }>(`/sheets/${id}`, undefined, { authenticated: true });
+    const data = await apiRequest<{ sheet: SheetDetail }>(modePath(`/sheets/${id}`), undefined, { authenticated: true });
     return data.sheet || null;
   } catch (error) {
     console.error("Failed to get sheet:", error);
@@ -355,7 +356,7 @@ export async function getSheet(id: string): Promise<SheetDetail | null> {
 // 9. Delete a sheet by ID
 export async function deleteSheet(id: string): Promise<boolean> {
   try {
-    await apiRequest<{ message: string }>(`/sheets/${id}`, undefined, {
+    await apiRequest<{ message: string }>(modePath(`/sheets/${id}`), undefined, {
       method: 'DELETE',
       authenticated: true,
     });
@@ -363,5 +364,15 @@ export async function deleteSheet(id: string): Promise<boolean> {
   } catch (error) {
     console.error("Failed to delete sheet:", error);
     return false;
+  }
+}
+
+// 10. Search sheets by query
+export async function searchSheets(query: string, page: number = 1, limit: number = 10): Promise<SheetListResponse> {
+  try {
+    return await apiRequest<SheetListResponse>(modePath("/sheets/search"), { q: query, page, limit }, { authenticated: true });
+  } catch (error) {
+    console.error("Failed to search sheets:", error);
+    return { sheets: [], pagination: { total: 0, page, limit, total_pages: 1 } };
   }
 }

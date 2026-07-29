@@ -7,11 +7,12 @@ import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
 import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
+import { MODE_LABELS } from "@/services/apiMode";
 
 const ITEMS_PER_PAGE = 10;
 
 export default function Dashboard() {
-  const { logout, user } = useAuth();
+  const { logout, user, mode, setMode, availableModes } = useAuth();
   const { openSheet, openOrganizationSheet, createNewSheet, setCurrentView } = useSheets();
   const isAdmin = user?.role === "admin";
   const mfaEnabled = !!user?.mfa_method;
@@ -41,7 +42,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [page, tab]);
+  }, [page, tab, mode]);
 
   useEffect(() => {
     fetchSheets();
@@ -50,6 +51,7 @@ export default function Dashboard() {
   // Fetch organization users when switching to the Users tab
   useEffect(() => {
     if (tab !== "users") return;
+    void mode; // refetch when sector mode changes
     let cancelled = false;
     (async () => {
       setUsersLoading(true);
@@ -63,10 +65,10 @@ export default function Dashboard() {
       }
     })();
     return () => { cancelled = true; };
-  }, [tab]);
+  }, [tab, mode]);
 
-  // Reset to page 1 when switching tabs
-  useEffect(() => { setPage(1); }, [tab]);
+  // Reset to page 1 when switching tabs or sector mode
+  useEffect(() => { setPage(1); }, [tab, mode]);
 
   const handleCreate = () => {
     createNewSheet();
@@ -147,6 +149,23 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {availableModes.length > 1 && (
+            <div className="flex items-center rounded-md border border-section-header-foreground/20 overflow-hidden mr-1">
+              {availableModes.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`h-7 px-3 text-xs font-medium transition-colors ${
+                    mode === m
+                      ? "bg-primary text-primary-foreground"
+                      : "text-section-header-foreground/70 hover:bg-section-header-foreground/10"
+                  }`}
+                >
+                  {MODE_LABELS[m]}
+                </button>
+              ))}
+            </div>
+          )}
           {user && (
             <div className="flex items-center gap-2 mr-2">
               <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">

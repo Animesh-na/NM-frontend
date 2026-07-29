@@ -1,6 +1,7 @@
 // Vessel Fuel Consumption API Service — calls upstream directly + computes
 // fuel TPD client-side (previously done inside the vessel-fuel-api edge function).
 import { buildMarineUrl, marineHeaders } from "./apiConfig";
+import { modePath } from "./apiMode";
 import { dispatchSessionExpired, getStoredAuthToken } from "@/utils/authToken";
 
 const AE_SFOC = 181; // g/kWh standard for auxiliary engines
@@ -139,7 +140,7 @@ export interface VesselWithFuel {
 
 export async function getVesselTypes(): Promise<VesselType[]> {
   try {
-    const data = await upstream<{ types?: VesselType[] } | VesselType[]>("/vessel-types");
+    const data = await upstream<{ types?: VesselType[] } | VesselType[]>(modePath("/vessel-types"));
     return Array.isArray(data) ? data : (data.types || []);
   } catch (e) {
     console.error('Failed to fetch vessel types:', e);
