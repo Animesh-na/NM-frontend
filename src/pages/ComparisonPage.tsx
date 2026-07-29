@@ -475,15 +475,15 @@ export default function ComparisonPage() {
             </section>
 
             {/* Chart */}
-            <section className="bg-card border border-border rounded p-3">
+            <section className={`dash-card h-full flex flex-col p-3 overflow-hidden ${view === "metric" ? "" : "hidden print:flex"}`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                <h2 className="text-[11px] font-bold uppercase dash-muted tracking-[0.12em]">
                   Metric Comparison by Sheet — {METRICS.find(x => x.key === chartMetric)?.label}
                 </h2>
                 <select
                   value={chartMetric}
                   onChange={e => setChartMetric(e.target.value)}
-                  className="form-input-sm h-7 text-xs"
+                  className="form-input-sm h-7 text-xs rounded-lg"
                 >
                   {CHART_METRIC_KEYS.map(k => {
                     const m = METRICS.find(x => x.key === k);
@@ -491,7 +491,7 @@ export default function ComparisonPage() {
                   })}
                 </select>
               </div>
-              <div style={{ width: "100%", height: 320 }}>
+              <div className="flex-1 min-h-0 w-full">
                 <ResponsiveContainer>
                   <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -509,7 +509,7 @@ export default function ComparisonPage() {
                 </ResponsiveContainer>
               </div>
               {/* Inline data table */}
-              <div className="mt-3 overflow-x-auto">
+              <div className="mt-3 max-h-40 overflow-auto sheet-scroll flex-shrink-0">
                 <table className="w-full text-[11px] border-collapse">
                   <thead className="bg-muted/40">
                     <tr>
@@ -533,9 +533,9 @@ export default function ComparisonPage() {
             </section>
 
             {/* Graphical Analysis */}
-            <section className="bg-card border border-border rounded p-3">
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Bunkering — Fuel Type by Sheet (mt)</h2>
-              <div style={{ width: "100%", height: 300 }}>
+            <section className={`dash-card h-full flex flex-col p-3 overflow-hidden ${view === "fuel" ? "" : "hidden print:flex"}`}>
+              <h2 className="text-[11px] font-bold uppercase dash-muted tracking-[0.12em] mb-3">Bunkering — Fuel Type by Sheet (mt)</h2>
+              <div className="flex-1 min-h-0 w-full">
                 <ResponsiveContainer>
                   <BarChart data={fuelChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -551,9 +551,9 @@ export default function ComparisonPage() {
               </div>
             </section>
 
-            <section className="bg-card border border-border rounded p-3">
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">Voyage Time Breakdown by Sheet (days)</h2>
-              <div style={{ width: "100%", height: 300 }}>
+            <section className={`dash-card h-full flex flex-col p-3 overflow-hidden ${view === "time" ? "" : "hidden print:flex"}`}>
+              <h2 className="text-[11px] font-bold uppercase dash-muted tracking-[0.12em] mb-3">Voyage Time Breakdown by Sheet (days)</h2>
+              <div className="flex-1 min-h-0 w-full">
                 <ResponsiveContainer>
                   <BarChart data={daysChartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -569,9 +569,10 @@ export default function ComparisonPage() {
               </div>
             </section>
 
-            <section className="bg-card border border-border rounded p-3">
-              <h2 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-3">P&L Waterfall by Sheet ($)</h2>
-              <div style={{ width: "100%", height: Math.max(320, waterfallData.length * 28) }}>
+            <section className={`dash-card h-full flex flex-col p-3 overflow-hidden ${view === "pnl" ? "" : "hidden print:flex"}`}>
+              <h2 className="text-[11px] font-bold uppercase dash-muted tracking-[0.12em] mb-3">P&L Waterfall by Sheet ($)</h2>
+              <div className="flex-1 min-h-0 overflow-auto sheet-scroll" style={{ width: "100%" }}>
+                <div style={{ width: "100%", height: Math.max(280, waterfallData.length * 26) }}>
                 <ResponsiveContainer>
                   <BarChart data={waterfallData} layout="vertical" margin={{ top: 10, right: 30, left: 140, bottom: 10 }} barCategoryGap={2}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -603,9 +604,10 @@ export default function ComparisonPage() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                </div>
               </div>
             </section>
-          </>
+          </div>
         )}
       </div>
     </div>
