@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Ship, Users, FileText, LogOut, ChevronLeft, ChevronRight, Loader2,
-  Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck, Activity
+  Users, FileText, ChevronLeft, ChevronRight, Loader2,
+  Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck, Menu,
 } from "lucide-react";
+import AdminSidebar from "@/components/admin/AdminSidebar";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
 import {
@@ -149,45 +150,35 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
 
   // ── Render ──
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="bg-section-header text-section-header-foreground h-10 flex items-center justify-between px-4 text-xs flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Ship className="h-4 w-4" />
-          <span className="font-semibold text-sm">VoyageCalc</span>
-          <span className="text-section-header-foreground/50">|</span>
-          <span className="text-section-header-foreground/70">Admin Panel</span>
-        </div>
-        <div className="flex items-center gap-3">
-          {currentUser && (
-            <span className="text-section-header-foreground/70">{currentUser.email}</span>
-          )}
-          <button
-            onClick={() => setView("logs")}
-            className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
-          >
-            <Activity className="h-3.5 w-3.5" />
-            <span>Logs</span>
-          </button>
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Dashboard</span>
-          </button>
-          <button
-            onClick={logout}
-            className="flex items-center gap-1 hover:text-section-header-foreground/80 transition-colors"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </header>
+    <div className="flex h-screen" style={{ background: "hsl(var(--dash-bg))" }}>
+      <AdminSidebar
+        section={view === "logs" ? "logs" : "users"}
+        onSelect={(s) => { setView(s); setSelectedUser(null); }}
+        onBack={onBack}
+        onLogout={logout}
+        userEmail={currentUser?.email}
+        userRole={currentUser?.role}
+      />
 
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-5xl mx-auto">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Topbar */}
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b bg-card px-5">
+          <button onClick={onBack} className="lg:hidden dash-btn-ghost h-8 px-2">
+            <Menu className="h-4 w-4" />
+          </button>
+          <div className="min-w-0">
+            <h1 className="truncate text-[15px] font-bold tracking-tight text-foreground">
+              {view === "logs" ? "Activity & Error Logs" : view === "user-sheets" ? `Sheets — ${selectedUser?.email ?? ""}` : "User Management"}
+            </h1>
+            <p className="text-[11px] text-muted-foreground">
+              {view === "logs" ? "Audit trail across the organization" : "Administer accounts, access and sheets"}
+            </p>
+          </div>
+          <span className="ml-auto dash-badge-info">Admin</span>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="mx-auto max-w-6xl">
 
           {/* ═══ LOGS VIEW ═══ */}
           {view === "logs" && (
@@ -197,15 +188,19 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
           {/* ═══ USERS VIEW ═══ */}
           {view === "users" && (
             <>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  <h1 className="text-xl font-semibold text-foreground">User Management</h1>
-                  <span className="text-xs text-muted-foreground ml-2">({usersTotal} users)</span>
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "hsl(var(--teal) / 0.12)" }}>
+                    <Users className="h-4.5 w-4.5" style={{ color: "hsl(var(--teal))" }} />
+                  </span>
+                  <div>
+                    <div className="text-[13px] font-bold text-foreground">Accounts</div>
+                    <div className="text-[11px] text-muted-foreground">{usersTotal} users</div>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowCreateForm(!showCreateForm)}
-                  className="btn-primary flex items-center gap-1.5 h-8 px-3 text-xs"
+                  className="dash-btn-primary flex items-center gap-1.5 h-9 px-3.5 text-xs"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Create User
@@ -214,8 +209,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
 
               {/* Create User Form */}
               {showCreateForm && (
-                <div className="bg-card border border-border rounded-md p-4 mb-4">
-                  <h3 className="text-sm font-medium text-foreground mb-3">Create New User</h3>
+                <div className="dash-card p-4 mb-4">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Create New User</h3>
                   <form onSubmit={handleCreateUser} className="flex items-end gap-3">
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground block mb-1">Email</label>
@@ -244,7 +239,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                     <button
                       type="submit"
                       disabled={creating}
-                      className="btn-primary h-8 px-4 text-xs flex items-center gap-1.5"
+                      className="dash-btn-primary h-9 px-4 text-xs flex items-center gap-1.5"
                     >
                       {creating && <Loader2 className="h-3 w-3 animate-spin" />}
                       {creating ? "Creating..." : "Create"}
@@ -252,7 +247,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                     <button
                       type="button"
                       onClick={() => setShowCreateForm(false)}
-                      className="btn-secondary h-8 px-3 text-xs"
+                      className="dash-btn-ghost h-9 px-3 text-xs"
                     >
                       Cancel
                     </button>
@@ -268,10 +263,10 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 </div>
               ) : (
                 <>
-                  <div className="border border-border rounded-sm overflow-hidden">
+                  <div className="dash-card overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-table-header text-muted-foreground text-xs">
+                        <tr className="bg-muted/60 text-muted-foreground text-[11px] uppercase tracking-wide">
                           <th className="text-left px-3 py-2 font-medium">#</th>
                           <th className="text-left px-3 py-2 font-medium">Email</th>
                           <th className="text-left px-3 py-2 font-medium">Role</th>
@@ -288,20 +283,12 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                             </td>
                             <td className="px-3 py-2 font-medium text-foreground">{u.email}</td>
                             <td className="px-3 py-2">
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                u.role === "admin"
-                                  ? "bg-primary/15 text-primary font-medium"
-                                  : "bg-muted text-muted-foreground"
-                              }`}>
+                              <span className={u.role === "admin" ? "dash-badge-info" : "dash-badge-neutral"}>
                                 {u.role}
                               </span>
                             </td>
                             <td className="px-3 py-2 text-center">
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                u.is_active
-                                  ? "bg-green-500/15 text-green-700 dark:text-green-400"
-                                  : "bg-destructive/15 text-destructive"
-                              }`}>
+                              <span className={u.is_active ? "dash-badge-success" : "dash-badge-danger"}>
                                 {u.is_active ? "Active" : "Inactive"}
                               </span>
                             </td>
@@ -370,14 +357,14 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                         <button
                           onClick={() => setUsersPage(p => Math.max(1, p - 1))}
                           disabled={usersPage <= 1}
-                          className="btn-secondary h-7 px-2 disabled:opacity-40"
+                          className="dash-btn-ghost h-8 px-2 disabled:opacity-40"
                         >
                           <ChevronLeft className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => setUsersPage(p => Math.min(usersTotalPages, p + 1))}
                           disabled={usersPage >= usersTotalPages}
-                          className="btn-secondary h-7 px-2 disabled:opacity-40"
+                          className="dash-btn-ghost h-8 px-2 disabled:opacity-40"
                         >
                           <ChevronRight className="h-3.5 w-3.5" />
                         </button>
@@ -396,7 +383,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setView("users")}
-                    className="h-7 px-2 btn-secondary text-xs flex items-center gap-1"
+                    className="dash-btn-ghost h-8 px-2.5 text-xs flex items-center gap-1"
                   >
                     <ArrowLeft className="h-3 w-3" />
                     Back
@@ -415,16 +402,16 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                   <span className="ml-2 text-sm text-muted-foreground">Loading sheets...</span>
                 </div>
               ) : sheets.length === 0 ? (
-                <div className="text-center py-20 border border-dashed border-border rounded-md">
+                <div className="dash-card text-center py-20 border-dashed">
                   <FileText className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
                   <p className="text-muted-foreground text-sm">No sheets for this user.</p>
                 </div>
               ) : (
                 <>
-                  <div className="border border-border rounded-sm overflow-hidden">
+                  <div className="dash-card overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-table-header text-muted-foreground text-xs">
+                        <tr className="bg-muted/60 text-muted-foreground text-[11px] uppercase tracking-wide">
                           <th className="text-left px-3 py-2 font-medium">#</th>
                           <th className="text-left px-3 py-2 font-medium">Sheet Name</th>
                           <th className="text-left px-3 py-2 font-medium">Last Updated</th>
@@ -444,7 +431,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                             <td className="px-3 py-2 text-right">
                               <button
                                 onClick={() => handleOpenSheet(sheet)}
-                                className="btn-primary h-6 px-3 text-[11px]"
+                                className="dash-btn-primary h-7 px-3 text-[11px]"
                               >
                                 Open
                               </button>
@@ -462,14 +449,14 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                         <button
                           onClick={() => setSheetsPage(p => Math.max(1, p - 1))}
                           disabled={sheetsPage <= 1}
-                          className="btn-secondary h-7 px-2 disabled:opacity-40"
+                          className="dash-btn-ghost h-8 px-2 disabled:opacity-40"
                         >
                           <ChevronLeft className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => setSheetsPage(p => Math.min(sheetsTotalPages, p + 1))}
                           disabled={sheetsPage >= sheetsTotalPages}
-                          className="btn-secondary h-7 px-2 disabled:opacity-40"
+                          className="dash-btn-ghost h-8 px-2 disabled:opacity-40"
                         >
                           <ChevronRight className="h-3.5 w-3.5" />
                         </button>
@@ -480,6 +467,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
               )}
             </>
           )}
+          </div>
         </div>
       </div>
     </div>
