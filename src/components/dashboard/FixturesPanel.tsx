@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, PackageSearch, RefreshCw, Search } from "lucide-react";
-import { listCargoes, type CargoFixture } from "@/services/marineApi";
+import { listCargoes, listFixtures, type CargoFixture } from "@/services/marineApi";
 import { useAuth } from "@/context/AuthContext";
+import { MODE_LABELS } from "@/services/apiMode";
 
 const PAGE_SIZE = 20;
+
+type FixtureTab = "fixtures" | "cargoes";
 
 // Preferred column order — anything else found on the record is appended.
 const PREFERRED = [
@@ -38,6 +41,7 @@ function formatValue(value: unknown): string {
 
 export default function FixturesPanel() {
   const { mode } = useAuth();
+  const [tab, setTab] = useState<FixtureTab>("fixtures");
   const [rows, setRows] = useState<CargoFixture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,19 +54,21 @@ export default function FixturesPanel() {
     setLoading(true);
     setError(null);
     try {
-      const res = await listCargoes(page, PAGE_SIZE);
+      const res = tab === "fixtures"
+        ? await listFixtures(page, PAGE_SIZE)
+        : await listCargoes(page, PAGE_SIZE);
       setRows(res.cargoes || []);
       setTotal(res.pagination?.total || 0);
       setTotalPages(Math.max(1, res.pagination?.total_pages || 1));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load fixtures");
+      setError(e instanceof Error ? e.message : "Failed to load data");
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, tab]);
 
-  useEffect(() => { setPage(1); }, [mode]);
+  useEffect(() => { setPage(1); setQuery(""); }, [mode, tab]);
   useEffect(() => { void load(); }, [load, mode]);
 
   const columns = useMemo(() => {
@@ -79,12 +85,34 @@ export default function FixturesPanel() {
     return rows.filter((r) => Object.values(r).some((v) => String(v ?? "").toLowerCase().includes(q)));
   }, [rows, query]);
 
+  const noun = tab === "fixtures" ? "fixtures" : "cargoes";
+
   return (
     <div className="space-y-4">
+      <div
+        className="flex w-fit items-center gap-1 rounded-xl border p-1"
+        style={{ background: "hsl(var(--dash-surface))", borderColor: "hsl(var(--dash-border))" }}
+      >
+        {([["fixtures", "Fixtures"], ["cargoes", "Cargo List"]] as const).map(([k, lbl]) => (
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            className="h-8 rounded-lg px-4 text-[12px] font-semibold transition-colors"
+            style={tab === k
+              ? { background: "hsl(var(--ocean))", color: "#fff" }
+              : { color: "hsl(var(--dash-muted))" }}
+          >
+            {lbl}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="dash-badge-success">{total || visible.length} fixtures</span>
-          <span className="text-[12px] dash-muted">Live cargo fixtures from the chartering desk</span>
+          <span className="dash-badge-success">{total || visible.length} {noun}</span>
+          <span className="text-[12px] dash-muted">
+            {MODE_LABELS[mode]} — {tab === "fixtures" ? "concluded fixtures" : "open cargo enquiries"}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -92,7 +120,7 @@ export default function FixturesPanel() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter fixtures..."
+              placeholder={`Filter ${noun}...`}
               className="h-9 w-56 rounded-lg border pl-8 pr-3 text-[13px] outline-none"
               style={{ borderColor: "hsl(var(--dash-border))", background: "hsl(var(--dash-bg))" }}
             />
@@ -107,7 +135,7 @@ export default function FixturesPanel() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin" style={{ color: "hsl(var(--ocean))" }} />
-          <span className="ml-2 text-[13px] dash-muted">Loading fixtures...</span>
+          <span className="ml-2 text-[13px] dash-muted">Loading {noun}...</span>
         </div>
       ) : error ? (
         <div className="dash-card border-dashed py-16 text-center">
@@ -118,7 +146,7 @@ export default function FixturesPanel() {
       ) : visible.length === 0 ? (
         <div className="dash-card border-dashed py-20 text-center">
           <PackageSearch className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
-          <p className="text-[13px] dash-muted">{query ? "No fixtures match your filter" : "No fixtures available"}</p>
+          <p className="text-[13px] dash-muted">{query ? `No ${noun} match your filter` : `No ${noun} available`}</p>
         </div>
       ) : (
         <div className="dash-card overflow-hidden">
@@ -158,7 +186,7 @@ export default function FixturesPanel() {
 
       {!loading && !error && totalPages > 1 && (
         <div className="flex items-center justify-between text-[12px] dash-muted">
-          <span>Page {page} of {totalPages} ({total} fixtures)</span>
+          <span>Page {page} of {totalPages} ({total} {noun})</span>
           <div className="flex items-center gap-1.5">
             <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="dash-btn-ghost h-8 px-2 disabled:opacity-40">
               <ChevronLeft className="h-4 w-4" />

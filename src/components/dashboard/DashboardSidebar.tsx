@@ -20,7 +20,7 @@ interface Props {
 const NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "mine", label: "My Sheets", icon: FileText },
-  { key: "fixtures", label: "Fixtures", icon: Package },
+  { key: "fixtures", label: "Fixtures & Cargoes", icon: Package },
   { key: "users", label: "Organization Users", icon: UserCircle2 },
   { key: "org", label: "Organization Sheets", icon: Users },
 ];
