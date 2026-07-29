@@ -83,6 +83,22 @@ function buildMatrixFromFuel(fc: FuelConsumptionResult, hasScrubber: boolean): C
   };
 }
 
+// Rough fallbacks used when the upstream record omits a field (common on tanker payloads)
+function estimateGtFromDwt(dwt: number): number {
+  if (!dwt) return 0;
+  return Math.round(dwt * 0.55);
+}
+
+function estimateDraftFromDwt(dwt: number): number {
+  if (!dwt) return 0;
+  if (dwt >= 200000) return 18.2;
+  if (dwt >= 100000) return 15.5;
+  if (dwt >= 60000) return 13.5;
+  if (dwt >= 40000) return 12.0;
+  if (dwt >= 25000) return 10.5;
+  return 9.0;
+}
+
 // Convert API vessel to VesselData, using actual fuel data when available
 function vesselWithFuelToVesselData(
   v: VesselWithFuel,
@@ -110,14 +126,14 @@ function vesselWithFuelToVesselData(
 
   return {
     name: v.name,
-    type: v.type || "Bulk Carrier",
+    type: v.type || "",
     imo: v.imo || "",
     dwt,
-    gt: v.gt || 0,
+    gt: v.gt || estimateGtFromDwt(dwt),
     cubic: Math.round((v.capacity_cu_m || (v.capacitycuft ? v.capacitycuft / 35.3147 : 0) || estimateCubicFromDwt(dwt)) * 100) / 100,
     cubicUnit: "cbm",
-    draft: v.draught || 0,
-    tpcTpi: v.tpc ?? estimateTpc(dwt),
+    draft: v.draught || estimateDraftFromDwt(dwt),
+    tpcTpi: v.tpc || estimateTpc(dwt),
     hsfoCapability: hasScrubber,
     hasScrubber,
     scrubberCount: hasScrubber ? 1 : 0,

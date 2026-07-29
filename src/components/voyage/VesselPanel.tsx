@@ -14,6 +14,7 @@ import {
 import { useVoyageContext } from "@/context/VoyageContext";
 import { getVesselTypes, getVesselSectors, type VesselType, type VesselSector } from "@/services/vesselFuelApi";
 import { getFieldId } from "@/utils/validation";
+import { getApiMode, API_MODE_CHANGED_EVENT, type ApiMode } from "@/services/apiMode";
 
 export function VesselPanel() {
   const { vessel, setVessel, getFieldError } = useVoyageContext();
@@ -26,8 +27,17 @@ export function VesselPanel() {
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [selectedSectorId, setSelectedSectorId] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [apiMode, setApiModeState] = useState<ApiMode>(getApiMode());
+  const isTanker = apiMode === "tanker";
 
   useEffect(() => {
+    const onModeChange = () => setApiModeState(getApiMode());
+    window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+    return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+  }, []);
+
+  useEffect(() => {
+    if (isTanker) { setVesselTypes([]); setVesselSectors([]); return; }
     const load = async () => {
       setTypesLoading(true);
       try {
@@ -41,7 +51,7 @@ export function VesselPanel() {
       }
     };
     load();
-  }, []);
+  }, [isTanker]);
 
   const handleVesselTypeChange = (typeId: number | null, typeName: string) => {
     setSelectedTypeId(typeId);
@@ -169,7 +179,7 @@ export function VesselPanel() {
               );})()}
             </div>
             <div className="form-field w-20">
-              <label className="form-label">GT</label>
+              <label className="form-label">{isTanker ? "GRT" : "GT"}</label>
               {(() => { const err = getFieldError("vessel","gt"); return (
               <input id={getFieldId("vessel","gt")} aria-invalid={!!err} title={err}
                 type="number" className={`form-input-sm w-full font-mono tabular-nums text-right ${errCls(err)}`}
@@ -206,6 +216,7 @@ export function VesselPanel() {
                 <option value="N">N</option><option value="Y">Y</option>
               </select>
             </div>
+            {!isTanker && (
             <div className="form-field w-24">
               <label className="form-label">Type</label>
               <select className="form-select-sm w-full" value={selectedTypeId ?? ""} onChange={(e) => { const typeId = e.target.value ? Number(e.target.value) : null; const typeName = vesselTypes.find(t => t.id === typeId)?.name || ""; handleVesselTypeChange(typeId, typeName); }} disabled={typesLoading}>
@@ -213,6 +224,8 @@ export function VesselPanel() {
                 {vesselTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
               </select>
             </div>
+            )}
+            {!isTanker && (
             <div className="form-field w-24">
               <label className="form-label">Sector</label>
               <select className="form-select-sm w-full" value={selectedSectorId ?? ""} onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)} disabled={typesLoading}>
@@ -220,6 +233,7 @@ export function VesselPanel() {
                 {vesselSectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
+            )}
             <div className="form-field w-28">
               <label className="form-label">Speed Profile</label>
               <select className="form-select-sm w-full" value={vessel.speedProfile} onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}>
