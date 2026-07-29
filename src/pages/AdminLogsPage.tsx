@@ -8,7 +8,7 @@ import { adminListUsers, type AdminUser } from "@/services/adminApi";
 const PAGE_SIZE = 50;
 const LEVELS = ["", "debug", "info", "warn", "error", "fatal"];
 
-export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
+export default function AdminLogsPage(_props: { onBack?: () => void }) {
   const { token } = useAuth();
 
   const [logs, setLogs] = useState<LogRow[]>([]);
