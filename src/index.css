@@ -254,19 +254,19 @@
 
   /* Form input styling - white background with borders */
   .form-input {
-    @apply h-6 px-2 text-xs border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
+    @apply h-7 px-2 text-xs font-medium tabular-nums border border-input bg-input-bg rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring hover:border-ring/60 placeholder:text-muted-foreground/60;
   }
 
   .form-input-sm {
-    @apply h-5 px-1.5 text-[10px] border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
+    @apply h-6 px-1.5 text-[10px] font-medium tabular-nums border border-input bg-input-bg rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring hover:border-ring/60 placeholder:text-muted-foreground/60;
   }
 
   .form-select {
-    @apply h-6 px-2 text-xs border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-7 px-2 text-xs font-medium border border-input bg-input-bg rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring hover:border-ring/60 appearance-none cursor-pointer;
   }
 
   .form-select-sm {
-    @apply h-5 px-1 text-[10px] border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-6 px-1 text-[10px] font-medium border border-input bg-input-bg rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring hover:border-ring/60 appearance-none cursor-pointer;
   }
 
   /* Form field group - label + input with spacing */
@@ -288,11 +288,11 @@
   }
 
   .input-with-unit .unit {
-    @apply h-6 px-1.5 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
+    @apply h-7 px-1.5 text-[10px] bg-muted border border-input rounded-r-md flex items-center text-muted-foreground;
   }
 
   .input-with-unit-sm .unit {
-    @apply h-5 px-1 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
+    @apply h-6 px-1 text-[10px] bg-muted border border-input rounded-r-md flex items-center text-muted-foreground;
   }
 
   /* Money formatting */
