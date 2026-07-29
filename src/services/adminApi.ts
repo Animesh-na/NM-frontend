@@ -1,5 +1,6 @@
 // Admin API Service - User management and admin sheet access
 import { apiRequest } from "./marineApi";
+import { getApiMode } from "./apiMode";
 
 // ── Types ──
 
@@ -120,7 +121,7 @@ export async function adminListSheets(
   try {
     const params: Record<string, string | number> = { page, limit };
     if (userId) params.user_id = userId;
-    return await apiRequest<AdminSheetListResponse>("/admin/sheets", params, { authenticated: true });
+    return await apiRequest<AdminSheetListResponse>(`/admin/${getApiMode()}/sheets`, params, { authenticated: true });
   } catch (error) {
     console.error("Failed to list admin sheets:", error);
     return { sheets: [], pagination: { total: 0, page, limit, total_pages: 1 } };
