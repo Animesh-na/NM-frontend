@@ -33,6 +33,49 @@ const SECTORS: VesselSector[] = [
 ];
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
+
+const num = (v: unknown): number => {
+  const n = typeof v === "string" ? parseFloat(v) : (v as number);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Normalizes an upstream vessel record into the canonical shape.
+ * Dry-bulk and tanker endpoints return different field names
+ * (e.g. `vessel_name`/`blt`/`summer_draught`/`scrubbers` on tanker).
+ */
+function normalizeVesselRecord(v: Record<string, any>) {
+  const name = v.name ?? v.vessel_name ?? v.vessel_enriched ?? "";
+  const draught = v.draught ?? v.summer_draught ?? v.draft ?? 0;
+  const scrubber = !!(v.scrubber_indicator ?? v.scrubbers);
+  const capacityCbm =
+    v.capacity_cu_m ?? v.liquid_capacity_cbm ?? (v.capacitycuft ? num(v.capacitycuft) / 35.3147 : null);
+
+  return {
+    ...v,
+    id: num(v.id),
+    name,
+    type: v.type ?? v.vessel_class ?? v.built_for_trade ?? v.trade ?? "",
+    imo: v.imo != null ? String(v.imo) : "",
+    dwt: num(v.dwt),
+    gt: num(v.gt ?? v.grt),
+    loa: num(v.loa),
+    beam: num(v.beam),
+    draught: num(draught),
+    builtyear: num(v.builtyear ?? v.blt),
+    builder: v.builder ?? v.shipyard_built ?? "",
+    owner: v.owner ?? v.head_owner ?? v.commercial_operator ?? "",
+    capacitycuft: num(v.capacitycuft),
+    capacity_cu_m: capacityCbm != null ? num(capacityCbm) : null,
+    tpc: v.tpc ?? v.summer_tpc ?? null,
+    speed_knots: v.speed_knots ?? null,
+    sector: v.sector ?? null,
+    scrubber_indicator: scrubber,
+    hsfo_allowed: scrubber,
+    main_engine1_mcr: num(v.main_engine1_mcr ?? v.main_engine_power_kw),
+    main_engine1_sfoc: num(v.main_engine1_sfoc ?? v.main_engine_sfoc),
+  };
+}
 const meFuelTpd = (mcr: number, sfoc: number, load: number) => (mcr * load * sfoc * 24) / 1_000_000;
 const aeFuelTpd = (mcr: number, aeLoad: number) => (mcr * aeLoad * AE_SFOC * 24) / 1_000_000;
 
@@ -166,15 +209,14 @@ export async function searchVesselsWithFuel(
       { q: query, limit: options?.limit ?? 10 },
     );
     const raw = Array.isArray(data) ? data : (data.results || data.vessels || []);
-    return raw.map((v: any) => {
+    return raw.map((rec: any) => {
+      const v = normalizeVesselRecord(rec);
       const mcr = v.main_engine1_mcr;
       const sfoc = v.main_engine1_sfoc;
-      const scrubber = !!v.scrubber_indicator;
+      const scrubber = v.scrubber_indicator;
       if (mcr == null || sfoc == null || mcr === 0 || sfoc === 0) {
         return {
           ...v,
-          scrubber_indicator: scrubber,
-          hsfo_allowed: scrubber,
           mode: modeKey,
           calculation_status: 'insufficient_engine_data',
           fuel_consumption: null,
@@ -182,8 +224,6 @@ export async function searchVesselsWithFuel(
       }
       return {
         ...v,
-        scrubber_indicator: scrubber,
-        hsfo_allowed: scrubber,
         mode: modeKey,
         calculation_status: 'ok',
         fuel_consumption: computeConsumption(mcr, sfoc, scrubber, mode),
