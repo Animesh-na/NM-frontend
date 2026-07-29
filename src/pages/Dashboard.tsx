@@ -11,7 +11,7 @@ import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLaunche
 const ITEMS_PER_PAGE = 10;
 
 export default function Dashboard() {
-  const { logout, user } = useAuth();
+  const { logout, user, mode, setMode, availableModes } = useAuth();
   const { openSheet, openOrganizationSheet, createNewSheet, setCurrentView } = useSheets();
   const isAdmin = user?.role === "admin";
   const mfaEnabled = !!user?.mfa_method;
@@ -147,6 +147,23 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {availableModes.length > 1 && (
+            <div className="flex items-center rounded-md border border-section-header-foreground/20 overflow-hidden mr-1">
+              {availableModes.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`h-7 px-3 text-xs font-medium transition-colors ${
+                    mode === m
+                      ? "bg-primary text-primary-foreground"
+                      : "text-section-header-foreground/70 hover:bg-section-header-foreground/10"
+                  }`}
+                >
+                  {MODE_LABELS[m]}
+                </button>
+              ))}
+            </div>
+          )}
           {user && (
             <div className="flex items-center gap-2 mr-2">
               <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
