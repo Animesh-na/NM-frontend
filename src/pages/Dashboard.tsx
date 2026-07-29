@@ -65,10 +65,10 @@ export default function Dashboard() {
       }
     })();
     return () => { cancelled = true; };
-  }, [tab]);
+  }, [tab, mode]);
 
-  // Reset to page 1 when switching tabs
-  useEffect(() => { setPage(1); }, [tab]);
+  // Reset to page 1 when switching tabs or sector mode
+  useEffect(() => { setPage(1); }, [tab, mode]);
 
   const handleCreate = () => {
     createNewSheet();
