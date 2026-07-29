@@ -1,9 +1,9 @@
 import { memo } from "react";
 import {
-  LayoutDashboard, FileText, Users, UserCircle2, Shield, ShieldCheck, LogOut, Ship,
+  LayoutDashboard, FileText, Users, UserCircle2, Shield, ShieldCheck, LogOut, Ship, Package,
 } from "lucide-react";
 
-export type DashSection = "overview" | "mine" | "users" | "org";
+export type DashSection = "overview" | "mine" | "fixtures" | "users" | "org";
 
 interface Props {
   section: DashSection;
@@ -20,6 +20,7 @@ interface Props {
 const NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "mine", label: "My Sheets", icon: FileText },
+  { key: "fixtures", label: "Fixtures", icon: Package },
   { key: "users", label: "Organization Users", icon: UserCircle2 },
   { key: "org", label: "Organization Sheets", icon: Users },
 ];
