@@ -106,8 +106,12 @@ export async function searchVessels(
     if (typeId) {
       params.type_id = typeId;
     }
-    const data = await apiRequest<{ vessels: MarineVessel[] }>(modePath("/vessels"), params, { authenticated: true });
-    return data.vessels || [];
+    const data = await apiRequest<{ vessels?: MarineVessel[]; results?: MarineVessel[] }>(
+      modePath("/vessels"),
+      params,
+      { authenticated: true }
+    );
+    return data.vessels || data.results || [];
   } catch (error) {
     console.error("Failed to search vessels:", error);
     return [];
