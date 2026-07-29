@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, Fragment, Suspense, lazy, useMemo } from "react";
 import {
   Ship, Plus, FileText, ChevronLeft, ChevronRight, Loader2, Trash2, Users, ChevronDown,
-  UserCircle2, Search, LogOut, Shield, ShieldCheck, Anchor, Fuel, Leaf, DollarSign, ScrollText, Menu,
+  UserCircle2, Search, LogOut, Shield, ShieldCheck, Anchor, Fuel, Leaf, DollarSign, ScrollText, Menu, Package,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
@@ -20,6 +20,7 @@ const AnalyticsCharts = lazy(() => import("@/components/dashboard/AnalyticsChart
 const VesselMap = lazy(() => import("@/components/dashboard/VesselMap"));
 const AlertsActivityPanel = lazy(() => import("@/components/dashboard/AlertsActivityPanel"));
 const FleetPerformanceTable = lazy(() => import("@/components/dashboard/FleetPerformanceTable"));
+const FixturesPanel = lazy(() => import("@/components/dashboard/FixturesPanel"));
 
 const ITEMS_PER_PAGE = 10;
 
@@ -428,7 +429,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            {section !== "overview" && section !== "users" && (
+            {(section === "mine" || section === "org") && (
               <div className="relative hidden md:block">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 dash-muted" />
                 <input
@@ -473,6 +474,7 @@ export default function Dashboard() {
               {([
                 ["overview", "Overview", Ship],
                 ["mine", "My Sheets", FileText],
+                ["fixtures", "Fixtures & Cargoes", Package],
                 ["users", "Org Users", UserCircle2],
                 ["org", "Org Sheets", Users],
               ] as const).map(([key, label, Icon]) => (
@@ -535,6 +537,10 @@ export default function Dashboard() {
                   <FleetPerformanceTable />
                 </Suspense>
               </>
+            ) : section === "fixtures" ? (
+              <Suspense fallback={<ChartSkeleton />}>
+                <FixturesPanel />
+              </Suspense>
             ) : section === "users" ? (
               renderUsers()
             ) : (
