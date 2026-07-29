@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, RefreshCcw, Download, X } from "lucide-react";
+import { RefreshCcw, Download, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { fetchLogs, type LogRow, type LogQuery } from "@/services/logsApi";
 import { toast } from "@/components/ui/sonner";
@@ -8,7 +8,7 @@ import { adminListUsers, type AdminUser } from "@/services/adminApi";
 const PAGE_SIZE = 50;
 const LEVELS = ["", "debug", "info", "warn", "error", "fatal"];
 
-export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
+export default function AdminLogsPage(_props: { onBack?: () => void }) {
   const { token } = useAuth();
 
   const [logs, setLogs] = useState<LogRow[]>([]);
@@ -78,27 +78,21 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card">
-        <div className="max-w-[1400px] mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" /> Back
+    <div>
+      <div className="mb-4 flex items-center gap-2">
+        <span className="ml-auto flex items-center gap-2">
+          <button onClick={() => { load(); }} className="dash-btn-ghost h-9 px-3 text-xs flex items-center gap-1.5">
+            <RefreshCcw className="h-3.5 w-3.5" /> Refresh
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Activity & Error Logs</h1>
-          <div className="ml-auto flex items-center gap-2">
-            <button onClick={() => { load(); }} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted flex items-center gap-1">
-              <RefreshCcw className="h-3 w-3" /> Refresh
-            </button>
-            <button onClick={exportCsv} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted flex items-center gap-1">
-              <Download className="h-3 w-3" /> Export CSV
-            </button>
-          </div>
-        </div>
+          <button onClick={exportCsv} className="dash-btn-primary h-9 px-3 text-xs flex items-center gap-1.5">
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </button>
+        </span>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 py-4 space-y-4">
+      <div className="space-y-4">
         {/* Filters */}
-        <div className="bg-card border border-border rounded-md p-3 flex flex-wrap items-center gap-2">
+        <div className="dash-card p-3 flex flex-wrap items-center gap-2">
           <label className="text-xs text-muted-foreground">User</label>
           <select value={userId} onChange={(e) => { setPage(1); setUserId(e.target.value); }}
             className="form-input h-8 text-xs min-w-[240px]">
@@ -119,16 +113,16 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
           <input type="datetime-local" value={toDate}
             onChange={(e) => { setPage(1); setToDate(e.target.value); }}
             className="form-input h-8 text-xs" />
-          <button onClick={resetFilters} className="h-8 px-3 text-xs border border-border rounded-sm hover:bg-muted ml-auto">
+          <button onClick={resetFilters} className="dash-btn-ghost h-8 px-3 text-xs ml-auto">
             Reset
           </button>
         </div>
 
         {/* Table */}
-        <div className="bg-card border border-border rounded-md overflow-hidden">
+        <div className="dash-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead className="bg-muted text-muted-foreground">
+              <thead className="bg-muted/60 text-muted-foreground uppercase tracking-wide text-[11px]">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Timestamp</th>
                   <th className="px-3 py-2 text-left font-medium">Level</th>
@@ -170,9 +164,9 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
             </span>
             <div className="flex gap-2">
               <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                className="h-7 px-3 border border-border rounded-sm disabled:opacity-50 hover:bg-muted">Prev</button>
+                className="dash-btn-ghost h-8 px-3 disabled:opacity-50">Prev</button>
               <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-                className="h-7 px-3 border border-border rounded-sm disabled:opacity-50 hover:bg-muted">Next</button>
+                className="dash-btn-ghost h-8 px-3 disabled:opacity-50">Next</button>
             </div>
           </div>
         </div>
@@ -182,7 +176,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
       {selected && (
         <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelected(null)}>
           <div className="absolute inset-0 bg-black/40" />
-          <div className="relative w-full max-w-lg bg-card h-full overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-lg bg-card h-full overflow-y-auto shadow-2xl border-l border-border" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-card border-b border-border p-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <LogLevelBadge level={selected.level} />
@@ -216,7 +210,7 @@ export default function AdminLogsPage({ onBack }: { onBack: () => void }) {
 function StatCard({ label, value, tone }: { label: string; value: number | string; tone?: "warn" | "error" | "fatal" }) {
   const toneClass = tone === "fatal" ? "text-red-700" : tone === "error" ? "text-red-600" : tone === "warn" ? "text-orange-600" : "text-foreground";
   return (
-    <div className="bg-card border border-border rounded-md p-3">
+    <div className="dash-card p-3">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={`text-xl font-semibold ${toneClass}`}>{value}</div>
     </div>
@@ -225,20 +219,16 @@ function StatCard({ label, value, tone }: { label: string; value: number | strin
 
 function LogLevelBadge({ level }: { level: string }) {
   const key = (level || "info").toLowerCase();
-  const toneClass =
-    key === "fatal"
-      ? "bg-destructive text-destructive-foreground"
-      : key === "error"
-        ? "bg-destructive/10 text-destructive"
-        : key === "warn"
-          ? "bg-muted text-foreground"
-          : "bg-muted text-muted-foreground";
+  const cls =
+    key === "fatal" || key === "error"
+      ? "dash-badge-danger"
+      : key === "warn"
+        ? "dash-badge-warning"
+        : key === "info"
+          ? "dash-badge-info"
+          : "dash-badge-neutral";
 
-  return (
-    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${toneClass}`}>
-      {key}
-    </span>
-  );
+  return <span className={cls}>{key}</span>;
 }
 
 function DetailRow({ label, value, pre }: { label: string; value: string; pre?: boolean }) {
