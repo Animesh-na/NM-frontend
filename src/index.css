@@ -193,18 +193,58 @@
   /* Vertical (left-side) section header */
   .section-header-vertical {
     @apply text-white px-1 py-2 text-[11px] font-semibold flex flex-col items-center justify-center gap-2 rounded-l-md self-stretch shrink-0 cursor-pointer transition-colors;
-    background-color: #00204b;
+    background-image: linear-gradient(180deg, hsl(var(--ocean)) 0%, hsl(var(--ocean-600)) 100%);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     writing-mode: vertical-rl;
     transform: rotate(180deg);
   }
 
   .section-header-vertical:hover {
-    background-color: #003a7a;
+    background-image: linear-gradient(180deg, hsl(var(--ocean-600)) 0%, hsl(var(--ocean-400)) 100%);
   }
 
   .calc-card-row {
-    @apply bg-muted rounded-md shadow-sm overflow-hidden flex items-stretch;
-    border: 1px solid #00204b;
+    @apply rounded-xl overflow-hidden flex items-stretch border transition-shadow duration-200;
+    background-color: hsl(var(--dash-surface));
+    border-color: hsl(var(--dash-border));
+    box-shadow: var(--shadow-card);
+  }
+
+  .calc-card-row:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* ---------- Sheet editor shell ---------- */
+  .sheet-shell {
+    background-color: hsl(var(--dash-bg));
+  }
+
+  .sheet-topbar {
+    background-image: linear-gradient(90deg, hsl(var(--dash-sidebar)) 0%, hsl(var(--ocean)) 55%, hsl(var(--ocean-600)) 100%);
+    color: hsl(var(--primary-foreground));
+  }
+
+  .sheet-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--dash-border)) transparent;
+  }
+  .sheet-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+  .sheet-scroll::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--dash-border));
+    border-radius: 999px;
+  }
+  .sheet-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  .seg-tab {
+    @apply inline-flex items-center gap-1.5 h-7 px-3 rounded-lg text-[11px] font-semibold transition-all duration-200;
+    color: hsl(var(--dash-muted));
+  }
+  .seg-tab:hover { background-color: hsl(var(--dash-bg)); color: hsl(var(--foreground)); }
+  .seg-tab-active {
+    background-color: hsl(var(--ocean));
+    color: hsl(var(--primary-foreground));
+    box-shadow: var(--shadow-card);
   }
 
   /* Subsection headers */
