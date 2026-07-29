@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
 import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
+import { MODE_LABELS } from "@/services/apiMode";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -41,7 +42,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [page, tab]);
+  }, [page, tab, mode]);
 
   useEffect(() => {
     fetchSheets();
@@ -50,6 +51,7 @@ export default function Dashboard() {
   // Fetch organization users when switching to the Users tab
   useEffect(() => {
     if (tab !== "users") return;
+    void mode; // refetch when sector mode changes
     let cancelled = false;
     (async () => {
       setUsersLoading(true);
