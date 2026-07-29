@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Ship, Loader2 } from "lucide-react";
+import { Ship, Loader2, ShieldCheck, Anchor, BarChart3 } from "lucide-react";
 import { useAuth, type MfaMethod } from "@/context/AuthContext";
 import MfaVerifyForm from "@/components/mfa/MfaVerifyForm";
 import loginBg from "@/assets/login-bg.jpg";
