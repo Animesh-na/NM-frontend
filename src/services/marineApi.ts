@@ -106,7 +106,7 @@ export async function searchVessels(
     if (typeId) {
       params.type_id = typeId;
     }
-    const data = await apiRequest<{ vessels: MarineVessel[] }>("/vessels", params, { authenticated: true });
+    const data = await apiRequest<{ vessels: MarineVessel[] }>(modePath("/vessels"), params, { authenticated: true });
     return data.vessels || [];
   } catch (error) {
     console.error("Failed to search vessels:", error);
@@ -117,7 +117,7 @@ export async function searchVessels(
 // 3. Search Ports
 export async function searchPorts(query: string, limit: number = 10): Promise<MarinePort[]> {
   try {
-    const data = await apiRequest<{ ports: MarinePort[] }>("/ports/search", { q: query }, { authenticated: true });
+    const data = await apiRequest<{ ports: MarinePort[] }>(modePath("/ports/search"), { q: query, limit }, { authenticated: true });
     return data.ports || [];
   } catch (error) {
     console.error("Failed to search ports:", error);
