@@ -380,3 +380,38 @@ export async function searchSheets(query: string, page: number = 1, limit: numbe
     return { sheets: [], pagination: { total: 0, page, limit, total_pages: 1 } };
   }
 }
+
+// ============= Fixtures / Cargoes (Authenticated) =============
+
+export type CargoFixture = Record<string, unknown> & { id?: string | number };
+
+export interface CargoListResponse {
+  cargoes: CargoFixture[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  };
+}
+
+// 11. List cargo fixtures (mode-scoped, e.g. /dry-bulk/cargoes)
+export async function listCargoes(page: number = 1, limit: number = 20, query?: string): Promise<CargoListResponse> {
+  const params: Record<string, string | number> = { page, limit };
+  if (query && query.trim()) params.q = query.trim();
+  const data = await apiRequest<Partial<CargoListResponse> & { data?: CargoFixture[]; results?: CargoFixture[]; total?: number }>(
+    modePath("/cargoes"),
+    params,
+    { authenticated: true }
+  );
+  const cargoes = data.cargoes || data.data || data.results || [];
+  return {
+    cargoes,
+    pagination: data.pagination ?? {
+      total: data.total ?? cargoes.length,
+      page,
+      limit,
+      total_pages: Math.max(1, Math.ceil((data.total ?? cargoes.length) / limit)),
+    },
+  };
+}

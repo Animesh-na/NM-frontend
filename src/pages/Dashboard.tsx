@@ -45,10 +45,11 @@ export default function Dashboard() {
   const [expandedUserId, setExpandedUserId] = useState<string | number | null>(null);
   const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[]; page: number; total: number }>>({});
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
-  const tab: "mine" | "users" | "org" = section === "overview" ? "mine" : section;
+  const tab: "mine" | "users" | "org" =
+    section === "overview" || section === "fixtures" ? "mine" : section;
 
   const fetchSheets = useCallback(async () => {
-    if (tab === "users") return;
+    if (tab === "users" || section === "fixtures") return;
     setLoading(true);
     try {
       const res = tab === "mine"
@@ -61,7 +62,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [page, tab, mode]);
+  }, [page, tab, mode, section]);
 
   useEffect(() => {
     fetchSheets();
@@ -165,6 +166,7 @@ export default function Dashboard() {
   const sectionTitle: Record<DashSection, string> = {
     overview: "Fleet Overview",
     mine: "My Sheets",
+    fixtures: "Cargo Fixtures",
     users: "Organization Users",
     org: "Organization Sheets",
   };
