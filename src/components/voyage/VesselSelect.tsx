@@ -133,7 +133,7 @@ function vesselWithFuelToVesselData(
     cubic: Math.round((v.capacity_cu_m || (v.capacitycuft ? v.capacitycuft / 35.3147 : 0) || estimateCubicFromDwt(dwt)) * 100) / 100,
     cubicUnit: "cbm",
     draft: v.draught || estimateDraftFromDwt(dwt),
-    tpcTpi: v.tpc ?? estimateTpc(dwt),
+    tpcTpi: v.tpc || estimateTpc(dwt),
     hsfoCapability: hasScrubber,
     hasScrubber,
     scrubberCount: hasScrubber ? 1 : 0,
