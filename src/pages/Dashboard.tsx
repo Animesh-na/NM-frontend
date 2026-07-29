@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, Fragment, Suspense, lazy, useMemo } from "react";
 import {
   Ship, Plus, FileText, ChevronLeft, ChevronRight, Loader2, Trash2, Users, ChevronDown,
-  UserCircle2, Search, LogOut, Shield, ShieldCheck, Anchor, Fuel, Leaf, DollarSign, ScrollText, Menu, Package,
+  UserCircle2, Search, LogOut, Shield, ShieldCheck, Anchor, Fuel, Leaf, DollarSign, ScrollText, Menu, Package, ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
@@ -20,7 +20,7 @@ const AnalyticsCharts = lazy(() => import("@/components/dashboard/AnalyticsChart
 const VesselMap = lazy(() => import("@/components/dashboard/VesselMap"));
 const AlertsActivityPanel = lazy(() => import("@/components/dashboard/AlertsActivityPanel"));
 const FleetPerformanceTable = lazy(() => import("@/components/dashboard/FleetPerformanceTable"));
-const FixturesPanel = lazy(() => import("@/components/dashboard/FixturesPanel"));
+const MarketDataTable = lazy(() => import("@/components/dashboard/MarketDataTable"));
 
 const ITEMS_PER_PAGE = 10;
 
@@ -46,11 +46,12 @@ export default function Dashboard() {
   const [expandedUserId, setExpandedUserId] = useState<string | number | null>(null);
   const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[]; page: number; total: number }>>({});
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+  const isMarketSection = section === "fixtures" || section === "cargoes";
   const tab: "mine" | "users" | "org" =
-    section === "overview" || section === "fixtures" ? "mine" : section;
+    section === "overview" || isMarketSection ? "mine" : section;
 
   const fetchSheets = useCallback(async () => {
-    if (tab === "users" || section === "fixtures") return;
+    if (tab === "users" || section === "fixtures" || section === "cargoes") return;
     setLoading(true);
     try {
       const res = tab === "mine"
@@ -167,7 +168,8 @@ export default function Dashboard() {
   const sectionTitle: Record<DashSection, string> = {
     overview: "Fleet Overview",
     mine: "My Sheets",
-    fixtures: "Cargo Fixtures",
+    fixtures: "Market Fixtures",
+    cargoes: "Cargo List",
     users: "Organization Users",
     org: "Organization Sheets",
   };
@@ -474,7 +476,8 @@ export default function Dashboard() {
               {([
                 ["overview", "Overview", Ship],
                 ["mine", "My Sheets", FileText],
-                ["fixtures", "Fixtures & Cargoes", Package],
+                ["fixtures", "Fixtures", ClipboardList],
+                ["cargoes", "Cargo List", Package],
                 ["users", "Org Users", UserCircle2],
                 ["org", "Org Sheets", Users],
               ] as const).map(([key, label, Icon]) => (
@@ -537,9 +540,9 @@ export default function Dashboard() {
                   <FleetPerformanceTable />
                 </Suspense>
               </>
-            ) : section === "fixtures" ? (
+            ) : isMarketSection ? (
               <Suspense fallback={<ChartSkeleton />}>
-                <FixturesPanel />
+                <MarketDataTable key={section} kind={section === "fixtures" ? "fixtures" : "cargoes"} />
               </Suspense>
             ) : section === "users" ? (
               renderUsers()
