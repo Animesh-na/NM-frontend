@@ -46,10 +46,14 @@ const num = (v: unknown): number => {
  */
 function normalizeVesselRecord(v: Record<string, any>) {
   const name = v.name ?? v.vessel_name ?? v.vessel_enriched ?? "";
-  const draught = v.draught ?? v.summer_draught ?? v.draft ?? 0;
+  const draught = v.draught ?? v.summer_draught ?? v.summer_draft ?? v.draft ?? 0;
   const scrubber = !!(v.scrubber_indicator ?? v.scrubbers);
   const capacityCbm =
-    v.capacity_cu_m ?? v.liquid_capacity_cbm ?? (v.capacitycuft ? num(v.capacitycuft) / 35.3147 : null);
+    v.capacity_cu_m ??
+    v.liquid_capacity_cbm ??
+    v.cargo_capacity_cbm ??
+    v.cbm ??
+    (v.capacitycuft ? num(v.capacitycuft) / 35.3147 : null);
 
   return {
     ...v,
@@ -58,22 +62,22 @@ function normalizeVesselRecord(v: Record<string, any>) {
     type: v.type ?? v.vessel_class ?? v.built_for_trade ?? v.trade ?? "",
     imo: v.imo != null ? String(v.imo) : "",
     dwt: num(v.dwt),
-    gt: num(v.gt ?? v.grt),
-    loa: num(v.loa),
-    beam: num(v.beam),
+    gt: num(v.gt ?? v.grt ?? v.gross_tonnage),
+    loa: num(v.loa ?? v.loa_m ?? v.length_overall),
+    beam: num(v.beam ?? v.beam_m ?? v.breadth),
     draught: num(draught),
-    builtyear: num(v.builtyear ?? v.blt),
-    builder: v.builder ?? v.shipyard_built ?? "",
+    builtyear: num(v.builtyear ?? v.blt ?? v.built ?? v.year_built),
+    builder: v.builder ?? v.shipyard_built ?? v.shipyard ?? "",
     owner: v.owner ?? v.head_owner ?? v.commercial_operator ?? "",
     capacitycuft: num(v.capacitycuft),
     capacity_cu_m: capacityCbm != null ? num(capacityCbm) : null,
-    tpc: v.tpc ?? v.summer_tpc ?? null,
+    tpc: v.tpc ?? v.summer_tpc ?? v.tpc_summer ?? null,
     speed_knots: v.speed_knots ?? null,
-    sector: v.sector ?? null,
+    sector: v.sector ?? v.vessel_class ?? null,
     scrubber_indicator: scrubber,
     hsfo_allowed: scrubber,
-    main_engine1_mcr: num(v.main_engine1_mcr ?? v.main_engine_power_kw),
-    main_engine1_sfoc: num(v.main_engine1_sfoc ?? v.main_engine_sfoc),
+    main_engine1_mcr: num(v.main_engine1_mcr ?? v.main_engine_power_kw ?? v.me_power_kw),
+    main_engine1_sfoc: num(v.main_engine1_sfoc ?? v.main_engine_sfoc ?? v.me_sfoc),
   };
 }
 const meFuelTpd = (mcr: number, sfoc: number, load: number) => (mcr * load * sfoc * 24) / 1_000_000;
