@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { CompactHeader } from "@/components/voyage/CompactHeader";
 import { SheetTabs } from "@/components/voyage/SheetTabs";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
@@ -13,7 +13,7 @@ import { VoyageTimeline } from "@/components/voyage/VoyageTimeline";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { Loader2, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -23,7 +23,6 @@ const Index = () => {
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
   const isAdmin = user?.role === "admin";
   const isReadOnly = activeTab?.readOnly === true;
-  const [summaryOpen, setSummaryOpen] = useState(true);
 
   // Track which tab id we last loaded to detect tab switches
   const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
@@ -165,40 +164,25 @@ const Index = () => {
             isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
           }`}
         >
-          <div className="flex flex-col xl:flex-row items-stretch gap-2.5">
-            <div className="min-w-0 xl:flex-[1.15]">
-              <VesselPanel />
-            </div>
-            <div className="min-w-0 xl:flex-1">
-              <CargoSection />
-            </div>
-          </div>
+          <VesselPanel />
           <SequenceTable />
+          <CargoSection />
           <BunkerSection />
           <MiscSection />
           <SheetNotes />
           {isAdmin && !isReadOnly && <JsonImportSection />}
         </div>
         
-        {/* Right Panel - Summary (collapsible) */}
-        <div className="relative flex-shrink-0 border-l border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] flex">
-          <button
-            onClick={() => setSummaryOpen((v) => !v)}
-            title={summaryOpen ? "Collapse summary" : "Expand summary"}
-            className="w-6 shrink-0 flex items-start justify-center pt-3 border-r border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-bg))] hover:bg-[hsl(var(--muted))] transition-colors"
-          >
-            {summaryOpen ? <PanelRightClose className="h-4 w-4 text-muted-foreground" /> : <PanelRightOpen className="h-4 w-4 text-muted-foreground" />}
-          </button>
-          <div
-            className={`overflow-y-auto sheet-scroll transition-all duration-300 ${summaryOpen ? "w-80" : "w-0"} ${
-              isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
-            }`}
-          >
-            <div className="p-2 w-80">
-              <VoyageSummary />
-              <div className="mt-2">
-                <VoyageTimeline />
-              </div>
+        {/* Right Panel - Summary */}
+        <div
+          className={`w-80 flex-shrink-0 border-l border-[hsl(var(--dash-border))] overflow-y-auto sheet-scroll bg-[hsl(var(--dash-surface))] ${
+            isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
+          }`}
+        >
+          <div className="p-2">
+            <VoyageSummary />
+            <div className="mt-2">
+              <VoyageTimeline />
             </div>
           </div>
         </div>
