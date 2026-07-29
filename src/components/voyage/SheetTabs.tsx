@@ -21,24 +21,25 @@ export function SheetTabs() {
   };
 
   return (
-    <div className="bg-card border-b border-border flex items-center h-8 text-[11px] px-2 gap-1 flex-shrink-0">
+    <div className="bg-[hsl(var(--dash-surface))] border-b border-[hsl(var(--dash-border))] flex items-center h-10 text-[11px] px-2.5 gap-1.5 flex-shrink-0 shadow-sm">
       {/* Back to Dashboard */}
       <button
         onClick={goToDashboard}
-        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm hover:bg-background text-muted-foreground transition-colors mr-1"
+        className="flex items-center justify-center h-7 w-7 rounded-lg border border-[hsl(var(--dash-border))] hover:bg-[hsl(var(--dash-bg))] text-muted-foreground transition-colors mr-0.5"
         title="Back to Dashboard"
       >
         <ArrowLeft className="h-3 w-3" />
       </button>
 
       {/* Tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto sheet-scroll">
       {tabs.map((tab, idx) => (
         <div
           key={tab.id || `new-${idx}`}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-t-sm cursor-pointer border border-b-0 transition-colors max-w-[160px] ${
+          className={`flex items-center gap-1.5 h-7 px-2.5 rounded-lg cursor-pointer border transition-all max-w-[170px] flex-shrink-0 ${
             idx === activeTabIndex
-              ? "bg-background border-border text-foreground"
-              : "bg-muted border-transparent text-muted-foreground hover:bg-background/50"
+              ? "bg-[hsl(var(--ocean))] border-transparent text-primary-foreground font-semibold shadow-sm"
+              : "bg-[hsl(var(--dash-bg))] border-[hsl(var(--dash-border))] text-muted-foreground hover:text-foreground"
           }`}
           onClick={() => setActiveTabIndex(idx)}
         >
@@ -46,18 +47,19 @@ export function SheetTabs() {
           {tab.isDirty && <span className="text-warning">●</span>}
           <button
             onClick={(e) => { e.stopPropagation(); closeTab(idx); }}
-            className="hover:bg-destructive/20 rounded-sm p-0.5 ml-0.5"
+            className="hover:bg-destructive/25 rounded-md p-0.5 ml-0.5"
           >
             <X className="h-2.5 w-2.5" />
           </button>
         </div>
       ))}
+      </div>
 
       {/* Copy Sheet Button */}
       {activeTab && (
         <button
           onClick={copyCurrentSheet}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/85 transition-colors ml-1 text-[10px] font-medium"
+          className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] text-foreground hover:bg-[hsl(var(--dash-bg))] transition-colors ml-1 text-[10px] font-semibold flex-shrink-0"
           title="Copy Sheet"
         >
           <Copy className="h-3 w-3" />
@@ -68,7 +70,7 @@ export function SheetTabs() {
       {/* New Sheet Button */}
       <button
         onClick={createNewSheet}
-        className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/85 transition-colors ml-1 text-[10px] font-medium"
+        className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))] hover:opacity-90 transition-opacity ml-0.5 text-[10px] font-semibold flex-shrink-0"
         title="New Sheet"
       >
         <Plus className="h-3 w-3" />
@@ -93,7 +95,7 @@ export function SheetTabs() {
           ) : (
             <button
               onClick={handleSave}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/85 transition-colors text-[10px] font-medium"
+              className="flex items-center gap-1 h-7 px-3 rounded-lg bg-[hsl(var(--ocean))] text-primary-foreground hover:bg-[hsl(var(--ocean-600))] transition-colors text-[10px] font-semibold"
               title="Save Sheet"
             >
               <Save className="h-3 w-3" />
