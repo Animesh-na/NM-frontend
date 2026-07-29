@@ -3,6 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { clearStoredAuthSession, getStoredAuthToken, isAuthTokenExpired, SESSION_EXPIRED_EVENT } from "@/utils/authToken";
 import { buildMarineUrl, marineHeaders } from "@/services/apiConfig";
 import { logger } from "@/services/logger";
+import { getApiMode, setApiMode, type ApiMode } from "@/services/apiMode";
 
 export type MfaMethod = "" | "email_otp" | "totp";
 
@@ -12,6 +13,8 @@ interface AuthUser {
   role: string;
   expires_at: string | null;
   mfa_method?: MfaMethod;
+  dry_bulk_access?: boolean;
+  tanker_access?: boolean;
 }
 
 // login() result: either logged in, MFA pending (second step needed), or failed.
@@ -29,6 +32,9 @@ interface AuthContextType {
   resendMfaCode: (challengeToken: string) => Promise<{ success: boolean; error?: string }>;
   setUserMfaMethod: (method: MfaMethod) => void;
   logout: () => void;
+  mode: ApiMode;
+  setMode: (mode: ApiMode) => void;
+  availableModes: ApiMode[];
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -40,6 +46,9 @@ const AuthContext = createContext<AuthContextType>({
   resendMfaCode: async () => ({ success: false }),
   setUserMfaMethod: () => {},
   logout: () => {},
+  mode: "dry-bulk",
+  setMode: () => {},
+  availableModes: ["dry-bulk"],
 });
 
 const STORAGE_KEY_TOKEN = "voyagecalc_token";
@@ -58,6 +67,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   });
+
+  const [mode, setModeState] = useState<ApiMode>(() => getApiMode());
+
+  const availableModes: ApiMode[] = [
+    ...(user?.dry_bulk_access !== false ? (["dry-bulk"] as ApiMode[]) : []),
+    ...(user?.tanker_access ? (["tanker"] as ApiMode[]) : []),
+  ];
+
+  const setMode = useCallback((next: ApiMode) => {
+    setApiMode(next);
+    setModeState(next);
+  }, []);
+
+  // Keep the active mode within what the user actually has access to.
+  useEffect(() => {
+    if (!user) return;
+    const allowed: ApiMode[] = [];
+    if (user.dry_bulk_access !== false) allowed.push("dry-bulk");
+    if (user.tanker_access) allowed.push("tanker");
+    if (allowed.length && !allowed.includes(getApiMode())) {
+      setApiMode(allowed[0]);
+      setModeState(allowed[0]);
+    }
+  }, [user]);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionExpiredShownRef = useRef(false);
@@ -109,6 +142,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data?.valid === false) {
         handleSessionExpired();
         return false;
+      }
+
+      // Sync sector access flags from the validate response
+      if (data && (typeof data.dry_bulk_access === "boolean" || typeof data.tanker_access === "boolean")) {
+        setUser((prev) => {
+          if (!prev) return prev;
+          if (prev.dry_bulk_access === data.dry_bulk_access && prev.tanker_access === data.tanker_access) return prev;
+          const next = { ...prev, dry_bulk_access: !!data.dry_bulk_access, tanker_access: !!data.tanker_access };
+          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(next));
+          return next;
+        });
       }
 
       return true;
@@ -276,7 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearSession]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, verifyMfa, resendMfaCode, setUserMfaMethod, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, verifyMfa, resendMfaCode, setUserMfaMethod, logout, mode, setMode, availableModes }}>
       {children}
     </AuthContext.Provider>
   );
