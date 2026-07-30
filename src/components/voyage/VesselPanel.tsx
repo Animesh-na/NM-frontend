@@ -12,7 +12,6 @@ import {
   syncLegacyConsumption,
 } from "@/data/vessels";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { getVesselTypes, getVesselSectors, type VesselType, type VesselSector } from "@/services/vesselFuelApi";
 import { getFieldId } from "@/utils/validation";
 import { getApiMode, API_MODE_CHANGED_EVENT, type ApiMode } from "@/services/apiMode";
 
@@ -21,11 +20,6 @@ export function VesselPanel() {
   const errCls = (msg?: string) =>
     msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   const [isExpanded, setIsExpanded] = useState(true);
-  const [vesselTypes, setVesselTypes] = useState<VesselType[]>([]);
-  const [vesselSectors, setVesselSectors] = useState<VesselSector[]>([]);
-  const [typesLoading, setTypesLoading] = useState(false);
-  const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
-  const [selectedSectorId, setSelectedSectorId] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [apiMode, setApiModeState] = useState<ApiMode>(getApiMode());
   const isTanker = apiMode === "tanker";
@@ -35,28 +29,6 @@ export function VesselPanel() {
     window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
     return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
   }, []);
-
-  useEffect(() => {
-    if (isTanker) { setVesselTypes([]); setVesselSectors([]); return; }
-    const load = async () => {
-      setTypesLoading(true);
-      try {
-        const [types, sectors] = await Promise.all([getVesselTypes(), getVesselSectors()]);
-        setVesselTypes(types);
-        setVesselSectors(sectors);
-      } catch (error) {
-        console.error("Failed to load vessel filters:", error);
-      } finally {
-        setTypesLoading(false);
-      }
-    };
-    load();
-  }, [isTanker]);
-
-  const handleVesselTypeChange = (typeId: number | null, typeName: string) => {
-    setSelectedTypeId(typeId);
-    setVessel({ ...defaultVessel, type: typeName });
-  };
 
   const handleVesselSelect = useCallback((selectedVessel: VesselData | null) => {
     if (selectedVessel) {
@@ -168,7 +140,7 @@ export function VesselPanel() {
           {/* Row 1: Search + Particulars + Type/Sector/Speed */}
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field min-w-[120px] max-w-[200px] flex-1">
-              <VesselSelect value={vessel.name} onChange={handleVesselSelect} selectedTypeId={selectedTypeId} selectedSectorId={selectedSectorId} placeholder="Search vessel..." />
+              <VesselSelect value={vessel.name} onChange={handleVesselSelect} placeholder="Search vessel..." />
             </div>
             <div className="form-field w-20">
               <label className="form-label">DWT (mt)</label>
@@ -216,24 +188,6 @@ export function VesselPanel() {
                 <option value="N">N</option><option value="Y">Y</option>
               </select>
             </div>
-            {!isTanker && (
-            <div className="form-field w-24">
-              <label className="form-label">Type</label>
-              <select className="form-select-sm w-full" value={selectedTypeId ?? ""} onChange={(e) => { const typeId = e.target.value ? Number(e.target.value) : null; const typeName = vesselTypes.find(t => t.id === typeId)?.name || ""; handleVesselTypeChange(typeId, typeName); }} disabled={typesLoading}>
-                <option value="">ALL</option>
-                {vesselTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
-              </select>
-            </div>
-            )}
-            {!isTanker && (
-            <div className="form-field w-24">
-              <label className="form-label">Sector</label>
-              <select className="form-select-sm w-full" value={selectedSectorId ?? ""} onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)} disabled={typesLoading}>
-                <option value="">ALL</option>
-                {vesselSectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            )}
             <div className="form-field w-28">
               <label className="form-label">Speed Profile</label>
               <select className="form-select-sm w-full" value={vessel.speedProfile} onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}>
