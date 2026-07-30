@@ -561,6 +561,8 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
       )}
+      </div>
+      )}
     </div>
   );
 }
