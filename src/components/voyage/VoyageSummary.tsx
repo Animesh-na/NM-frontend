@@ -1,4 +1,5 @@
-import { DollarSign, Clock, TrendingUp, Leaf, Download } from "lucide-react";
+import { useState } from "react";
+import { DollarSign, Clock, TrendingUp, Leaf, Download, ChevronDown, ChevronRight } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { AlertTriangle } from "lucide-react";
 import { InfoTooltip } from "./InfoTooltip";
@@ -14,6 +15,7 @@ export function VoyageSummary() {
   const { results, cargos, hireRate, vessel, sequence, bunker, misc, netBB, applyEuaImpact, setApplyEuaImpact, applyFuelEuImpact, setApplyFuelEuImpact, applyUkEtsImpact, setApplyUkEtsImpact, validationIssues, hasErrors } = useVoyageContext();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const [collapsed, setCollapsed] = useState(false);
 
   // Block summary visibility until all required fields are valid
   if (hasErrors) {
@@ -93,12 +95,21 @@ export function VoyageSummary() {
 
   return (
     <div className="calc-card-compact">
-      <div className="section-header-compact">
-        <TrendingUp className="h-3.5 w-3.5" />
-        <span>Voyage Summary</span>
-      </div>
+      <button
+        type="button"
+        onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
+        className="section-header-compact w-full justify-between cursor-pointer"
+        title={collapsed ? "Expand Voyage Summary" : "Collapse Voyage Summary"}
+      >
+        <span className="flex items-center gap-2">
+          <TrendingUp className="h-3.5 w-3.5" />
+          <span>Voyage Summary</span>
+        </span>
+        {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+      </button>
 
-      <div className="p-2 space-y-2 text-[10px] [&_.text-muted-foreground]:text-foreground [&_.text-muted-foreground]:font-bold [&_.font-medium]:text-primary [&_.font-medium]:font-bold">
+      <div className={`p-2 space-y-2 text-[10px] [&_.text-muted-foreground]:text-foreground [&_.text-muted-foreground]:font-bold [&_.font-medium]:text-primary [&_.font-medium]:font-bold ${collapsed ? "hidden" : ""}`}>
         {/* Financial Summary */}
         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-b border-border pb-1">
           <div className="flex justify-between items-center">
