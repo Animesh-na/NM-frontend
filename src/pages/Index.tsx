@@ -164,10 +164,12 @@ const Index = () => {
             isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
           }`}
         >
-          <VesselPanel />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5 items-start">
+            <VesselPanel />
+            <BunkerSection />
+          </div>
           <SequenceTable />
           <CargoSection />
-          <BunkerSection />
           <MiscSection />
           <SheetNotes />
           {isAdmin && !isReadOnly && <JsonImportSection />}
