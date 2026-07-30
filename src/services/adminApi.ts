@@ -9,10 +9,23 @@ export interface AdminUser {
   email: string;
   role: string;
   is_active: boolean;
+  expires_at?: string | null;
+  dry_bulk_access?: boolean;
+  tanker_access?: boolean;
   mfa_method?: string;        // "" / "totp" / "email_otp" — empty means MFA not set
   mfa_updated_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Payload accepted by the admin user update / create endpoints.
+export interface AdminUserPermissionsPayload {
+  email?: string;
+  password?: string;
+  is_active?: boolean;
+  expires_at?: string | null;
+  dry_bulk_access?: boolean;
+  tanker_access?: boolean;
 }
 
 export interface AdminUserListResponse {
@@ -55,11 +68,15 @@ export async function adminListUsers(page: number = 1, limit: number = 20): Prom
   }
 }
 
-export async function adminCreateUser(email: string, password: string): Promise<AdminUser | null> {
+export async function adminCreateUser(
+  email: string,
+  password: string,
+  permissions?: Omit<AdminUserPermissionsPayload, "email" | "password">,
+): Promise<AdminUser | null> {
   try {
     const data = await apiRequest<{ user: AdminUser }>("/admin/users", undefined, {
       method: "POST",
-      body: { email, password },
+      body: { email, password, ...(permissions || {}) },
       authenticated: true,
     });
     return data.user || null;
@@ -97,11 +114,18 @@ export async function adminResetUserMfa(userId: string): Promise<string | null> 
   }
 }
 
-export async function adminUpdateUser(userId: string, updates: { email?: string; is_active?: boolean }): Promise<AdminUser | null> {
+export async function adminUpdateUser(
+  userId: string,
+  updates: AdminUserPermissionsPayload,
+): Promise<AdminUser | null> {
   try {
+    // Strip undefined keys so partial updates don't overwrite server values.
+    const body = Object.fromEntries(
+      Object.entries(updates).filter(([, v]) => v !== undefined),
+    );
     const data = await apiRequest<{ user: AdminUser }>(`/admin/users/${userId}`, undefined, {
       method: "PUT",
-      body: updates,
+      body,
       authenticated: true,
     });
     return data.user || null;

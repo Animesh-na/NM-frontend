@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Users, FileText, ChevronLeft, ChevronRight, Loader2,
-  Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck, Menu,
+  Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck, Menu, KeyRound,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import UserPermissionsDialog from "@/components/admin/UserPermissionsDialog";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
 import {
   adminListUsers, adminCreateUser, adminDeactivateUser, adminUpdateUser,
   adminResetUserMfa, adminListSheets,
-  type AdminUser, type AdminSheetItem,
+  type AdminUser, type AdminSheetItem, type AdminUserPermissionsPayload,
 } from "@/services/adminApi";
 import { toast } from "@/components/ui/sonner";
 
@@ -41,6 +42,12 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
+  const [newDryBulk, setNewDryBulk] = useState(true);
+  const [newTanker, setNewTanker] = useState(false);
+
+  // ── Permissions dialog ──
+  const [permUser, setPermUser] = useState<AdminUser | null>(null);
+  const [savingPerms, setSavingPerms] = useState(false);
 
   // ── User sheets state ──
   const [sheets, setSheets] = useState<AdminSheetItem[]>([]);
@@ -90,7 +97,12 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
-    const result = await adminCreateUser(newEmail, newPassword);
+    const result = await adminCreateUser(newEmail, newPassword, {
+      is_active: true,
+      expires_at: null,
+      dry_bulk_access: newDryBulk,
+      tanker_access: newTanker,
+    });
     if (result) {
       toast.success(`User "${result.email}" created`);
       setShowCreateForm(false);
@@ -101,6 +113,20 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       toast.error("Failed to create user");
     }
     setCreating(false);
+  };
+
+  const handleSavePermissions = async (payload: AdminUserPermissionsPayload) => {
+    if (!permUser) return;
+    setSavingPerms(true);
+    const result = await adminUpdateUser(permUser.id, payload);
+    if (result) {
+      toast.success("Permissions updated");
+      setPermUser(null);
+      fetchUsers();
+    } else {
+      toast.error("Failed to update permissions");
+    }
+    setSavingPerms(false);
   };
 
   const handleDeactivate = async (u: AdminUser) => {
@@ -252,6 +278,16 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                       Cancel
                     </button>
                   </form>
+                  <div className="mt-3 flex items-center gap-4 text-xs text-foreground">
+                    <label className="flex items-center gap-1.5">
+                      <input type="checkbox" checked={newDryBulk} onChange={(e) => setNewDryBulk(e.target.checked)} disabled={creating} />
+                      Dry bulk access
+                    </label>
+                    <label className="flex items-center gap-1.5">
+                      <input type="checkbox" checked={newTanker} onChange={(e) => setNewTanker(e.target.checked)} disabled={creating} />
+                      Tanker access
+                    </label>
+                  </div>
                 </div>
               )}
 
@@ -271,6 +307,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                           <th className="text-left px-3 py-2 font-medium">Email</th>
                           <th className="text-left px-3 py-2 font-medium">Role</th>
                           <th className="text-center px-3 py-2 font-medium">Status</th>
+                          <th className="text-center px-3 py-2 font-medium">Access</th>
+                          <th className="text-left px-3 py-2 font-medium">Expires</th>
                           <th className="text-left px-3 py-2 font-medium">Created</th>
                           <th className="text-right px-3 py-2 font-medium">Actions</th>
                         </tr>
@@ -292,11 +330,28 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                                 {u.is_active ? "Active" : "Inactive"}
                               </span>
                             </td>
+                            <td className="px-3 py-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <span className={u.dry_bulk_access ? "dash-badge-info" : "dash-badge-neutral"}>Dry bulk</span>
+                                <span className={u.tanker_access ? "dash-badge-info" : "dash-badge-neutral"}>Tanker</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground text-xs">
+                              {u.expires_at ? new Date(u.expires_at).toLocaleDateString() : "Never"}
+                            </td>
                             <td className="px-3 py-2 text-muted-foreground text-xs">
                               {new Date(u.created_at).toLocaleDateString()}
                             </td>
                             <td className="px-3 py-2 text-right">
                               <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => setPermUser(u)}
+                                  className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 rounded-sm transition-colors flex items-center gap-1"
+                                  title="Edit permissions & access"
+                                >
+                                  <KeyRound className="h-3 w-3" />
+                                  Permissions
+                                </button>
                                 <button
                                   onClick={() => handleViewSheets(u)}
                                   className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 rounded-sm transition-colors flex items-center gap-1"
@@ -470,6 +525,15 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </div>
+
+      {permUser && (
+        <UserPermissionsDialog
+          user={permUser}
+          saving={savingPerms}
+          onCancel={() => setPermUser(null)}
+          onSave={handleSavePermissions}
+        />
+      )}
     </div>
   );
 }
