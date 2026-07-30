@@ -216,24 +216,6 @@ export function VesselPanel() {
                 <option value="N">N</option><option value="Y">Y</option>
               </select>
             </div>
-            {!isTanker && (
-            <div className="form-field w-24">
-              <label className="form-label">Type</label>
-              <select className="form-select-sm w-full" value={selectedTypeId ?? ""} onChange={(e) => { const typeId = e.target.value ? Number(e.target.value) : null; const typeName = vesselTypes.find(t => t.id === typeId)?.name || ""; handleVesselTypeChange(typeId, typeName); }} disabled={typesLoading}>
-                <option value="">ALL</option>
-                {vesselTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
-              </select>
-            </div>
-            )}
-            {!isTanker && (
-            <div className="form-field w-24">
-              <label className="form-label">Sector</label>
-              <select className="form-select-sm w-full" value={selectedSectorId ?? ""} onChange={(e) => setSelectedSectorId(e.target.value ? Number(e.target.value) : null)} disabled={typesLoading}>
-                <option value="">ALL</option>
-                {vesselSectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            )}
             <div className="form-field w-28">
               <label className="form-label">Speed Profile</label>
               <select className="form-select-sm w-full" value={vessel.speedProfile} onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}>
