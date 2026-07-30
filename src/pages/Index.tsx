@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { CompactHeader } from "@/components/voyage/CompactHeader";
 import { SheetTabs } from "@/components/voyage/SheetTabs";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
@@ -13,7 +13,7 @@ import { VoyageTimeline } from "@/components/voyage/VoyageTimeline";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -23,6 +23,7 @@ const Index = () => {
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
   const isAdmin = user?.role === "admin";
   const isReadOnly = activeTab?.readOnly === true;
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Track which tab id we last loaded to detect tab switches
   const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
