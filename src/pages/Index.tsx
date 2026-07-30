@@ -169,8 +169,10 @@ const Index = () => {
             <BunkerSection />
           </div>
           <SequenceTable />
-          <CargoSection />
-          <MiscSection />
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2.5 items-start">
+            <CargoSection />
+            <MiscSection />
+          </div>
           <SheetNotes />
           {isAdmin && !isReadOnly && <JsonImportSection />}
         </div>
