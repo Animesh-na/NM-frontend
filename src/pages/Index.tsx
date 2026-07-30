@@ -10,6 +10,7 @@ import { SheetNotes } from "@/components/voyage/SheetNotes";
 import { JsonImportSection } from "@/components/voyage/JsonImportSection";
 import { VoyageSummary } from "@/components/voyage/VoyageSummary";
 import { VoyageTimeline } from "@/components/voyage/VoyageTimeline";
+import { SectionFrame } from "@/components/voyage/SectionFrame";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
@@ -166,41 +167,53 @@ const Index = () => {
           }`}
         >
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5 items-start">
-            <VesselPanel />
-            <BunkerSection />
+            <SectionFrame title="Vessel"><VesselPanel /></SectionFrame>
+            <SectionFrame title="Bunker"><BunkerSection /></SectionFrame>
           </div>
-          <SequenceTable />
+          <SectionFrame title="Sequence"><SequenceTable /></SectionFrame>
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2.5 items-start">
-            <CargoSection />
-            <MiscSection />
+            <SectionFrame title="Cargo"><CargoSection /></SectionFrame>
+            <SectionFrame title="Miscellaneous"><MiscSection /></SectionFrame>
           </div>
-          <SheetNotes />
+          <SectionFrame title="Notes"><SheetNotes /></SectionFrame>
           {isAdmin && !isReadOnly && <JsonImportSection />}
         </div>
         
         {/* Right Panel - Summary (collapsible) */}
-        <div className="relative flex-shrink-0 border-l border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] flex">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen((v) => !v)}
-            title={sidebarOpen ? "Collapse summary" : "Expand summary"}
-            className="w-6 flex-shrink-0 flex items-start justify-center pt-3 border-r border-[hsl(var(--dash-border))] hover:bg-muted transition-colors"
-          >
-            {sidebarOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-          </button>
-          {sidebarOpen && (
+        <div className="relative flex-shrink-0 border-l border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] flex flex-col">
+          {sidebarOpen ? (
             <div
-              className={`w-80 overflow-y-auto sheet-scroll ${
+              className={`w-80 flex-1 overflow-y-auto sheet-scroll ${
                 isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
               }`}
             >
-              <div className="p-2">
-                <VoyageSummary />
-                <div className="mt-2">
-                  <VoyageTimeline />
+              <div className="p-2 space-y-2">
+                <div className="flex items-center justify-between px-0.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Summary</span>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarOpen(false)}
+                    title="Collapse summary"
+                    aria-label="Collapse summary"
+                    className="h-6 w-6 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
+                  >
+                    <PanelRightClose className="h-3.5 w-3.5" />
+                  </button>
                 </div>
+                <VoyageSummary />
+                <VoyageTimeline />
               </div>
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              title="Expand summary"
+              aria-label="Expand summary"
+              className="w-7 h-full flex items-start justify-center pt-2 hover:bg-muted transition-colors"
+            >
+              <PanelRightOpen className="h-4 w-4" />
+            </button>
           )}
         </div>
       </div>
