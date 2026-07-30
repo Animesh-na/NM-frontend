@@ -1772,6 +1772,13 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       euEtsPrice: bunker.euEtsPrice,
       ukEtsPrice: bunker.ukEtsPrice,
       rewardFactor: bunker.rewardFactor,
+      fuelMode: bunker.fuelMode,
+      ignoreBOB: bunker.ignoreBOB,
+      portBunkering: bunker.portBunkering.map(p => ({
+        hsfo: { quantity: p.hsfo.quantity, price: p.hsfo.price },
+        vlsfo: { quantity: p.vlsfo.quantity, price: p.vlsfo.price },
+        lsmgo: { quantity: p.lsmgo.quantity, price: p.lsmgo.price },
+      })),
     },
     hireRate,
     netBB,
