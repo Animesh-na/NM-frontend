@@ -141,7 +141,7 @@ export function VesselPanel() {
           {/* Row 1: Search + Particulars + Type/Sector/Speed */}
           <div className="flex flex-wrap gap-2 items-end">
             <div className="form-field min-w-[120px] max-w-[200px] flex-1">
-              <VesselSelect value={vessel.name} onChange={handleVesselSelect} selectedTypeId={selectedTypeId} selectedSectorId={selectedSectorId} placeholder="Search vessel..." />
+              <VesselSelect value={vessel.name} onChange={handleVesselSelect} placeholder="Search vessel..." />
             </div>
             <div className="form-field w-20">
               <label className="form-label">DWT (mt)</label>
