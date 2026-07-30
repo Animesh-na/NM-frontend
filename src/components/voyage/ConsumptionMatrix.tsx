@@ -16,6 +16,7 @@ interface ConsumptionMatrixProps {
   ) => void;
   onLoadDischIdleChange: (checked: boolean) => void;
   onMiscMultiplierChange: (value: number) => void;
+  hasScrubber?: boolean;
 }
 
 type MatrixRow = {
@@ -48,11 +49,17 @@ export function ConsumptionMatrix({
   consumptionMatrix,
   loadDischIdleSame,
   onConsumptionChange,
+  hasScrubber = false,
 }: ConsumptionMatrixProps) {
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
   const { getFieldError } = useVoyageContext();
   const speedOnlyColumns: ColumnKey[] = ["ballast", "laden"];
-  const thClass = "px-0.5 py-0 text-[9px] font-semibold text-foreground text-center bg-table-header";
+  const thClass = "px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground text-center";
+  const visibleRows = matrixRows.filter((row) => {
+    if (row.key === "hsfo" || row.key === "aeScrubber") return hasScrubber;
+    if (row.key === "vlsfo" || row.key === "ae") return !hasScrubber;
+    return true;
+  });
 
   const getUnit = (rowKey: string): string => {
     if (rowKey === "speed") return "kn";
@@ -128,30 +135,30 @@ export function ConsumptionMatrix({
   };
 
   return (
-    <div className="overflow-x-auto w-full">
-      <table className="text-[10px] border-collapse table-fixed">
+    <div className="overflow-x-auto w-full rounded-lg border border-[hsl(var(--dash-border))] bg-background">
+      <table className="text-[10px] border-collapse table-fixed w-full min-w-[560px]">
         <thead>
-          <tr>
-            <th className={`${thClass} text-left w-12`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
+          <tr className="bg-muted/60 border-b border-[hsl(var(--dash-border))]">
+            <th className={`${thClass} text-left w-20 pl-3`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
             {columns.map(col => (
-              <th key={col.key} className={`${thClass} px-1 w-16`}>{col.label}</th>
+              <th key={col.key} className={`${thClass} w-[86px]`}>{col.label}</th>
             ))}
-            <th className={`${thClass} w-8`}>Unit</th>
+            <th className={`${thClass} w-12`}>Unit</th>
           </tr>
         </thead>
         <tbody>
-          {matrixRows.map((row) => (
-            <tr key={row.key}>
-              <td className="px-1 py-0 text-[10px] font-bold text-foreground bg-subsection-header">{row.label}</td>
+          {visibleRows.map((row) => (
+            <tr key={row.key} className="border-b border-[hsl(var(--dash-border))]/60 last:border-0 hover:bg-muted/40 transition-colors">
+              <td className="px-3 py-1 text-[10px] font-semibold text-foreground">{row.label}</td>
               {columns.map(col => {
                 const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
                 const isSpeedNA = row.key === "speed" && !speedOnlyColumns.includes(col.key);
                 const value = consumptionMatrix[row.key][col.key];
                 
                 return (
-                  <td key={col.key} className="px-0 py-0">
+                  <td key={col.key} className="px-1 py-1">
                     {isSpeedNA ? (
-                      <div className="h-4 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
+                      <div className="h-6 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                     ) : (
                       (() => {
                         const fieldKey = matrixFieldKey(row.key as string, col.key as string);
@@ -163,7 +170,7 @@ export function ConsumptionMatrix({
                         title={err}
                         type="text"
                         inputMode="decimal"
-                        className={`form-input-sm w-14 mx-auto block font-mono tabular-nums text-center h-4 text-[9px] px-0.5 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
+                        className={`form-input-sm w-[72px] mx-auto block tabular-nums text-center h-6 text-[10px] px-1 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
                         value={getDisplayValue(row.key, col.key, value)}
                         onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
                         onFocus={() => handleInputFocus(row.key, col.key, value)}
@@ -177,7 +184,7 @@ export function ConsumptionMatrix({
                   </td>
                 );
               })}
-              <td className="px-1 py-0 text-[8px] text-muted-foreground text-center">{getUnit(row.key)}</td>
+              <td className="px-2 py-1 text-[9px] text-muted-foreground text-center">{getUnit(row.key)}</td>
             </tr>
           ))}
         </tbody>

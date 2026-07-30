@@ -133,12 +133,13 @@ export function VesselPanel() {
         title="Vessel"
       >
         <span>Vessel</span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
       </button>
 
       {isExpanded && (
-        <div className="flex-1 min-w-0 px-3 py-2.5 space-y-2">
+        <div className="flex-1 min-w-0 px-3 py-3 space-y-3">
           {/* Row 1: Search + Particulars + Type/Sector/Speed */}
-          <div className="flex flex-wrap gap-2 items-end">
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
             <div className="form-field min-w-[120px] max-w-[200px] flex-1">
               <VesselSelect value={vessel.name} onChange={handleVesselSelect} placeholder="Search vessel..." />
             </div>
@@ -209,6 +210,7 @@ export function VesselPanel() {
           <ConsumptionMatrix
             speedProfile={vessel.speedProfile}
             consumptionMatrix={currentMatrix}
+            hasScrubber={vessel.hasScrubber}
             loadDischIdleSame={vessel.loadDischIdleSame}
             miscMultiplier={vessel.miscMultiplier}
             onSpeedProfileChange={handleSpeedProfileChange}
