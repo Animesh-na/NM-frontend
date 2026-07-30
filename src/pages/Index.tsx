@@ -178,18 +178,30 @@ const Index = () => {
           {isAdmin && !isReadOnly && <JsonImportSection />}
         </div>
         
-        {/* Right Panel - Summary */}
-        <div
-          className={`w-80 flex-shrink-0 border-l border-[hsl(var(--dash-border))] overflow-y-auto sheet-scroll bg-[hsl(var(--dash-surface))] ${
-            isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
-          }`}
-        >
-          <div className="p-2">
-            <VoyageSummary />
-            <div className="mt-2">
-              <VoyageTimeline />
+        {/* Right Panel - Summary (collapsible) */}
+        <div className="relative flex-shrink-0 border-l border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] flex">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((v) => !v)}
+            title={sidebarOpen ? "Collapse summary" : "Expand summary"}
+            className="w-6 flex-shrink-0 flex items-start justify-center pt-3 border-r border-[hsl(var(--dash-border))] hover:bg-muted transition-colors"
+          >
+            {sidebarOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+          </button>
+          {sidebarOpen && (
+            <div
+              className={`w-80 overflow-y-auto sheet-scroll ${
+                isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
+              }`}
+            >
+              <div className="p-2">
+                <VoyageSummary />
+                <div className="mt-2">
+                  <VoyageTimeline />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
       
