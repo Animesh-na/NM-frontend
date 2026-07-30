@@ -71,6 +71,8 @@ export function BunkerSection() {
                 value={bunker.ukEtsPrice || ""} onChange={(e) => updateBunkerField("ukEtsPrice", parseFloat(e.target.value) || 0)} placeholder="0" />
               <span className="text-[10px] text-muted-foreground">$/t</span>
             </div>
+            {bunker.portBunkering.length > 0 && (
+            <>
             <RadioGroup value={bunker.fuelMode} onValueChange={(value) => updateBunkerField("fuelMode", value as FuelAccountingMode)} className="flex gap-3 items-center">
               <div className="flex items-center space-x-1">
                 <RadioGroupItem value="average" id="average" className="h-3.5 w-3.5" />
@@ -85,6 +87,8 @@ export function BunkerSection() {
               <Checkbox id="ignoreBOB" checked={bunker.ignoreBOB} onCheckedChange={(checked) => updateBunkerField("ignoreBOB", checked === true)} className="h-3.5 w-3.5" />
               <Label htmlFor="ignoreBOB" className="text-[10px] cursor-pointer">Ignore BOB</Label>
             </div>
+            </>
+            )}
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-muted-foreground">Reward</span>
               <input type="number" step="0.01" className="form-input-sm w-14 font-mono text-right text-xs"
