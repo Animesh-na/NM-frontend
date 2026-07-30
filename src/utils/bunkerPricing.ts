@@ -57,11 +57,14 @@ export function fifoCost(input: BunkerPricingInput, consumption: number): number
 
   let remaining = consumption;
   let cost = 0;
+  const bobIncluded = !input.ignoreBOB && lots[0] === input.bob;
 
   for (let i = 0; i < lots.length; i++) {
     const lot = lots[i];
     const isLast = i === lots.length - 1;
-    const qty = lot.quantity > 0 ? lot.quantity : (i === 0 && !input.ignoreBOB && lots[0] === input.bob ? 0 : Infinity);
+    // BOB is limited to its ROB; port lots without an entered quantity are unlimited.
+    const isBob = i === 0 && bobIncluded;
+    const qty = isBob ? Math.max(0, lot.quantity || 0) : (lot.quantity > 0 ? lot.quantity : Infinity);
     const take = isLast ? remaining : Math.min(remaining, qty);
     cost += take * lot.price;
     remaining -= take;
