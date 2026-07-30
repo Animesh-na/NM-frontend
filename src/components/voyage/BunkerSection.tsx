@@ -99,9 +99,6 @@ export function BunkerSection() {
                 <div key={fuel} className="flex-1 flex items-center gap-1 px-2 py-1">
                   <span className="text-[10px] font-medium w-12">{fuel.toUpperCase()}</span>
                   <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
-                    value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
-                  <span className="text-[9px] text-muted-foreground">t</span>
-                  <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
                     value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
                   <span className="text-[9px] text-muted-foreground">$/t</span>
                 </div>
