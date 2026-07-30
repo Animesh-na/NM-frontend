@@ -12,7 +12,6 @@ import {
   syncLegacyConsumption,
 } from "@/data/vessels";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { getVesselTypes, getVesselSectors, type VesselType, type VesselSector } from "@/services/vesselFuelApi";
 import { getFieldId } from "@/utils/validation";
 import { getApiMode, API_MODE_CHANGED_EVENT, type ApiMode } from "@/services/apiMode";
 
