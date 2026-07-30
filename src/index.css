@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 213 14% 85%;
+    --background: 0 0% 100%;
     --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
@@ -16,10 +16,10 @@
     --primary: 211 92% 18%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 213 14% 90%;
+    --secondary: 214 24% 96%;
     --secondary-foreground: 215 25% 25%;
 
-    --muted: 213 14% 88%;
+    --muted: 214 24% 96%;
     --muted-foreground: 215 15% 45%;
 
     --accent: 178 62% 34%;
@@ -34,8 +34,8 @@
     --warning: 38 94% 48%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 213 14% 78%;
-    --input: 213 14% 78%;
+    --border: 214 20% 90%;
+    --input: 214 20% 88%;
     --input-background: 0 0% 100%;
     --ring: 211 92% 18%;
 
@@ -48,7 +48,7 @@
     --teal: 178 62% 34%;
     --teal-foreground: 0 0% 100%;
     --danger: 0 72% 51%;
-    --dash-bg: 214 24% 97%;
+    --dash-bg: 214 24% 98%;
     --dash-surface: 0 0% 100%;
     --dash-border: 214 20% 90%;
     --dash-sidebar: 213 62% 11%;
@@ -58,12 +58,12 @@
     --shadow-card-hover: 0 6px 18px -6px hsl(213 40% 15% / 0.16);
 
     /* Maritime specific tokens */
-    --section-header: 213 16% 55%;
+    --section-header: 211 92% 18%;
     --section-header-foreground: 0 0% 100%;
-    --subsection-header: 213 14% 88%;
-    --table-header: 213 14% 88%;
+    --subsection-header: 214 24% 96%;
+    --table-header: 214 24% 96%;
     --table-row-alt: 0 0% 100%;
-    --data-highlight: 213 30% 92%;
+    --data-highlight: 214 30% 96%;
     --regulatory: 214 63% 46%;
     --money-positive: 142 70% 35%;
     --money-negative: 0 72% 51%;
@@ -155,8 +155,9 @@
 
   body {
     @apply bg-background text-foreground font-sans;
-    font-family: 'Helvetica Neue', 'Arial Nova Condensed', sans-serif;
-    font-size: 9px;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    -webkit-font-smoothing: antialiased;
   }
 
   /* Hide number input spinners globally */
@@ -175,7 +176,7 @@
   }
 
   .font-mono {
-    font-family: 'Helvetica Neue', 'Arial Nova Condensed', monospace;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
   }
 }
