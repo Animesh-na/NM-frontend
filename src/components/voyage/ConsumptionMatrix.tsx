@@ -136,12 +136,12 @@ export function ConsumptionMatrix({
 
   return (
     <div className="overflow-x-auto w-full rounded-lg border border-[hsl(var(--dash-border))] bg-background">
-      <table className="text-[10px] border-collapse table-fixed w-full min-w-[560px]">
+      <table className="text-[10px] border-collapse table-fixed w-full min-w-[470px]">
         <thead>
           <tr className="bg-muted/60 border-b border-[hsl(var(--dash-border))]">
-            <th className={`${thClass} text-left w-20 pl-3`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
+            <th className={`${thClass} text-left w-16 pl-2`}>{speedProfile === "eco" ? "Eco" : "Full"}</th>
             {columns.map(col => (
-              <th key={col.key} className={`${thClass} w-[86px]`}>{col.label}</th>
+              <th key={col.key} className={`${thClass} w-[72px]`}>{col.label}</th>
             ))}
             <th className={`${thClass} w-12`}>Unit</th>
           </tr>
@@ -170,7 +170,7 @@ export function ConsumptionMatrix({
                         title={err}
                         type="text"
                         inputMode="decimal"
-                        className={`form-input-sm w-[72px] mx-auto block tabular-nums text-center h-6 text-[10px] px-1 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
+                        className={`form-input-sm w-[62px] mx-auto block tabular-nums text-center h-6 text-[10px] px-1 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
                         value={getDisplayValue(row.key, col.key, value)}
                         onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
                         onFocus={() => handleInputFocus(row.key, col.key, value)}
