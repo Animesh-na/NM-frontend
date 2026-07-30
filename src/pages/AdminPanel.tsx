@@ -525,6 +525,15 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </div>
+
+      {permUser && (
+        <UserPermissionsDialog
+          user={permUser}
+          saving={savingPerms}
+          onCancel={() => setPermUser(null)}
+          onSave={handleSavePermissions}
+        />
+      )}
     </div>
   );
 }
