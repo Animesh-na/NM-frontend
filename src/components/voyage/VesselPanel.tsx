@@ -21,11 +21,6 @@ export function VesselPanel() {
   const errCls = (msg?: string) =>
     msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   const [isExpanded, setIsExpanded] = useState(true);
-  const [vesselTypes, setVesselTypes] = useState<VesselType[]>([]);
-  const [vesselSectors, setVesselSectors] = useState<VesselSector[]>([]);
-  const [typesLoading, setTypesLoading] = useState(false);
-  const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
-  const [selectedSectorId, setSelectedSectorId] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [apiMode, setApiModeState] = useState<ApiMode>(getApiMode());
   const isTanker = apiMode === "tanker";
@@ -35,28 +30,6 @@ export function VesselPanel() {
     window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
     return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
   }, []);
-
-  useEffect(() => {
-    if (isTanker) { setVesselTypes([]); setVesselSectors([]); return; }
-    const load = async () => {
-      setTypesLoading(true);
-      try {
-        const [types, sectors] = await Promise.all([getVesselTypes(), getVesselSectors()]);
-        setVesselTypes(types);
-        setVesselSectors(sectors);
-      } catch (error) {
-        console.error("Failed to load vessel filters:", error);
-      } finally {
-        setTypesLoading(false);
-      }
-    };
-    load();
-  }, [isTanker]);
-
-  const handleVesselTypeChange = (typeId: number | null, typeName: string) => {
-    setSelectedTypeId(typeId);
-    setVessel({ ...defaultVessel, type: typeName });
-  };
 
   const handleVesselSelect = useCallback((selectedVessel: VesselData | null) => {
     if (selectedVessel) {
