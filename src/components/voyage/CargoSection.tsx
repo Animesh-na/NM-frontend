@@ -53,8 +53,8 @@ export function CargoSection() {
       {isExpanded && (
         <div className="flex-1 min-w-0 px-2 py-1 space-y-1">
           {/* Top summary fields */}
-          <div className="flex flex-wrap gap-2 items-end">
-            <div className="form-field w-24">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2 items-end">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 GTC
                 <InfoTooltip
@@ -81,7 +81,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field w-16">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 TC Comm
                 <InfoTooltip formula="Deducted from Net Freight" description="Time Charter Commission %" />
@@ -105,7 +105,7 @@ export function CargoSection() {
                 <span className="unit">%</span>
               </div>
             </div>
-            <div className="form-field w-24">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 NTC
                 <InfoTooltip
@@ -123,7 +123,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field w-24">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 Net BB
                 <InfoTooltip formula="Net Ballast Bonus (lumpsum added to hire cost)" description="Net Ballast Bonus" />
@@ -141,7 +141,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field w-24">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 Gross BB
                 <InfoTooltip formula="Gross BB = Net BB / (1 - TC Comm%)" description="Gross Ballast Bonus" />
