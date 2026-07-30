@@ -215,7 +215,7 @@ export function SequenceTable() {
                             <DropdownMenuTrigger asChild>
                               <button
                                 type="button"
-                                className="form-select-sm w-14 text-[10px] flex items-center justify-between px-1 capitalize"
+                                className="form-select-sm w-[74px] text-[10px] flex items-center justify-between px-1 capitalize"
                                 title="Type / reorder"
                               >
                                 <span>{typeLabel}</span>
@@ -350,7 +350,7 @@ export function SequenceTable() {
                           ) : (
                             <div className="flex items-center gap-0.5">
                               <select
-                                className="form-select-sm w-10 text-[10px]"
+                                className="form-select-sm w-[52px] text-[10px]"
                                 value={row.distanceSpeedContext}
                                 onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value)}
                               >
@@ -370,7 +370,7 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                           <div className="flex items-center gap-0.5">
-                            <select className="form-select-sm w-10 text-[10px]" value={row.ecaDistanceSpeedContext}
+                            <select className="form-select-sm w-[52px] text-[10px]" value={row.ecaDistanceSpeedContext}
                               onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value)}>
                               {ecaDistanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
@@ -417,7 +417,7 @@ export function SequenceTable() {
                       {/* Port Fuel */}
                       <td className={tdClass}>
                         {!isOpen && isPort ? (
-                          <select className="form-select-sm w-14 text-[10px]" value={row.portFuelType || "vlsfo"}
+                          <select className="form-select-sm w-[74px] text-[10px]" value={row.portFuelType || "vlsfo"}
                             onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}>
                             {vessel.hasScrubber && <option value="hsfo">HSFO</option>}
                             <option value="vlsfo">VLSFO</option>
@@ -481,7 +481,7 @@ export function SequenceTable() {
                       {/* Terms */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <select className="form-select-sm w-14 text-[10px]" 
+                          <select className="form-select-sm w-[74px] text-[10px]" 
                             value={row.terms === "custom" ? `custom:${row.customTermsName}` : (row.terms || "shinc")}
                             onChange={(e) => {
                               const val = e.target.value;
