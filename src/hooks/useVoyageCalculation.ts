@@ -18,6 +18,7 @@ import {
   type FuelEuResult,
 } from "@/utils/emissionCalculations";
 import { vlog, vlogBegin, vlogEnd, exposeVoyageDebug } from "@/utils/voyageLogger";
+import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
 import {
   getUkEtsSeaCoverage,
   getUkEtsPortCoverage,
