@@ -419,19 +419,6 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-16">
-          <label className="form-label">Avg</label>
-          <select 
-            className="form-select-sm w-full"
-            value={cargo.averageMode}
-            onChange={(e) => onUpdate("averageMode", e.target.value)}
-          >
-            <option value="average">Average</option>
-            <option value="per_port">Port</option>
-            <option value="per_voyage">Voyage</option>
-          </select>
-        </div>
-
       </div>
 
       {/* Cargo operational rows: only load/discharge rows shown here are used for demurrage/despatch. */}
