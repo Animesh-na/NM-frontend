@@ -15,8 +15,7 @@ export function MiscSection() {
     { key: "miscCost", label: "Misc Costs" },
     { key: "extraFees", label: "Extra Fees" },
     { key: "extraInsurance", label: "Insurance" },
-    { key: "canalCost1", label: "Canal 1" },
-    { key: "canalCost2", label: "Canal 2" },
+    { key: "canalCost1", label: "Canal Charges" },
   ] as const;
 
   return (
@@ -31,15 +30,15 @@ export function MiscSection() {
 
       {isExpanded && (
         <div className="flex-1 min-w-0 p-3 space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-2 items-end">
             {costFields.map(({ key, label }) => (
-              <div key={key} className="form-field">
-                <label className="form-label">{label}</label>
+              <div key={key} className="form-field min-w-0">
+                <label className="form-label truncate">{label}</label>
                 <div className="input-with-unit">
                   <span className="unit border-r-0 rounded-r-none rounded-l-md">$</span>
                   <input
                     type="number"
-                    className="form-input-sm w-full font-mono text-right rounded-l-none"
+                    className="form-input-sm w-full min-w-0 font-mono text-right rounded-l-none"
                     value={misc?.[key] || ""}
                     onChange={(e) => updateMisc(key, parseFloat(e.target.value) || 0)}
                     placeholder="0"
@@ -47,8 +46,8 @@ export function MiscSection() {
                 </div>
               </div>
             ))}
-            <div className="form-field">
-              <label className="form-label">Trade Type</label>
+            <div className="form-field min-w-0">
+              <label className="form-label truncate">Trade Type</label>
               <Select value={misc?.tradeType || "none"} onValueChange={(value) => updateMisc("tradeType", value === "none" ? "" : value)}>
                 <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="---" /></SelectTrigger>
                 <SelectContent>

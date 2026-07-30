@@ -53,8 +53,8 @@ export function CargoSection() {
       {isExpanded && (
         <div className="flex-1 min-w-0 px-2 py-1 space-y-1">
           {/* Top summary fields */}
-          <div className="flex flex-wrap gap-2 items-end">
-            <div className="form-field w-24">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2 items-end">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 GTC
                 <InfoTooltip
@@ -81,7 +81,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field w-16">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 TC Comm
                 <InfoTooltip formula="Deducted from Net Freight" description="Time Charter Commission %" />
@@ -105,7 +105,7 @@ export function CargoSection() {
                 <span className="unit">%</span>
               </div>
             </div>
-            <div className="form-field w-24">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 NTC
                 <InfoTooltip
@@ -123,7 +123,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field w-24">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 Net BB
                 <InfoTooltip formula="Net Ballast Bonus (lumpsum added to hire cost)" description="Net Ballast Bonus" />
@@ -141,7 +141,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field w-24">
+            <div className="form-field min-w-0">
               <label className="form-label flex items-center gap-1">
                 Gross BB
                 <InfoTooltip formula="Gross BB = Net BB / (1 - TC Comm%)" description="Gross Ballast Bonus" />
@@ -259,6 +259,7 @@ interface CargoEntryCardProps {
 function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCpOverride, onOpUpdate }: CargoEntryCardProps) {
   const cargoQuantity = sequenceQuantity;
   const { getFieldError } = useVoyageContext();
+  const [open, setOpen] = useState(index === 0);
   const errCls = (msg?: string) =>
     msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   const errRate = getFieldError("cargo","rate",cargo.id);
@@ -293,12 +294,35 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
   }, [totalDem, totalDesp]);
 
   return (
-    <div className="border border-border rounded p-2 bg-input-bg">
-      <div className="flex flex-wrap gap-2 items-end">
-        <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded self-center">
+    <div className="border border-border rounded-md bg-input-bg overflow-hidden">
+      {/* Collapsed summary row */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors"
+      >
+        <ChevronDown
+          className={`h-3.5 w-3.5 flex-shrink-0 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`}
+        />
+        <span className="text-[10px] font-semibold bg-muted text-foreground px-1.5 py-0.5 rounded">
           #{index + 1}
         </span>
-        <div className="form-field w-36">
+        <span className="text-[11px] font-mono tabular-nums">{cargoQuantity.toLocaleString()} mt</span>
+        <span className="text-muted-foreground text-[11px]">|</span>
+        <span className="text-[11px] font-mono tabular-nums">
+          {cargo.rateType === "lumpsum"
+            ? `$${(cargo.rate || 0).toLocaleString()} lump`
+            : `${(cargo.rate || 0).toFixed(3)} $/ton`}
+        </span>
+        <span className="text-muted-foreground text-[11px]">|</span>
+        <span className="text-[11px] font-mono tabular-nums">{(cargo.voyageCommission || 0)}%</span>
+        <Package className="h-3 w-3 text-muted-foreground ml-auto flex-shrink-0" />
+      </button>
+
+      {open && (
+      <div className="px-2 pb-2 pt-1 border-t border-border">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-2 items-end">
+        <div className="form-field min-w-0">
           <label className="form-label">Rate</label>
           <div className="flex items-center gap-1">
             <input
@@ -322,7 +346,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-24">
+        <div className="form-field min-w-0">
           <label className="form-label flex items-center gap-1">
             Qty (Seq)
             <InfoTooltip formula="Sum of loading quantities from Sequence" description="Auto-calculated" />
@@ -338,7 +362,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           />
         </div>
 
-        <div className="form-field w-24">
+        <div className="form-field min-w-0">
           <label className="form-label flex items-center gap-1">
             Lumpsum
             <InfoTooltip formula="Used when rate type is Lump" description="Lumpsum freight value" />
@@ -355,7 +379,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-16">
+        <div className="form-field min-w-0">
           <label className="form-label flex items-center gap-1">
             Voy Comm
             <InfoTooltip formula="Gross Freight × Voy Comm%" description="Commission" />
@@ -375,7 +399,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-24">
+        <div className="form-field min-w-0">
           <label className="form-label flex items-center gap-1">
             Demurrage
             <InfoTooltip
@@ -397,7 +421,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-24">
+        <div className="form-field min-w-0">
           <label className="form-label flex items-center gap-1">
             Despatch
             <InfoTooltip
@@ -536,6 +560,8 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             <span>Despatch: <span className="font-mono">${Math.round(totalDesp).toLocaleString()}</span></span>
           </div>
         </div>
+      )}
+      </div>
       )}
     </div>
   );
