@@ -254,21 +254,54 @@
     @apply bg-subsection-header text-foreground px-2 py-1 text-[11px] font-medium;
   }
 
-  /* Form input styling - white background with borders */
-  .form-input {
-    @apply h-6 px-2 text-xs border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
-  }
-
-  .form-input-sm {
-    @apply h-5 px-1.5 text-[10px] border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring;
-  }
-
+  /* Form input styling - modern, soft-bordered fields */
+  .form-input,
   .form-select {
-    @apply h-6 px-2 text-xs border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-7 px-2.5 text-[11px] font-medium rounded-md bg-background text-foreground
+      border transition-all duration-150 focus:outline-none;
+    border-color: hsl(var(--dash-border));
+    font-variant-numeric: tabular-nums;
   }
 
+  .form-input-sm,
   .form-select-sm {
-    @apply h-5 px-1 text-[10px] border border-input bg-input-bg rounded focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer;
+    @apply h-6 px-2 text-[10px] font-medium rounded-md bg-background text-foreground
+      border transition-all duration-150 focus:outline-none;
+    border-color: hsl(var(--dash-border));
+    font-variant-numeric: tabular-nums;
+  }
+
+  .form-select,
+  .form-select-sm {
+    @apply appearance-none cursor-pointer pr-6;
+  }
+
+  .form-input:hover,
+  .form-input-sm:hover,
+  .form-select:hover,
+  .form-select-sm:hover {
+    border-color: hsl(var(--ocean) / 0.45);
+  }
+
+  .form-input:focus,
+  .form-input-sm:focus,
+  .form-select:focus,
+  .form-select-sm:focus {
+    border-color: hsl(var(--ocean));
+    box-shadow: 0 0 0 3px hsl(var(--ocean) / 0.12);
+  }
+
+  .form-input::placeholder,
+  .form-input-sm::placeholder {
+    @apply text-muted-foreground/60 font-normal;
+  }
+
+  .form-input:disabled,
+  .form-input-sm:disabled,
+  .form-select:disabled,
+  .form-select-sm:disabled {
+    @apply cursor-not-allowed text-muted-foreground;
+    background-color: hsl(var(--muted));
   }
 
   /* Form field group - label + input with spacing */
@@ -277,7 +310,7 @@
   }
 
   .form-label {
-    @apply text-[10px] font-bold text-foreground;
+    @apply text-[10px] font-semibold text-muted-foreground tracking-wide;
   }
 
   /* Input with unit suffix */
@@ -290,11 +323,13 @@
   }
 
   .input-with-unit .unit {
-    @apply h-6 px-1.5 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
+    @apply h-7 px-2 text-[10px] font-medium bg-muted rounded-r-md border flex items-center text-muted-foreground;
+    border-color: hsl(var(--dash-border));
   }
 
   .input-with-unit-sm .unit {
-    @apply h-5 px-1 text-[10px] bg-muted border border-input rounded-r flex items-center text-muted-foreground;
+    @apply h-6 px-1.5 text-[10px] font-medium bg-muted rounded-r-md border flex items-center text-muted-foreground;
+    border-color: hsl(var(--dash-border));
   }
 
   /* Money formatting */
