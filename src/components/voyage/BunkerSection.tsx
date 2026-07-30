@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ChevronDown, Fuel, X } from "lucide-react";
 import { useVoyageContext, type FuelAccountingMode } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
+import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,15 +28,15 @@ export function BunkerSection() {
   const robEndVlsfo = bunker.vlsfo.robStart + totalBunkeredVlsfo - results.vlsfoConsumption;
   const robEndLsmgo = bunker.lsmgo.robStart + totalBunkeredLsmgo - results.lsmgoConsumption;
 
-  const getAveragePrice = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
-    const bobQty = bunker.ignoreBOB ? 0 : bunker[fuelType].robStart;
-    const bobPrice = bunker[fuelType].price;
-    const bunkeredQty = bunker.portBunkering.reduce((sum, p) => sum + p[fuelType].quantity, 0);
-    const bunkeredValue = bunker.portBunkering.reduce((sum, p) => sum + (p[fuelType].quantity * p[fuelType].price), 0);
-    const totalQty = bobQty + bunkeredQty;
-    const totalValue = (bobQty * bobPrice) + bunkeredValue;
-    return totalQty > 0 ? totalValue / totalQty : bobPrice;
-  };
+  const consumptionOf = {
+    hsfo: results.hsfoConsumption,
+    vlsfo: results.vlsfoConsumption,
+    lsmgo: results.lsmgoConsumption,
+  } as const;
+
+  // Mirrors the calculation engine: average / FIFO / ignore-BOB pricing
+  const getAveragePrice = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') =>
+    effectivePrice(buildFuelPricing(bunker, fuelType), consumptionOf[fuelType]);
 
   const handleAddBunkeringPort = (portUnloc: string) => {
     const port = bunkeringPorts.find(p => p.portUnloc === portUnloc);
