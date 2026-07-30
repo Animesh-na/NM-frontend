@@ -194,7 +194,8 @@
   /* Vertical (left-side) section header */
   .section-header-vertical {
     @apply text-white px-1 py-2 text-[11px] font-semibold flex flex-col items-center justify-center gap-2 rounded-l-md self-stretch shrink-0 cursor-pointer transition-colors;
-    background-image: linear-gradient(180deg, hsl(var(--ocean)) 0%, hsl(var(--ocean-600)) 100%);
+    background-color: hsl(var(--ocean));
+    background-image: none;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     writing-mode: vertical-rl;
@@ -202,7 +203,7 @@
   }
 
   .section-header-vertical:hover {
-    background-image: linear-gradient(180deg, hsl(var(--ocean-600)) 0%, hsl(var(--ocean-400)) 100%);
+    background-color: hsl(var(--ocean-600));
   }
 
   .calc-card-row {
@@ -320,19 +321,23 @@
   }
 
   .btn-primary {
-    @apply btn-action bg-primary text-primary-foreground border-primary hover:bg-primary/90;
+    @apply btn-action text-primary-foreground border-transparent;
+    background-color: hsl(var(--ocean));
   }
+  .btn-primary:hover { background-color: hsl(var(--ocean-600)); }
 
   .btn-secondary {
-    @apply btn-action bg-secondary text-secondary-foreground border-border hover:bg-secondary/80;
+    @apply btn-action bg-card text-foreground border-border hover:bg-secondary;
   }
 
   .btn-success {
-    @apply btn-action bg-success text-success-foreground border-success hover:bg-success/90;
+    @apply btn-action text-primary-foreground border-transparent;
+    background-color: hsl(var(--teal));
   }
+  .btn-success:hover { background-color: hsl(var(--teal) / 0.9); }
 
   .btn-danger {
-    @apply btn-action bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90;
+    @apply btn-action bg-destructive text-destructive-foreground border-transparent hover:bg-destructive/90;
   }
 
   /* Form layout utilities */
