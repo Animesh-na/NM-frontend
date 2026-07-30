@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 
 export function MiscSection() {
   const { misc, updateMisc } = useVoyageContext();
@@ -29,13 +26,13 @@ export function MiscSection() {
       </button>
 
       {isExpanded && (
-        <div className="flex-1 min-w-0 p-3 space-y-3">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-2 items-end">
+        <div className="flex-1 min-w-0 p-3 space-y-3 overflow-hidden">
+          <div className="space-y-1.5">
             {costFields.map(({ key, label }) => (
-              <div key={key} className="form-field min-w-0">
-                <label className="form-label truncate">{label}</label>
-                <div className="input-with-unit">
-                  <span className="unit border-r-0 rounded-r-none rounded-l-md">$</span>
+              <div key={key} className="flex items-center gap-2 min-w-0">
+                <label className="form-label flex-1 min-w-0 truncate mb-0">{label}</label>
+                <div className="flex items-center w-[130px] shrink-0">
+                  <span className="unit border-r-0 rounded-r-none rounded-l-md shrink-0">$</span>
                   <input
                     type="number"
                     className="form-input-sm w-full min-w-0 font-mono text-right rounded-l-none"
@@ -46,18 +43,6 @@ export function MiscSection() {
                 </div>
               </div>
             ))}
-            <div className="form-field min-w-0">
-              <label className="form-label truncate">Trade Type</label>
-              <Select value={misc?.tradeType || "none"} onValueChange={(value) => updateMisc("tradeType", value === "none" ? "" : value)}>
-                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="---" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none" className="text-xs">---</SelectItem>
-                  <SelectItem value="voyage" className="text-xs">Voyage</SelectItem>
-                  <SelectItem value="time_charter" className="text-xs">Time Charter</SelectItem>
-                  <SelectItem value="coa" className="text-xs">COA</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
