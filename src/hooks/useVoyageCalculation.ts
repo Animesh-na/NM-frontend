@@ -82,6 +82,14 @@ export interface BunkerData {
   rewardFactor?: number; // Multiplier for wind-assisted propulsion (default 1.0)
   euEtsPrice?: number;
   ukEtsPrice?: number;
+  // Fuel accounting (average / FIFO / ignore BOB) + bunkering port lots
+  fuelMode?: "average" | "fifo";
+  ignoreBOB?: boolean;
+  portBunkering?: Array<{
+    hsfo: { quantity: number; price: number };
+    vlsfo: { quantity: number; price: number };
+    lsmgo: { quantity: number; price: number };
+  }>;
 }
 
 // Extra time data for calculation
@@ -638,10 +646,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // 5. BUNKER COST CALCULATION (Price × Consumption)
     // ============================================
     
-    const hsfoPrice = bunker.hsfo.price || 0;
-    const vlsfoPrice = bunker.vlsfo.price || 0;
-    const lsmgoPrice = bunker.lsmgo.price || 0;
-    
+    // Effective price depends on the fuel accounting mode:
+    //  - average  : weighted average of BOB + all bunkering port prices
+    //  - fifo     : BOB burnt first, then each bunkering port price in order
+    //  - ignoreBOB: BOB excluded, only bunkering port prices used
+    const hsfoPrice = effectivePrice(buildFuelPricing(bunker, "hsfo"), hsfoConsumption);
+    const vlsfoPrice = effectivePrice(buildFuelPricing(bunker, "vlsfo"), vlsfoConsumption);
+    const lsmgoPrice = effectivePrice(buildFuelPricing(bunker, "lsmgo"), lsmgoConsumption);
+
     const hsfoCost = hsfoConsumption * hsfoPrice;
     const vlsfoCost = vlsfoConsumption * vlsfoPrice;
     const lsmgoCost = lsmgoConsumption * lsmgoPrice;
