@@ -274,6 +274,11 @@
     @apply appearance-none cursor-pointer pr-6;
   }
 
+  .form-select-sm {
+    @apply pl-1.5 pr-4;
+    background-position: right 0.2rem center;
+  }
+
   .form-input:hover,
   .form-input-sm:hover,
   .form-select:hover,
