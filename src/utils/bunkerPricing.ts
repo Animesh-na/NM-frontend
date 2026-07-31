@@ -48,7 +48,13 @@ export function averagePrice(input: BunkerPricingInput): number {
 
 /**
  * FIFO cost for a given consumption: BOB is burnt first at BOB price, then each
- * bunkering lot in order. A lot with no quantity entered is treated as unlimited.
+ * bunkering lot in order.
+ *
+ * Quantities are optional in the UI (prices only). When a lot has no quantity,
+ * the consumption that is left after the quantified lots (e.g. BOB ROB) is
+ * shared equally between the remaining un-quantified lots, so the effective
+ * price is a weighted value *between* the lot prices across the voyage rather
+ * than collapsing onto a single lot's price.
  */
 export function fifoCost(input: BunkerPricingInput, consumption: number): number {
   const lots = activeLots(input);
@@ -59,12 +65,27 @@ export function fifoCost(input: BunkerPricingInput, consumption: number): number
   let cost = 0;
   const bobIncluded = !input.ignoreBOB && lots[0] === input.bob;
 
+  // Quantities we actually know (BOB ROB + any lot with an entered quantity).
+  const knownQty = lots.map((lot, i) => {
+    const isBob = i === 0 && bobIncluded;
+    if (isBob) return Math.max(0, lot.quantity || 0);
+    return lot.quantity > 0 ? lot.quantity : 0;
+  });
+  const unknownCount = lots.filter((lot, i) => !(i === 0 && bobIncluded) && !(lot.quantity > 0)).length;
+
+  // Consumption left once every quantified lot is burnt, spread evenly over the
+  // un-quantified lots so each bunkering price contributes to the blend.
+  const quantifiedTotal = knownQty.reduce((s, q) => s + q, 0);
+  const sharePerUnknown = unknownCount > 0
+    ? Math.max(0, consumption - quantifiedTotal) / unknownCount
+    : 0;
+
   for (let i = 0; i < lots.length; i++) {
     const lot = lots[i];
     const isLast = i === lots.length - 1;
-    // BOB is limited to its ROB; port lots without an entered quantity are unlimited.
     const isBob = i === 0 && bobIncluded;
-    const qty = isBob ? Math.max(0, lot.quantity || 0) : (lot.quantity > 0 ? lot.quantity : Infinity);
+    const hasQty = isBob || lot.quantity > 0;
+    const qty = hasQty ? knownQty[i] : sharePerUnknown;
     const take = isLast ? remaining : Math.min(remaining, qty);
     cost += take * lot.price;
     remaining -= take;
