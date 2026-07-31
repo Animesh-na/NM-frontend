@@ -129,7 +129,9 @@ export function IntakeCalculator({
     const totalDeductions = _constants + _bob + _freshWater;
 
     // Step 5: DWCC (Dead Weight Cargo Capacity)
-    const dwcc = dwtAfterDraftDensity - totalDeductions;
+    // Hard cap: DWCC can never exceed Summer DWT minus deductions, in any situation.
+    const absoluteCap = _summerDwt - totalDeductions;
+    const dwcc = Math.min(dwtAfterDraftDensity - totalDeductions, absoluteCap);
 
     // Step 6: Volume-based cargo (cu.ft / SF in cu.ft/mt)
     const grainCuFtVal = _grainCuFt > 0 ? _grainCuFt : _grainCuM * 35.3147;
