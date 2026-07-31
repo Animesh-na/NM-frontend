@@ -284,7 +284,7 @@ export function IntakeCalculator({
                 </tr>
               </thead>
               <tbody>
-                {calc.perPort.map(({ port, dwtLoss, restricted }) => {
+                {calc.perPort.map(({ port, dwtLoss, dwccRaw }) => {
                   const r = rows[port.id] ?? { draft: "", water: "sw" as IntakeWater, season: "summer" as IntakeSeason };
                   const badge = opBadge(port);
                   const isTarget = targetPortId === port.id;
@@ -335,7 +335,7 @@ export function IntakeCalculator({
                         {dwtLoss > 0 ? `${Math.round(dwtLoss).toLocaleString()} t` : "–"}
                       </td>
                       <td className="px-3 py-1.5 text-right font-mono tabular-nums">
-                        {restricted.toLocaleString()} tons
+                        {dwccRaw.toLocaleString()} tons
                       </td>
                       <td className="px-3 py-1.5 text-right font-mono tabular-nums font-semibold">
                         {port.operation === "loading" || port.operation === "discharging"
