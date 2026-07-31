@@ -801,12 +801,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
     // EU ETS sea-leg coverage is determined independently by the adjacent ports
     // of call that bracket each sea segment. Intermediate stops are included.
-    // A passage waypoint (for example Port Said entered as `pssg`) is not a
-    // regulatory port call. It must not reset the origin of an EU ETS sea leg.
-    // Its sailing time/fuel remains part of the voyage between the surrounding
-    // actual port calls.
-    const isEuRegulatoryPortCall = (leg: SequenceRow): boolean =>
-      !!getLegPortKey(leg) && (leg.operation || '').toLowerCase() !== 'pssg';
+    // A passage waypoint (for example Port Said entered as `pssg`) and a
+    // bunkering-only call are NOT regulatory port calls. Neither may reset the
+    // origin of an EU ETS sea leg — their sailing time/fuel remains part of the
+    // voyage between the surrounding actual (load/discharge) port calls.
+    const isEuRegulatoryPortCall = (leg: SequenceRow): boolean => {
+      const op = (leg.operation || '').toLowerCase();
+      return !!getLegPortKey(leg) && op !== 'pssg' && op !== 'bunkering';
+    };
     // EU ETS coverage uses ONLY the port API's eu_zone flag (surfaced as leg.isEuEea).
     // Never infer from country name or ECA distance.
     //   Sea leg (from → to): both EU = 100%, one EU = 50%, none = 0%
