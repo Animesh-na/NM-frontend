@@ -60,11 +60,12 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
     >
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Fuel burned at each port broken down by activity. Working time (Load/Discharge) uses
-          the selected <span className="font-medium">P.Fuel</span> at the corresponding matrix
-          rate. Turn time and Extra time always burn at the <span className="font-medium">Idle</span>{" "}
-          rate using the selected P.Fuel. Auxiliary Engine (AE) always runs on{" "}
-          <span className="font-medium">LSMGO</span>.
+          Fuel burned at each port broken down by activity. At load/discharge ports the whole
+          stay (working + turn + extra time) burns the selected{" "}
+          <span className="font-medium">P.Fuel</span> at the Load / Discharge matrix rate. At
+          bunkering, waiting and other ports the full port time burns at the{" "}
+          <span className="font-medium">Idle</span> rate. Auxiliary Engine (AE) always runs on{" "}
+          <span className="font-medium">LSMGO</span> (AE-Scrubber profile when a scrubber is fitted).
         </p>
 
         <div className="overflow-x-auto">
@@ -77,6 +78,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
                 <th className="text-right py-2 px-2 font-medium">Working (d)</th>
                 <th className="text-right py-2 px-2 font-medium">Turn (d)</th>
                 <th className="text-right py-2 px-2 font-medium">Extra (d)</th>
+                <th className="text-right py-2 px-2 font-medium">Idle (d)</th>
                 <th className="text-right py-2 px-2 font-medium text-orange-500">HSFO (mt)</th>
                 <th className="text-right py-2 px-2 font-medium text-blue-500">VLSFO (mt)</th>
                 <th className="text-right py-2 px-2 font-medium text-emerald-500">LSMGO ME (mt)</th>
@@ -87,7 +89,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="text-center py-4 text-muted-foreground">
+                  <td colSpan={12} className="text-center py-4 text-muted-foreground">
                     No port legs in sequence.
                   </td>
                 </tr>
@@ -100,6 +102,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
                   <td className="text-right py-1.5 px-2 font-mono">{r.workingDays.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.turnDays.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.extraDays.toFixed(2)}</td>
+                  <td className="text-right py-1.5 px-2 font-mono">{r.idleDays.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.meHsfo.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.meVlsfo.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.meLsmgo.toFixed(2)}</td>
@@ -117,6 +120,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
                   <td className="text-right py-2 px-2 font-mono">{totals.workingDays.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.turnDays.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.extraDays.toFixed(2)}</td>
+                  <td className="text-right py-2 px-2 font-mono">{totals.idleDays.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.meHsfo.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.meVlsfo.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.meLsmgo.toFixed(2)}</td>
@@ -134,16 +138,16 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
           <div className="bg-muted/30 rounded-lg p-3 space-y-1">
             <div className="font-medium mb-1">ME Consumption Logic</div>
             <div className="text-muted-foreground">
-              <span className="font-mono">Working = workingDays × Rate[P.Fuel, Load/Discharge]</span>
+              <span className="font-mono">Load/Disch = (working + turn + extra) × Rate[P.Fuel, Load/Discharge]</span>
             </div>
             <div className="text-muted-foreground">
-              <span className="font-mono">Turn + Extra = (turn + extra)/24 × Rate[P.Fuel, Idle]</span>
+              <span className="font-mono">Other ports = full port days × Rate[P.Fuel, Idle]</span>
             </div>
           </div>
           <div className="bg-muted/30 rounded-lg p-3 space-y-1">
             <div className="font-medium mb-1">AE Consumption Logic (LSMGO only)</div>
             <div className="text-muted-foreground">
-              <span className="font-mono">AE = workingDays × AE[mode] + (turn+extra)/24 × AE[idle]</span>
+              <span className="font-mono">AE = total port days × AE[Load/Discharge/Idle]</span>
             </div>
           </div>
         </div>
