@@ -9,7 +9,7 @@ export function SheetTabs() {
   const [savingName, setSavingName] = useState(false);
   const [editName, setEditName] = useState("");
   const [intakeOpen, setIntakeOpen] = useState(false);
-  const { sequence, vessel, stowageFactor, updateSequenceRow } = useVoyageContext();
+  const { sequence, vessel, cargos = [], updateSequenceRow } = useVoyageContext();
 
   const handleSave = () => {
     if (!activeTab) return;
@@ -136,7 +136,7 @@ export function SheetTabs() {
             operation: r.operation,
             kind: r.type,
           }))}
-          stowageFactor={Math.round((stowageFactor || 1.5) * 35.3147)}
+          stowageFactor={Math.round((cargos[0]?.stowageFactor || 1.4) * 35.3147)}
           onApply={(qty, portResults) => {
             portResults.forEach((p) => {
               updateSequenceRow(p.id, "portMaxDraft", p.draft);
