@@ -122,7 +122,20 @@ export function IntakeCalculator({
   }, []);
 
   const setRow = (id: number, patch: Partial<{ draft: string; water: IntakeWater; season: IntakeSeason }>) =>
-    setRows((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { draft: "", water: "sw", season: "summer" }), ...patch } }));
+    setRows((prev) => {
+      const current = prev[id] ?? { draft: "", water: "sw" as IntakeWater, season: "summer" as IntakeSeason };
+      const next = { ...current, ...patch };
+      // Season change => reflect the seasonal draught in the draught field
+      if (patch.season && patch.season !== current.season) {
+        const base = num(summerDraft);
+        if (base > 0) {
+          const seasonal =
+            patch.season === "winter" ? base - base / 48 : patch.season === "tropical" ? base + base / 48 : base;
+          next.draft = seasonal.toFixed(2);
+        }
+      }
+      return { ...prev, [id]: next };
+    });
 
   const calc = useMemo(() => {
     const _summerDwt = num(summerDwt);
