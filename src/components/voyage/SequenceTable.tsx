@@ -650,28 +650,29 @@ export function SequenceTable() {
         const row = sequence.find(r => r.id === intakeRowId);
         if (!row) return null;
         const sf = row.stowageFactor > 0 ? row.stowageFactor * 35.3147 : globalStowageFactor * 35.3147;
-        
-          const validateAndApply = (qty: number, draft: number | undefined) => {
-            // The intake calculator already properly calculates max loadable cargo
-            // accounting for draft, volume, and DWT limits — just apply directly
-            updateSequenceRow(intakeRowId, "quantity", qty);
-            if (draft !== undefined) {
-              updateSequenceRow(intakeRowId, "portMaxDraft", draft);
-              updateSequenceRow(intakeRowId, "draft", draft);
-            }
-            setIntakeRowId(null);
-          };
 
         return (
           <IntakeCalculator
             open={true}
             onClose={() => setIntakeRowId(null)}
-            onApply={(qty, draft) => validateAndApply(qty, draft)}
             vessel={vessel}
-            portName={row.port}
-            portDraft={row.portMaxDraft || row.draft || 0}
-            currentQuantity={row.quantity}
+            targetPortId={intakeRowId}
+            ports={sequence.map((r) => ({
+              id: r.id,
+              name: r.port,
+              draft: r.portMaxDraft || r.draft || 0,
+              operation: r.operation,
+              kind: r.type,
+            }))}
             stowageFactor={Math.round(sf)}
+            onApply={(qty, portResults) => {
+              updateSequenceRow(intakeRowId, "quantity", qty);
+              portResults.forEach((p) => {
+                updateSequenceRow(p.id, "portMaxDraft", p.draft);
+                updateSequenceRow(p.id, "draft", p.draft);
+              });
+              setIntakeRowId(null);
+            }}
           />
         );
       })()}
