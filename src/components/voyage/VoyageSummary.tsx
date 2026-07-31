@@ -491,6 +491,11 @@ export function VoyageSummary() {
                 ${results.euaFreightImpact.toFixed(2)} /mt
               </span>
             </div>
+            {results.euaFreightImpact === 0 && (
+              <div className="text-[9px] text-warning font-medium">
+                ⚠ {euaZeroReason}
+              </div>
+            )}
             <label className="flex items-center gap-1.5 cursor-pointer">
               <Checkbox
                 checked={applyEuaImpact}
