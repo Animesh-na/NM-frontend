@@ -22,6 +22,13 @@ export interface BunkerPricingInput {
   portLots: FuelLot[];          // in voyage/bunkering order
   fuelMode?: "average" | "fifo";
   ignoreBOB?: boolean;
+  /**
+   * FIFO coverage: consumption (mt) burnt under each lot's price, aligned to
+   * [BOB, ...portLots]. When present, FIFO pricing is the consumption-weighted
+   * average of the lot prices:
+   *   Σ(price_i × coverage_i) / Σ(coverage_i)
+   */
+  coverage?: number[];
 }
 
 /** Lots actually usable given the ignoreBOB flag. */
@@ -57,8 +64,13 @@ export function averagePrice(input: BunkerPricingInput): number {
  * than collapsing onto a single lot's price.
  */
 export function fifoCost(input: BunkerPricingInput, consumption: number): number {
-  const lots = activeLots(input);
   if (consumption <= 0) return 0;
+
+  // Preferred path: consumption actually covered by each price lot.
+  const weighted = coverageWeightedPrice(input);
+  if (weighted !== null) return consumption * weighted;
+
+  const lots = activeLots(input);
   if (lots.length === 0) return 0;
 
   let remaining = consumption;
@@ -96,9 +108,49 @@ export function fifoCost(input: BunkerPricingInput, consumption: number): number
   return cost;
 }
 
+/**
+ * Consumption-weighted price across the voyage:
+ *   ((p1 × c1) + (p2 × c2) + … + (pn × cn)) / (c1 + c2 + … + cn)
+ * where ci is the fuel burnt while lot i's price applies.
+ * Returns null when no usable coverage was supplied.
+ */
+export function coverageWeightedPrice(input: BunkerPricingInput): number | null {
+  const cov = input.coverage;
+  if (!cov || cov.length === 0) return null;
+
+  const prices = [input.bob?.price || 0, ...input.portLots.map((l) => l?.price || 0)];
+  let value = 0;
+  let qty = 0;
+  let carried = 0; // coverage from skipped lots (BOB ignored / zero price)
+
+  for (let i = 0; i < prices.length; i++) {
+    const c = Math.max(0, cov[i] || 0);
+    const skip = (i === 0 && input.ignoreBOB) || prices[i] <= 0;
+    if (skip) {
+      carried += c;
+      continue;
+    }
+    value += prices[i] * (c + carried);
+    qty += c + carried;
+    carried = 0;
+  }
+
+  if (carried > 0 && qty > 0) {
+    // Trailing coverage with no valid price → keep it on the last used price.
+    const lastPrice = value / qty;
+    value += lastPrice * carried;
+    qty += carried;
+  }
+
+  if (qty <= 0) return null;
+  return value / qty;
+}
+
 /** Effective $/t applied to the whole consumption for the selected mode. */
 export function effectivePrice(input: BunkerPricingInput, consumption: number): number {
   if (input.fuelMode === "fifo") {
+    const weighted = coverageWeightedPrice(input);
+    if (weighted !== null) return weighted;
     if (consumption <= 0) return averagePrice(input);
     return fifoCost(input, consumption) / consumption;
   }
@@ -116,6 +168,7 @@ export function buildFuelPricing(
     portBunkering?: Array<{ hsfo: FuelLot; vlsfo: FuelLot; lsmgo: FuelLot }>;
   },
   fuel: FuelKey,
+  coverage?: number[],
 ): BunkerPricingInput {
   return {
     bob: { quantity: bunker[fuel].robStart || 0, price: bunker[fuel].price || 0 },
@@ -125,5 +178,6 @@ export function buildFuelPricing(
     })),
     fuelMode: bunker.fuelMode || "average",
     ignoreBOB: bunker.ignoreBOB || false,
+    coverage,
   };
 }
