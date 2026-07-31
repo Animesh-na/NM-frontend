@@ -1,69 +1,80 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 import { type VesselData } from "@/data/vessels";
 
-type WaterType = "sw" | "bw" | "fw" | "tfw";
-type SeasonType = "summer" | "winter" | "tropical";
+export type IntakeSeason = "summer" | "winter" | "tropical";
+export type IntakeWater = "sw" | "bw" | "fw" | "tfw";
 
-const waterOptions: { value: WaterType; label: string; density: number }[] = [
-  { value: "sw", label: "Salt Water (SW : 1.0000)", density: 1.025 },
-  { value: "bw", label: "Brackish Water (BW : 0.9878)", density: 1.0125 },
-  { value: "fw", label: "Fresh Water (FW : 0.9756)", density: 1.0 },
-  { value: "tfw", label: "Tropical Fresh Water (TFW : 0.9717)", density: 0.9971 },
+export interface IntakePortInput {
+  id: number;
+  name: string;
+  draft: number;
+  operation?: string;
+  kind: "open" | "port" | "repos";
+}
+
+export interface IntakePortResult {
+  id: number;
+  draft: number;
+}
+
+const waterOptions: { value: IntakeWater; label: string; short: string; density: number }[] = [
+  { value: "sw", label: "Salt (SW : 1.0000)", short: "Salt", density: 1.025 },
+  { value: "bw", label: "Brackish (BW : 0.9878)", short: "Brackish", density: 1.0125 },
+  { value: "fw", label: "Fresh (FW : 0.9756)", short: "Fresh", density: 1.0 },
+  { value: "tfw", label: "Tropical Fresh (TFW : 0.9717)", short: "Trop. Fresh", density: 0.9971 },
 ];
 
-const seasonOptions: { value: SeasonType; label: string }[] = [
+const seasonOptions: { value: IntakeSeason; label: string }[] = [
   { value: "summer", label: "Summer" },
   { value: "winter", label: "Winter" },
   { value: "tropical", label: "Tropical" },
 ];
 
-const labelClass = "text-[11px] text-muted-foreground font-medium w-28 shrink-0";
-const unitClass = "text-[10px] text-muted-foreground ml-1 w-8";
-
-const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex items-center gap-2 py-0.5">
-    <span className={labelClass}>{label}</span>
-    {children}
-  </div>
-);
+const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? 0 : n; };
 
 interface IntakeCalculatorProps {
   open: boolean;
   onClose: () => void;
-  onApply: (quantity: number, draft?: number) => void;
   vessel: VesselData;
-  portName: string;
-  portDraft: number;
-  currentQuantity: number;
-  stowageFactor: number;
+  ports: IntakePortInput[];
+  stowageFactor: number; // cu.ft/mt
+  targetPortId?: number | null;
+  onApply: (quantity: number, ports: IntakePortResult[]) => void;
 }
 
-/** Parse a string to number, returning 0 for empty/invalid */
-const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? 0 : n; };
+const fieldLabel = "text-[10px] uppercase tracking-wide text-muted-foreground font-semibold";
+const fieldWrap = "flex flex-col gap-1";
+const inputBox =
+  "form-input-sm h-8 w-full text-[12px] font-mono tabular-nums pr-10";
+
+function Field({ label, unit, children }: { label: string; unit?: string; children: React.ReactNode }) {
+  return (
+    <div className={fieldWrap}>
+      <span className={fieldLabel}>{label}</span>
+      <div className="relative">
+        {children}
+        {unit && (
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
+            {unit}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function IntakeCalculator({
   open,
   onClose,
-  onApply,
   vessel,
-  portName,
-  portDraft,
-  currentQuantity,
+  ports,
   stowageFactor: initialSF,
+  targetPortId,
+  onApply,
 }: IntakeCalculatorProps) {
-  // All inputs stored as strings for free editing
-  const [draft, setDraft] = useState("");
-  const [waterType, setWaterType] = useState<WaterType>("sw");
-  const [season, setSeason] = useState<SeasonType>("summer");
-
   const [summerDwt, setSummerDwt] = useState("");
   const [summerDraft, setSummerDraft] = useState("");
   const [tpc, setTpc] = useState("");
@@ -72,84 +83,32 @@ export function IntakeCalculator({
   const [freshWater, setFreshWater] = useState("");
   const [grainCuFt, setGrainCuFt] = useState("");
   const [grainCuM, setGrainCuM] = useState("");
-
   const [sf, setSf] = useState("");
+  const [cargoType, setCargoType] = useState("");
 
-  // Initialize from vessel when dialog opens
+  const [rows, setRows] = useState<
+    Record<number, { draft: string; water: IntakeWater; season: IntakeSeason }>
+  >({});
+
   useEffect(() => {
-    if (open) {
-      setSummerDwt(String(vessel.dwt));
-      setSummerDraft(String(vessel.draft));
-      setTpc(String(vessel.tpcTpi));
-      setDraft(portDraft ? String(portDraft) : "");
-      setConstants("");
-      setBob("");
-      setFreshWater("");
-      // Cubic is always stored in m³ — derive cu.ft from it
-      const cubicM3 = vessel.cubic || 0;
-      setGrainCuM(String(cubicM3));
-      setGrainCuFt(String(Math.round(cubicM3 * 35.3147)));
-      setSf(initialSF ? String(initialSF) : "53");
-    }
-  }, [open, vessel, portDraft, initialSF]);
-
-  const waterDensity = waterOptions.find((w) => w.value === waterType)?.density ?? 1.025;
-  const densityFactor = waterDensity / 1.025; // Salt water baseline
-
-  const calc = useMemo(() => {
-    const _summerDwt = num(summerDwt);
-    const _summerDraft = num(summerDraft);
-    const _tpc = num(tpc);
-    const _draft = num(draft);
-    const _constants = num(constants);
-    const _bob = num(bob);
-    const _freshWater = num(freshWater);
-    const _grainCuM = num(grainCuM);
-    const _grainCuFt = num(grainCuFt);
-    const _sf = num(sf);
-
-    let seasonalDraft = _summerDraft;
-    if (season === "winter") seasonalDraft = _summerDraft - _summerDraft / 48;
-    else if (season === "tropical") seasonalDraft = _summerDraft + _summerDraft / 48;
-
-    // Step 1: Seasonal DWT = SummerDWT - (SummerDraft - SeasonalDraft) * TPC * 100
-    const seasonalDwt = _summerDwt - (_summerDraft - seasonalDraft) * (_tpc * 100);
-
-    // Step 2: Draft Difference (Summer Draft - Port Draft)
-    const draftDifference = _summerDraft - _draft;
-    const draftDifferenceCm = draftDifference * 100;
-
-    // Step 3: DWT Reduction (only when port draft restricts; never a bonus)
-    const dwtReduction = draftDifferenceCm * _tpc;
-
-    // Step 4: DWT after draft & density correction — applied to Seasonal DWT
-    const dwtAfterDraftDensity = (seasonalDwt - Math.max(dwtReduction, 0)) * densityFactor;
-
-    // Step 4: Total deductions
-    const totalDeductions = _constants + _bob + _freshWater;
-
-    // Step 5: DWCC (Dead Weight Cargo Capacity) — raw calculated value (uncapped)
-    const dwcc = dwtAfterDraftDensity - totalDeductions;
-    // Hard cap applied only to the FINAL DWCC: Summer DWT − (Constants + BOB + Fresh Water)
-    const absoluteCap = _summerDwt - totalDeductions;
-
-    // Step 6: Volume-based cargo (cu.ft / SF in cu.ft/mt)
-    const grainCuFtVal = _grainCuFt > 0 ? _grainCuFt : _grainCuM * 35.3147;
-    const volumeBasedCargo = _sf > 0 ? grainCuFtVal / _sf : Infinity;
-
-    // Step 7: Final allowable cargo = min of DWCC and volume
-    const dwccCalc = Math.max(0, Math.round(dwcc));
-    const dwccCubic = Math.max(0, Math.round(volumeBasedCargo));
-    const finalIntake = Math.max(0, Math.min(dwccCalc, dwccCubic, Math.round(absoluteCap)));
-
-    return {
-      seasonalDraft, seasonalDwt, draftDifference, draftDifferenceCm, dwtReduction,
-      dwtAfterDraftDensity, totalDeductions, dwccCalc, dwccCubic, finalIntake,
-      densityFactor,
-    };
-  }, [summerDwt, summerDraft, tpc, draft, season, densityFactor, constants, bob, freshWater, grainCuM, grainCuFt, sf]);
-
-  const inputClass = "form-input-sm w-24 text-[11px] font-mono text-right";
+    if (!open) return;
+    setSummerDwt(String(vessel.dwt));
+    setSummerDraft(String(vessel.draft));
+    setTpc(String(vessel.tpcTpi));
+    setConstants("");
+    setBob("");
+    setFreshWater("");
+    const cubicM3 = vessel.cubic || 0;
+    setGrainCuM(String(cubicM3));
+    setGrainCuFt(String(Math.round(cubicM3 * 35.3147)));
+    setSf(initialSF ? String(initialSF) : "53");
+    setRows(
+      Object.fromEntries(
+        ports.map((p) => [p.id, { draft: p.draft ? String(p.draft) : "", water: "sw" as IntakeWater, season: "summer" as IntakeSeason }]),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleGrainCuFtChange = useCallback((val: string) => {
     setGrainCuFt(val);
@@ -163,134 +122,253 @@ export function IntakeCalculator({
     if (!isNaN(v)) setGrainCuFt(String(Math.round(v * 35.3147)));
   }, []);
 
+  const setRow = (id: number, patch: Partial<{ draft: string; water: IntakeWater; season: IntakeSeason }>) =>
+    setRows((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { draft: "", water: "sw", season: "summer" }), ...patch } }));
+
+  const calc = useMemo(() => {
+    const _summerDwt = num(summerDwt);
+    const _summerDraft = num(summerDraft);
+    const _tpc = num(tpc);
+    const _sf = num(sf);
+    const totalDeductions = num(constants) + num(bob) + num(freshWater);
+    const absoluteCap = _summerDwt - totalDeductions;
+
+    const grainCuFtVal = num(grainCuFt) > 0 ? num(grainCuFt) : num(grainCuM) * 35.3147;
+    const cubicIntake = _sf > 0 ? grainCuFtVal / _sf : Infinity;
+
+    const perPort = ports.map((p) => {
+      const r = rows[p.id] ?? { draft: "", water: "sw" as IntakeWater, season: "summer" as IntakeSeason };
+      const density = (waterOptions.find((w) => w.value === r.water)?.density ?? 1.025) / 1.025;
+      const seasonalDraft =
+        r.season === "winter"
+          ? _summerDraft - _summerDraft / 48
+          : r.season === "tropical"
+            ? _summerDraft + _summerDraft / 48
+            : _summerDraft;
+
+      const seasonalDwt = _summerDwt - (_summerDraft - seasonalDraft) * (_tpc * 100);
+      const portDraft = num(r.draft);
+      const dwtLoss = portDraft > 0 ? Math.max(0, (_summerDraft - portDraft) * 100 * _tpc) : 0;
+      const dwtAfter = (seasonalDwt - dwtLoss) * density;
+      const dwcc = dwtAfter - totalDeductions;
+      const restricted = Math.max(
+        0,
+        Math.min(Math.round(dwcc), Math.round(cubicIntake), Math.round(absoluteCap)),
+      );
+      return { port: p, seasonalDraft, dwtLoss, restricted, dwccRaw: Math.max(0, Math.round(dwcc)) };
+    });
+
+    const relevant = perPort.filter((r) => r.port.kind !== "repos");
+    const maxIntake = relevant.length
+      ? Math.min(...relevant.map((r) => r.restricted))
+      : Math.max(0, Math.min(Math.round(absoluteCap), Math.round(cubicIntake)));
+
+    return {
+      perPort,
+      maxIntake: Math.max(0, maxIntake),
+      cubicIntake: Math.max(0, Math.round(cubicIntake)),
+      restrictedDwt: Math.max(0, maxIntake),
+      totalDeductions,
+    };
+  }, [ports, rows, summerDwt, summerDraft, tpc, sf, constants, bob, freshWater, grainCuFt, grainCuM]);
+
+  const sfM3 = num(sf) > 0 ? (num(sf) / 35.3147).toFixed(2) : "0.00";
+
+  const opBadge = (p: IntakePortInput) => {
+    if (p.operation === "loading") return { text: "L", cls: "bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))]" };
+    if (p.operation === "discharging") return { text: "D", cls: "bg-destructive text-destructive-foreground" };
+    return { text: "•", cls: "bg-muted text-muted-foreground" };
+  };
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[520px] p-0 gap-0">
-        <DialogHeader className="px-4 py-2 border-b border-border">
-          <DialogTitle className="text-sm font-semibold">Intake Calculator</DialogTitle>
-        </DialogHeader>
+      <DialogContent
+        hideClose
+        className="max-w-[1200px] w-[95vw] p-0 gap-0 overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-xl font-bold tracking-tight">Intake Calculator</h2>
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-muted text-muted-foreground">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-        <div className="px-4 py-3 space-y-3 max-h-[70vh] overflow-y-auto">
-          {/* Port Section */}
-          <div>
-            <div className="text-[11px] font-bold text-primary mb-1.5">Port</div>
-            <div className="flex items-center gap-2 py-0.5">
-              <span className={labelClass}>Port</span>
-              <span className="text-[11px] font-semibold">{portName || "—"}</span>
+        <div className="px-6 py-4 space-y-3 max-h-[78vh] overflow-y-auto bg-muted/30">
+          {/* Vessel line */}
+          <div className="flex items-center justify-between">
+            <div className="text-[13px] font-semibold flex items-center gap-1.5">
+              <span className="text-primary">{vessel.name || "—"}</span>
+              <span className="text-muted-foreground font-normal">
+                {vessel.builtYear ? `(${vessel.builtYear}, ${Math.round((vessel.dwt || 0) / 1000)}k)` : `(${Math.round((vessel.dwt || 0) / 1000)}k)`}
+                {vessel.type ? ` • ${vessel.type}` : ""}
+              </span>
             </div>
-            <Row label="Draft">
-              <input type="number" step="0.1" className={inputClass} value={draft} onChange={(e) => setDraft(e.target.value)} />
-              <span className={unitClass}>m</span>
-            </Row>
-            <Row label="Water">
-              <select className="form-select-sm text-[11px] w-52" value={waterType} onChange={(e) => setWaterType(e.target.value as WaterType)}>
-                {waterOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </Row>
-            <Row label="Season">
-              <select className="form-select-sm text-[11px] w-28" value={season} onChange={(e) => setSeason(e.target.value as SeasonType)}>
-                {seasonOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </Row>
           </div>
 
-          {/* Vessel Section + Results side by side */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-[11px] font-bold text-primary mb-1.5">Vessel</div>
-              <div className="flex items-center gap-2 py-0.5">
-                <span className={labelClass}>Vessel</span>
-                <span className="text-[11px] font-semibold truncate">{vessel.name || "—"}</span>
-              </div>
-              <Row label="Summer DWT">
-                <input type="number" className={inputClass} value={summerDwt} onChange={(e) => setSummerDwt(e.target.value)} />
-                <span className={unitClass}>mt</span>
-              </Row>
-              <Row label="Summer Draft">
-                <input type="number" step="0.01" className={inputClass} value={summerDraft} onChange={(e) => setSummerDraft(e.target.value)} />
-                <span className={unitClass}>m</span>
-              </Row>
-              <Row label="TPC/TPI">
-                <input type="number" step="0.1" className={inputClass} value={tpc} onChange={(e) => setTpc(e.target.value)} />
-                <span className={unitClass}>tpc</span>
-              </Row>
-              <Row label="Constants">
-                <input type="number" className={inputClass} value={constants} onChange={(e) => setConstants(e.target.value)} />
-                <span className={unitClass}>mt</span>
-              </Row>
-              <Row label="BOB">
-                <input type="number" className={inputClass} value={bob} onChange={(e) => setBob(e.target.value)} />
-                <span className={unitClass}>t</span>
-              </Row>
-              <Row label="Fresh Water">
-                <input type="number" className={inputClass} value={freshWater} onChange={(e) => setFreshWater(e.target.value)} />
-                <span className={unitClass}>mt</span>
-              </Row>
-              <Row label="Grain">
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center">
-                    <input type="number" className={`${inputClass} w-20`} value={grainCuFt} onChange={(e) => handleGrainCuFtChange(e.target.value)} />
-                    <span className="text-[10px] text-muted-foreground ml-1">cu.ft</span>
-                  </div>
-                  <div className="flex items-center">
-                    <input type="number" className={`${inputClass} w-20`} value={grainCuM} onChange={(e) => handleGrainCuMChange(e.target.value)} />
-                    <span className="text-[10px] text-muted-foreground ml-1">cu.m</span>
-                  </div>
-                </div>
-              </Row>
+          {/* Cards row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="rounded-lg border border-border bg-background p-3 grid grid-cols-2 gap-3">
+              <Field label="Deadweight" unit="tons">
+                <input type="number" className={inputBox} value={summerDwt} onChange={(e) => setSummerDwt(e.target.value)} />
+              </Field>
+              <Field label="Draught" unit="m">
+                <input type="number" step="0.01" className={inputBox} value={summerDraft} onChange={(e) => setSummerDraft(e.target.value)} />
+              </Field>
+              <Field label="TPC" unit="tons/cm">
+                <input type="number" step="0.1" className={inputBox} value={tpc} onChange={(e) => setTpc(e.target.value)} />
+              </Field>
+              <Field label="Grain Cubic" unit="m³">
+                <input type="number" className={inputBox} value={grainCuM} onChange={(e) => handleGrainCuMChange(e.target.value)} />
+              </Field>
             </div>
 
-            {/* Calculation panel — matches spreadsheet layout */}
-            <div>
-              <div className="flex items-center gap-2 py-0.5">
-                <span className={labelClass}>Vessel</span>
-                <span className="text-[11px] font-semibold truncate">{vessel.name || "—"}</span>
-              </div>
-              <div className="flex justify-between text-[11px] py-0.5">
-                <span className="text-muted-foreground">DWT</span>
-                <span className="font-mono">{Math.round(num(summerDwt)).toLocaleString()} mt</span>
-              </div>
-              <div className="flex justify-between text-[11px] py-0.5">
-                <span className="text-muted-foreground">Draft</span>
-                <span className="font-mono">{calc.seasonalDraft.toFixed(2)} m ({num(summerDraft).toFixed(2)} m)</span>
-              </div>
-              <div className="flex justify-between text-[11px] py-0.5">
-                <span className="text-muted-foreground">TPC/TPI</span>
-                <span className="font-mono">{num(tpc).toFixed(1)} mt/cm ({num(tpc).toFixed(1)} mt/cm)</span>
-              </div>
-              <div className="flex justify-between text-[11px] py-0.5">
-                <span className="text-muted-foreground">DWCC calc</span>
-                <span className="font-mono">{calc.dwccCalc.toLocaleString()} mt</span>
-              </div>
-              <div className="flex justify-between text-[11px] py-0.5">
-                <span className="text-muted-foreground">DWCC cubic</span>
-                <span className="font-mono">{calc.dwccCubic.toLocaleString()} mt</span>
-              </div>
-              <div className="flex justify-between text-[11px] py-0.5 pt-1 border-t border-border">
-                <span className="font-bold">DWCC</span>
-                <span className="font-mono font-bold text-primary">{calc.finalIntake.toLocaleString()} mt</span>
+            <div className="rounded-lg border border-border bg-background p-3 grid grid-cols-3 gap-3">
+              <Field label="Constants" unit="tons">
+                <input type="number" className={inputBox} value={constants} onChange={(e) => setConstants(e.target.value)} />
+              </Field>
+              <Field label="Bunkers" unit="tons">
+                <input type="number" className={inputBox} value={bob} onChange={(e) => setBob(e.target.value)} />
+              </Field>
+              <Field label="Fresh Water" unit="tons">
+                <input type="number" className={inputBox} value={freshWater} onChange={(e) => setFreshWater(e.target.value)} />
+              </Field>
+              <div className="col-span-3 flex items-end justify-end">
+                <span className="text-[10px] text-muted-foreground">
+                  Total deductions: <span className="font-mono">{calc.totalDeductions.toLocaleString()} t</span>
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Cargo Section */}
-          <div>
-            <div className="text-[11px] font-bold text-primary mb-1.5">Cargo #1</div>
-            <Row label="Stowage Factor">
-              <input type="number" step="0.1" className={inputClass} value={sf} onChange={(e) => setSf(e.target.value)} />
-              <span className="text-[10px] text-muted-foreground ml-1">cu.ft/mt</span>
-            </Row>
+          {/* Cargo row */}
+          <div className="rounded-lg border border-border bg-background p-3 grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <Field label="Cargo Type">
+              <input className="form-input-sm h-8 w-full text-[12px]" value={cargoType} onChange={(e) => setCargoType(e.target.value)} placeholder="—" />
+            </Field>
+            <Field label="Stowage" unit="ft³/ton">
+              <input type="number" step="0.1" className={inputBox} value={sf} onChange={(e) => setSf(e.target.value)} />
+            </Field>
+            <Field label="Stowage" unit="m³/ton">
+              <input readOnly className={`${inputBox} bg-muted/60`} value={sfM3} />
+            </Field>
+            <Field label="Restricted Intake (DWT)" unit="tons">
+              <input readOnly className={`${inputBox} bg-muted/60`} value={calc.restrictedDwt.toLocaleString()} />
+            </Field>
+            <Field label="Restricted Intake (cubics)" unit="tons">
+              <input readOnly className={`${inputBox} bg-muted/60`} value={Number.isFinite(calc.cubicIntake) ? calc.cubicIntake.toLocaleString() : "—"} />
+            </Field>
+          </div>
+
+          {/* Ports table */}
+          <div className="rounded-lg border border-border bg-background overflow-hidden">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="bg-muted/60 text-muted-foreground uppercase tracking-wide text-[10px]">
+                  <th className="text-left font-semibold px-3 py-2">Port</th>
+                  <th className="text-left font-semibold px-3 py-2 w-40">Draught Restriction</th>
+                  <th className="text-left font-semibold px-3 py-2 w-14">m</th>
+                  <th className="text-left font-semibold px-3 py-2 w-44">Water Density</th>
+                  <th className="text-left font-semibold px-3 py-2 w-36">Season</th>
+                  <th className="text-right font-semibold px-3 py-2 w-28">DWT Loss</th>
+                  <th className="text-right font-semibold px-3 py-2 w-36">Restricted Intake</th>
+                  <th className="text-right font-semibold px-3 py-2 w-32">Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {calc.perPort.map(({ port, dwtLoss, restricted }) => {
+                  const r = rows[port.id] ?? { draft: "", water: "sw" as IntakeWater, season: "summer" as IntakeSeason };
+                  const badge = opBadge(port);
+                  const isTarget = targetPortId === port.id;
+                  return (
+                    <tr key={port.id} className={`border-t border-border ${isTarget ? "bg-primary/5" : ""}`}>
+                      <td className="px-3 py-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold ${badge.cls}`}>
+                            {badge.text}
+                          </span>
+                          <span className="font-semibold truncate">{port.name || "—"}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-input-sm h-7 w-full text-[11px] font-mono text-right"
+                          value={r.draft}
+                          placeholder="—"
+                          onChange={(e) => setRow(port.id, { draft: e.target.value })}
+                        />
+                      </td>
+                      <td className="px-3 py-1.5 text-muted-foreground">m</td>
+                      <td className="px-3 py-1.5">
+                        <select
+                          className="form-select-sm h-7 w-full text-[11px]"
+                          value={r.water}
+                          onChange={(e) => setRow(port.id, { water: e.target.value as IntakeWater })}
+                        >
+                          {waterOptions.map((o) => (
+                            <option key={o.value} value={o.value}>{o.short}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <select
+                          className="form-select-sm h-7 w-full text-[11px]"
+                          value={r.season}
+                          onChange={(e) => setRow(port.id, { season: e.target.value as IntakeSeason })}
+                        >
+                          {seasonOptions.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono tabular-nums">
+                        {dwtLoss > 0 ? `${Math.round(dwtLoss).toLocaleString()} t` : "–"}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono tabular-nums">
+                        {restricted.toLocaleString()} tons
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono tabular-nums font-semibold">
+                        {port.operation === "loading" || port.operation === "discharging"
+                          ? `${calc.maxIntake.toLocaleString()} tons`
+                          : "–"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {calc.perPort.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
+                      No ports in the voyage sequence yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <DialogFooter className="px-4 py-2 border-t border-border gap-1">
-          <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
-          <Button size="sm" onClick={() => onApply(calc.finalIntake, num(draft) > 0 ? num(draft) : undefined)}>Apply</Button>
-        </DialogFooter>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-3 border-t border-border">
+          <span className="text-[13px] mr-auto sm:mr-0">
+            Maximum Intake : <span className="font-bold font-mono">{calc.maxIntake.toLocaleString()} tons</span>
+          </span>
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button
+            size="sm"
+            onClick={() =>
+              onApply(
+                calc.maxIntake,
+                calc.perPort
+                  .map(({ port }) => ({ id: port.id, draft: num(rows[port.id]?.draft ?? "") }))
+                  .filter((p) => p.draft > 0),
+              )
+            }
+          >
+            Update Intake
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
