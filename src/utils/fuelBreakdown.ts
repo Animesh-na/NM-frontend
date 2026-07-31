@@ -194,3 +194,112 @@ export function computePortFuel(
       };
     });
 }
+
+/**
+ * Row shape accepted by `computeFifoCoverage` — deliberately loose so both the
+ * engine's `SequenceRow` and the UI's `SequenceRowUI` can be passed directly.
+ */
+export interface FifoCoverageRow {
+  type?: string;
+  operation?: string;
+  portUnloc?: string;
+  seaTime?: number;
+  ecaTime?: number;
+  nonEcaTime?: number;
+  totalLegTime?: number;
+  portDays?: number;
+  calculatedPortDays?: number;
+  wdaysPortOverride?: number | null;
+  turnTimeHours?: number;
+  extraTimeHours?: number;
+  turnTime?: number;
+  extraTime?: number;
+  portFuelType?: FuelKey;
+  quantity?: number;
+}
+
+/**
+ * FIFO coverage: how much of each fuel is burnt under each successive bunker
+ * price lot.
+ *
+ * Segment 0 is covered by the BOB price (from voyage start up to and including
+ * the first bunkering port stay); segment i is covered by the i-th bunkering
+ * port's price, up to the next bunkering port. The returned arrays have length
+ * `bunkeringUnlocs.length + 1`.
+ */
+export function computeFifoCoverage(
+  rows: FifoCoverageRow[],
+  vessel: VesselData,
+  bunkeringUnlocs: string[],
+  rewardFactor = 1,
+): Record<FuelKey, number[]> {
+  const { profile, hasScrubber, aeProfile } = getProfiles(vessel);
+  const rf = rewardFactor || 1;
+  const segCount = bunkeringUnlocs.length + 1;
+  const coverage: Record<FuelKey, number[]> = {
+    hsfo: new Array(segCount).fill(0),
+    vlsfo: new Array(segCount).fill(0),
+    lsmgo: new Array(segCount).fill(0),
+  };
+
+  let seg = 0;
+  let cargoOnBoard = 0;
+  const pending = [...bunkeringUnlocs];
+
+  rows.forEach((r) => {
+    const op = norm(r.operation);
+
+    if (r.type !== "open") {
+      // --- Sea consumption for the leg arriving at this port ---
+      const isLaden = cargoOnBoard > 0;
+      const ecaDays = r.ecaTime || 0;
+      const nonEcaDays =
+        r.nonEcaTime ?? r.seaTime ?? Math.max(0, (r.totalLegTime || 0) - ecaDays);
+
+      if (hasScrubber) {
+        coverage.hsfo[seg] +=
+          nonEcaDays * (isLaden ? profile.hsfo.laden || 0 : profile.hsfo.ballast || 0) * rf;
+      } else {
+        coverage.vlsfo[seg] +=
+          nonEcaDays * (isLaden ? profile.vlsfo.laden || 0 : profile.vlsfo.ballast || 0) * rf;
+      }
+      coverage.lsmgo[seg] +=
+        ecaDays * (isLaden ? profile.lsmgo.laden || 0 : profile.lsmgo.ballast || 0) * rf;
+      coverage.lsmgo[seg] +=
+        (nonEcaDays + ecaDays) *
+        (isLaden ? aeProfile.laden || 0 : aeProfile.ballast || 0) *
+        rf;
+    }
+
+    // --- Port consumption at this port ---
+    if (r.type !== "open" && r.type !== "repos") {
+      const totalPortDays =
+        r.portDays ?? r.wdaysPortOverride ?? r.calculatedPortDays ?? 0;
+      if (totalPortDays > 0) {
+        const fuel: FuelKey = r.portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
+        const meRateAt = (mode: "load" | "discharge" | "idle") =>
+          (fuel === "hsfo" ? profile.hsfo[mode] : fuel === "vlsfo" ? profile.vlsfo[mode] : profile.lsmgo[mode]) || 0;
+
+        let mode: "load" | "discharge" | "idle" = "idle";
+        if (isLoadOp(op)) mode = "load";
+        else if (isDischOp(op)) mode = "discharge";
+
+        coverage[fuel][seg] += totalPortDays * meRateAt(mode);
+        coverage.lsmgo[seg] += totalPortDays * (aeProfile[mode] || 0);
+      }
+    }
+
+    const qty = Math.max(0, Number(r.quantity) || 0);
+    if (isLoadOp(op)) cargoOnBoard += qty;
+    else if (isDischOp(op)) cargoOnBoard = Math.max(0, cargoOnBoard - qty);
+
+    // Bunkering here → subsequent consumption is priced with the new lot.
+    const idx = r.portUnloc ? pending.indexOf(r.portUnloc) : -1;
+    if (idx >= 0) {
+      pending.splice(0, idx + 1);
+      seg = Math.min(segCount - 1, seg + idx + 1);
+    }
+  });
+
+  return coverage;
+}
