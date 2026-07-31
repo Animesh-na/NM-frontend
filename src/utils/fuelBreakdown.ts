@@ -222,9 +222,10 @@ export interface FifoCoverageRow {
  * FIFO coverage: how much of each fuel is burnt under each successive bunker
  * price lot.
  *
- * Segment 0 is covered by the BOB price (from voyage start up to and including
- * the first bunkering port stay); segment i is covered by the i-th bunkering
- * port's price, up to the next bunkering port. The returned arrays have length
+ * Segment 0 is covered by the BOB price from voyage start through the sea leg
+ * arriving at the first bunkering operation. The new bunker price starts at
+ * that port stay and covers all subsequent consumption through arrival at the
+ * next bunkering operation. The returned arrays have length
  * `bunkeringUnlocs.length + 1`.
  */
 export function computeFifoCoverage(
@@ -271,6 +272,18 @@ export function computeFifoCoverage(
         rf;
     }
 
+    // Change price lots only at the actual bunkering operation, never merely
+    // because an earlier row (commonly the open port) has the same UN/LOCODE.
+    // The inbound sea leg above is still BOB/previous-lot consumption; fuel
+    // consumed at this port and afterwards belongs to the newly stemmed lot.
+    if (op === "bunkering") {
+      const idx = r.portUnloc ? pending.indexOf(r.portUnloc) : -1;
+      if (idx >= 0) {
+        pending.splice(0, idx + 1);
+        seg = Math.min(segCount - 1, seg + idx + 1);
+      }
+    }
+
     // --- Port consumption at this port ---
     if (r.type !== "open" && r.type !== "repos") {
       const totalPortDays =
@@ -293,12 +306,6 @@ export function computeFifoCoverage(
     if (isLoadOp(op)) cargoOnBoard += qty;
     else if (isDischOp(op)) cargoOnBoard = Math.max(0, cargoOnBoard - qty);
 
-    // Bunkering here → subsequent consumption is priced with the new lot.
-    const idx = r.portUnloc ? pending.indexOf(r.portUnloc) : -1;
-    if (idx >= 0) {
-      pending.splice(0, idx + 1);
-      seg = Math.min(segCount - 1, seg + idx + 1);
-    }
   });
 
   return coverage;

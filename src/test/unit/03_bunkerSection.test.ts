@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useVoyageCalculation } from "@/hooks/useVoyageCalculation";
 import { createVoyageTestInputs, customBunker, customLeg, customVessel } from "../helpers/scenarios";
+import { computeFifoCoverage } from "@/utils/fuelBreakdown";
 
 /**
  * UNIT — Bunker Section (consumption, ECA fuel switch, total cost)
@@ -56,6 +57,52 @@ describe("Bunker Section", () => {
   });
 
   describe("Cost", () => {
+    it("keeps consumption on BOB until the actual return-port bunkering operation", () => {
+      const vessel = customVessel({ hasScrubber: false, speedProfile: "eco" });
+      const sequence = [
+        customLeg({
+          id: 0,
+          type: "open",
+          operation: undefined,
+          port: "Rotterdam",
+          portUnloc: "NLRTM",
+          seaTime: 0,
+          nonEcaTime: 0,
+          portDays: 0,
+          quantity: 0,
+        }),
+        customLeg({
+          id: 1,
+          operation: "pssg",
+          port: "Antwerp",
+          portUnloc: "BEANR",
+          seaTime: 1,
+          nonEcaTime: 1,
+          portDays: 1,
+          quantity: 0,
+        }),
+        customLeg({
+          id: 2,
+          operation: "bunkering",
+          port: "Rotterdam",
+          portUnloc: "NLRTM",
+          seaTime: 1,
+          nonEcaTime: 1,
+          portDays: 1,
+          quantity: 0,
+        }),
+      ];
+
+      const coverage = computeFifoCoverage(sequence, vessel, ["NLRTM"]);
+
+      // BOB: Rotterdam→Antwerp sea (6), Antwerp idle (0.4),
+      // Antwerp→Rotterdam sea (6). New lot starts at Rotterdam port stay.
+      expect(coverage.vlsfo[0]).toBeCloseTo(12.4, 6);
+      expect(coverage.vlsfo[1]).toBeCloseTo(0.4, 6);
+      expect(coverage.lsmgo[0]).toBeCloseTo(2.5, 6);
+      expect(coverage.lsmgo[1]).toBeCloseTo(0.5, 6);
+    });
+
     it("custom totalBunkerCost equals Σ(consumption × custom price)", () => {
       const bunker = customBunker({
         hsfo: { price: 420, robStart: 500 },
