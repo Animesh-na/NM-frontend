@@ -17,6 +17,24 @@ export function VoyageSummary() {
   const isAdmin = user?.role === "admin";
   const [collapsed, setCollapsed] = useState(false);
 
+  // Why is the EUA freight impact zero? Surface the actual missing input.
+  const euEtsPriceEff = bunker.euEtsPrice || bunker.co2Price || 0;
+  const euCovered =
+    results.euCoveredFuel.hsfo + results.euCoveredFuel.vlsfo + results.euCoveredFuel.lsmgo;
+  const hasEuPort = sequence.some((r) => r.isEuEea === true);
+  const cargoQty = sequence
+    .filter((r) => r.operation === "loading")
+    .reduce((sum, r) => sum + (r.quantity || 0), 0);
+  const euaZeroReason = !hasEuPort
+    ? "No EU/EEA port in the sequence (port eu_zone flag) — EU ETS does not apply."
+    : euCovered === 0
+      ? "EU ports lie outside the commercial window (first load → last discharge), so no fuel is EU-covered."
+      : euEtsPriceEff === 0
+        ? "Set an EU ETS price ($/t) in the Bunker section."
+        : cargoQty === 0
+          ? "No cargo quantity in the sequence — impact per mt cannot be derived."
+          : "EU-covered CO₂ is zero for this voyage.";
+
   // Block summary visibility until all required fields are valid
   if (hasErrors) {
     const scrollTo = (elementId: string) => {
@@ -491,6 +509,11 @@ export function VoyageSummary() {
                 ${results.euaFreightImpact.toFixed(2)} /mt
               </span>
             </div>
+            {results.euaFreightImpact === 0 && (
+              <div className="text-[9px] text-warning font-medium">
+                ⚠ {euaZeroReason}
+              </div>
+            )}
             <label className="flex items-center gap-1.5 cursor-pointer">
               <Checkbox
                 checked={applyEuaImpact}
