@@ -76,6 +76,7 @@ export function IntakeCalculator({
 }: IntakeCalculatorProps) {
   const [summerDwt, setSummerDwt] = useState("");
   const [summerDraft, setSummerDraft] = useState("");
+  const [baseDraft, setBaseDraft] = useState("");
   const [tpc, setTpc] = useState("");
   const [constants, setConstants] = useState("");
   const [bob, setBob] = useState("");
@@ -93,6 +94,7 @@ export function IntakeCalculator({
     if (!open) return;
     setSummerDwt(String(vessel.dwt));
     setSummerDraft(String(vessel.draft));
+    setBaseDraft(String(vessel.draft));
     setTpc(String(vessel.tpcTpi));
     setConstants("");
     setBob("");
@@ -121,25 +123,22 @@ export function IntakeCalculator({
     if (!isNaN(v)) setGrainCuFt(String(Math.round(v * 35.3147)));
   }, []);
 
-  const setRow = (id: number, patch: Partial<{ draft: string; water: IntakeWater; season: IntakeSeason }>) =>
-    setRows((prev) => {
-      const current = prev[id] ?? { draft: "", water: "sw" as IntakeWater, season: "summer" as IntakeSeason };
-      const next = { ...current, ...patch };
-      // Season change => reflect the seasonal draught in the draught field
-      if (patch.season && patch.season !== current.season) {
-        const base = num(summerDraft);
-        if (base > 0) {
-          const seasonal =
-            patch.season === "winter" ? base - base / 48 : patch.season === "tropical" ? base + base / 48 : base;
-          next.draft = seasonal.toFixed(2);
-        }
+  const setRow = (id: number, patch: Partial<{ draft: string; water: IntakeWater; season: IntakeSeason }>) => {
+    // Season change => reflect the seasonal draught in the VESSEL draught field
+    if (patch.season) {
+      const base = num(baseDraft);
+      if (base > 0) {
+        const seasonal =
+          patch.season === "winter" ? base - base / 48 : patch.season === "tropical" ? base + base / 48 : base;
+        setSummerDraft(seasonal.toFixed(2));
       }
-      return { ...prev, [id]: next };
-    });
+    }
+    setRows((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { draft: "", water: "sw", season: "summer" }), ...patch } }));
+  };
 
   const calc = useMemo(() => {
     const _summerDwt = num(summerDwt);
-    const _summerDraft = num(summerDraft);
+    const _summerDraft = num(baseDraft) > 0 ? num(baseDraft) : num(summerDraft);
     const _tpc = num(tpc);
     const _sf = num(sf);
     const totalDeductions = num(constants) + num(bob) + num(freshWater);
@@ -182,7 +181,7 @@ export function IntakeCalculator({
       restrictedDwt: Math.max(0, maxIntake),
       totalDeductions,
     };
-  }, [ports, rows, summerDwt, summerDraft, tpc, sf, constants, bob, freshWater, grainCuFt, grainCuM]);
+  }, [ports, rows, summerDwt, summerDraft, baseDraft, tpc, sf, constants, bob, freshWater, grainCuFt, grainCuM]);
 
   const sfM3 = num(sf) > 0 ? (num(sf) / 35.3147).toFixed(2) : "0.00";
 
@@ -221,7 +220,16 @@ export function IntakeCalculator({
                 <input type="number" className={inputBox} value={summerDwt} onChange={(e) => setSummerDwt(e.target.value)} />
               </Field>
               <Field label="Draught" unit="m">
-                <input type="number" step="0.01" className={inputBox} value={summerDraft} onChange={(e) => setSummerDraft(e.target.value)} />
+                <input
+                  type="number"
+                  step="0.01"
+                  className={inputBox}
+                  value={summerDraft}
+                  onChange={(e) => {
+                    setSummerDraft(e.target.value);
+                    setBaseDraft(e.target.value);
+                  }}
+                />
               </Field>
               <Field label="TPC" unit="tons/cm">
                 <input type="number" step="0.1" className={inputBox} value={tpc} onChange={(e) => setTpc(e.target.value)} />
