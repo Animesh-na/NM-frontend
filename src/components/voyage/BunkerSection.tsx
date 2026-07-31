@@ -47,6 +47,50 @@ export function BunkerSection() {
   const getAveragePrice = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') =>
     effectivePrice(buildFuelPricing(bunker, fuelType, fifoCoverage[fuelType]), consumptionOf[fuelType]);
 
+  // Per-lot price/coverage breakdown for the tooltip
+  const getPriceBreakdown = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
+    const lots = [
+      { label: "BOB", price: bunker[fuelType].price || 0, skipped: !!bunker.ignoreBOB },
+      ...bunker.portBunkering.map((p) => ({
+        label: p.portName,
+        price: p[fuelType]?.price || 0,
+        skipped: false,
+      })),
+    ];
+    const cov = fifoCoverage[fuelType] || [];
+    const isFifo = bunker.fuelMode === "fifo";
+    const rows = lots.map((l, i) => ({
+      ...l,
+      coverage: Math.max(0, cov[i] || 0),
+    }));
+    const used = rows.filter((r) => !r.skipped && r.price > 0);
+    const effective = getAveragePrice(fuelType);
+
+    if (isFifo) {
+      const num = used.map((r) => `(${r.price.toFixed(0)} × ${r.coverage.toFixed(1)})`).join(" + ");
+      const den = used.map((r) => r.coverage.toFixed(1)).join(" + ");
+      return {
+        formula: used.length
+          ? `[${num}] / (${den}) = $${effective.toFixed(2)}/t`
+          : `No priced fuel lots → $${effective.toFixed(2)}/t`,
+        description:
+          "FIFO: consumption-weighted price. " +
+          rows
+            .map((r) => `${r.label}: $${r.price.toFixed(0)}/t over ${r.coverage.toFixed(1)} t${r.skipped ? " (BOB ignored)" : ""}`)
+            .join(" · "),
+      };
+    }
+
+    return {
+      formula: used.length
+        ? `avg(${used.map((r) => `$${r.price.toFixed(0)}`).join(", ")}) = $${effective.toFixed(2)}/t`
+        : `No priced fuel lots → $${effective.toFixed(2)}/t`,
+      description:
+        "Average mode: quantity-weighted where quantities exist, otherwise the mean of all lot prices. " +
+        rows.map((r) => `${r.label}: $${r.price.toFixed(0)}/t${r.skipped ? " (ignored)" : ""}`).join(" · "),
+    };
+  };
+
   const handleAddBunkeringPort = (portUnloc: string) => {
     const port = bunkeringPorts.find(p => p.portUnloc === portUnloc);
     if (port) addPortBunkering(port.portUnloc, port.port);
@@ -202,14 +246,19 @@ export function BunkerSection() {
               </thead>
               <tbody>
                 {([
-                  { label: "HSFO", consumed: results.hsfoConsumption, price: getAveragePrice('hsfo'), robEnd: robEndHsfo },
-                  { label: "VLSFO", consumed: results.vlsfoConsumption, price: getAveragePrice('vlsfo'), robEnd: robEndVlsfo },
-                  { label: "LSMGO", consumed: results.lsmgoConsumption, price: getAveragePrice('lsmgo'), robEnd: robEndLsmgo },
+                  { label: "HSFO", key: 'hsfo', consumed: results.hsfoConsumption, price: getAveragePrice('hsfo'), robEnd: robEndHsfo },
+                  { label: "VLSFO", key: 'vlsfo', consumed: results.vlsfoConsumption, price: getAveragePrice('vlsfo'), robEnd: robEndVlsfo },
+                  { label: "LSMGO", key: 'lsmgo', consumed: results.lsmgoConsumption, price: getAveragePrice('lsmgo'), robEnd: robEndLsmgo },
                 ] as const).map(f => (
                   <tr key={f.label} className="border-t border-border">
                     <td className="px-2 py-0.5 text-[10px] font-medium">{f.label}</td>
                     <td className="px-2 py-0.5 font-mono text-right text-[10px]">{f.consumed.toFixed(1)} t</td>
-                    <td className="px-2 py-0.5 font-mono text-right text-[10px]">${f.price.toFixed(0)}</td>
+                    <td className="px-2 py-0.5 font-mono text-right text-[10px]">
+                      <span className="inline-flex items-center justify-end">
+                        ${f.price.toFixed(2)}
+                        <InfoTooltip {...getPriceBreakdown(f.key)} />
+                      </span>
+                    </td>
                     <td className="px-2 py-0.5 font-mono text-right text-[10px]">${(f.consumed * f.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                     <td className="px-2 py-0.5 font-mono text-right text-[10px]">{f.robEnd.toFixed(1)} t</td>
                   </tr>
