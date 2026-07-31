@@ -226,7 +226,10 @@ export function SequenceSummary() {
             <div className="bg-muted/30 rounded p-1.5 space-y-0.5">
               <div className="text-[10px] font-medium text-muted-foreground mb-1 flex items-center">
                 CO₂ Breakdown (MT)
-                <InfoTooltip formula="CO₂ = Fuel × Emission Factor" description="HSFO: 3.114, VLSFO: 3.151, LSMGO: 3.206 t CO₂/t fuel" />
+                <InfoTooltip
+                  formula="CO₂ = Fuel × Emission Factor"
+                  description={`HSFO: ${CO2_EMISSION_FACTORS.hsfo}, VLSFO: ${CO2_EMISSION_FACTORS.vlsfo}, LSMGO: ${CO2_EMISSION_FACTORS.lsmgo} t CO₂/t fuel`}
+                />
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Non-ECA CO₂:</span>
@@ -249,7 +252,7 @@ export function SequenceSummary() {
               <div className="text-[10px] font-medium text-muted-foreground flex items-center">
                 Fuel Usage — VLSFO &amp; LSMGO
                 <InfoTooltip
-                  formula="Leg: ME non-ECA (VLSFO) + ME ECA LSMGO + AE LSMGO. Port: ME (working + turn/extra idle) at selected P.Fuel + AE LSMGO."
+                  formula="Leg: ME non-ECA (HSFO/VLSFO) + ME ECA LSMGO + AE LSMGO, × reward factor. Port: load/disch ports burn the full stay at the Load/Disch rate of the selected P.Fuel; other ports burn the full stay at Idle rate. AE always LSMGO."
                   description="Toggle between per-leg (sea) and per-port fuel usage."
                 />
               </div>
