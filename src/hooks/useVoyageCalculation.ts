@@ -88,6 +88,7 @@ export interface BunkerData {
   fuelMode?: "average" | "fifo";
   ignoreBOB?: boolean;
   portBunkering?: Array<{
+    portUnloc?: string;
     hsfo: { quantity: number; price: number };
     vlsfo: { quantity: number; price: number };
     lsmgo: { quantity: number; price: number };
