@@ -2,120 +2,22 @@ import { Fuel } from "lucide-react";
 import { BreakdownCard } from "./BreakdownCard";
 import type { SequenceRowUI } from "@/context/VoyageContext";
 import type { VesselData } from "@/data/vessels";
+import { computePortFuel, type FuelKey, type PortFuelRow } from "@/utils/fuelBreakdown";
 
 interface PerPortFuelPanelProps {
   sequence: SequenceRowUI[];
   vessel: VesselData;
 }
 
-type FuelKey = "hsfo" | "vlsfo" | "lsmgo";
-
-interface PortFuelRow {
-  id: string | number;
-  port: string;
-  operation: string;
-  workingDays: number;
-  turnDays: number;
-  extraDays: number;
-  workingMode: "load" | "discharge" | "idle" | "none";
-  meFuel: FuelKey | "none"; // ME fuel selection at port
-  // ME consumption (driven by portFuelType)
-  meHsfo: number;
-  meVlsfo: number;
-  meLsmgo: number;
-  // AE always burns LSMGO
-  aeLsmgo: number;
-  total: number;
-}
-
 export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
-  const profile =
-    vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
-
-  const rows: PortFuelRow[] = sequence
-    .filter((r) => r.type !== "open" && r.type !== "repos")
-    .map((r) => {
-      const turnDays = (r.turnTime || 0) / 24;
-      const extraDays = (r.extraTime || 0) / 24;
-      const turnExtraDays = turnDays + extraDays;
-      const totalPortDays = r.calculatedPortDays || 0;
-      const workingDays = Math.max(0, totalPortDays - turnExtraDays);
-
-      let workingMode: PortFuelRow["workingMode"] = "none";
-      let meFuelForWorking: FuelKey | "none" = "none";
-      let meHsfo = 0;
-      let meVlsfo = 0;
-      let meLsmgo = 0;
-
-      const fuel = r.portFuelType;
-      const meRateAt = (mode: "load" | "discharge" | "idle") => {
-        if (fuel === "hsfo") return profile.hsfo[mode] || 0;
-        if (fuel === "vlsfo") return profile.vlsfo[mode] || 0;
-        return profile.lsmgo[mode] || 0;
-      };
-
-      // Working consumption (loading / discharging)
-      if (r.operation === "loading") {
-        workingMode = "load";
-        meFuelForWorking = fuel;
-        const v = workingDays * meRateAt("load");
-        if (fuel === "hsfo") meHsfo += v;
-        else if (fuel === "vlsfo") meVlsfo += v;
-        else meLsmgo += v;
-      } else if (r.operation === "discharging") {
-        workingMode = "discharge";
-        meFuelForWorking = fuel;
-        const v = workingDays * meRateAt("discharge");
-        if (fuel === "hsfo") meHsfo += v;
-        else if (fuel === "vlsfo") meVlsfo += v;
-        else meLsmgo += v;
-      }
-
-      // Turn + Extra time always burns at IDLE rate using selected port fuel
-      const idleConsumed = turnExtraDays * meRateAt("idle");
-      if (turnExtraDays > 0) {
-        if (fuel === "hsfo") meHsfo += idleConsumed;
-        else if (fuel === "vlsfo") meVlsfo += idleConsumed;
-        else meLsmgo += idleConsumed;
-      }
-
-      // For pssg/bunkering legs, the entire time is idle-equivalent
-      if (r.operation === "pssg" || r.operation === "bunkering") {
-        // already covered: turnExtraDays === totalPortDays for these
-      }
-
-      // AE always on LSMGO at port
-      const aeLoad = workingMode === "load" ? workingDays * (profile.ae.load || 0) : 0;
-      const aeDischarge =
-        workingMode === "discharge" ? workingDays * (profile.ae.discharge || 0) : 0;
-      const aeIdle = turnExtraDays * (profile.ae.idle || 0);
-      // For pssg/bunkering, idle covers the full duration via turnTime/extraTime
-      const aeLsmgo = aeLoad + aeDischarge + aeIdle;
-
-      const total = meHsfo + meVlsfo + meLsmgo + aeLsmgo;
-
-      return {
-        id: r.id,
-        port: r.port || "(unset)",
-        operation: r.operation || "-",
-        workingDays,
-        turnDays,
-        extraDays,
-        workingMode,
-        meFuel: meFuelForWorking,
-        meHsfo,
-        meVlsfo,
-        meLsmgo,
-        aeLsmgo,
-        total,
-      };
-    });
+  const rows: PortFuelRow[] = computePortFuel(sequence, vessel);
 
   const totals = rows.reduce(
     (acc, r) => {
       acc.workingDays += r.workingDays;
       acc.turnDays += r.turnDays;
       acc.extraDays += r.extraDays;
+      acc.idleDays += r.idleDays;
       acc.meHsfo += r.meHsfo;
       acc.meVlsfo += r.meVlsfo;
       acc.meLsmgo += r.meLsmgo;
@@ -127,6 +29,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
       workingDays: 0,
       turnDays: 0,
       extraDays: 0,
+      idleDays: 0,
       meHsfo: 0,
       meVlsfo: 0,
       meLsmgo: 0,
@@ -157,11 +60,12 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
     >
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Fuel burned at each port broken down by activity. Working time (Load/Discharge) uses
-          the selected <span className="font-medium">P.Fuel</span> at the corresponding matrix
-          rate. Turn time and Extra time always burn at the <span className="font-medium">Idle</span>{" "}
-          rate using the selected P.Fuel. Auxiliary Engine (AE) always runs on{" "}
-          <span className="font-medium">LSMGO</span>.
+          Fuel burned at each port broken down by activity. At load/discharge ports the whole
+          stay (working + turn + extra time) burns the selected{" "}
+          <span className="font-medium">P.Fuel</span> at the Load / Discharge matrix rate. At
+          bunkering, waiting and other ports the full port time burns at the{" "}
+          <span className="font-medium">Idle</span> rate. Auxiliary Engine (AE) always runs on{" "}
+          <span className="font-medium">LSMGO</span> (AE-Scrubber profile when a scrubber is fitted).
         </p>
 
         <div className="overflow-x-auto">
@@ -174,6 +78,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
                 <th className="text-right py-2 px-2 font-medium">Working (d)</th>
                 <th className="text-right py-2 px-2 font-medium">Turn (d)</th>
                 <th className="text-right py-2 px-2 font-medium">Extra (d)</th>
+                <th className="text-right py-2 px-2 font-medium">Idle (d)</th>
                 <th className="text-right py-2 px-2 font-medium text-orange-500">HSFO (mt)</th>
                 <th className="text-right py-2 px-2 font-medium text-blue-500">VLSFO (mt)</th>
                 <th className="text-right py-2 px-2 font-medium text-emerald-500">LSMGO ME (mt)</th>
@@ -184,7 +89,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="text-center py-4 text-muted-foreground">
+                  <td colSpan={12} className="text-center py-4 text-muted-foreground">
                     No port legs in sequence.
                   </td>
                 </tr>
@@ -197,6 +102,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
                   <td className="text-right py-1.5 px-2 font-mono">{r.workingDays.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.turnDays.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.extraDays.toFixed(2)}</td>
+                  <td className="text-right py-1.5 px-2 font-mono">{r.idleDays.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.meHsfo.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.meVlsfo.toFixed(2)}</td>
                   <td className="text-right py-1.5 px-2 font-mono">{r.meLsmgo.toFixed(2)}</td>
@@ -214,6 +120,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
                   <td className="text-right py-2 px-2 font-mono">{totals.workingDays.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.turnDays.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.extraDays.toFixed(2)}</td>
+                  <td className="text-right py-2 px-2 font-mono">{totals.idleDays.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.meHsfo.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.meVlsfo.toFixed(2)}</td>
                   <td className="text-right py-2 px-2 font-mono">{totals.meLsmgo.toFixed(2)}</td>
@@ -231,16 +138,16 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
           <div className="bg-muted/30 rounded-lg p-3 space-y-1">
             <div className="font-medium mb-1">ME Consumption Logic</div>
             <div className="text-muted-foreground">
-              <span className="font-mono">Working = workingDays × Rate[P.Fuel, Load/Discharge]</span>
+              <span className="font-mono">Load/Disch = (working + turn + extra) × Rate[P.Fuel, Load/Discharge]</span>
             </div>
             <div className="text-muted-foreground">
-              <span className="font-mono">Turn + Extra = (turn + extra)/24 × Rate[P.Fuel, Idle]</span>
+              <span className="font-mono">Other ports = full port days × Rate[P.Fuel, Idle]</span>
             </div>
           </div>
           <div className="bg-muted/30 rounded-lg p-3 space-y-1">
             <div className="font-medium mb-1">AE Consumption Logic (LSMGO only)</div>
             <div className="text-muted-foreground">
-              <span className="font-mono">AE = workingDays × AE[mode] + (turn+extra)/24 × AE[idle]</span>
+              <span className="font-mono">AE = total port days × AE[Load/Discharge/Idle]</span>
             </div>
           </div>
         </div>
