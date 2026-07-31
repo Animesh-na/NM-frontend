@@ -3,6 +3,7 @@ import { ChevronDown, Fuel, X } from "lucide-react";
 import { useVoyageContext, type FuelAccountingMode } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
+import { computeFifoCoverage } from "@/utils/fuelBreakdown";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,7 +15,7 @@ import {
 export function BunkerSection() {
   const { 
     bunker, updateBunker, updateBunkerField, addPortBunkering, removePortBunkering,
-    updatePortBunkering, results, sequence 
+    updatePortBunkering, results, sequence, vessel 
   } = useVoyageContext();
   
   const [isExpanded, setIsExpanded] = useState(true);
@@ -34,9 +35,17 @@ export function BunkerSection() {
     lsmgo: results.lsmgoConsumption,
   } as const;
 
+  // Same consumption-weighted FIFO coverage the engine uses.
+  const fifoCoverage = computeFifoCoverage(
+    sequence,
+    vessel,
+    bunker.portBunkering.map((p) => p.portUnloc),
+    bunker.rewardFactor ?? 1,
+  );
+
   // Mirrors the calculation engine: average / FIFO / ignore-BOB pricing
   const getAveragePrice = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') =>
-    effectivePrice(buildFuelPricing(bunker, fuelType), consumptionOf[fuelType]);
+    effectivePrice(buildFuelPricing(bunker, fuelType, fifoCoverage[fuelType]), consumptionOf[fuelType]);
 
   const handleAddBunkeringPort = (portUnloc: string) => {
     const port = bunkeringPorts.find(p => p.portUnloc === portUnloc);

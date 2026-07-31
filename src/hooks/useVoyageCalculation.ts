@@ -19,6 +19,7 @@ import {
 } from "@/utils/emissionCalculations";
 import { vlog, vlogBegin, vlogEnd, exposeVoyageDebug } from "@/utils/voyageLogger";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
+import { computeFifoCoverage } from "@/utils/fuelBreakdown";
 import {
   getUkEtsSeaCoverage,
   getUkEtsPortCoverage,
@@ -87,6 +88,7 @@ export interface BunkerData {
   fuelMode?: "average" | "fifo";
   ignoreBOB?: boolean;
   portBunkering?: Array<{
+    portUnloc?: string;
     hsfo: { quantity: number; price: number };
     vlsfo: { quantity: number; price: number };
     lsmgo: { quantity: number; price: number };
@@ -651,9 +653,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     //  - average  : weighted average of BOB + all bunkering port prices
     //  - fifo     : BOB burnt first, then each bunkering port price in order
     //  - ignoreBOB: BOB excluded, only bunkering port prices used
-    const hsfoPrice = effectivePrice(buildFuelPricing(bunker, "hsfo"), hsfoConsumption);
-    const vlsfoPrice = effectivePrice(buildFuelPricing(bunker, "vlsfo"), vlsfoConsumption);
-    const lsmgoPrice = effectivePrice(buildFuelPricing(bunker, "lsmgo"), lsmgoConsumption);
+    // FIFO uses consumption coverage: how much fuel is burnt before each
+    // re-bunkering, so the effective $/t is weighted by price AND consumption.
+    const fifoCoverage = computeFifoCoverage(
+      sequence,
+      vessel,
+      (bunker.portBunkering as Array<{ portUnloc?: string }> | undefined)?.map((p) => p.portUnloc || "") || [],
+      rewardFactor,
+    );
+    const hsfoPrice = effectivePrice(buildFuelPricing(bunker, "hsfo", fifoCoverage.hsfo), hsfoConsumption);
+    const vlsfoPrice = effectivePrice(buildFuelPricing(bunker, "vlsfo", fifoCoverage.vlsfo), vlsfoConsumption);
+    const lsmgoPrice = effectivePrice(buildFuelPricing(bunker, "lsmgo", fifoCoverage.lsmgo), lsmgoConsumption);
 
     const hsfoCost = hsfoConsumption * hsfoPrice;
     const vlsfoCost = vlsfoConsumption * vlsfoPrice;
