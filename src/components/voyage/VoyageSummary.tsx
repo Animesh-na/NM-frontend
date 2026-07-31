@@ -22,7 +22,9 @@ export function VoyageSummary() {
   const euCovered =
     results.euCoveredFuel.hsfo + results.euCoveredFuel.vlsfo + results.euCoveredFuel.lsmgo;
   const hasEuPort = sequence.some((r) => r.isEuEea === true);
-  const cargoQty = results.cargoQuantity ?? 0;
+  const cargoQty = sequence
+    .filter((r) => r.operation === "loading")
+    .reduce((sum, r) => sum + (r.quantity || 0), 0);
   const euaZeroReason = !hasEuPort
     ? "No EU/EEA port in the sequence (port eu_zone flag) — EU ETS does not apply."
     : euCovered === 0
