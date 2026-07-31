@@ -93,7 +93,7 @@ export function SheetTabs() {
         </button>
 
         {activeTab && !activeTab.readOnly && (
-          {savingName ? (
+          savingName ? (
             <div className="flex items-center gap-1.5">
               <input
                 className="form-input-sm w-32"
@@ -114,7 +114,7 @@ export function SheetTabs() {
               <Save className="h-3 w-3" />
               <span>Save</span>
             </button>
-          )}
+          )
         )}
 
         {activeTab?.readOnly && (
