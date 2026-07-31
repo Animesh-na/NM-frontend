@@ -1,11 +1,15 @@
-import { X, ArrowLeft, Save, Plus, Copy } from "lucide-react";
+import { X, ArrowLeft, Save, Plus, Copy, Calculator } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
 import { useState } from "react";
+import { useVoyageContext } from "@/context/VoyageContext";
+import { IntakeCalculator } from "./IntakeCalculator";
 
 export function SheetTabs() {
   const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, createNewSheet, copyCurrentSheet } = useSheets();
   const [savingName, setSavingName] = useState(false);
   const [editName, setEditName] = useState("");
+  const [intakeOpen, setIntakeOpen] = useState(false);
+  const { sequence, vessel, stowageFactor, updateSequenceRow } = useVoyageContext();
 
   const handleSave = () => {
     if (!activeTab) return;
@@ -77,9 +81,18 @@ export function SheetTabs() {
         <span>New Sheet</span>
       </button>
 
-      {/* Save Button */}
-      {activeTab && !activeTab.readOnly && (
-        <div className="ml-auto flex items-center gap-1.5">
+      {/* Intake Calculator + Save */}
+      <div className="ml-auto flex items-center gap-1.5">
+        <button
+          onClick={() => setIntakeOpen(true)}
+          className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))] hover:opacity-90 transition-opacity text-[10px] font-semibold flex-shrink-0"
+          title="Intake Calculator"
+        >
+          <Calculator className="h-3 w-3" />
+          <span>Intake Calculator</span>
+        </button>
+
+        {activeTab && !activeTab.readOnly && (
           {savingName ? (
             <div className="flex items-center gap-1.5">
               <input
@@ -102,14 +115,38 @@ export function SheetTabs() {
               <span>Save</span>
             </button>
           )}
-        </div>
-      )}
-      {activeTab?.readOnly && (
-        <div className="ml-auto flex items-center gap-1.5">
+        )}
+
+        {activeTab?.readOnly && (
           <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-semibold uppercase tracking-wide">
             Read-only · Organization sheet
           </span>
-        </div>
+        )}
+      </div>
+
+      {intakeOpen && (
+        <IntakeCalculator
+          open
+          onClose={() => setIntakeOpen(false)}
+          vessel={vessel}
+          ports={sequence.map((r) => ({
+            id: r.id,
+            name: r.port,
+            draft: r.portMaxDraft || r.draft || 0,
+            operation: r.operation,
+            kind: r.type,
+          }))}
+          stowageFactor={Math.round((stowageFactor || 1.5) * 35.3147)}
+          onApply={(qty, portResults) => {
+            portResults.forEach((p) => {
+              updateSequenceRow(p.id, "portMaxDraft", p.draft);
+              updateSequenceRow(p.id, "draft", p.draft);
+            });
+            const firstLoad = sequence.find((r) => r.operation === "loading");
+            if (firstLoad) updateSequenceRow(firstLoad.id, "quantity", qty);
+            setIntakeOpen(false);
+          }}
+        />
       )}
     </div>
   );
