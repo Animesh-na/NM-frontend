@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { InfoTooltip } from "./InfoTooltip";
 import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
+import { computeLegSeaFuel, computePortFuel } from "@/utils/fuelBreakdown";
 
 const co2eOf = (hsfo: number, vlsfo: number, lsmgo: number) =>
   hsfo * CO2_EMISSION_FACTORS.hsfo +
@@ -10,106 +11,29 @@ const co2eOf = (hsfo: number, vlsfo: number, lsmgo: number) =>
   lsmgo * CO2_EMISSION_FACTORS.lsmgo;
 
 export function SequenceSummary() {
-  const { sequence, results, vessel } = useVoyageContext();
+  const { sequence, results, vessel, bunker } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [fuelView, setFuelView] = useState<"leg" | "port">("leg");
 
-  // ---------- Per-Leg (sea) and Per-Port fuel usage (VLSFO / LSMGO focus) ----------
-  const profile =
-    vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
-  const hasScrubber = vessel.hasScrubber === true;
-  const aeProfile = hasScrubber ? profile.aeScrubber : profile.ae;
+  // ---------- Per-Leg (sea) and Per-Port fuel usage — shared engine-parity logic ----------
+  const legFuelRows = computeLegSeaFuel(sequence, vessel, bunker?.rewardFactor ?? 1).map((r) => ({
+    id: r.id,
+    from: r.from,
+    to: r.to,
+    isLaden: r.isLaden,
+    hsfo: r.meHsfo,
+    vlsfo: r.meVlsfo,
+    lsmgo: r.meLsmgoEca + r.aeLsmgo,
+  }));
 
-  let cargoOnBoard = 0;
-  let prevPort = "—";
-  const legFuelRows: Array<{
-    id: string | number;
-    from: string;
-    to: string;
-    isLaden: boolean;
-    hsfo: number;
-    vlsfo: number;
-    lsmgo: number;
-  }> = [];
-  sequence.forEach((r) => {
-    if (r.type === "open") {
-      prevPort = r.port || "Open";
-      return;
-    }
-    const isLaden = cargoOnBoard > 0;
-    const totalSeaDays = r.totalLegTime || 0;
-    const ecaDays = r.ecaTime || 0;
-    const nonEcaDays = Math.max(0, totalSeaDays - ecaDays);
-    let hsfo = 0;
-    let vlsfo = 0;
-    if (hasScrubber) {
-      const rate = isLaden ? profile.hsfo.laden || 0 : profile.hsfo.ballast || 0;
-      hsfo = nonEcaDays * rate;
-    } else {
-      const rate = isLaden ? profile.vlsfo.laden || 0 : profile.vlsfo.ballast || 0;
-      vlsfo = nonEcaDays * rate;
-    }
-    const meLsmgoEca =
-      ecaDays * (isLaden ? profile.lsmgo.laden || 0 : profile.lsmgo.ballast || 0);
-    const aeLsmgo =
-      totalSeaDays * (isLaden ? aeProfile.laden || 0 : aeProfile.ballast || 0);
-    legFuelRows.push({
-      id: r.id,
-      from: prevPort,
-      to: r.port || "(unset)",
-      isLaden,
-      hsfo,
-      vlsfo,
-      lsmgo: meLsmgoEca + aeLsmgo,
-    });
-    const op = (r.operation || "").toLowerCase();
-    const qty = Math.max(0, Number(r.quantity) || 0);
-    if (op === "loading") cargoOnBoard += qty;
-    else if (op === "discharging") cargoOnBoard = Math.max(0, cargoOnBoard - qty);
-    prevPort = r.port || prevPort;
-  });
-
-  const portFuelRows = sequence
-    .filter((r) => r.type !== "open" && r.type !== "repos")
-    .map((r) => {
-      const turnDays = (r.turnTime || 0) / 24;
-      const extraDays = (r.extraTime || 0) / 24;
-      const turnExtra = turnDays + extraDays;
-      const totalPortDays = r.calculatedPortDays || 0;
-      const workingDays = Math.max(0, totalPortDays - turnExtra);
-      const fuel = r.portFuelType;
-      const meRateAt = (mode: "load" | "discharge" | "idle") => {
-        if (fuel === "hsfo") return profile.hsfo[mode] || 0;
-        if (fuel === "vlsfo") return profile.vlsfo[mode] || 0;
-        return profile.lsmgo[mode] || 0;
-      };
-      let workingMode: "load" | "discharge" | "none" = "none";
-      if (r.operation === "loading") workingMode = "load";
-      else if (r.operation === "discharging") workingMode = "discharge";
-      const workingConsumed =
-        workingMode !== "none" ? workingDays * meRateAt(workingMode) : 0;
-      const idleConsumed = turnExtra * meRateAt("idle");
-      const totalMe = workingConsumed + idleConsumed;
-      let hsfo = 0;
-      let vlsfo = 0;
-      let lsmgoMe = 0;
-      if (fuel === "hsfo") hsfo = totalMe;
-      else if (fuel === "vlsfo") vlsfo = totalMe;
-      else if (fuel === "lsmgo") lsmgoMe = totalMe;
-      const aeLoad = workingMode === "load" ? workingDays * (profile.ae.load || 0) : 0;
-      const aeDischarge =
-        workingMode === "discharge" ? workingDays * (profile.ae.discharge || 0) : 0;
-      const aeIdle = turnExtra * (profile.ae.idle || 0);
-      const aeLsmgo = aeLoad + aeDischarge + aeIdle;
-      return {
-        id: r.id,
-        port: r.port || "(unset)",
-        operation: r.operation || "-",
-        hsfo,
-        vlsfo,
-        lsmgo: lsmgoMe + aeLsmgo,
-      };
-    });
+  const portFuelRows = computePortFuel(sequence, vessel).map((r) => ({
+    id: r.id,
+    port: r.port,
+    operation: r.operation,
+    hsfo: r.meHsfo,
+    vlsfo: r.meVlsfo,
+    lsmgo: r.meLsmgo + r.aeLsmgo,
+  }));
 
   const legTotals = legFuelRows.reduce(
     (a, r) => ({ hsfo: a.hsfo + r.hsfo, vlsfo: a.vlsfo + r.vlsfo, lsmgo: a.lsmgo + r.lsmgo }),
