@@ -2,120 +2,22 @@ import { Fuel } from "lucide-react";
 import { BreakdownCard } from "./BreakdownCard";
 import type { SequenceRowUI } from "@/context/VoyageContext";
 import type { VesselData } from "@/data/vessels";
+import { computePortFuel, type FuelKey, type PortFuelRow } from "@/utils/fuelBreakdown";
 
 interface PerPortFuelPanelProps {
   sequence: SequenceRowUI[];
   vessel: VesselData;
 }
 
-type FuelKey = "hsfo" | "vlsfo" | "lsmgo";
-
-interface PortFuelRow {
-  id: string | number;
-  port: string;
-  operation: string;
-  workingDays: number;
-  turnDays: number;
-  extraDays: number;
-  workingMode: "load" | "discharge" | "idle" | "none";
-  meFuel: FuelKey | "none"; // ME fuel selection at port
-  // ME consumption (driven by portFuelType)
-  meHsfo: number;
-  meVlsfo: number;
-  meLsmgo: number;
-  // AE always burns LSMGO
-  aeLsmgo: number;
-  total: number;
-}
-
 export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
-  const profile =
-    vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
-
-  const rows: PortFuelRow[] = sequence
-    .filter((r) => r.type !== "open" && r.type !== "repos")
-    .map((r) => {
-      const turnDays = (r.turnTime || 0) / 24;
-      const extraDays = (r.extraTime || 0) / 24;
-      const turnExtraDays = turnDays + extraDays;
-      const totalPortDays = r.calculatedPortDays || 0;
-      const workingDays = Math.max(0, totalPortDays - turnExtraDays);
-
-      let workingMode: PortFuelRow["workingMode"] = "none";
-      let meFuelForWorking: FuelKey | "none" = "none";
-      let meHsfo = 0;
-      let meVlsfo = 0;
-      let meLsmgo = 0;
-
-      const fuel = r.portFuelType;
-      const meRateAt = (mode: "load" | "discharge" | "idle") => {
-        if (fuel === "hsfo") return profile.hsfo[mode] || 0;
-        if (fuel === "vlsfo") return profile.vlsfo[mode] || 0;
-        return profile.lsmgo[mode] || 0;
-      };
-
-      // Working consumption (loading / discharging)
-      if (r.operation === "loading") {
-        workingMode = "load";
-        meFuelForWorking = fuel;
-        const v = workingDays * meRateAt("load");
-        if (fuel === "hsfo") meHsfo += v;
-        else if (fuel === "vlsfo") meVlsfo += v;
-        else meLsmgo += v;
-      } else if (r.operation === "discharging") {
-        workingMode = "discharge";
-        meFuelForWorking = fuel;
-        const v = workingDays * meRateAt("discharge");
-        if (fuel === "hsfo") meHsfo += v;
-        else if (fuel === "vlsfo") meVlsfo += v;
-        else meLsmgo += v;
-      }
-
-      // Turn + Extra time always burns at IDLE rate using selected port fuel
-      const idleConsumed = turnExtraDays * meRateAt("idle");
-      if (turnExtraDays > 0) {
-        if (fuel === "hsfo") meHsfo += idleConsumed;
-        else if (fuel === "vlsfo") meVlsfo += idleConsumed;
-        else meLsmgo += idleConsumed;
-      }
-
-      // For pssg/bunkering legs, the entire time is idle-equivalent
-      if (r.operation === "pssg" || r.operation === "bunkering") {
-        // already covered: turnExtraDays === totalPortDays for these
-      }
-
-      // AE always on LSMGO at port
-      const aeLoad = workingMode === "load" ? workingDays * (profile.ae.load || 0) : 0;
-      const aeDischarge =
-        workingMode === "discharge" ? workingDays * (profile.ae.discharge || 0) : 0;
-      const aeIdle = turnExtraDays * (profile.ae.idle || 0);
-      // For pssg/bunkering, idle covers the full duration via turnTime/extraTime
-      const aeLsmgo = aeLoad + aeDischarge + aeIdle;
-
-      const total = meHsfo + meVlsfo + meLsmgo + aeLsmgo;
-
-      return {
-        id: r.id,
-        port: r.port || "(unset)",
-        operation: r.operation || "-",
-        workingDays,
-        turnDays,
-        extraDays,
-        workingMode,
-        meFuel: meFuelForWorking,
-        meHsfo,
-        meVlsfo,
-        meLsmgo,
-        aeLsmgo,
-        total,
-      };
-    });
+  const rows: PortFuelRow[] = computePortFuel(sequence, vessel);
 
   const totals = rows.reduce(
     (acc, r) => {
       acc.workingDays += r.workingDays;
       acc.turnDays += r.turnDays;
       acc.extraDays += r.extraDays;
+      acc.idleDays += r.idleDays;
       acc.meHsfo += r.meHsfo;
       acc.meVlsfo += r.meVlsfo;
       acc.meLsmgo += r.meLsmgo;
@@ -127,6 +29,7 @@ export function PerPortFuelPanel({ sequence, vessel }: PerPortFuelPanelProps) {
       workingDays: 0,
       turnDays: 0,
       extraDays: 0,
+      idleDays: 0,
       meHsfo: 0,
       meVlsfo: 0,
       meLsmgo: 0,
