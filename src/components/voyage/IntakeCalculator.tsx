@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 import { type VesselData } from "@/data/vessels";
 
 export type IntakeSeason = "summer" | "winter" | "tropical";
@@ -183,15 +182,11 @@ export function IntakeCalculator({
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        hideClose
         className="max-w-[1200px] w-[95vw] p-0 gap-0 overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-xl font-bold tracking-tight">Intake Calculator</h2>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-muted text-muted-foreground">
-            <X className="h-5 w-5" />
-          </button>
+        <div className="px-6 py-4 border-b border-border">
+          <DialogTitle className="text-xl font-bold tracking-tight">Intake Calculator</DialogTitle>
         </div>
 
         <div className="px-6 py-4 space-y-3 max-h-[78vh] overflow-y-auto bg-muted/30">
