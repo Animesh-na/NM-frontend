@@ -2,95 +2,19 @@ import { Ship } from "lucide-react";
 import { BreakdownCard } from "./BreakdownCard";
 import type { SequenceRowUI } from "@/context/VoyageContext";
 import type { VesselData } from "@/data/vessels";
+import { computeLegSeaFuel, type LegSeaFuelRow } from "@/utils/fuelBreakdown";
 
 interface PerLegSeaFuelPanelProps {
   sequence: SequenceRowUI[];
   vessel: VesselData;
+  rewardFactor?: number;
 }
 
-interface LegFuelRow {
-  id: string | number;
-  from: string;
-  to: string;
-  isLaden: boolean;
-  nonEcaDays: number;
-  ecaDays: number;
-  totalSeaDays: number;
-  nonEcaFuelType: "HSFO" | "VLSFO";
-  meHsfo: number;
-  meVlsfo: number;
-  meLsmgoEca: number;
-  aeLsmgo: number;
-  total: number;
-}
-
-export function PerLegSeaFuelPanel({ sequence, vessel }: PerLegSeaFuelPanelProps) {
-  const profile =
-    vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
+export function PerLegSeaFuelPanel({ sequence, vessel, rewardFactor = 1 }: PerLegSeaFuelPanelProps) {
   const hasScrubber = vessel.hasScrubber === true;
-  const aeProfile = hasScrubber ? profile.aeScrubber : profile.ae;
   const nonEcaFuelType: "HSFO" | "VLSFO" = hasScrubber ? "HSFO" : "VLSFO";
 
-  // Build legs: each non-open row is a leg from previous port to itself
-  let cargoOnBoard = 0;
-  let prevPort = "—";
-  const rows: LegFuelRow[] = [];
-
-  sequence.forEach((r) => {
-    if (r.type === "open") {
-      prevPort = r.port || "Open";
-    } else {
-      const isLaden = cargoOnBoard > 0;
-      const totalSeaDays = r.totalLegTime || 0;
-      const ecaDays = r.ecaTime || 0;
-      const nonEcaDays = Math.max(0, totalSeaDays - ecaDays);
-
-      // ME on non-ECA portion
-      let meHsfo = 0;
-      let meVlsfo = 0;
-      if (hasScrubber) {
-        const rate = isLaden ? profile.hsfo.laden || 0 : profile.hsfo.ballast || 0;
-        meHsfo = nonEcaDays * rate;
-      } else {
-        const rate = isLaden ? profile.vlsfo.laden || 0 : profile.vlsfo.ballast || 0;
-        meVlsfo = nonEcaDays * rate;
-      }
-
-      // ME on ECA portion → LSMGO
-      const ecaMeRate = isLaden ? profile.lsmgo.laden || 0 : profile.lsmgo.ballast || 0;
-      const meLsmgoEca = ecaDays * ecaMeRate;
-
-      // AE → LSMGO over the whole sea time
-      const aeRate = isLaden ? aeProfile.laden || 0 : aeProfile.ballast || 0;
-      const aeLsmgo = totalSeaDays * aeRate;
-
-      const total = meHsfo + meVlsfo + meLsmgoEca + aeLsmgo;
-
-      rows.push({
-        id: r.id,
-        from: prevPort,
-        to: r.port || "(unset)",
-        isLaden,
-        nonEcaDays,
-        ecaDays,
-        totalSeaDays,
-        nonEcaFuelType,
-        meHsfo,
-        meVlsfo,
-        meLsmgoEca,
-        aeLsmgo,
-        total,
-      });
-
-      // Update cargo on board after this port
-      const op = (r.operation || "").toLowerCase();
-      const qty = Math.max(0, Number(r.quantity) || 0);
-      if (op === "loading") cargoOnBoard += qty;
-      else if (op === "discharging") cargoOnBoard = Math.max(0, cargoOnBoard - qty);
-
-      prevPort = r.port || prevPort;
-    }
-  });
+  const rows: LegSeaFuelRow[] = computeLegSeaFuel(sequence, vessel, rewardFactor);
 
   const totals = rows.reduce(
     (acc, r) => {
