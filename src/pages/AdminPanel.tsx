@@ -13,6 +13,7 @@ import {
   type AdminUser, type AdminSheetItem, type AdminUserPermissionsPayload,
 } from "@/services/adminApi";
 import { toast } from "@/components/ui/sonner";
+import { trackEvent } from "@/services/logger";
 
 import AdminLogsPage from "@/pages/AdminLogsPage";
 
