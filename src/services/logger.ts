@@ -189,6 +189,28 @@ export const logger = {
   flush,
 };
 
+/**
+ * User-activity tracking.
+ *
+ * `action` is a stable dot-separated verb (e.g. "sheet.save", "admin.user.create")
+ * so activity can be grouped/filtered server-side independently of the message text.
+ */
+export function trackEvent(
+  action: string,
+  meta?: Record<string, unknown>,
+  level: LogLevel = "info",
+): void {
+  record(level, `[activity] ${action}`, { ...meta, action, kind: "activity" });
+}
+
+/** Track navigation between app views/pages. */
+let lastView = "";
+export function trackView(view: string, meta?: Record<string, unknown>): void {
+  if (view === lastView) return;
+  lastView = view;
+  trackEvent("navigation.view", { ...meta, view, component: "Navigation" });
+}
+
 // ── Initialization ──────────────────────────────────────────────────────
 let initialized = false;
 export function initLogger() {
