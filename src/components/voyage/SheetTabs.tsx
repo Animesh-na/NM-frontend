@@ -87,7 +87,7 @@ export function SheetTabs() {
       {/* Intake Calculator + Save */}
       <div className="ml-auto flex items-center gap-1.5">
         <button
-          onClick={() => setIntakeOpen(true)}
+          onClick={() => { trackEvent("intake.open", { component: "SheetTabs", vessel: vessel?.name }); setIntakeOpen(true); }}
           className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))] hover:opacity-90 transition-opacity text-[10px] font-semibold flex-shrink-0"
           title="Intake Calculator"
         >
