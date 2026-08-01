@@ -468,9 +468,11 @@ export default function Dashboard() {
                     key={m}
                     onClick={() => {
                       if (!allowed) {
+                        trackEvent("mode.switch.denied", { component: "Dashboard", requested_mode: m }, "warn");
                         toast.error(`You do not have access to ${MODE_LABELS[m]}. Please contact your administrator to request access.`);
                         return;
                       }
+                      trackEvent("mode.switch", { component: "Dashboard", from_mode: mode, to_mode: m });
                       setMode(m);
                     }}
                     title={allowed ? undefined : `You do not have access to ${MODE_LABELS[m]}. Please contact your administrator to request access.`}
