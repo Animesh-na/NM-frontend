@@ -104,12 +104,14 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       tanker_access: newTanker,
     });
     if (result) {
+      trackEvent("admin.user.create", { component: "AdminPanel", target_email: result.email, dry_bulk_access: newDryBulk, tanker_access: newTanker });
       toast.success(`User "${result.email}" created`);
       setShowCreateForm(false);
       setNewEmail("");
       setNewPassword("");
       fetchUsers();
     } else {
+      trackEvent("admin.user.create.failed", { component: "AdminPanel", target_email: newEmail }, "error");
       toast.error("Failed to create user");
     }
     setCreating(false);
@@ -120,10 +122,17 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     setSavingPerms(true);
     const result = await adminUpdateUser(permUser.id, payload);
     if (result) {
+      trackEvent("admin.user.permissions.update", {
+        component: "AdminPanel", target_user_id: permUser.id, target_email: permUser.email,
+        is_active: payload.is_active, expires_at: payload.expires_at,
+        dry_bulk_access: payload.dry_bulk_access, tanker_access: payload.tanker_access,
+        password_changed: !!payload.password,
+      });
       toast.success("Permissions updated");
       setPermUser(null);
       fetchUsers();
     } else {
+      trackEvent("admin.user.permissions.update.failed", { component: "AdminPanel", target_user_id: permUser.id }, "error");
       toast.error("Failed to update permissions");
     }
     setSavingPerms(false);
@@ -134,9 +143,11 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     if (!confirmed) return;
     const success = await adminDeactivateUser(u.id);
     if (success) {
+      trackEvent("admin.user.deactivate", { component: "AdminPanel", target_user_id: u.id, target_email: u.email });
       toast.success("User deactivated");
       fetchUsers();
     } else {
+      trackEvent("admin.user.deactivate.failed", { component: "AdminPanel", target_user_id: u.id }, "error");
       toast.error("Failed to deactivate user");
     }
   };
@@ -148,8 +159,10 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     if (!confirmed) return;
     const message = await adminResetUserMfa(u.id);
     if (message) {
+      trackEvent("admin.user.mfa.reset", { component: "AdminPanel", target_user_id: u.id, target_email: u.email });
       toast.success(message);
     } else {
+      trackEvent("admin.user.mfa.reset.failed", { component: "AdminPanel", target_user_id: u.id }, "error");
       toast.error("Failed to reset MFA");
     }
   };
@@ -157,20 +170,24 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const handleReactivate = async (u: AdminUser) => {
     const result = await adminUpdateUser(u.id, { is_active: true });
     if (result) {
+      trackEvent("admin.user.reactivate", { component: "AdminPanel", target_user_id: u.id, target_email: u.email });
       toast.success("User reactivated");
       fetchUsers();
     } else {
+      trackEvent("admin.user.reactivate.failed", { component: "AdminPanel", target_user_id: u.id }, "error");
       toast.error("Failed to reactivate user");
     }
   };
 
   const handleViewSheets = (u: AdminUser) => {
+    trackEvent("admin.user.sheets.view", { component: "AdminPanel", target_user_id: u.id, target_email: u.email });
     setSelectedUser(u);
     setSheetsPage(1);
     setView("user-sheets");
   };
 
   const handleOpenSheet = (sheet: AdminSheetItem) => {
+    trackEvent("admin.sheet.open", { component: "AdminPanel", sheet_id: sheet.id, sheet_name: sheet.name });
     openSheet(sheet.id, sheet.name);
   };
 
