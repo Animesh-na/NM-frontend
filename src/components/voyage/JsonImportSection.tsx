@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, Upload, FileJson, Copy } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { toast } from "sonner";
+import { trackEvent } from "@/services/logger";
 import type { VesselData } from "@/data/vessels";
 
 export function JsonImportSection() {
@@ -70,8 +71,15 @@ export function JsonImportSection() {
       }
 
       toast.success("Voyage data imported successfully");
+      trackEvent("voyage.json.import", {
+        component: "JsonImportSection",
+        has_vessel: !!data.vessel,
+        sequence_rows: Array.isArray(data.sequence) ? data.sequence.length : 0,
+        cargos: Array.isArray(data.cargos) ? data.cargos.length : 0,
+      });
       setJsonInput("");
     } catch (e) {
+      trackEvent("voyage.json.import.failed", { component: "JsonImportSection", reason: (e as Error)?.message }, "warn");
       toast.error("Invalid JSON format. Please check your input.");
     }
   };
@@ -88,6 +96,12 @@ export function JsonImportSection() {
     };
     const json = JSON.stringify(exportData, null, 2);
     navigator.clipboard.writeText(json);
+    trackEvent("voyage.json.export", {
+      component: "JsonImportSection",
+      vessel: vessel?.name,
+      sequence_rows: sequence?.length ?? 0,
+      cargos: cargos?.length ?? 0,
+    });
     toast.success("Current voyage data copied to clipboard");
   };
 

@@ -117,6 +117,9 @@ function persist() {
 async function flush() {
   if (flushing || buffer.length === 0) return;
   if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  // Upstream rejects unauthenticated log posts (401). Keep entries buffered
+  // until a session token exists, then they are delivered with the next tick.
+  if (!currentUser.token) return;
   flushing = true;
   const batch = buffer.slice(0, BATCH_SIZE);
   try {
@@ -185,6 +188,28 @@ export const logger = {
   fatal: (msg: string, meta?: Record<string, unknown>) => record("fatal", msg, meta),
   flush,
 };
+
+/**
+ * User-activity tracking.
+ *
+ * `action` is a stable dot-separated verb (e.g. "sheet.save", "admin.user.create")
+ * so activity can be grouped/filtered server-side independently of the message text.
+ */
+export function trackEvent(
+  action: string,
+  meta?: Record<string, unknown>,
+  level: LogLevel = "info",
+): void {
+  record(level, `[activity] ${action}`, { ...meta, action, kind: "activity" });
+}
+
+/** Track navigation between app views/pages. */
+let lastView = "";
+export function trackView(view: string, meta?: Record<string, unknown>): void {
+  if (view === lastView) return;
+  lastView = view;
+  trackEvent("navigation.view", { ...meta, view, component: "Navigation" });
+}
 
 // ── Initialization ──────────────────────────────────────────────────────
 let initialized = false;

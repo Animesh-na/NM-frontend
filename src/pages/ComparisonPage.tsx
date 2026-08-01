@@ -7,6 +7,7 @@ import { getSheet } from "@/services/marineApi";
 import { VoyageProvider, useVoyageContext } from "@/context/VoyageContext";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import { toast } from "@/components/ui/sonner";
+import { trackEvent, trackView } from "@/services/logger";
 
 interface SheetEntry {
   id: string;
@@ -222,11 +223,18 @@ export default function ComparisonPage() {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "Comparison");
     XLSX.writeFile(wb, `voyage-comparison-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    trackEvent("compare.export.excel", { component: "ComparisonPage", sheet_count: entries.length });
   };
 
-  const exportPdf = () => window.print();
+  const exportPdf = () => {
+    trackEvent("compare.export.pdf", { component: "ComparisonPage", sheet_count: entries.length });
+    window.print();
+  };
 
-  const handleChangeSelection = () => openCompare([]);
+  const handleChangeSelection = () => {
+    trackEvent("compare.selection.change", { component: "ComparisonPage" });
+    openCompare([]);
+  };
 
   // Chart data (by sheet name)
   const chartData = useMemo(() => {

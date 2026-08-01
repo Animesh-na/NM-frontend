@@ -3,6 +3,7 @@ import { useSheets } from "@/context/sheetContextCore";
 import { useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { IntakeCalculator } from "./IntakeCalculator";
+import { trackEvent } from "@/services/logger";
 
 export function SheetTabs() {
   const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, createNewSheet, copyCurrentSheet } = useSheets();
@@ -13,6 +14,7 @@ export function SheetTabs() {
 
   const handleSave = () => {
     if (!activeTab) return;
+    trackEvent("sheet.save.open", { component: "SheetTabs", sheet_id: activeTab.id, sheet_name: activeTab.name });
     setSavingName(true);
     setEditName(activeTab.name);
   };
@@ -20,6 +22,7 @@ export function SheetTabs() {
   const confirmSave = () => {
     // We'll pass an empty data object; the actual VoyageContext data will be gathered by the parent
     setSavingName(false);
+    trackEvent("sheet.save.confirm", { component: "SheetTabs", sheet_id: activeTab?.id, sheet_name: editName });
     // Dispatch custom event so Index page can handle the save with full context data
     window.dispatchEvent(new CustomEvent("sheet-save", { detail: { name: editName } }));
   };
@@ -84,7 +87,7 @@ export function SheetTabs() {
       {/* Intake Calculator + Save */}
       <div className="ml-auto flex items-center gap-1.5">
         <button
-          onClick={() => setIntakeOpen(true)}
+          onClick={() => { trackEvent("intake.open", { component: "SheetTabs", vessel: vessel?.name }); setIntakeOpen(true); }}
           className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))] hover:opacity-90 transition-opacity text-[10px] font-semibold flex-shrink-0"
           title="Intake Calculator"
         >
@@ -138,6 +141,12 @@ export function SheetTabs() {
           }))}
           stowageFactor={Math.round((cargos[0]?.stowageFactor || 1.4) * 35.3147)}
           onApply={(qty, portResults) => {
+            trackEvent("intake.apply", {
+              component: "IntakeCalculator",
+              vessel: vessel?.name,
+              quantity: qty,
+              ports_updated: portResults.length,
+            });
             portResults.forEach((p) => {
               updateSequenceRow(p.id, "portMaxDraft", p.draft);
               updateSequenceRow(p.id, "draft", p.draft);

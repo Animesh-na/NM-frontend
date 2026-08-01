@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
 import { useAuth, type MfaMethod } from "@/context/AuthContext";
+import { trackEvent } from "@/services/logger";
 import TotpSetup from "./TotpSetup";
 import EmailOtpSetup from "./EmailOtpSetup";
 import DisableMfa from "./DisableMfa";
@@ -36,11 +37,13 @@ const MfaManageDialog = ({ open, onOpenChange }: MfaManageDialogProps) => {
   }, [open]);
 
   const handleEnabled = (m: MfaMethod) => {
+    trackEvent("mfa.enabled", { component: "MfaManageDialog", method: m });
     setUserMfaMethod(m);
     toast.success("Two-factor authentication enabled");
   };
 
   const handleDisabled = () => {
+    trackEvent("mfa.disabled", { component: "MfaManageDialog", previous_method: method });
     setUserMfaMethod("");
     setDisabling(false);
     toast.success("Two-factor authentication disabled");
