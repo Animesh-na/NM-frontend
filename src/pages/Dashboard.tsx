@@ -14,6 +14,7 @@ import { MODE_LABELS } from "@/services/apiMode";
 import { DashboardSidebar, type DashSection } from "@/components/dashboard/DashboardSidebar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { VoyageStatusCards } from "@/components/dashboard/VoyageStatusCards";
+import { trackEvent, trackView } from "@/services/logger";
 
 const FleetOverviewChart = lazy(() => import("@/components/dashboard/FleetOverviewChart"));
 const AnalyticsCharts = lazy(() => import("@/components/dashboard/AnalyticsCharts"));
@@ -93,11 +94,16 @@ export default function Dashboard() {
   useEffect(() => { setPage(1); }, [tab, mode]);
 
   const handleCreate = () => {
+    trackEvent("sheet.create.click", { component: "Dashboard", mode });
     createNewSheet();
   };
 
   const handleOpen = (sheet: SheetListItem) => {
     const isOwn = !!sheet.owner_email && !!user?.email && sheet.owner_email.toLowerCase() === user.email.toLowerCase();
+    trackEvent("sheet.open", {
+      component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name,
+      source: tab, read_only: tab === "org" && !isOwn, mode,
+    });
     if (tab === "org" && !isOwn) {
       openOrganizationSheet(sheet.id, sheet.name);
     } else {
@@ -107,6 +113,10 @@ export default function Dashboard() {
 
   const handleOpenUserSheet = (sheet: SheetListItem, ownerEmail: string) => {
     const isOwn = !!user?.email && ownerEmail.toLowerCase() === user.email.toLowerCase();
+    trackEvent("sheet.open", {
+      component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name,
+      source: "organization-user", owner_email: ownerEmail, read_only: !isOwn, mode,
+    });
     if (isOwn) {
       openSheet(sheet.id, sheet.name);
     } else {
@@ -139,6 +149,7 @@ export default function Dashboard() {
       return;
     }
     setExpandedUserId(u.id);
+    trackEvent("organization.user.expand", { component: "Dashboard", target_user_id: u.id, target_user_email: u.email });
     if (!userSheetsMap[key]) {
       await loadUserSheetsPage(u, 1);
     }
@@ -146,13 +157,18 @@ export default function Dashboard() {
 
   const handleDelete = async (sheet: SheetListItem) => {
     const confirmed = window.confirm(`Delete "${sheet.name}"? This cannot be undone.`);
-    if (!confirmed) return;
+    if (!confirmed) {
+      trackEvent("sheet.delete.cancelled", { component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name });
+      return;
+    }
 
     const success = await deleteSheet(sheet.id);
     if (success) {
+      trackEvent("sheet.delete", { component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name, mode });
       toast.success("Sheet deleted");
       fetchSheets();
     } else {
+      trackEvent("sheet.delete.failed", { component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name }, "error");
       toast.error("Failed to delete sheet");
     }
   };
@@ -176,6 +192,7 @@ export default function Dashboard() {
 
   const navigate = (s: DashSection) => {
     setSection(s);
+    trackView(`dashboard/${s}`, { mode });
     setMobileNavOpen(false);
   };
 
