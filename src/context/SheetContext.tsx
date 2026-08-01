@@ -11,6 +11,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   const [compareSheetIds, setCompareSheetIds] = useState<string[]>([]);
 
   const openCompare = useCallback((ids: string[]) => {
+    trackEvent("compare.open", { component: "SheetContext", sheet_count: ids.length, sheet_ids: ids });
     setCompareSheetIds(ids);
     setCurrentView("compare");
   }, []);
