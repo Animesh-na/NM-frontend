@@ -7,6 +7,7 @@ import { CoverageInfoButton } from "./CoverageInfoButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
+import { trackEvent } from "@/services/logger";
 import { useAuth } from "@/context/AuthContext";
 import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 
@@ -517,7 +518,7 @@ export function VoyageSummary() {
             <label className="flex items-center gap-1.5 cursor-pointer">
               <Checkbox
                 checked={applyEuaImpact}
-                onCheckedChange={(v) => setApplyEuaImpact(!!v)}
+                onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "EU_ETS", enabled: !!v }); setApplyEuaImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
               <span className="text-[9px] text-regulatory font-medium">Apply EUA Freight Impact</span>
@@ -569,7 +570,7 @@ export function VoyageSummary() {
             <label className="flex items-center gap-1.5 cursor-pointer">
               <Checkbox
                 checked={applyUkEtsImpact}
-                onCheckedChange={(v) => setApplyUkEtsImpact(!!v)}
+                onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "UK_ETS", enabled: !!v }); setApplyUkEtsImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
               <span className="text-[9px] text-regulatory font-medium">Apply UK ETS Freight Impact</span>
@@ -658,7 +659,7 @@ export function VoyageSummary() {
             <label className="flex items-center gap-1.5 cursor-pointer">
               <Checkbox
                 checked={applyFuelEuImpact}
-                onCheckedChange={(v) => setApplyFuelEuImpact(!!v)}
+                onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "FuelEU", enabled: !!v }); setApplyFuelEuImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
               <span className="text-[9px] text-regulatory font-medium">Apply FuelEU Freight Impact</span>
@@ -673,7 +674,16 @@ export function VoyageSummary() {
               variant="outline"
               size="sm"
               className="w-full gap-1.5 h-6 text-[10px]"
-              onClick={() => exportVoyageToExcel({
+              onClick={() => {
+                trackEvent("voyage.export.excel", {
+                  component: "VoyageSummary",
+                  vessel: vessel?.name,
+                  sequence_rows: sequence?.length ?? 0,
+                  cargos: cargos?.length ?? 0,
+                  tce: results?.tce,
+                  pnl: results?.pAndL,
+                });
+                exportVoyageToExcel({
                 vessel,
                 sequence,
                 cargos,
@@ -688,7 +698,8 @@ export function VoyageSummary() {
                 hireRate,
                 netBB,
                 results,
-              })}
+                });
+              }}
             >
               <Download className="h-3 w-3" />
               Export Excel
