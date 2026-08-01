@@ -2,7 +2,7 @@ import { useState, useCallback, type ReactNode } from "react";
 import { SheetContext, type SheetTab } from "@/context/sheetContextCore";
 import { getSheet, saveSheet, updateSheet, type SheetDetail } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
-import { logger } from "@/services/logger";
+import { logger, trackEvent, trackView } from "@/services/logger";
 
 export function SheetProvider({ children }: { children: ReactNode }) {
   const [currentView, setCurrentView] = useState<"dashboard" | "editor" | "admin" | "compare">("dashboard");
@@ -34,6 +34,12 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   const copyCurrentSheet = useCallback(() => {
     const current = tabs[activeTabIndex];
     if (!current) return;
+    trackEvent("sheet.copy", {
+      component: "SheetContext",
+      source_sheet_id: current.id,
+      source_sheet_name: current.name,
+      source_read_only: !!current.readOnly,
+    });
     const copiedTab: SheetTab = {
       id: null,
       name: `${current.name} (Copy)`,
@@ -194,10 +200,12 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   }, [activeTabIndex]);
 
   const goToDashboard = useCallback(() => {
+    trackView("dashboard", { component: "SheetContext" });
     setCurrentView("dashboard");
   }, []);
 
   const renameTab = useCallback((index: number, name: string) => {
+    trackEvent("sheet.rename", { component: "SheetContext", sheet_index: index, sheet_name: name });
     setTabs(prev => prev.map((t, i) => i === index ? { ...t, name, isDirty: true } : t));
   }, []);
 
