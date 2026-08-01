@@ -443,24 +443,32 @@ export default function Dashboard() {
                 />
               </div>
             )}
-            {availableModes.length > 1 && (
-              <div className="flex items-center overflow-hidden rounded-lg border" style={{ borderColor: "hsl(var(--dash-border))" }}>
-                {availableModes.map((m) => (
+            <div className="flex items-center overflow-hidden rounded-lg border" style={{ borderColor: "hsl(var(--dash-border))" }}>
+              {(["dry-bulk", "tanker"] as const).map((m) => {
+                const allowed = availableModes.includes(m);
+                return (
                   <button
                     key={m}
-                    onClick={() => setMode(m)}
+                    onClick={() => {
+                      if (!allowed) {
+                        toast.error(`You do not have access to ${MODE_LABELS[m]}. Please contact your administrator to request access.`);
+                        return;
+                      }
+                      setMode(m);
+                    }}
+                    title={allowed ? undefined : `You do not have access to ${MODE_LABELS[m]}. Please contact your administrator to request access.`}
                     className="h-9 px-3 text-[12px] font-semibold transition-colors"
                     style={
-                      mode === m
+                      mode === m && allowed
                         ? { background: "hsl(var(--ocean))", color: "#fff" }
-                        : { color: "hsl(var(--dash-muted))" }
+                        : { color: "hsl(var(--dash-muted))", opacity: allowed ? 1 : 0.5 }
                     }
                   >
                     {MODE_LABELS[m]}
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
             <CompareSheetsLauncher variant="dashboard" />
             <button onClick={handleCreate} className="dash-btn-primary">
               <Plus className="h-4 w-4" />
