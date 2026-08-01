@@ -16,7 +16,7 @@ import ComparisonPage from "./pages/ComparisonPage";
 import NotFound from "./pages/NotFound";
 import { useExcelNavigation } from "@/hooks/useExcelNavigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { initLogger, logger, setLoggerUser } from "@/services/logger";
+import { initLogger, logger, setLoggerUser, trackView } from "@/services/logger";
 import { useEffect } from "react";
 
 initLogger();
@@ -25,6 +25,10 @@ const queryClient = new QueryClient();
 
 function SheetRouter() {
   const { currentView, setCurrentView, activeTab } = useSheets();
+
+  useEffect(() => {
+    trackView(currentView, { sheet_id: activeTab?.id ?? null, sheet_name: activeTab?.name ?? null });
+  }, [currentView, activeTab?.id, activeTab?.name]);
 
   if (currentView === "dashboard") {
     return <Dashboard />;
