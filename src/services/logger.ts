@@ -117,6 +117,9 @@ function persist() {
 async function flush() {
   if (flushing || buffer.length === 0) return;
   if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  // Upstream rejects unauthenticated log posts (401). Keep entries buffered
+  // until a session token exists, then they are delivered with the next tick.
+  if (!currentUser.token) return;
   flushing = true;
   const batch = buffer.slice(0, BATCH_SIZE);
   try {
