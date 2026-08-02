@@ -583,6 +583,7 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   timeOverride: undefined,
   quantity: 0,
   productivity: type === "port" && (operation === "loading" || operation === "discharging") ? 8000 : 0,
+  layTime: type === "port" && (operation === "loading" || operation === "discharging") ? 24 : 0,
   terms: type === "port" && (operation === "loading" || operation === "discharging") ? "shinc" : "",
   turnTime: type === "port" ? 18 : 0,
   extraTime: 0,
