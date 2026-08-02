@@ -112,6 +112,10 @@ export function VoyageSummary() {
     return value.toFixed(2);
   };
 
+  /** Green when positive/zero, red when negative — applied to all key outputs. */
+  const signColor = (value: number) =>
+    (Number.isFinite(value) ? value : 0) < 0 ? "text-destructive" : "text-success";
+
   return (
     <div className="calc-card-compact">
       <button
@@ -227,14 +231,14 @@ export function VoyageSummary() {
                 NTCE
                 <InfoTooltip formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" description="Net Time Charter Equivalent - daily earning after all costs" />
               </span>
-              <span className="font-mono tabular-nums font-semibold">${formatCurrency(results.ntce)}</span>
+              <span className={`font-mono tabular-nums font-semibold ${signColor(results.ntce)}`}>${formatCurrency(results.ntce)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">
                 GTCE
                 <InfoTooltip formula="NTCE / (1 - TC Commission%)" description="Gross Time Charter Equivalent - NTCE grossed up by TC commission" />
               </span>
-              <span className="font-mono tabular-nums text-success font-semibold">${formatCurrency(results.gtce)}</span>
+              <span className={`font-mono tabular-nums font-semibold ${signColor(results.gtce)}`}>${formatCurrency(results.gtce)}</span>
             </div>
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
@@ -247,7 +251,7 @@ export function VoyageSummary() {
                       ({c.loadedQty.toLocaleString()} mt)
                     </span>
                   </span>
-                  <span className="font-mono tabular-nums font-bold text-primary">
+                  <span className={`font-mono tabular-nums font-bold ${signColor(c.grossRate)}`}>
                     ${formatCurrency(c.grossRate)} /mt
                   </span>
                 </div>
@@ -261,7 +265,7 @@ export function VoyageSummary() {
                     description="Breakeven freight rate per MT including hire and commission"
                   />
                 </span>
-                <span className="font-mono tabular-nums font-bold text-primary">
+                <span className={`font-mono tabular-nums font-bold ${signColor(results.grossRate)}`}>
                   ${formatCurrency(results.grossRate)} /mt
                 </span>
               </div>
@@ -274,7 +278,7 @@ export function VoyageSummary() {
                   description="Profit & Loss for the voyage"
                 />
               </span>
-              <span className={`font-mono tabular-nums font-bold ${results.pAndL >= 0 ? "text-success" : "text-destructive"}`}>
+              <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL)}`}>
                 ${formatCurrency(results.pAndL)}
               </span>
             </div>
