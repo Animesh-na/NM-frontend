@@ -1636,6 +1636,25 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     }));
   }, []);
 
+  // Active sector mode — Worldscale pricing applies to tanker sheets only.
+  const [sectorMode, setSectorMode] = useState(getApiMode());
+  useEffect(() => {
+    const onModeChange = () => setSectorMode(getApiMode());
+    window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+    return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+  }, []);
+
+  /** Effective $/mt rate: tanker applies Worldscale % to the flat rate. */
+  const effectiveCargoRate = useCallback(
+    (c: { rate: number; rateType: "mt" | "lumpsum"; worldscale?: number }) => {
+      const rate = c.rate || 0;
+      if (c.rateType === "lumpsum" || sectorMode !== "tanker") return rate;
+      const ws = c.worldscale ?? 100;
+      return rate * (ws / 100);
+    },
+    [sectorMode],
+  );
+
   // Calculate cargo quantity from sequence load/discharge operations
   const sequenceCargoQuantity = useMemo(() => {
     // CP override qty/productivity are reference-only for demurrage/despatch
