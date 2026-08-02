@@ -8,6 +8,7 @@ import { isPortEuEea } from "@/utils/euCountries";
 import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
+import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
 import {
   validateVessel,
   validateSequence,
