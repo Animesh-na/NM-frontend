@@ -1695,7 +1695,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     // Gross freight = Σ (rate × per-cargo loaded qty), lumpsum added as-is.
     const totalGrossFreight = cargos.reduce((sum, c, ci) => {
       if (c.rateType === "lumpsum") return sum + (c.rate || 0);
-      return sum + (c.rate || 0) * loadedQtyForCargo(c.id, ci);
+      return sum + effectiveCargoRate(c) * loadedQtyForCargo(c.id, ci);
     }, 0);
     
     const avgVoyComm = cargos.length > 0 
@@ -1717,7 +1717,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       demurrage: totalDemurrage,
       despatch: totalDespatch,
     };
-  }, [cargos, sequence, sequenceCargoQuantity]);
+  }, [cargos, sequence, sequenceCargoQuantity, effectiveCargoRate]);
 
   // Transform UI state to calculation inputs
   const cargoRowMapForInputs = getCargoRowMap(cargos, sequence);
