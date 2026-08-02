@@ -386,10 +386,16 @@ export function SequenceTable() {
                       {/* Sea Time */}
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
-                          <input type="number" step="0.01" className="form-input-sm w-14 font-mono text-right text-[10px]"
-                            value={row.timeOverride !== undefined ? row.timeOverride : (row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "")}
-                            onChange={(e) => { const val = parseFloat(e.target.value); updateSequenceRow(row.id, "timeOverride", val > 0 ? val : undefined); }}
-                            placeholder={row.totalLegTime > 0 ? formatTime(row.totalLegTime) : "0"} />
+                          <span
+                            className="text-[10px] font-mono tabular-nums text-right w-14 inline-block px-1 text-muted-foreground"
+                            title="Sea time is calculated from distance, speed and sea margin"
+                          >
+                            {row.timeOverride !== undefined
+                              ? formatTime(row.timeOverride)
+                              : row.totalLegTime > 0
+                                ? formatTime(row.totalLegTime)
+                                : "0.00"}
+                          </span>
                         )}
                       </td>
 
