@@ -55,7 +55,7 @@ export function SectionFrame({ title, children, className = "" }: SectionFramePr
   }
 
   return (
-    <div className={`relative h-full [&>*:first-child]:h-full ${className}`}>
+    <div className={`relative [&>*:first-child]:h-full ${className}`}>
       {children}
       {toggle}
     </div>
