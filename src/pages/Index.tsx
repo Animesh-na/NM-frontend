@@ -166,12 +166,12 @@ const Index = () => {
             isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
           }`}
         >
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5 items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5 items-stretch">
             <SectionFrame title="Vessel"><VesselPanel /></SectionFrame>
             <SectionFrame title="Bunker"><BunkerSection /></SectionFrame>
           </div>
           <SectionFrame title="Sequence"><SequenceTable /></SectionFrame>
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2.5 items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2.5 items-stretch">
             <SectionFrame title="Cargo"><CargoSection /></SectionFrame>
             <SectionFrame title="Miscellaneous"><MiscSection /></SectionFrame>
           </div>
