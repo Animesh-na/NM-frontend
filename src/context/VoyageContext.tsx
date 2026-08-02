@@ -65,6 +65,9 @@ export interface SequenceRowUI {
   // Cargo quantity & productivity (for loading/discharging)
   quantity: number; // MT
   productivity: number; // MT/day
+
+  // Tanker mode: agreed laytime in hours (replaces quantity/productivity model)
+  layTime?: number; // hours
   
   // Terms and time calculations
   terms: "shinc" | "sshex" | "fhex" | "satpn" | "custom" | "";
@@ -370,6 +373,12 @@ function calculatePortDays(row: SequenceRowUI): number {
   }
   
   if (row.operation === "loading" || row.operation === "discharging") {
+    // Tanker sheets have no mt/day productivity — port time is driven by the
+    // agreed laytime (hours) plus turn/extra time.
+    if (getApiMode() === "tanker") {
+      return ((row.layTime || 0) + row.turnTime + row.extraTime) / 24;
+    }
+
     if (row.productivity <= 0 || row.quantity <= 0) {
       return (row.turnTime + row.extraTime) / 24;
     }
