@@ -8,6 +8,7 @@ import { isPortEuEea } from "@/utils/euCountries";
 import { validateCargoAssignments, type CargoValidationResult } from "@/utils/cargoValidation";
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
+import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
 import {
   validateVessel,
   validateSequence,
@@ -138,6 +139,11 @@ export interface CargoEntry {
   rate: number;
   rateType: "mt" | "lumpsum";
   quantity: number;
+  /**
+   * Tanker only — Worldscale percentage applied to the flat rate.
+   * Effective $/mt = rate × (worldscale / 100). Can exceed 100.
+   */
+  worldscale?: number;
   voyageCommission: number;
   tcCommission: number;
   demurrageRate: number; // $/day
@@ -749,6 +755,7 @@ const initialCargos: CargoEntry[] = [
     id: 1,
     rate: 13.7,
     rateType: "mt",
+    worldscale: 100,
     quantity: 56550,
     voyageCommission: 1.25,
     tcCommission: 3.75,
@@ -1292,6 +1299,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       id: 1,
       rate: 0,
       rateType: "mt",
+      worldscale: 100,
       quantity: 0,
       voyageCommission: 1.25,
       tcCommission: 3.75,
@@ -1460,6 +1468,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         id: nextId,
         rate: 0,
         rateType: "mt" as const,
+        worldscale: 100,
         quantity: 0,
         voyageCommission: 1.25,
         tcCommission: 3.75,
@@ -1630,6 +1639,25 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     }));
   }, []);
 
+  // Active sector mode — Worldscale pricing applies to tanker sheets only.
+  const [sectorMode, setSectorMode] = useState(getApiMode());
+  useEffect(() => {
+    const onModeChange = () => setSectorMode(getApiMode());
+    window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+    return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+  }, []);
+
+  /** Effective $/mt rate: tanker applies Worldscale % to the flat rate. */
+  const effectiveCargoRate = useCallback(
+    (c: { rate: number; rateType: "mt" | "lumpsum"; worldscale?: number }) => {
+      const rate = c.rate || 0;
+      if (c.rateType === "lumpsum" || sectorMode !== "tanker") return rate;
+      const ws = c.worldscale ?? 100;
+      return rate * (ws / 100);
+    },
+    [sectorMode],
+  );
+
   // Calculate cargo quantity from sequence load/discharge operations
   const sequenceCargoQuantity = useMemo(() => {
     // CP override qty/productivity are reference-only for demurrage/despatch
@@ -1670,7 +1698,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     // Gross freight = Σ (rate × per-cargo loaded qty), lumpsum added as-is.
     const totalGrossFreight = cargos.reduce((sum, c, ci) => {
       if (c.rateType === "lumpsum") return sum + (c.rate || 0);
-      return sum + (c.rate || 0) * loadedQtyForCargo(c.id, ci);
+      return sum + effectiveCargoRate(c) * loadedQtyForCargo(c.id, ci);
     }, 0);
     
     const avgVoyComm = cargos.length > 0 
@@ -1692,7 +1720,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       demurrage: totalDemurrage,
       despatch: totalDespatch,
     };
-  }, [cargos, sequence, sequenceCargoQuantity]);
+  }, [cargos, sequence, sequenceCargoQuantity, effectiveCargoRate]);
 
   // Transform UI state to calculation inputs
   const cargoRowMapForInputs = getCargoRowMap(cargos, sequence);
@@ -1759,7 +1787,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     cargo: aggregatedCargo,
     cargos: cargos.map(c => ({
       id: c.id,
-      rate: c.rate,
+      rate: effectiveCargoRate(c),
       rateType: c.rateType,
       voyageCommission: c.voyageCommission,
       tcCommission: c.tcCommission,
