@@ -139,6 +139,11 @@ export interface CargoEntry {
   rate: number;
   rateType: "mt" | "lumpsum";
   quantity: number;
+  /**
+   * Tanker only — Worldscale percentage applied to the flat rate.
+   * Effective $/mt = rate × (worldscale / 100). Can exceed 100.
+   */
+  worldscale?: number;
   voyageCommission: number;
   tcCommission: number;
   demurrageRate: number; // $/day
