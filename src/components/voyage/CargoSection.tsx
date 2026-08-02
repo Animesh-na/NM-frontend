@@ -261,6 +261,12 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
   const cargoQuantity = sequenceQuantity;
   const { getFieldError } = useVoyageContext();
   const [open, setOpen] = useState(index === 0);
+  const [isTanker, setIsTanker] = useState(getApiMode() === "tanker");
+  useEffect(() => {
+    const onModeChange = () => setIsTanker(getApiMode() === "tanker");
+    window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+    return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+  }, []);
   const errCls = (msg?: string) =>
     msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   const errRate = getFieldError("cargo","rate",cargo.id);
