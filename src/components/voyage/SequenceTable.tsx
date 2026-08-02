@@ -1,5 +1,5 @@
 import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
 import { SequenceSummary } from "./SequenceSummary";
@@ -19,6 +19,7 @@ import { CustomTermsDialog } from "./CustomTermsDialog";
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { toast } from "@/hooks/use-toast";
 import { getFieldId } from "@/utils/validation";
+import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
@@ -59,6 +60,15 @@ export function SequenceTable() {
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
   const [savedCustomTerms, setSavedCustomTerms] = useState<{ name: string; coefficient: number }[]>([]);
+
+  // Tanker sheets use agreed laytime (hours) instead of mt/day + terms.
+  const [sectorMode, setSectorMode] = useState(getApiMode());
+  useEffect(() => {
+    const onModeChange = () => setSectorMode(getApiMode());
+    window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+    return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+  }, []);
+  const isTanker = sectorMode === "tanker";
   
   const { cargos = [] } = useVoyageContext();
   const globalStowageFactor = cargos[0]?.stowageFactor || 1.4;
@@ -183,9 +193,15 @@ export function SequenceTable() {
                   <th className={thClass}>{autoDistanceEnabled ? "WD h" : "SM %"}</th>
                   <th className={thClass}>Port Fuel</th>
                   <th className={thClass}>Qty mt</th>
-                  <th className={thClass}>mt/d</th>
-                  <th className={thClass}>Terms</th>
-                  <th className={thClass}>Coeff</th>
+                  {isTanker ? (
+                    <th className={thClass}>Laytime h</th>
+                  ) : (
+                    <>
+                      <th className={thClass}>mt/d</th>
+                      <th className={thClass}>Terms</th>
+                      <th className={thClass}>Coeff</th>
+                    </>
+                  )}
                   <th className={thClass}>Turn h</th>
                   <th className={thClass}>Extra h</th>
                   <th className={thClass}>Draft m</th>
@@ -476,6 +492,16 @@ export function SequenceTable() {
                         )}
                       </td>
 
+                      {isTanker ? (
+                        /* Laytime (hours) — tanker port time driver */
+                        <td className={tdClass}>
+                          {hasQty ? (
+                            <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
+                              value={row.layTime || ""} onChange={(e) => updateSequenceRow(row.id, "layTime", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          ) : <span className="text-muted-foreground/40 px-1">—</span>}
+                        </td>
+                      ) : (
+                      <>
                       {/* Productivity */}
                       <td className={tdClass}>
                         {hasQty ? (
@@ -552,6 +578,8 @@ export function SequenceTable() {
                           />
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
+                      </>
+                      )}
 
                       {/* Turn Time */}
                       <td className={tdClass}>

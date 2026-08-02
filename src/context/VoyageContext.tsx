@@ -65,6 +65,9 @@ export interface SequenceRowUI {
   // Cargo quantity & productivity (for loading/discharging)
   quantity: number; // MT
   productivity: number; // MT/day
+
+  // Tanker mode: agreed laytime in hours (replaces quantity/productivity model)
+  layTime?: number; // hours
   
   // Terms and time calculations
   terms: "shinc" | "sshex" | "fhex" | "satpn" | "custom" | "";
@@ -370,6 +373,12 @@ function calculatePortDays(row: SequenceRowUI): number {
   }
   
   if (row.operation === "loading" || row.operation === "discharging") {
+    // Tanker sheets have no mt/day productivity — port time is driven by the
+    // agreed laytime (hours) plus turn/extra time.
+    if (getApiMode() === "tanker") {
+      return ((row.layTime || 0) + row.turnTime + row.extraTime) / 24;
+    }
+
     if (row.productivity <= 0 || row.quantity <= 0) {
       return (row.turnTime + row.extraTime) / 24;
     }
@@ -574,6 +583,7 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   timeOverride: undefined,
   quantity: 0,
   productivity: type === "port" && (operation === "loading" || operation === "discharging") ? 8000 : 0,
+  layTime: type === "port" && (operation === "loading" || operation === "discharging") ? 24 : 0,
   terms: type === "port" && (operation === "loading" || operation === "discharging") ? "shinc" : "",
   turnTime: type === "port" ? 18 : 0,
   extraTime: 0,
@@ -1646,6 +1656,13 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
     return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
   }, []);
+
+  // Port-day model differs per sector (tanker = laytime hours), so recompute
+  // derived rows whenever the active sector changes.
+  useEffect(() => {
+    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel, autoDistanceEnabled, departureUtc));
+     
+  }, [sectorMode]);
 
   /** Effective $/mt rate: tanker applies Worldscale % to the flat rate. */
   const effectiveCargoRate = useCallback(
