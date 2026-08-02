@@ -1657,6 +1657,13 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
   }, []);
 
+  // Port-day model differs per sector (tanker = laytime hours), so recompute
+  // derived rows whenever the active sector changes.
+  useEffect(() => {
+    setSequence((prev) => recalculateDerivedSequenceRows(prev, vessel, autoDistanceEnabled, departureUtc));
+     
+  }, [sectorMode]);
+
   /** Effective $/mt rate: tanker applies Worldscale % to the flat rate. */
   const effectiveCargoRate = useCallback(
     (c: { rate: number; rateType: "mt" | "lumpsum"; worldscale?: number }) => {
