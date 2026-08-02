@@ -1,5 +1,6 @@
 import { ChevronDown, Package, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
 import { useVoyageContext, type CargoEntry, type SequenceRowUI } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
@@ -312,7 +313,9 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         <span className="text-[11px] font-mono tabular-nums">
           {cargo.rateType === "lumpsum"
             ? `$${(cargo.rate || 0).toLocaleString()} lump`
-            : `${(cargo.rate || 0).toFixed(3)} $/ton`}
+            : isTanker
+              ? `WS ${(cargo.worldscale ?? 100).toFixed(2)} → ${(((cargo.rate || 0) * (cargo.worldscale ?? 100)) / 100).toFixed(3)} $/ton`
+              : `${(cargo.rate || 0).toFixed(3)} $/ton`}
         </span>
         <span className="text-muted-foreground text-[11px]">|</span>
         <span className="text-[11px] font-mono tabular-nums">{(cargo.voyageCommission || 0)}%</span>
@@ -345,6 +348,48 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             </select>
           </div>
         </div>
+
+        {isTanker && (
+          <div className="form-field min-w-0">
+            <label className="form-label flex items-center gap-1">
+              WS
+              <InfoTooltip
+                formula="Gross Freight = (Flat Rate × WS%) × Quantity"
+                description="Worldscale percentage of the flat rate. Can exceed 100."
+              />
+            </label>
+            <div className="input-with-unit">
+              <input
+                type="number"
+                step="0.25"
+                min="0"
+                className="form-input-sm w-full font-mono text-right"
+                value={cargo.worldscale ?? 100}
+                onChange={(e) => onUpdate("worldscale", parseFloat(e.target.value) || 0)}
+                disabled={cargo.rateType === "lumpsum"}
+              />
+              <span className="unit">%</span>
+            </div>
+          </div>
+        )}
+
+        {isTanker && (
+          <div className="form-field min-w-0">
+            <label className="form-label flex items-center gap-1">
+              Eff. Rate
+              <InfoTooltip formula="Flat Rate × WS% / 100" description="Effective freight rate applied to quantity" />
+            </label>
+            <div className="input-with-unit">
+              <input
+                type="text"
+                readOnly
+                className="form-input-sm w-full font-mono text-right bg-muted/30"
+                value={(((cargo.rate || 0) * (cargo.worldscale ?? 100)) / 100).toFixed(3)}
+              />
+              <span className="unit">$/mt</span>
+            </div>
+          </div>
+        )}
 
         <div className="form-field min-w-0">
           <label className="form-label flex items-center gap-1">
