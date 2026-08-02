@@ -1784,7 +1784,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     cargo: aggregatedCargo,
     cargos: cargos.map(c => ({
       id: c.id,
-      rate: c.rate,
+      rate: effectiveCargoRate(c),
       rateType: c.rateType,
       voyageCommission: c.voyageCommission,
       tcCommission: c.tcCommission,
