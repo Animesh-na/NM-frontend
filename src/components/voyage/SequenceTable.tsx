@@ -492,6 +492,16 @@ export function SequenceTable() {
                         )}
                       </td>
 
+                      {isTanker ? (
+                        /* Laytime (hours) — tanker port time driver */
+                        <td className={tdClass}>
+                          {hasQty ? (
+                            <input type="number" className="form-input-sm w-14 font-mono text-right text-[10px]"
+                              value={row.layTime || ""} onChange={(e) => updateSequenceRow(row.id, "layTime", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          ) : <span className="text-muted-foreground/40 px-1">—</span>}
+                        </td>
+                      ) : (
+                      <>
                       {/* Productivity */}
                       <td className={tdClass}>
                         {hasQty ? (
@@ -568,6 +578,8 @@ export function SequenceTable() {
                           />
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
+                      </>
+                      )}
 
                       {/* Turn Time */}
                       <td className={tdClass}>
