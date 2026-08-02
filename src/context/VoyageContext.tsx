@@ -1299,6 +1299,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       id: 1,
       rate: 0,
       rateType: "mt",
+      worldscale: 100,
       quantity: 0,
       voyageCommission: 1.25,
       tcCommission: 3.75,
