@@ -969,45 +969,45 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // --- PORT TIME AGGREGATES ---
-  setSubSectionHeader(r, "PORT TIME BY FUEL TYPE"); r++;
+  setSubSectionHeader(r, "PORT DAYS SPLIT BY PORT FUEL (load / disch stays include turn + extra time)"); r++;
 
-  setCalcLabel(r, "Loading Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HLD)})`, c_hld); const R_HLD = r; r++;
-  setCalcLabel(r, "Loading Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VLD)})`, c_vld); const R_VLD = r; r++;
-  setCalcLabel(r, "Loading Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LLD)})`, c_lld); const R_LLD = r; r++;
-  setCalcLabel(r, "Disch Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HDD)})`, c_hdd); const R_HDD = r; r++;
-  setCalcLabel(r, "Disch Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VDD)})`, c_vdd); const R_VDD = r; r++;
-  setCalcLabel(r, "Disch Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LDD)})`, c_ldd); const R_LDD = r; r++;
-  setCalcLabel(r, "Idle Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HID)})`, c_hid); const R_HID = r; r++;
-  setCalcLabel(r, "Idle Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VID)})`, c_vid); const R_VID = r; r++;
-  setCalcLabel(r, "Idle Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LID)})`, c_lid); const R_LID = r; r++;
+  setCalcLabel(r, "Load Port Days on HSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.HLD)})`, c_hld); const R_HLD = r; r++;
+  setCalcLabel(r, "Load Port Days on VLSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.VLD)})`, c_vld); const R_VLD = r; r++;
+  setCalcLabel(r, "Load Port Days on LSMGO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.LLD)})`, c_lld); const R_LLD = r; r++;
+  setCalcLabel(r, "Disch Port Days on HSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.HDD)})`, c_hdd); const R_HDD = r; r++;
+  setCalcLabel(r, "Disch Port Days on VLSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.VDD)})`, c_vdd); const R_VDD = r; r++;
+  setCalcLabel(r, "Disch Port Days on LSMGO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.LDD)})`, c_ldd); const R_LDD = r; r++;
+  setCalcLabel(r, "Idle / Waiting / Bunkering Days on HSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.HID)})`, c_hid); const R_HID = r; r++;
+  setCalcLabel(r, "Idle / Waiting / Bunkering Days on VLSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.VID)})`, c_vid); const R_VID = r; r++;
+  setCalcLabel(r, "Idle / Waiting / Bunkering Days on LSMGO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.LID)})`, c_lid); const R_LID = r; r++;
 
-  setCalcLabel(r, "Total Loading Days"); setCalcFormula(r, `${B(R_HLD)}+${B(R_VLD)}+${B(R_LLD)}`, c_tload); const R_TLOAD = r; r++;
-  setCalcLabel(r, "Total Disch Days"); setCalcFormula(r, `${B(R_HDD)}+${B(R_VDD)}+${B(R_LDD)}`, c_tdisch); const R_TDISCH = r; r++;
-  setCalcLabel(r, "Total Idle Days"); setCalcFormula(r, `${B(R_HID)}+${B(R_VID)}+${B(R_LID)}`, c_tidle); const R_TIDLE = r; r++;
+  setCalcLabel(r, "Total Load Port Days (d)"); setCalcFormula(r, `${B(R_HLD)}+${B(R_VLD)}+${B(R_LLD)}`, c_tload); const R_TLOAD = r; r++;
+  setCalcLabel(r, "Total Disch Port Days (d)"); setCalcFormula(r, `${B(R_HDD)}+${B(R_VDD)}+${B(R_LDD)}`, c_tdisch); const R_TDISCH = r; r++;
+  setCalcLabel(r, "Total Idle / Bunkering Days (d)"); setCalcFormula(r, `${B(R_HID)}+${B(R_VID)}+${B(R_LID)}`, c_tidle); const R_TIDLE = r; r++;
   r++;
 
   // ═══════════════════════════════════════════════════════
   // SECTION 4: BUNKER CONSUMPTION (FORMULAS)
   // ═══════════════════════════════════════════════════════
 
-  setSubSectionHeader(r, "BUNKER CONSUMPTION"); r++;
+  setSectionHeader(r, "BUNKER CONSUMPTION (mt) — SAME MODEL AS THE SOFTWARE ENGINE"); r++;
 
   // --- Sea Consumption ---
-  setSubSectionHeader(r, "Sea Consumption"); r++;
+  setSubSectionHeader(r, "1. Sea Consumption — Main Engine (outside ECA: HSFO if scrubber else VLSFO; inside ECA: LSMGO)"); r++;
 
-  setCalcLabel(r, "HSFO Sea (mt)");
+  setCalcLabel(r, "HSFO Sea outside ECA (mt)");
   setCalcFormula(r,
     `IF(${scrCell}=1,(${B(R_NECAB_D)}*${hBal}+${B(R_NECAL_D)}*${hLad}+${xSeaCell}*${hLad})*${rfCell},0)`,
     sv_hsfoSea);
   const R_HSFO_SEA = r; r++;
 
-  setCalcLabel(r, "VLSFO Sea (mt)");
+  setCalcLabel(r, "VLSFO Sea outside ECA (mt)");
   setCalcFormula(r,
     `IF(${scrCell}=0,(${B(R_NECAB_D)}*${vBal}+${B(R_NECAL_D)}*${vLad}+${xSeaCell}*${vLad})*${rfCell},0)`,
     sv_vlsfoSea);
   const R_VLSFO_SEA = r; r++;
 
-  setCalcLabel(r, "LSMGO Sea ECA (mt)");
+  setCalcLabel(r, "LSMGO Sea inside ECA (mt)");
   setCalcFormula(r,
     `(${B(R_ECAB_D)}*${lBal}+${B(R_ECAL_D)}*${lLad})*${rfCell}`,
     sv_lsmgoSea);
@@ -1015,62 +1015,62 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // --- Port Consumption ---
-  setSubSectionHeader(r, "Port Consumption"); r++;
+  setSubSectionHeader(r, "2. Port Consumption — Main Engine (port days x matrix rate for the selected port fuel)"); r++;
 
-  setCalcLabel(r, "HSFO Loading (mt)"); setCalcFormula(r, `${B(R_HLD)}*${hLoad}`, sv_hLoad); const R_HL = r; r++;
-  setCalcLabel(r, "HSFO Disch (mt)"); setCalcFormula(r, `${B(R_HDD)}*${hDisch}`, sv_hDisch); const R_HD = r; r++;
-  setCalcLabel(r, "HSFO Idle (mt)");
+  setCalcLabel(r, "HSFO at Load Ports (mt)"); setCalcFormula(r, `${B(R_HLD)}*${hLoad}`, sv_hLoad); const R_HL = r; r++;
+  setCalcLabel(r, "HSFO at Disch Ports (mt)"); setCalcFormula(r, `${B(R_HDD)}*${hDisch}`, sv_hDisch); const R_HD = r; r++;
+  setCalcLabel(r, "HSFO Idle / Bunkering + Extra Port Days (mt)");
   setCalcFormula(r, `(${B(R_HID)}+IF(${scrCell}=1,${xPortCell},0))*${hIdle}`, sv_hIdle);
   const R_HI = r; r++;
-  setCalcLabel(r, "HSFO Canal (mt)");
+  setCalcLabel(r, "HSFO Canal Transit (mt)");
   setCalcFormula(r, `IF(${scrCell}=1,${xCanalCell}*${hCanal},0)`, sv_hCanal);
   const R_HC = r; r++;
 
-  setCalcLabel(r, "VLSFO Loading (mt)"); setCalcFormula(r, `${B(R_VLD)}*${vLoad}`, sv_vLoad); const R_VL = r; r++;
-  setCalcLabel(r, "VLSFO Disch (mt)"); setCalcFormula(r, `${B(R_VDD)}*${vDisch}`, sv_vDisch); const R_VD = r; r++;
-  setCalcLabel(r, "VLSFO Idle (mt)");
+  setCalcLabel(r, "VLSFO at Load Ports (mt)"); setCalcFormula(r, `${B(R_VLD)}*${vLoad}`, sv_vLoad); const R_VL = r; r++;
+  setCalcLabel(r, "VLSFO at Disch Ports (mt)"); setCalcFormula(r, `${B(R_VDD)}*${vDisch}`, sv_vDisch); const R_VD = r; r++;
+  setCalcLabel(r, "VLSFO Idle / Bunkering + Extra Port Days (mt)");
   setCalcFormula(r, `(${B(R_VID)}+IF(${scrCell}=0,${xPortCell},0))*${vIdle}`, sv_vIdle);
   const R_VI = r; r++;
-  setCalcLabel(r, "VLSFO Canal (mt)");
+  setCalcLabel(r, "VLSFO Canal Transit (mt)");
   setCalcFormula(r, `IF(${scrCell}=0,${xCanalCell}*${vCanal},0)`, sv_vCanal);
   const R_VC = r; r++;
 
-  setCalcLabel(r, "LSMGO Loading (mt)"); setCalcFormula(r, `${B(R_LLD)}*${lLoad}`, sv_lLoad); const R_LL = r; r++;
-  setCalcLabel(r, "LSMGO Disch (mt)"); setCalcFormula(r, `${B(R_LDD)}*${lDisch}`, sv_lDisch); const R_LD = r; r++;
-  setCalcLabel(r, "LSMGO Idle (mt)"); setCalcFormula(r, `${B(R_LID)}*${lIdle}`, sv_lIdle); const R_LI = r; r++;
-  setCalcLabel(r, "LSMGO Canal (mt)"); setCalcFormula(r, `0`, 0); const R_LC = r; r++;
+  setCalcLabel(r, "LSMGO at Load Ports (mt)"); setCalcFormula(r, `${B(R_LLD)}*${lLoad}`, sv_lLoad); const R_LL = r; r++;
+  setCalcLabel(r, "LSMGO at Disch Ports (mt)"); setCalcFormula(r, `${B(R_LDD)}*${lDisch}`, sv_lDisch); const R_LD = r; r++;
+  setCalcLabel(r, "LSMGO Idle / Bunkering Days (mt)"); setCalcFormula(r, `${B(R_LID)}*${lIdle}`, sv_lIdle); const R_LI = r; r++;
+  setCalcLabel(r, "LSMGO Canal Transit (mt) — ME does not burn LSMGO in canal"); setCalcFormula(r, `0`, 0); const R_LC = r; r++;
   r++;
 
   // --- AE Consumption (always LSMGO) ---
-  setSubSectionHeader(r, "AE Consumption (→ LSMGO)"); r++;
+  setSubSectionHeader(r, "3. Auxiliary Engine Consumption — always LSMGO (scrubber vessels use the AE+Scrubber row)"); r++;
 
-  setCalcLabel(r, "AE Sea (mt)");
+  setCalcLabel(r, "AE at Sea (mt)");
   setCalcFormula(r,
     `(${B(R_SBAL)}*(${aeBal})+${B(R_SLAD)}*(${aeLad})+${xSeaCell}*(${aeLad}))*${rfCell}`, sv_aeSea);
   const R_AES = r; r++;
 
-  setCalcLabel(r, "AE Port (mt)");
+  setCalcLabel(r, "AE in Port — load + disch + idle/bunkering (mt)");
   setCalcFormula(r,
     `${B(R_TLOAD)}*(${aeLoad})+${B(R_TDISCH)}*(${aeDisch})+(${B(R_TIDLE)}+${xPortCell})*(${aeIdle})`, sv_aePort);
   const R_AEP = r; r++;
 
-  setCalcLabel(r, "AE Total (mt)");
+  setCalcLabel(r, "AE Total → added to LSMGO (mt)");
   setCalcFormula(r, `${B(R_AES)}+${B(R_AEP)}`, sv_aeTotal);
   const R_AET = r; r++;
   r++;
 
   // --- TOTAL FUEL CONSUMPTION ---
-  setSubSectionHeader(r, "TOTAL FUEL CONSUMPTION"); r++;
+  setSubSectionHeader(r, "4. Total Fuel Consumption — must tie out to the Bunker section in the software"); r++;
 
-  setCalcLabel(r, "HSFO Total (mt)", true);
+  setCalcLabel(r, "HSFO Total Consumption (mt)", true);
   setCalcFormula(r, `${B(R_HSFO_SEA)}+${B(R_HL)}+${B(R_HD)}+${B(R_HI)}+${B(R_HC)}`, results.hsfoConsumption, true);
   const R_HSFOT = r; r++;
 
-  setCalcLabel(r, "VLSFO Total (mt)", true);
+  setCalcLabel(r, "VLSFO Total Consumption (mt)", true);
   setCalcFormula(r, `${B(R_VLSFO_SEA)}+${B(R_VL)}+${B(R_VD)}+${B(R_VI)}+${B(R_VC)}`, results.vlsfoConsumption, true);
   const R_VLSFOT = r; r++;
 
-  setCalcLabel(r, "LSMGO Total (mt)", true);
+  setCalcLabel(r, "LSMGO Total Consumption (mt) — incl. AE", true);
   setCalcFormula(r, `${B(R_LSMGO_SEA)}+${B(R_LL)}+${B(R_LD)}+${B(R_LI)}+${B(R_LC)}+${B(R_AET)}`, results.lsmgoConsumption, true);
   const R_LSMGOT = r; r++;
   r++;
@@ -1079,7 +1079,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // SECTION 5: BUNKER COST
   // ═══════════════════════════════════════════════════════
 
-  setSubSectionHeader(r, "BUNKER COST"); r++;
+  setSectionHeader(r, "BUNKER COST ($) — CONSUMPTION x EFFECTIVE PRICE"); r++;
 
   setCalcLabel(r, "HSFO Cost ($)");
   setCalcFormula(r, `${B(R_HSFOT)}*${B(R_HPE)}`, results.hsfoConsumption * effPriceValue.hsfo);
