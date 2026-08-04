@@ -723,7 +723,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // despatch is active. The raw sequence rows stay at the CP baseline, so the
   // export MUST resolve the same effective values or port days — and therefore
   // port fuel — will not match the software.
-  const effectiveLeg = (leg: SequenceRowUI) => {
+  function effectiveLeg(leg: SequenceRowUI) {
     let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
     for (const c of cargos) {
       const ddActive = (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0;
@@ -745,7 +745,7 @@ export function exportVoyageToExcel(data: ExportData) {
         })
       : (leg.calculatedPortDays || 0);
     return { portDays, turnExtraH: turnTime + extraTime, turnTime, extraTime };
-  };
+  }
 
   const seqStartRow = r;
   sequence.forEach((leg, idx) => {
