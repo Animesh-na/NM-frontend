@@ -692,8 +692,9 @@ export function exportVoyageToExcel(data: ExportData) {
     const portFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
     const seaTime = leg.totalLegTime || 0;
     const ecaTime = leg.ecaTime || 0;
-    const portDays = leg.calculatedPortDays || 0;
-    const turnExtraH = (leg.turnTime || 0) + (leg.extraTime || 0);
+    const eff = effectiveLeg(leg);
+    const portDays = eff.portDays;
+    const turnExtraH = eff.turnExtraH;
     const isLadenLeg = ladenFlags[idx];
 
     // --- Data columns (inputs) ---
@@ -714,14 +715,18 @@ export function exportVoyageToExcel(data: ExportData) {
 
     setFormula(SC.NECAT, rr, `${c(SC.SEAT)}-${c(SC.ECAT)}`, seaTime - ecaTime, fStyle);
 
-    const wd = Math.max(0, portDays - turnExtraH / 24);
-    setFormula(SC.WDAYS, rr, `MAX(0,${c(SC.PORTD)}-${c(SC.TURNH)}/24)`, wd, fStyle);
-
+    // Engine rule: at a LOAD/DISCH call the WHOLE port stay (cargo working time
+    // plus turn + extra time) burns at the load/discharge rate — turn time is
+    // NOT split off to the idle rate. Any other call (waiting, bunkering,
+    // passage with port time) burns entirely at the idle rate.
     const isLoadDisch = op === "load" || op === "loading" || op === "disch" || op === "discharging";
-    const idleVal = isLoadDisch ? portDays - wd : portDays;
-    setFormula(SC.IDAYS, rr,
-      `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),${c(SC.PORTD)}-${c(SC.WDAYS)},${c(SC.PORTD)})`,
-      idleVal, fStyle);
+    const wd = isLoadDisch ? portDays : 0;
+    setFormula(SC.WDAYS, rr,
+      `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),${c(SC.PORTD)},0)`,
+      wd, fStyle);
+
+    const idleVal = isLoadDisch ? 0 : portDays;
+    setFormula(SC.IDAYS, rr, `${c(SC.PORTD)}-${c(SC.WDAYS)}`, idleVal, fStyle);
 
     setFormula(SC.BSEA, rr, `IF(${c(SC.LADEN)}=0,${c(SC.SEAT)},0)`, isLadenLeg ? 0 : seaTime, fStyle);
     setFormula(SC.LSEA, rr, `IF(${c(SC.LADEN)}=1,${c(SC.SEAT)},0)`, isLadenLeg ? seaTime : 0, fStyle);
@@ -771,8 +776,8 @@ export function exportVoyageToExcel(data: ExportData) {
     setFormula(SC.EUPORT, rr, `${cellRef(SC.EUSEA, rr)}`, euSeaFactorVal, fStyle);
 
     // Turn time in days
-    const turnTimeH = leg.turnTime || 0;
-    const extraTimeH = leg.extraTime || 0;
+    const turnTimeH = eff.turnTime;
+    const extraTimeH = eff.extraTime;
     setFormula(SC.TURND, rr, `${cellRef(SC.TURNH, rr)}/24`, turnExtraH / 24, fStyle);
     // Note: TURND is total turn+extra in days. Separate turn/extra:
     const turnDays = turnTimeH / 24;
