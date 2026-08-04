@@ -181,6 +181,14 @@ export function exportVoyageToExcel(data: ExportData) {
   );
   const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
   const hasScrubber = vessel.hasScrubber === true;
+  const isTanker = getApiMode() === "tanker";
+  // Effective $/mt per cargo — tanker sheets apply the Worldscale percentage
+  // to the flat rate (WS may exceed 100). Lumpsum and dry bulk are unchanged.
+  const effRate = (c: { rate: number; rateType: string; worldscale?: number }) => {
+    const rate = c.rate || 0;
+    if (c.rateType === "lumpsum" || !isTanker) return rate;
+    return rate * ((c.worldscale ?? 100) / 100);
+  };
 
   const isLoadOp = (op?: string) => {
     const o = (op || "").toLowerCase();
