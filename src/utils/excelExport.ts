@@ -295,65 +295,109 @@ export function exportVoyageToExcel(data: ExportData) {
     .forEach((v, i) => setNum(i + 1, r, v || 0)); r++;
   r++;
 
-  // --- CARGO ---
-  setSectionHeader(r, "CARGO"); r++;
-  setText(0, r, "Rate", S.inputLabel); setNum(1, r, cargo.rate); const R_RATE = r; r++;
-  setText(0, r, "Rate Type", S.inputLabel); setText(1, r, cargo.rateType, S.inputText); const R_RTYPE = r; r++;
-  setText(0, r, "Quantity (MT)", S.inputLabel); setNum(1, r, sequenceCargoQuantity); const R_QTY = r; r++;
-  setText(0, r, "Voyage Comm (%)", S.inputLabel); setNum(1, r, cargo.voyageCommission); const R_VCOMM = r; r++;
-  setText(0, r, "TC Comm (%)", S.inputLabel); setNum(1, r, cargo.tcCommission); const R_TCOMM = r; r++;
-  const demurrageDespatchTotals = calculateDemurrageDespatchTotals(cargos, sequence);
-  const totalDemurrage = demurrageDespatchTotals.demurrageAmount;
-  const totalDespatch = demurrageDespatchTotals.despatchAmount;
-  setText(0, r, "Demurrage ($)", S.inputLabel); setNum(1, r, totalDemurrage); const R_DEM = r; r++;
-  setText(0, r, "Despatch ($)", S.inputLabel); setNum(1, r, totalDespatch); const R_DESP = r; r++;
-  r++;
-
-  // Multi-cargo input listing. Row positions captured per-cargo so the
-  // PER-CARGO BREAKDOWN section below can build Excel formulas that reference
-  // the same input cells (single source of truth).
-  // cargoInputRows[i] = { rate, rateType, qty, voyComm, tcComm, dem, desp }
+  // --- CARGO (multi-cargo aware, Worldscale for tanker sheets) ---
+  // Every cargo is listed with its own rate / WS / loaded qty / commissions
+  // and its own Gross Freight formula. The aggregate block below sums those
+  // cells exactly the way the engine aggregates cargo entries.
   type CargoInputRows = {
     rate: { col: number; row: number };
+    ws: { col: number; row: number };
+    effRate: { col: number; row: number };
     rateType: { col: number; row: number };
     qty: { col: number; row: number };
     voyComm: { col: number; row: number };
     tcComm: { col: number; row: number };
     dem: { col: number; row: number };
     desp: { col: number; row: number };
+    gf: { col: number; row: number };
   };
   const cargoInputRows: CargoInputRows[] = [];
-  if (cargos.length > 1) {
-    setSubSectionHeader(r, `ADDITIONAL CARGOES (${cargos.length} total)`); r++;
-    const mcHeaders = ["Cargo", "Rate", "Type", "Loaded Qty (MT)", "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $"];
-    mcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
-    cargos.forEach((c, i) => {
-      const isAlt = i % 2 === 1;
-      const dStyle = isAlt ? S.seqDataAlt : S.seqData;
-      const tStyle = isAlt ? S.seqTextAlt : S.seqText;
-      const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
-      setText(0, r, `#${i + 1}`, tStyle);
-      setNum(1, r, c.rate, dStyle);
-      setText(2, r, c.rateType, tStyle);
-      setNum(3, r, pc?.loadedQty ?? 0, dStyle);
-      setNum(4, r, c.voyageCommission, dStyle);
-      setNum(5, r, c.tcCommission, dStyle);
-      const cargoDemDesp = calculateCargoDemurrageDespatch(c, cargos, sequence);
-      setNum(6, r, cargoDemDesp.demurrageAmount, dStyle);
-      setNum(7, r, cargoDemDesp.despatchAmount, dStyle);
-      cargoInputRows.push({
-        rate: { col: 1, row: r },
-        rateType: { col: 2, row: r },
-        qty: { col: 3, row: r },
-        voyComm: { col: 4, row: r },
-        tcComm: { col: 5, row: r },
-        dem: { col: 6, row: r },
-        desp: { col: 7, row: r },
-      });
-      r++;
+
+  setSectionHeader(r, `CARGO (${cargos.length} entr${cargos.length === 1 ? "y" : "ies"}${isTanker ? " — Tanker / Worldscale" : ""})`); r++;
+  const mcHeaders = [
+    "Cargo", "Flat Rate", "WS %", "Eff. Rate ($/mt)", "Type", "Loaded Qty (MT)",
+    "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $", "Gross Freight $",
+  ];
+  mcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
+  cargos.forEach((c, i) => {
+    const isAlt = i % 2 === 1;
+    const dStyle = isAlt ? S.seqDataAlt : S.seqData;
+    const tStyle = isAlt ? S.seqTextAlt : S.seqText;
+    const fStyle = isAlt ? S.seqFormulaAlt : S.seqFormula;
+    const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
+    const loadedQty = pc?.loadedQty ?? (cargos.length === 1 ? sequenceCargoQuantity : 0);
+    const ws = isTanker ? (c.worldscale ?? 100) : 100;
+    const er = effRate(c);
+    const cargoDemDesp = calculateCargoDemurrageDespatch(c, cargos, sequence);
+
+    setText(0, r, `#${i + 1}`, tStyle);
+    setNum(1, r, c.rate, dStyle);
+    setNum(2, r, ws, dStyle);
+    setFormula(3, r, `IF(${cellRef(4, r)}="lumpsum",${cellRef(1, r)},${cellRef(1, r)}*${cellRef(2, r)}/100)`, er, fStyle);
+    setText(4, r, c.rateType, tStyle);
+    setNum(5, r, loadedQty, dStyle);
+    setNum(6, r, c.voyageCommission, dStyle);
+    setNum(7, r, c.tcCommission, dStyle);
+    setNum(8, r, cargoDemDesp.demurrageAmount, dStyle);
+    setNum(9, r, cargoDemDesp.despatchAmount, dStyle);
+    setFormula(
+      10, r,
+      `IF(${cellRef(4, r)}="lumpsum",${cellRef(1, r)},${cellRef(3, r)}*${cellRef(5, r)})`,
+      c.rateType === "lumpsum" ? (c.rate || 0) : er * loadedQty,
+      fStyle,
+    );
+    cargoInputRows.push({
+      rate: { col: 1, row: r },
+      ws: { col: 2, row: r },
+      effRate: { col: 3, row: r },
+      rateType: { col: 4, row: r },
+      qty: { col: 5, row: r },
+      voyComm: { col: 6, row: r },
+      tcComm: { col: 7, row: r },
+      dem: { col: 8, row: r },
+      desp: { col: 9, row: r },
+      gf: { col: 10, row: r },
     });
     r++;
-  }
+  });
+  r++;
+
+  const demurrageDespatchTotals = calculateDemurrageDespatchTotals(cargos, sequence);
+  const totalDemurrage = demurrageDespatchTotals.demurrageAmount;
+  const totalDespatch = demurrageDespatchTotals.despatchAmount;
+  const gfRefs = cargoInputRows.map(ir => cellRef(ir.gf.col, ir.gf.row));
+  const demRefs = cargoInputRows.map(ir => cellRef(ir.dem.col, ir.dem.row));
+  const despRefs = cargoInputRows.map(ir => cellRef(ir.desp.col, ir.desp.row));
+  const vcRefsAll = cargoInputRows.map(ir => cellRef(ir.voyComm.col, ir.voyComm.row));
+  const tcRefsAll = cargoInputRows.map(ir => cellRef(ir.tcComm.col, ir.tcComm.row));
+
+  setSubSectionHeader(r, "AGGREGATED CARGO (engine inputs)"); r++;
+  setText(0, r, "Base Gross Freight ($) = Σ cargo freight", S.inputLabel);
+  setFormula(1, r, gfRefs.length ? gfRefs.join("+") : "0",
+    cargos.reduce((s, c, ci) => {
+      const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
+      const q = pc?.loadedQty ?? (cargos.length === 1 ? sequenceCargoQuantity : 0);
+      return s + (c.rateType === "lumpsum" ? (c.rate || 0) : effRate(c) * q);
+    }, 0), S.formula);
+  const R_BASEGF = r; r++;
+  setText(0, r, "Quantity (MT) — from sequence", S.inputLabel); setNum(1, r, sequenceCargoQuantity); const R_QTY = r; r++;
+  setText(0, r, "Blended Rate ($/mt)", S.inputLabel);
+  setFormula(1, r, `IF(${cellRef(1, R_QTY)}>0,${cellRef(1, R_BASEGF)}/${cellRef(1, R_QTY)},0)`, cargo.rate ?? 0, S.formula);
+  const R_RATE = r; r++;
+  setText(0, r, "Rate Type", S.inputLabel); setText(1, r, "mt", S.inputText); const R_RTYPE = r; r++;
+  setText(0, r, "Voyage Comm (%) — avg", S.inputLabel);
+  setFormula(1, r, vcRefsAll.length ? `AVERAGE(${vcRefsAll.join(",")})` : "0", cargo.voyageCommission, S.formula);
+  const R_VCOMM = r; r++;
+  setText(0, r, "TC Comm (%) — avg", S.inputLabel);
+  setFormula(1, r, tcRefsAll.length ? `AVERAGE(${tcRefsAll.join(",")})` : "0", cargo.tcCommission, S.formula);
+  const R_TCOMM = r; r++;
+  setText(0, r, "Demurrage ($)", S.inputLabel);
+  setFormula(1, r, demRefs.length ? demRefs.join("+") : "0", totalDemurrage, S.formula);
+  const R_DEM = r; r++;
+  setText(0, r, "Despatch ($)", S.inputLabel);
+  setFormula(1, r, despRefs.length ? despRefs.join("+") : "0", totalDespatch, S.formula);
+  const R_DESP = r; r++;
+  r++;
 
   // --- BUNKER PRICES ---
   setSectionHeader(r, "BUNKER PRICES"); r++;
