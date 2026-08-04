@@ -511,10 +511,20 @@ export function exportVoyageToExcel(data: ExportData) {
     return `AVERAGE(${active.map((i) => priceRefs[i]).join(",")})`;
   }
 
+  // Prefer the exact prices the engine used (results.effectiveFuelPrices) so the
+  // exported bunker cost ties out to the software to the cent. Fall back to a
+  // local recompute only for older result payloads.
+  const enginePrices = (results as { effectiveFuelPrices?: { hsfo: number; vlsfo: number; lsmgo: number } })
+    .effectiveFuelPrices;
+  const localPrice = (f: FuelKey) =>
+    effectivePrice(
+      buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, f, fifoCoverage[f]),
+      consumptionFor[f],
+    );
   const effPriceValue: Record<FuelKey, number> = {
-    hsfo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "hsfo", fifoCoverage.hsfo), consumptionFor.hsfo),
-    vlsfo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "vlsfo", fifoCoverage.vlsfo), consumptionFor.vlsfo),
-    lsmgo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "lsmgo", fifoCoverage.lsmgo), consumptionFor.lsmgo),
+    hsfo: enginePrices?.hsfo ?? localPrice("hsfo"),
+    vlsfo: enginePrices?.vlsfo ?? localPrice("vlsfo"),
+    lsmgo: enginePrices?.lsmgo ?? localPrice("lsmgo"),
   };
 
   setSubSectionHeader(r, `EFFECTIVE FUEL PRICE ($/mt) — mode: ${fuelMode}${ignoreBOB ? " (BOB ignored)" : ""}`); r++;
