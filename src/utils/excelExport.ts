@@ -1927,11 +1927,11 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // FuelEU Maritime
-  setSubSectionHeader(r, "FuelEU Maritime"); r++;
-  // Static $/ton rates (sheet-aligned)
-  setCalcLabel(r, "HSFO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.hsfo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.hsfo, S.envSoftware); const R_FE_HR = r; r++;
-  setCalcLabel(r, "VLSFO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.vlsfo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.vlsfo, S.envSoftware); const R_FE_VR = r; r++;
-  setCalcLabel(r, "LSMGO $/ton", false, false, true); setNum(1, r, results.fuelEuResult.costPerTon.lsmgo, S.envFormula); setNum(2, r, results.fuelEuResult.costPerTon.lsmgo, S.envSoftware); const R_FE_LR = r; r++;
+  setSubSectionHeader(r, "FUELEU MARITIME — WELL-TO-WAKE ENERGY & COMPLIANCE BALANCE"); r++;
+  setText(0, r, "Coverage basis", S.inputLabel); setText(1, r, "Uses the same EU-covered fuel above: sea 100/50/0 plus EU port stays at 100%.", S.inputText); r++;
+  setCalcLabel(r, "Voyage Year", false, false, true); setNum(1, r, results.fuelEuResult.voyageYear, S.envFormula); setNum(2, r, results.fuelEuResult.voyageYear, S.envSoftware); r++;
+  setCalcLabel(r, "GHG Intensity Limit (gCO₂e/MJ)", false, false, true); setNum(1, r, results.fuelEuResult.ghgLimit, S.envFormula); setNum(2, r, results.fuelEuResult.ghgLimit, S.envSoftware); const R_FE_LIMIT = r; r++;
+  setCalcLabel(r, "Penalty Rate (€/MJ shortfall)", false, false, true); setNum(1, r, FUEL_EU_PENALTY_RATE_EUR_PER_MJ, S.envFormula); setNum(2, r, FUEL_EU_PENALTY_RATE_EUR_PER_MJ, S.envSoftware); const R_FE_RATE = r; r++;
 
   // EU-covered fuel quantities (link back to EU fuel totals)
   setCalcLabel(r, "HSFO EU Fuel (mt)", false, false, true);
@@ -1944,27 +1944,42 @@ export function exportVoyageToExcel(data: ExportData) {
   setCalcFormula(r, `${B(R_EU_LSMGOT)}`, sv_euLsmgo, false, false, true);
   const R_FE_LQ = r; r++;
 
-  // Per-fuel costs = EU fuel × $/ton
-  setCalcLabel(r, "HSFO Cost ($) = EU Fuel × $/ton", false, false, true);
-  setCalcFormula(r, `${B(R_FE_HQ)}*${B(R_FE_HR)}`, results.fuelEuResult.fuels.hsfo.cost, false, false, true);
-  const R_FEH = r; r++;
-  setCalcLabel(r, "VLSFO Cost ($) = EU Fuel × $/ton", false, false, true);
-  setCalcFormula(r, `${B(R_FE_VQ)}*${B(R_FE_VR)}`, results.fuelEuResult.fuels.vlsfo.cost, false, false, true);
-  const R_FEV = r; r++;
-  setCalcLabel(r, "LSMGO Cost ($) = EU Fuel × $/ton", false, false, true);
-  setCalcFormula(r, `${B(R_FE_LQ)}*${B(R_FE_LR)}`, results.fuelEuResult.fuels.lsmgo.cost, false, false, true);
-  const R_FEL = r; r++;
+  const feRows: Partial<Record<FuelKey, { energy: number; balance: number }>> = {};
+  (["hsfo", "vlsfo", "lsmgo"] as FuelKey[]).forEach((fuel, index) => {
+    const qtyRow = [R_FE_HQ, R_FE_VQ, R_FE_LQ][index];
+    const props = FUEL_EU_PROPERTIES[fuel];
+    const detail = results.fuelEuResult.fuels[fuel];
+    setCalcLabel(r, `${fuel.toUpperCase()} Lower Calorific Value (MJ/g)`, false, false, true); setNum(1, r, props.lcv, S.envFormula); setNum(2, r, props.lcv, S.envSoftware); const lcvRow = r; r++;
+    setCalcLabel(r, `${fuel.toUpperCase()} Well-to-Wake GHG (gCO₂e/MJ)`, false, false, true); setNum(1, r, props.ghg, S.envFormula); setNum(2, r, props.ghg, S.envSoftware); const ghgRow = r; r++;
+    setCalcLabel(r, `${fuel.toUpperCase()} EU Energy (MJ)`, false, false, true); setCalcFormula(r, `${B(qtyRow)}*1000000*${B(lcvRow)}`, detail.euEnergy, false, false, true); const energyRow = r; r++;
+    setCalcLabel(r, `${fuel.toUpperCase()} Compliance Balance (gCO₂e)`, false, false, true); setCalcFormula(r, `(${B(R_FE_LIMIT)}-${B(ghgRow)})*${B(energyRow)}`, detail.balance, false, false, true); const balanceRow = r; r++;
+    feRows[fuel] = { energy: energyRow, balance: balanceRow };
+  });
+  const feH = feRows.hsfo; const feV = feRows.vlsfo; const feL = feRows.lsmgo;
+  if (!feH || !feV || !feL) return;
+  setCalcLabel(r, "Total EU Energy (MJ)", true); setCalcFormula(r, `${B(feH.energy)}+${B(feV.energy)}+${B(feL.energy)}`, results.fuelEuResult.totalEuEnergy, true); const R_FE_ENERGY = r; r++;
+  setCalcLabel(r, "Total Compliance Balance (gCO₂e; negative = deficit)", true); setCalcFormula(r, `${B(feH.balance)}+${B(feV.balance)}+${B(feL.balance)}`, results.fuelEuResult.totalBalance, true); const R_FE_BAL = r; r++;
+  setCalcLabel(r, "Weighted Voyage GHG Intensity (gCO₂e/MJ)", false, false, true); setCalcFormula(r, `IF(${B(R_FE_ENERGY)}>0,(${B(feH.energy)}*${FUEL_EU_PROPERTIES.hsfo.ghg}+${B(feV.energy)}*${FUEL_EU_PROPERTIES.vlsfo.ghg}+${B(feL.energy)}*${FUEL_EU_PROPERTIES.lsmgo.ghg})/${B(R_FE_ENERGY)},0)`, results.fuelEuResult.voyageGhg, false, false, true); const R_FE_GHG = r; r++;
 
   setCalcLabel(r, "FuelEU Total Penalty ($)", true);
-  setCalcFormula(r, `${B(R_FEH)}+${B(R_FEV)}+${B(R_FEL)}`, results.fuelEuTotalPenalty, true);
+  setCalcFormula(r, `IF(AND(${B(R_FE_BAL)}<0,${B(R_FE_GHG)}>0),ABS(${B(R_FE_BAL)})/${B(R_FE_GHG)}*${B(R_FE_RATE)}*${rfCell},0)`, results.fuelEuTotalPenalty, true);
+  const R_FE_TOTAL = r; r++;
+
   r++;
+  setSectionHeader(r, "FINAL PROFIT & LOSS AFTER REGULATORY IMPACTS"); r++;
+  const basePnl = results.pAndL + svRegulatory;
+  setCalcLabel(r, "P&L Before EU ETS / UK ETS / FuelEU ($)", false, true); setCalcFormula(r, `${basePnl}`, basePnl, false, true); const R_FINAL_BASE = r; r++;
+  setCalcLabel(r, "Less: Applied EU ETS Cost ($)"); setCalcFormula(r, `${B(R_APP_EUA)}*${B(R_EUACOST)}`, applyEua ? svEuaCost : 0); const R_FINAL_EU = r; r++;
+  setCalcLabel(r, "Less: Applied UK ETS Cost ($)"); setCalcFormula(r, `${B(R_APP_UK)}*${B(R_UKCOST)}`, applyUk ? svUkCost : 0); const R_FINAL_UK = r; r++;
+  setCalcLabel(r, "Less: Applied FuelEU Penalty ($)"); setCalcFormula(r, `${B(R_APP_FEU)}*${B(R_FE_TOTAL)}`, applyFuelEu ? svFuelEuCost : 0); const R_FINAL_FE = r; r++;
+  setCalcLabel(r, "Final P&L After Selected Regulatory Costs ($)", false, true); setCalcFormula(r, `${B(R_FINAL_BASE)}-${B(R_FINAL_EU)}-${B(R_FINAL_UK)}-${B(R_FINAL_FE)}`, results.pAndL, false, true); r++;
 
   // ═══════════════════════════════════════════════════════
   // FINALIZE WORKSHEET
   // ═══════════════════════════════════════════════════════
 
   // Set sheet range (expanded for new EU columns)
-  ws["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: 40, r: r } });
+  ws["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: 45, r: r } });
 
   // Column widths (expanded for new EU columns)
   ws["!cols"] = [
