@@ -371,25 +371,31 @@ export function exportVoyageToExcel(data: ExportData) {
   const vcRefsAll = cargoInputRows.map(ir => cellRef(ir.voyComm.col, ir.voyComm.row));
   const tcRefsAll = cargoInputRows.map(ir => cellRef(ir.tcComm.col, ir.tcComm.row));
 
+  const svBaseGrossFreight = cargos.reduce((s, c) => {
+    const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
+    const q = pc?.loadedQty ?? (cargos.length === 1 ? sequenceCargoQuantity : 0);
+    return s + (c.rateType === "lumpsum" ? (c.rate || 0) : effRate(c) * q);
+  }, 0);
+  const svAvgVoyComm = cargos.length
+    ? cargos.reduce((s, c) => s + (c.voyageCommission || 0), 0) / cargos.length : 0;
+  const svAvgTcComm = cargos.length
+    ? cargos.reduce((s, c) => s + (c.tcCommission || 0), 0) / cargos.length : 0;
+  const svBlendedRate = sequenceCargoQuantity > 0 ? svBaseGrossFreight / sequenceCargoQuantity : 0;
+
   setSubSectionHeader(r, "AGGREGATED CARGO (engine inputs)"); r++;
   setText(0, r, "Base Gross Freight ($) = Σ cargo freight", S.inputLabel);
-  setFormula(1, r, gfRefs.length ? gfRefs.join("+") : "0",
-    cargos.reduce((s, c, ci) => {
-      const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
-      const q = pc?.loadedQty ?? (cargos.length === 1 ? sequenceCargoQuantity : 0);
-      return s + (c.rateType === "lumpsum" ? (c.rate || 0) : effRate(c) * q);
-    }, 0), S.formula);
+  setFormula(1, r, gfRefs.length ? gfRefs.join("+") : "0", svBaseGrossFreight, S.formula);
   const R_BASEGF = r; r++;
   setText(0, r, "Quantity (MT) — from sequence", S.inputLabel); setNum(1, r, sequenceCargoQuantity); const R_QTY = r; r++;
   setText(0, r, "Blended Rate ($/mt)", S.inputLabel);
-  setFormula(1, r, `IF(${cellRef(1, R_QTY)}>0,${cellRef(1, R_BASEGF)}/${cellRef(1, R_QTY)},0)`, cargo.rate ?? 0, S.formula);
+  setFormula(1, r, `IF(${cellRef(1, R_QTY)}>0,${cellRef(1, R_BASEGF)}/${cellRef(1, R_QTY)},0)`, svBlendedRate, S.formula);
   const R_RATE = r; r++;
   setText(0, r, "Rate Type", S.inputLabel); setText(1, r, "mt", S.inputText); const R_RTYPE = r; r++;
   setText(0, r, "Voyage Comm (%) — avg", S.inputLabel);
-  setFormula(1, r, vcRefsAll.length ? `AVERAGE(${vcRefsAll.join(",")})` : "0", cargo.voyageCommission, S.formula);
+  setFormula(1, r, vcRefsAll.length ? `AVERAGE(${vcRefsAll.join(",")})` : "0", svAvgVoyComm, S.formula);
   const R_VCOMM = r; r++;
   setText(0, r, "TC Comm (%) — avg", S.inputLabel);
-  setFormula(1, r, tcRefsAll.length ? `AVERAGE(${tcRefsAll.join(",")})` : "0", cargo.tcCommission, S.formula);
+  setFormula(1, r, tcRefsAll.length ? `AVERAGE(${tcRefsAll.join(",")})` : "0", svAvgTcComm, S.formula);
   const R_TCOMM = r; r++;
   setText(0, r, "Demurrage ($)", S.inputLabel);
   setFormula(1, r, demRefs.length ? demRefs.join("+") : "0", totalDemurrage, S.formula);
