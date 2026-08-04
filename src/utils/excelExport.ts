@@ -1319,13 +1319,15 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${despRef}`, cargoDemDesp?.despatchAmount || 0);
       const rRowDesp = r; r++;
 
-      // Voyage Result (per-cargo) = Net Freight - AllocVoy - Dem + Desp
+      // Voyage Result (per-cargo) = (Net Freight + Dem − Desp) − Allocated Voy Costs
+      // Demurrage is extra revenue and despatch is a give-back, matching the
+      // engine where both are folded into gross freight.
       setCalcLabel(r, "Voyage Result ($)", false, true);
       const vrSv = (pc.grossFreight - vcAmtSv) - pc.allocatedVoyageCosts
-        - (cargoDemDesp?.demurrageAmount || 0) + (cargoDemDesp?.despatchAmount || 0);
+        + (cargoDemDesp?.demurrageAmount || 0) - (cargoDemDesp?.despatchAmount || 0);
       setCalcFormula(
         r,
-        `${B(rRowNF)}-${B(rRowAV)}-${B(rRowDem)}+${B(rRowDesp)}`,
+        `${B(rRowNF)}-${B(rRowAV)}+${B(rRowDem)}-${B(rRowDesp)}`,
         vrSv,
         false, true,
       );
@@ -1336,11 +1338,12 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${B(rRowVR)}-${B(rRowAH)}`, vrSv - pc.allocatedHire, false, true);
       r++;
 
-      // Gross Rate ($/mt) — own freight rate grossed up by Voy Commission
+      // Gross Rate ($/mt) — engine: allocated total cost per mt grossed up by
+      // the cargo's own voyage commission.
       setCalcLabel(r, "Gross Rate ($/mt)", true);
       setCalcFormula(
         r,
-        `IF(${typeRef}="lumpsum",IF(${B(rRowQty)}>0,${rateRef}/${B(rRowQty)},0),${rateRef})/(1-${vcRef}/100)`,
+        `IF(AND(${B(rRowQty)}>0,${vcRef}<100),(${B(rRowATC)}/${B(rRowQty)})/(1-${vcRef}/100),0)`,
         pc.grossRate,
         true,
       );
