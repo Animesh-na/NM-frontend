@@ -2,8 +2,20 @@ import * as XLSX from "xlsx-js-style";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
-import { isEuPort } from "@/utils/emissionCalculations";
+import { isEuPort, CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
+import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
+import { computeFifoCoverage } from "@/utils/fuelBreakdown";
+import { getApiMode } from "@/services/apiMode";
+
+export interface ExportBunkerLot { quantity: number; price: number }
+export interface ExportPortBunkering {
+  portUnloc?: string;
+  port?: string;
+  hsfo: ExportBunkerLot;
+  vlsfo: ExportBunkerLot;
+  lsmgo: ExportBunkerLot;
+}
 
 interface ExportData {
   vessel: VesselData;
@@ -15,11 +27,19 @@ interface ExportData {
     lsmgo: { price: number; robStart: number };
     co2Price: number;
     rewardFactor: number;
+    euEtsPrice?: number;
+    ukEtsPrice?: number;
+    fuelMode?: "average" | "fifo";
+    ignoreBOB?: boolean;
+    portBunkering?: ExportPortBunkering[];
   };
   misc: MiscState;
   hireRate: number;
   netBB: number;
   results: VoyageResults;
+  applyEuaImpact?: boolean;
+  applyFuelEuImpact?: boolean;
+  applyUkEtsImpact?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -145,7 +165,10 @@ function cellRef(c: number, r: number): string {
 }
 
 export function exportVoyageToExcel(data: ExportData) {
-  const { vessel, sequence, cargos, bunker, misc, hireRate, netBB, results } = data;
+  const {
+    vessel, sequence, cargos, bunker, misc, hireRate, netBB, results,
+    applyEuaImpact, applyFuelEuImpact, applyUkEtsImpact,
+  } = data;
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = {};
 
@@ -161,6 +184,14 @@ export function exportVoyageToExcel(data: ExportData) {
   );
   const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
   const hasScrubber = vessel.hasScrubber === true;
+  const isTanker = getApiMode() === "tanker";
+  // Effective $/mt per cargo — tanker sheets apply the Worldscale percentage
+  // to the flat rate (WS may exceed 100). Lumpsum and dry bulk are unchanged.
+  const effRate = (c: { rate: number; rateType: string; worldscale?: number }) => {
+    const rate = c.rate || 0;
+    if (c.rateType === "lumpsum" || !isTanker) return rate;
+    return rate * ((c.worldscale ?? 100) / 100);
+  };
 
   const isLoadOp = (op?: string) => {
     const o = (op || "").toLowerCase();
@@ -267,72 +298,242 @@ export function exportVoyageToExcel(data: ExportData) {
     .forEach((v, i) => setNum(i + 1, r, v || 0)); r++;
   r++;
 
-  // --- CARGO ---
-  setSectionHeader(r, "CARGO"); r++;
-  setText(0, r, "Rate", S.inputLabel); setNum(1, r, cargo.rate); const R_RATE = r; r++;
-  setText(0, r, "Rate Type", S.inputLabel); setText(1, r, cargo.rateType, S.inputText); const R_RTYPE = r; r++;
-  setText(0, r, "Quantity (MT)", S.inputLabel); setNum(1, r, sequenceCargoQuantity); const R_QTY = r; r++;
-  setText(0, r, "Voyage Comm (%)", S.inputLabel); setNum(1, r, cargo.voyageCommission); const R_VCOMM = r; r++;
-  setText(0, r, "TC Comm (%)", S.inputLabel); setNum(1, r, cargo.tcCommission); const R_TCOMM = r; r++;
-  const demurrageDespatchTotals = calculateDemurrageDespatchTotals(cargos, sequence);
-  const totalDemurrage = demurrageDespatchTotals.demurrageAmount;
-  const totalDespatch = demurrageDespatchTotals.despatchAmount;
-  setText(0, r, "Demurrage ($)", S.inputLabel); setNum(1, r, totalDemurrage); const R_DEM = r; r++;
-  setText(0, r, "Despatch ($)", S.inputLabel); setNum(1, r, totalDespatch); const R_DESP = r; r++;
-  r++;
-
-  // Multi-cargo input listing. Row positions captured per-cargo so the
-  // PER-CARGO BREAKDOWN section below can build Excel formulas that reference
-  // the same input cells (single source of truth).
-  // cargoInputRows[i] = { rate, rateType, qty, voyComm, tcComm, dem, desp }
+  // --- CARGO (multi-cargo aware, Worldscale for tanker sheets) ---
+  // Every cargo is listed with its own rate / WS / loaded qty / commissions
+  // and its own Gross Freight formula. The aggregate block below sums those
+  // cells exactly the way the engine aggregates cargo entries.
   type CargoInputRows = {
     rate: { col: number; row: number };
+    ws: { col: number; row: number };
+    effRate: { col: number; row: number };
     rateType: { col: number; row: number };
     qty: { col: number; row: number };
     voyComm: { col: number; row: number };
     tcComm: { col: number; row: number };
     dem: { col: number; row: number };
     desp: { col: number; row: number };
+    gf: { col: number; row: number };
   };
   const cargoInputRows: CargoInputRows[] = [];
-  if (cargos.length > 1) {
-    setSubSectionHeader(r, `ADDITIONAL CARGOES (${cargos.length} total)`); r++;
-    const mcHeaders = ["Cargo", "Rate", "Type", "Loaded Qty (MT)", "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $"];
-    mcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
-    cargos.forEach((c, i) => {
+
+  setSectionHeader(r, `CARGO (${cargos.length} entr${cargos.length === 1 ? "y" : "ies"}${isTanker ? " — Tanker / Worldscale" : ""})`); r++;
+  const mcHeaders = [
+    "Cargo", "Flat Rate", "WS %", "Eff. Rate ($/mt)", "Type", "Loaded Qty (MT)",
+    "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $", "Gross Freight $",
+  ];
+  mcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
+  cargos.forEach((c, i) => {
+    const isAlt = i % 2 === 1;
+    const dStyle = isAlt ? S.seqDataAlt : S.seqData;
+    const tStyle = isAlt ? S.seqTextAlt : S.seqText;
+    const fStyle = isAlt ? S.seqFormulaAlt : S.seqFormula;
+    const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
+    const loadedQty = pc?.loadedQty ?? (cargos.length === 1 ? sequenceCargoQuantity : 0);
+    const ws = isTanker ? (c.worldscale ?? 100) : 100;
+    const er = effRate(c);
+    const cargoDemDesp = calculateCargoDemurrageDespatch(c, cargos, sequence);
+
+    setText(0, r, `#${i + 1}`, tStyle);
+    setNum(1, r, c.rate, dStyle);
+    setNum(2, r, ws, dStyle);
+    setFormula(3, r, `IF(${cellRef(4, r)}="lumpsum",${cellRef(1, r)},${cellRef(1, r)}*${cellRef(2, r)}/100)`, er, fStyle);
+    setText(4, r, c.rateType, tStyle);
+    setNum(5, r, loadedQty, dStyle);
+    setNum(6, r, c.voyageCommission, dStyle);
+    setNum(7, r, c.tcCommission, dStyle);
+    setNum(8, r, cargoDemDesp.demurrageAmount, dStyle);
+    setNum(9, r, cargoDemDesp.despatchAmount, dStyle);
+    setFormula(
+      10, r,
+      `IF(${cellRef(4, r)}="lumpsum",${cellRef(1, r)},${cellRef(3, r)}*${cellRef(5, r)})`,
+      c.rateType === "lumpsum" ? (c.rate || 0) : er * loadedQty,
+      fStyle,
+    );
+    cargoInputRows.push({
+      rate: { col: 1, row: r },
+      ws: { col: 2, row: r },
+      effRate: { col: 3, row: r },
+      rateType: { col: 4, row: r },
+      qty: { col: 5, row: r },
+      voyComm: { col: 6, row: r },
+      tcComm: { col: 7, row: r },
+      dem: { col: 8, row: r },
+      desp: { col: 9, row: r },
+      gf: { col: 10, row: r },
+    });
+    r++;
+  });
+  r++;
+
+  const demurrageDespatchTotals = calculateDemurrageDespatchTotals(cargos, sequence);
+  const totalDemurrage = demurrageDespatchTotals.demurrageAmount;
+  const totalDespatch = demurrageDespatchTotals.despatchAmount;
+  const gfRefs = cargoInputRows.map(ir => cellRef(ir.gf.col, ir.gf.row));
+  const demRefs = cargoInputRows.map(ir => cellRef(ir.dem.col, ir.dem.row));
+  const despRefs = cargoInputRows.map(ir => cellRef(ir.desp.col, ir.desp.row));
+  const vcRefsAll = cargoInputRows.map(ir => cellRef(ir.voyComm.col, ir.voyComm.row));
+  const tcRefsAll = cargoInputRows.map(ir => cellRef(ir.tcComm.col, ir.tcComm.row));
+
+  const svBaseGrossFreight = cargos.reduce((s, c) => {
+    const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
+    const q = pc?.loadedQty ?? (cargos.length === 1 ? sequenceCargoQuantity : 0);
+    return s + (c.rateType === "lumpsum" ? (c.rate || 0) : effRate(c) * q);
+  }, 0);
+  const svAvgVoyComm = cargos.length
+    ? cargos.reduce((s, c) => s + (c.voyageCommission || 0), 0) / cargos.length : 0;
+  const svAvgTcComm = cargos.length
+    ? cargos.reduce((s, c) => s + (c.tcCommission || 0), 0) / cargos.length : 0;
+  const svBlendedRate = sequenceCargoQuantity > 0 ? svBaseGrossFreight / sequenceCargoQuantity : 0;
+
+  setSubSectionHeader(r, "AGGREGATED CARGO (engine inputs)"); r++;
+  setText(0, r, "Base Gross Freight ($) = Σ cargo freight", S.inputLabel);
+  setFormula(1, r, gfRefs.length ? gfRefs.join("+") : "0", svBaseGrossFreight, S.formula);
+  const R_BASEGF = r; r++;
+  setText(0, r, "Quantity (MT) — from sequence", S.inputLabel); setNum(1, r, sequenceCargoQuantity); const R_QTY = r; r++;
+  setText(0, r, "Blended Rate ($/mt)", S.inputLabel);
+  setFormula(1, r, `IF(${cellRef(1, R_QTY)}>0,${cellRef(1, R_BASEGF)}/${cellRef(1, R_QTY)},0)`, svBlendedRate, S.formula);
+  const R_RATE = r; r++;
+  setText(0, r, "Rate Type", S.inputLabel); setText(1, r, "mt", S.inputText); const R_RTYPE = r; r++;
+  setText(0, r, "Voyage Comm (%) — avg", S.inputLabel);
+  setFormula(1, r, vcRefsAll.length ? `AVERAGE(${vcRefsAll.join(",")})` : "0", svAvgVoyComm, S.formula);
+  const R_VCOMM = r; r++;
+  setText(0, r, "TC Comm (%) — avg", S.inputLabel);
+  setFormula(1, r, tcRefsAll.length ? `AVERAGE(${tcRefsAll.join(",")})` : "0", svAvgTcComm, S.formula);
+  const R_TCOMM = r; r++;
+  setText(0, r, "Demurrage ($)", S.inputLabel);
+  setFormula(1, r, demRefs.length ? demRefs.join("+") : "0", totalDemurrage, S.formula);
+  const R_DEM = r; r++;
+  setText(0, r, "Despatch ($)", S.inputLabel);
+  setFormula(1, r, despRefs.length ? despRefs.join("+") : "0", totalDespatch, S.formula);
+  const R_DESP = r; r++;
+  r++;
+
+  // --- BUNKER PRICES (BOB + every bunkering port lot) ---
+  const portLots = bunker.portBunkering || [];
+  const fuelMode: "average" | "fifo" = bunker.fuelMode === "fifo" ? "fifo" : "average";
+  const ignoreBOB = bunker.ignoreBOB === true;
+
+  setSectionHeader(r, "BUNKER PRICES & FUEL ACCOUNTING"); r++;
+  setText(0, r, "Fuel Mode", S.inputLabel); setText(1, r, fuelMode, S.inputText); r++;
+  setText(0, r, "Ignore BOB (1=Yes, 0=No)", S.inputLabel); setNum(1, r, ignoreBOB ? 1 : 0); r++;
+
+  // BOB lot
+  setSubSectionHeader(r, "Bunker On Board (BOB)"); r++;
+  setText(0, r, "Fuel", S.seqHeader); setText(1, r, "Price ($/mt)", S.seqHeader); setText(2, r, "ROB (mt)", S.seqHeader); r++;
+  setText(0, r, "HSFO", S.inputLabel); setNum(1, r, bunker.hsfo.price); setNum(2, r, bunker.hsfo.robStart || 0); const R_HP = r; r++;
+  setText(0, r, "VLSFO", S.inputLabel); setNum(1, r, bunker.vlsfo.price); setNum(2, r, bunker.vlsfo.robStart || 0); const R_VP = r; r++;
+  setText(0, r, "LSMGO", S.inputLabel); setNum(1, r, bunker.lsmgo.price); setNum(2, r, bunker.lsmgo.robStart || 0); const R_LP = r; r++;
+  r++;
+
+  // Bunkering port lots — one row per stem, prices and (optional) quantities
+  const lotPriceRefs: Record<FuelKey, string[]> = { hsfo: [], vlsfo: [], lsmgo: [] };
+  const lotQtyRefs: Record<FuelKey, string[]> = { hsfo: [], vlsfo: [], lsmgo: [] };
+  if (portLots.length > 0) {
+    setSubSectionHeader(r, `BUNKERING PORTS (${portLots.length} stem${portLots.length === 1 ? "" : "s"})`); r++;
+    ["Port", "HSFO $/mt", "HSFO mt", "VLSFO $/mt", "VLSFO mt", "LSMGO $/mt", "LSMGO mt"]
+      .forEach((h, i) => setText(i, r, h, S.seqHeader));
+    r++;
+    portLots.forEach((p, i) => {
       const isAlt = i % 2 === 1;
       const dStyle = isAlt ? S.seqDataAlt : S.seqData;
       const tStyle = isAlt ? S.seqTextAlt : S.seqText;
-      const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
-      setText(0, r, `#${i + 1}`, tStyle);
-      setNum(1, r, c.rate, dStyle);
-      setText(2, r, c.rateType, tStyle);
-      setNum(3, r, pc?.loadedQty ?? 0, dStyle);
-      setNum(4, r, c.voyageCommission, dStyle);
-      setNum(5, r, c.tcCommission, dStyle);
-      const cargoDemDesp = calculateCargoDemurrageDespatch(c, cargos, sequence);
-      setNum(6, r, cargoDemDesp.demurrageAmount, dStyle);
-      setNum(7, r, cargoDemDesp.despatchAmount, dStyle);
-      cargoInputRows.push({
-        rate: { col: 1, row: r },
-        rateType: { col: 2, row: r },
-        qty: { col: 3, row: r },
-        voyComm: { col: 4, row: r },
-        tcComm: { col: 5, row: r },
-        dem: { col: 6, row: r },
-        desp: { col: 7, row: r },
+      setText(0, r, p.port || p.portUnloc || `Stem ${i + 1}`, tStyle);
+      (["hsfo", "vlsfo", "lsmgo"] as FuelKey[]).forEach((f, fi) => {
+        const pc = 1 + fi * 2;
+        setNum(pc, r, p[f]?.price || 0, dStyle);
+        setNum(pc + 1, r, p[f]?.quantity || 0, dStyle);
+        lotPriceRefs[f].push(cellRef(pc, r));
+        lotQtyRefs[f].push(cellRef(pc + 1, r));
       });
       r++;
     });
     r++;
   }
 
-  // --- BUNKER PRICES ---
-  setSectionHeader(r, "BUNKER PRICES"); r++;
-  setText(0, r, "HSFO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.hsfo.price); const R_HP = r; r++;
-  setText(0, r, "VLSFO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.vlsfo.price); const R_VP = r; r++;
-  setText(0, r, "LSMGO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.lsmgo.price); const R_LP = r; r++;
+  // Effective $/mt per fuel — mirrors utils/bunkerPricing (average / FIFO with
+  // consumption coverage) so multiple bunker stems price exactly as the engine.
+  const fifoCoverage = computeFifoCoverage(
+    sequence,
+    vessel,
+    portLots.map((p) => p.portUnloc || ""),
+    bunker.rewardFactor,
+  );
+  const bobPriceRef: Record<FuelKey, string> = {
+    hsfo: cellRef(1, R_HP), vlsfo: cellRef(1, R_VP), lsmgo: cellRef(1, R_LP),
+  };
+  const bobQtyRef: Record<FuelKey, string> = {
+    hsfo: cellRef(2, R_HP), vlsfo: cellRef(2, R_VP), lsmgo: cellRef(2, R_LP),
+  };
+  const consumptionFor: Record<FuelKey, number> = {
+    hsfo: results.hsfoConsumption,
+    vlsfo: results.vlsfoConsumption,
+    lsmgo: results.lsmgoConsumption,
+  };
+
+  /** Build the Excel formula that reproduces the effective price for one fuel. */
+  function priceFormula(fuel: FuelKey): string {
+    const prices = [bunker[fuel].price || 0, ...portLots.map((p) => p[fuel]?.price || 0)];
+    const qtys = [bunker[fuel].robStart || 0, ...portLots.map((p) => p[fuel]?.quantity || 0)];
+    const priceRefs = [bobPriceRef[fuel], ...lotPriceRefs[fuel]];
+    const qtyRefs = [bobQtyRef[fuel], ...lotQtyRefs[fuel]];
+    const skip = (i: number) => (i === 0 && ignoreBOB) || prices[i] <= 0;
+
+    if (fuelMode === "fifo") {
+      const cov = fifoCoverage[fuel] || [];
+      // Coverage of skipped lots carries forward to the next priced lot.
+      const weights: { ref: string; w: number }[] = [];
+      let carried = 0;
+      for (let i = 0; i < prices.length; i++) {
+        const c = Math.max(0, cov[i] || 0);
+        if (skip(i)) { carried += c; continue; }
+        weights.push({ ref: priceRefs[i], w: c + carried });
+        carried = 0;
+      }
+      const totalW = weights.reduce((s, x) => s + x.w, 0);
+      if (weights.length > 0 && totalW > 0) {
+        if (carried > 0) weights[weights.length - 1].w += carried;
+        const num = weights.map((x) => `${x.ref}*${x.w}`).join("+");
+        const den = weights.reduce((s, x) => s + x.w, 0);
+        return `(${num})/${den}`;
+      }
+    }
+
+    // Average mode (also the FIFO fallback when no coverage exists)
+    const active = prices.map((_, i) => i).filter((i) => !skip(i));
+    if (active.length === 0) return ignoreBOB ? "0" : bobPriceRef[fuel];
+    const totalQty = active.reduce((s, i) => s + Math.max(0, qtys[i]), 0);
+    if (totalQty > 0) {
+      const num = active.map((i) => `${priceRefs[i]}*${qtyRefs[i]}`).join("+");
+      const den = active.map((i) => qtyRefs[i]).join("+");
+      return `(${num})/(${den})`;
+    }
+    return `AVERAGE(${active.map((i) => priceRefs[i]).join(",")})`;
+  }
+
+  const effPriceValue: Record<FuelKey, number> = {
+    hsfo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "hsfo", fifoCoverage.hsfo), consumptionFor.hsfo),
+    vlsfo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "vlsfo", fifoCoverage.vlsfo), consumptionFor.vlsfo),
+    lsmgo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "lsmgo", fifoCoverage.lsmgo), consumptionFor.lsmgo),
+  };
+
+  setSubSectionHeader(r, `EFFECTIVE FUEL PRICE ($/mt) — mode: ${fuelMode}${ignoreBOB ? " (BOB ignored)" : ""}`); r++;
+  setText(0, r, "HSFO Effective Price", S.inputLabel);
+  setFormula(1, r, priceFormula("hsfo"), effPriceValue.hsfo, S.formula);
+  setNum(2, r, effPriceValue.hsfo, S.software);
+  const R_HPE = r; r++;
+  setText(0, r, "VLSFO Effective Price", S.inputLabel);
+  setFormula(1, r, priceFormula("vlsfo"), effPriceValue.vlsfo, S.formula);
+  setNum(2, r, effPriceValue.vlsfo, S.software);
+  const R_VPE = r; r++;
+  setText(0, r, "LSMGO Effective Price", S.inputLabel);
+  setFormula(1, r, priceFormula("lsmgo"), effPriceValue.lsmgo, S.formula);
+  setNum(2, r, effPriceValue.lsmgo, S.software);
+  const R_LPE = r; r++;
+  r++;
+
   setText(0, r, "CO₂ Price ($/mt)", S.inputLabel); setNum(1, r, bunker.co2Price); const R_CO2P = r; r++;
+  setText(0, r, "EU ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.euEtsPrice || bunker.co2Price || 0); const R_EUP = r; r++;
+  setText(0, r, "UK ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.ukEtsPrice || bunker.co2Price || 0); const R_UKP = r; r++;
   setText(0, r, "Reward Factor", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
   r++;
 
@@ -383,6 +584,7 @@ export function exportVoyageToExcel(data: ExportData) {
     WXDLY: 37,  // Weather delay (days)
     DEPUTC: 38, // Leg departure (UTC)
     ARRUTC: 39, // Leg arrival (UTC)
+    LAYT: 40,   // Laytime (h) — tanker sheets drive port time from laytime
   };
 
   // Headers — styled
@@ -397,6 +599,7 @@ export function exportVoyageToExcel(data: ExportData) {
     "HSFO Id D", "VLSFO Id D", "LSMGO Id D",
     "EU Sea F", "EU Port F", "Turn(d)", "Extra(d)",
     "Wx Delay (d)", "Leg Dep (UTC)", "Leg Arr (UTC)",
+    "Laytime (h)",
   ];
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
@@ -550,6 +753,7 @@ export function exportVoyageToExcel(data: ExportData) {
     setNum(SC.WXDLY, rr, wxHours / 24, dStyle);
     setText(SC.DEPUTC, rr, leg.legDepartureUtc ? leg.legDepartureUtc.replace("T", " ") : "", tStyle);
     setText(SC.ARRUTC, rr, leg.legArrivalUtc ? leg.legArrivalUtc.replace("T", " ") : "", tStyle);
+    setNum(SC.LAYT, rr, (leg as any).layTime || 0, dStyle);
   });
 
   const seqEndRow = seqStartRow + sequence.length - 1;
@@ -845,15 +1049,15 @@ export function exportVoyageToExcel(data: ExportData) {
   setSubSectionHeader(r, "BUNKER COST"); r++;
 
   setCalcLabel(r, "HSFO Cost ($)");
-  setCalcFormula(r, `${B(R_HSFOT)}*${B(R_HP)}`, results.hsfoConsumption * bunker.hsfo.price);
+  setCalcFormula(r, `${B(R_HSFOT)}*${B(R_HPE)}`, results.hsfoConsumption * effPriceValue.hsfo);
   const R_HCOST = r; r++;
 
   setCalcLabel(r, "VLSFO Cost ($)");
-  setCalcFormula(r, `${B(R_VLSFOT)}*${B(R_VP)}`, results.vlsfoConsumption * bunker.vlsfo.price);
+  setCalcFormula(r, `${B(R_VLSFOT)}*${B(R_VPE)}`, results.vlsfoConsumption * effPriceValue.vlsfo);
   const R_VCOST = r; r++;
 
   setCalcLabel(r, "LSMGO Cost ($)");
-  setCalcFormula(r, `${B(R_LSMGOT)}*${B(R_LP)}`, results.lsmgoConsumption * bunker.lsmgo.price);
+  setCalcFormula(r, `${B(R_LSMGOT)}*${B(R_LPE)}`, results.lsmgoConsumption * effPriceValue.lsmgo);
   const R_LCOST = r; r++;
 
   setCalcLabel(r, "Total Bunker Cost ($)", true);
@@ -872,7 +1076,9 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   setCalcLabel(r, "Gross Freight ($)");
-  setCalcFormula(r, `IF(${B(R_RTYPE)}="lumpsum",${B(R_RATE)},${B(R_RATE)}*${B(R_QTY)})`, results.grossFreight);
+  // Engine: Gross Freight = Σ per-cargo freight (WS-adjusted for tanker)
+  //                         + Demurrage − Despatch
+  setCalcFormula(r, `${B(R_BASEGF)}+${B(R_DEM)}-${B(R_DESP)}`, results.grossFreight);
   const R_GF = r; r++;
 
   setCalcLabel(r, "Voyage Commission ($)");
@@ -891,8 +1097,40 @@ export function exportVoyageToExcel(data: ExportData) {
   setCalcFormula(r, `${B(R_CC1)}+${B(R_CC2)}`, results.canalCosts);
   const R_CANALT = r; r++;
 
+  // --- Regulatory costs (only added when the corresponding toggle is on) ---
+  const applyEua = applyEuaImpact === true;
+  const applyFuelEu = applyFuelEuImpact === true;
+  const applyUk = applyUkEtsImpact === true;
+  const svEuaCost = results.euaCo2Cost || 0;
+  const svFuelEuCost = results.fuelEuTotalPenalty || 0;
+  const svUkCost = results.ukEtsCost || 0;
+
+  setCalcLabel(r, "Apply EU ETS (1/0)"); setNum(1, r, applyEua ? 1 : 0); setNum(2, r, applyEua ? 1 : 0, S.software);
+  const R_APP_EUA = r; r++;
+  setCalcLabel(r, "Apply FuelEU (1/0)"); setNum(1, r, applyFuelEu ? 1 : 0); setNum(2, r, applyFuelEu ? 1 : 0, S.software);
+  const R_APP_FEU = r; r++;
+  setCalcLabel(r, "Apply UK ETS (1/0)"); setNum(1, r, applyUk ? 1 : 0); setNum(2, r, applyUk ? 1 : 0, S.software);
+  const R_APP_UK = r; r++;
+
+  setCalcLabel(r, "EUA CO₂ Cost ($)"); setCalcFormula(r, `${svEuaCost}`, svEuaCost);
+  const R_REG_EUA = r; r++;
+  setCalcLabel(r, "FuelEU Penalty ($)"); setCalcFormula(r, `${svFuelEuCost}`, svFuelEuCost);
+  const R_REG_FEU = r; r++;
+  setCalcLabel(r, "UK ETS Cost ($)"); setCalcFormula(r, `${svUkCost}`, svUkCost);
+  const R_REG_UK = r; r++;
+
+  const svRegulatory =
+    (applyEua ? svEuaCost : 0) + (applyFuelEu ? svFuelEuCost : 0) + (applyUk ? svUkCost : 0);
+  setCalcLabel(r, "Regulatory Costs ($)", true);
+  setCalcFormula(
+    r,
+    `${B(R_APP_EUA)}*${B(R_REG_EUA)}+${B(R_APP_FEU)}*${B(R_REG_FEU)}+${B(R_APP_UK)}*${B(R_REG_UK)}`,
+    svRegulatory, true,
+  );
+  const R_REGT = r; r++;
+
   setCalcLabel(r, "Voyage Costs excl Hire ($)", true);
-  setCalcFormula(r, `${B(R_BUNKC)}+${B(R_PCOST)}+${B(R_MISCT)}+${B(R_CANALT)}`, results.voyageCostExclHire, true);
+  setCalcFormula(r, `${B(R_BUNKC)}+${B(R_PCOST)}+${B(R_MISCT)}+${B(R_CANALT)}+${B(R_REGT)}`, results.voyageCostExclHire, true);
   const R_VCEXH = r; r++;
 
   setCalcLabel(r, "Hire Cost ($)");
@@ -915,7 +1153,8 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   setCalcLabel(r, "Gross Profit ($)", false, true);
-  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}-${B(R_DEM)}+${B(R_DESP)}`, results.grossProfit, false, true);
+  // Demurrage / Despatch are already baked into Gross Freight by the engine.
+  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}`, results.grossProfit, false, true);
   const R_GP = r; r++;
 
   setCalcLabel(r, "P&L ($)", false, true);
@@ -979,6 +1218,7 @@ export function exportVoyageToExcel(data: ExportData) {
       const vcRef = cref(inp.voyComm.col, inp.voyComm.row);
       const demRef = cref(inp.dem.col, inp.dem.row);
       const despRef = cref(inp.desp.col, inp.desp.row);
+      const effRateRef = cref(inp.effRate.col, inp.effRate.row);
 
       // Sub-header for the cargo block
       setSubSectionHeader(r, `Cargo ${pc.cargoLabel} — ${src?.rateType || "mt"} @ ${src?.rate ?? 0}`); r++;
@@ -988,11 +1228,11 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${qtyRef}`, pc.loadedQty);
       const rRowQty = r; r++;
 
-      // Gross Freight = IF(type=lumpsum, rate, rate*qty)
+      // Gross Freight = IF(type=lumpsum, rate, WS-adjusted rate × qty)
       setCalcLabel(r, "Gross Freight ($)");
       setCalcFormula(
         r,
-        `IF(${typeRef}="lumpsum",${rateRef},${rateRef}*${B(rRowQty)})`,
+        `IF(${typeRef}="lumpsum",${rateRef},${effRateRef}*${B(rRowQty)})`,
         pc.grossFreight,
       );
       const rRowGF = r; r++;
@@ -1049,6 +1289,28 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${B(R_HIRECOST)}*${hireRatio}`, pc.allocatedHire);
       const rRowAH = r; r++;
 
+      // Allocated Misc / Canal (ton-mile share) and the full allocated cost
+      // base used by the per-cargo gross rate.
+      const miscRatio = results.miscCosts > 0 ? (pc.allocatedMiscCost || 0) / results.miscCosts : 0;
+      const canalRatio = results.canalCosts > 0 ? (pc.allocatedCanalCost || 0) / results.canalCosts : 0;
+
+      setCalcLabel(r, "Allocated Misc ($)");
+      setCalcFormula(r, `${B(R_MISCT)}*${miscRatio}`, pc.allocatedMiscCost || 0);
+      const rRowAM = r; r++;
+
+      setCalcLabel(r, "Allocated Canal ($)");
+      setCalcFormula(r, `${B(R_CANALT)}*${canalRatio}`, pc.allocatedCanalCost || 0);
+      const rRowAC = r; r++;
+
+      setCalcLabel(r, "Allocated Total Cost ($)", true);
+      setCalcFormula(
+        r,
+        `${B(rRowAV)}+${B(rRowAH)}+${B(rRowAM)}+${B(rRowAC)}`,
+        pc.allocatedTotalCost,
+        true,
+      );
+      const rRowATC = r; r++;
+
       const cargoDemDesp = src ? calculateCargoDemurrageDespatch(src, cargos, sequence) : undefined;
 
       // Demurrage / Despatch from overall CP − Op days for this cargo
@@ -1060,13 +1322,15 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${despRef}`, cargoDemDesp?.despatchAmount || 0);
       const rRowDesp = r; r++;
 
-      // Voyage Result (per-cargo) = Net Freight - AllocVoy - Dem + Desp
+      // Voyage Result (per-cargo) = (Net Freight + Dem − Desp) − Allocated Voy Costs
+      // Demurrage is extra revenue and despatch is a give-back, matching the
+      // engine where both are folded into gross freight.
       setCalcLabel(r, "Voyage Result ($)", false, true);
       const vrSv = (pc.grossFreight - vcAmtSv) - pc.allocatedVoyageCosts
-        - (cargoDemDesp?.demurrageAmount || 0) + (cargoDemDesp?.despatchAmount || 0);
+        + (cargoDemDesp?.demurrageAmount || 0) - (cargoDemDesp?.despatchAmount || 0);
       setCalcFormula(
         r,
-        `${B(rRowNF)}-${B(rRowAV)}-${B(rRowDem)}+${B(rRowDesp)}`,
+        `${B(rRowNF)}-${B(rRowAV)}+${B(rRowDem)}-${B(rRowDesp)}`,
         vrSv,
         false, true,
       );
@@ -1077,11 +1341,12 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${B(rRowVR)}-${B(rRowAH)}`, vrSv - pc.allocatedHire, false, true);
       r++;
 
-      // Gross Rate ($/mt) — own freight rate grossed up by Voy Commission
+      // Gross Rate ($/mt) — engine: allocated total cost per mt grossed up by
+      // the cargo's own voyage commission.
       setCalcLabel(r, "Gross Rate ($/mt)", true);
       setCalcFormula(
         r,
-        `IF(${typeRef}="lumpsum",IF(${B(rRowQty)}>0,${rateRef}/${B(rRowQty)},0),${rateRef})/(1-${vcRef}/100)`,
+        `IF(AND(${B(rRowQty)}>0,${vcRef}<100),(${B(rRowATC)}/${B(rRowQty)})/(1-${vcRef}/100),0)`,
         pc.grossRate,
         true,
       );
@@ -1143,9 +1408,9 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // CO₂ emission factors
-  setCalcLabel(r, "CO₂ Factor HSFO (t/t)", false, false, true); setNum(1, r, 3.114, S.envFormula); const R_CFH = r; r++;
-  setCalcLabel(r, "CO₂ Factor VLSFO (t/t)", false, false, true); setNum(1, r, 3.151, S.envFormula); const R_CFV = r; r++;
-  setCalcLabel(r, "CO₂ Factor LSMGO (t/t)", false, false, true); setNum(1, r, 3.206, S.envFormula); const R_CFL = r; r++;
+  setCalcLabel(r, "CO₂ Factor HSFO (t/t)", false, false, true); setNum(1, r, CO2_EMISSION_FACTORS.hsfo, S.envFormula); const R_CFH = r; r++;
+  setCalcLabel(r, "CO₂ Factor VLSFO (t/t)", false, false, true); setNum(1, r, CO2_EMISSION_FACTORS.vlsfo, S.envFormula); const R_CFV = r; r++;
+  setCalcLabel(r, "CO₂ Factor LSMGO (t/t)", false, false, true); setNum(1, r, CO2_EMISSION_FACTORS.lsmgo, S.envFormula); const R_CFL = r; r++;
   r++;
 
   setCalcLabel(r, "CO₂ from HSFO (mt)", false, false, true);
@@ -1457,7 +1722,9 @@ export function exportVoyageToExcel(data: ExportData) {
   setCalcLabel(r, "EU CO₂ from Fuel (mt)", false, false, true);
   setCalcFormula(r,
     `${B(R_EU_HSFOT)}*${B(R_CFH)}+${B(R_EU_VLSFOT)}*${B(R_CFV)}+${B(R_EU_LSMGOT)}*${B(R_CFL)}`,
-    sv_euHsfo * 3.114 + sv_euVlsfo * 3.151 + sv_euLsmgo * 3.206,
+    sv_euHsfo * CO2_EMISSION_FACTORS.hsfo
+      + sv_euVlsfo * CO2_EMISSION_FACTORS.vlsfo
+      + sv_euLsmgo * CO2_EMISSION_FACTORS.lsmgo,
     false, false, true);
   const R_EUCO2 = r; r++;
 
@@ -1469,12 +1736,60 @@ export function exportVoyageToExcel(data: ExportData) {
   const R_CHCO2 = r; r++;
 
   setCalcLabel(r, "EUA CO₂ Cost ($)", false, false, true);
-  setCalcFormula(r, `${B(R_CHCO2)}*${B(R_CO2P)}`, results.euaCo2Cost, false, false, true);
+  setCalcFormula(r, `${B(R_CHCO2)}*${B(R_EUP)}`, results.euaCo2Cost, false, false, true);
   const R_EUACOST = r; r++;
 
   setCalcLabel(r, "EUA Freight Impact ($/mt)", false, false, true);
   setCalcFormula(r, `IF(${B(R_QTY)}>0,${B(R_EUACOST)}/${B(R_QTY)},0)`, results.euaFreightImpact, false, false, true);
   r++;
+  r++;
+
+  // ═══════════════════════════════════════════════════════
+  // UK ETS  (GB↔GB 100%, GB↔non-GB 50%, UK port stays 100%)
+  // ═══════════════════════════════════════════════════════
+  setSubSectionHeader(r, "UK ETS"); r++;
+  setCalcLabel(r, "UK Coverage (%) — informational", false, false, true);
+  setNum(1, r, (results.ukEtsVoyageCoverage || 0) * 100, S.envFormula);
+  setNum(2, r, (results.ukEtsVoyageCoverage || 0) * 100, S.envSoftware);
+  r++;
+
+  setCalcLabel(r, "UK ETS Phase-in (%)", false, false, true);
+  setNum(1, r, (results.ukEtsPhaseIn || 0) * 100, S.envFormula);
+  setNum(2, r, (results.ukEtsPhaseIn || 0) * 100, S.envSoftware);
+  const R_UKPHASE = r; r++;
+
+  setCalcLabel(r, "UK-Covered HSFO (mt)", false, false, true);
+  setNum(1, r, results.ukEtsResult?.ukCoveredFuel?.hsfo || 0, S.envFormula);
+  setNum(2, r, results.ukEtsResult?.ukCoveredFuel?.hsfo || 0, S.envSoftware);
+  const R_UK_H = r; r++;
+  setCalcLabel(r, "UK-Covered VLSFO (mt)", false, false, true);
+  setNum(1, r, results.ukEtsResult?.ukCoveredFuel?.vlsfo || 0, S.envFormula);
+  setNum(2, r, results.ukEtsResult?.ukCoveredFuel?.vlsfo || 0, S.envSoftware);
+  const R_UK_V = r; r++;
+  setCalcLabel(r, "UK-Covered LSMGO (mt)", false, false, true);
+  setNum(1, r, results.ukEtsResult?.ukCoveredFuel?.lsmgo || 0, S.envFormula);
+  setNum(2, r, results.ukEtsResult?.ukCoveredFuel?.lsmgo || 0, S.envSoftware);
+  const R_UK_L = r; r++;
+
+  setCalcLabel(r, "UK CO₂ from Fuel (mt)", false, false, true);
+  setCalcFormula(r,
+    `${B(R_UK_H)}*${B(R_CFH)}+${B(R_UK_V)}*${B(R_CFV)}+${B(R_UK_L)}*${B(R_CFL)}`,
+    (results.ukEtsResult?.ukCoveredFuel?.hsfo || 0) * CO2_EMISSION_FACTORS.hsfo
+      + (results.ukEtsResult?.ukCoveredFuel?.vlsfo || 0) * CO2_EMISSION_FACTORS.vlsfo
+      + (results.ukEtsResult?.ukCoveredFuel?.lsmgo || 0) * CO2_EMISSION_FACTORS.lsmgo,
+    false, false, true);
+  const R_UKCO2 = r; r++;
+
+  setCalcLabel(r, "Chargeable CO₂ UKA (mt)", false, false, true);
+  setCalcFormula(r, `${B(R_UKCO2)}*${B(R_UKPHASE)}/100`, results.ukEtsResult?.chargeableCo2 || 0, false, false, true);
+  const R_UKCH = r; r++;
+
+  setCalcLabel(r, "UK ETS Cost ($)", false, false, true);
+  setCalcFormula(r, `${B(R_UKCH)}*${B(R_UKP)}`, results.ukEtsCost || 0, false, false, true);
+  const R_UKCOST = r; r++;
+
+  setCalcLabel(r, "UK ETS Freight Impact ($/mt)", false, false, true);
+  setCalcFormula(r, `IF(${B(R_QTY)}>0,${B(R_UKCOST)}/${B(R_QTY)},0)`, results.ukEtsFreightImpact || 0, false, false, true);
   r++;
 
   // FuelEU Maritime
@@ -1515,7 +1830,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // ═══════════════════════════════════════════════════════
 
   // Set sheet range (expanded for new EU columns)
-  ws["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: 36, r: r } });
+  ws["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: 40, r: r } });
 
   // Column widths (expanded for new EU columns)
   ws["!cols"] = [
