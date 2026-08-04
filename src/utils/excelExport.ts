@@ -165,7 +165,10 @@ function cellRef(c: number, r: number): string {
 }
 
 export function exportVoyageToExcel(data: ExportData) {
-  const { vessel, sequence, cargos, bunker, misc, hireRate, netBB, results } = data;
+  const {
+    vessel, sequence, cargos, bunker, misc, hireRate, netBB, results,
+    applyEuaImpact, applyFuelEuImpact, applyUkEtsImpact,
+  } = data;
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = {};
 
