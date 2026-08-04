@@ -2,6 +2,7 @@ import * as XLSX from "xlsx-js-style";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
+import { calculatePortDays } from "@/context/VoyageContext";
 import { isEuPort, CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
