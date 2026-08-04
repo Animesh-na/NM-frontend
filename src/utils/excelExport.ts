@@ -838,9 +838,7 @@ export function exportVoyageToExcel(data: ExportData) {
     const st = (leg as any).totalLegTime || 0; // Total sea time (ECA + NonECA)
     const et = (leg as any).ecaTime || 0;
     const net = st - et;
-    const pd = (leg as any).calculatedPortDays || 0;
-    const teh = ((leg as any).turnTime || 0) + ((leg as any).extraTime || 0);
-    const wd = Math.max(0, pd - teh / 24);
+    const pd = effectiveLeg(leg).portDays;
     const op = String(leg.operation || "");
     const pf = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
     const isLd = op === "load" || op === "loading";
@@ -849,18 +847,17 @@ export function exportVoyageToExcel(data: ExportData) {
     if (il) { c_ecaLadD += et; c_necaLadD += net; }
     else { c_ecaBalD += et; c_necaBalD += net; }
 
+    // Whole port stay at the load/disch rate (engine parity); everything else idle.
     if (isLd) {
-      c_tload += wd;
-      if (pf === "hsfo") { c_hld += wd; c_hid += pd - wd; }
-      else if (pf === "vlsfo") { c_vld += wd; c_vid += pd - wd; }
-      else { c_lld += wd; c_lid += pd - wd; }
-      c_tidle += pd - wd;
+      c_tload += pd;
+      if (pf === "hsfo") c_hld += pd;
+      else if (pf === "vlsfo") c_vld += pd;
+      else c_lld += pd;
     } else if (isDc) {
-      c_tdisch += wd;
-      if (pf === "hsfo") { c_hdd += wd; c_hid += pd - wd; }
-      else if (pf === "vlsfo") { c_vdd += wd; c_vid += pd - wd; }
-      else { c_ldd += wd; c_lid += pd - wd; }
-      c_tidle += pd - wd;
+      c_tdisch += pd;
+      if (pf === "hsfo") c_hdd += pd;
+      else if (pf === "vlsfo") c_vdd += pd;
+      else c_ldd += pd;
     } else if (pd > 0) {
       if (pf === "hsfo") c_hid += pd;
       else if (pf === "vlsfo") c_vid += pd;
