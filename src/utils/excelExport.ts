@@ -8,6 +8,8 @@ import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } fro
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
 import { computeFifoCoverage } from "@/utils/fuelBreakdown";
 import { getApiMode } from "@/services/apiMode";
+import { FUEL_EU_PENALTY_RATE_EUR_PER_MJ, FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
+import { getUkEtsPortCoverage, getUkEtsSeaCoverage } from "@/utils/ukEtsCalculations";
 
 export interface ExportBunkerLot { quantity: number; price: number }
 export interface ExportPortBunkering {
@@ -203,8 +205,10 @@ export function exportVoyageToExcel(data: ExportData) {
     return o === "disch" || o === "discharging";
   };
   const isCargoPortCall = (op?: string) => isLoadOp(op) || isDischargeOp(op);
-  const isEtsCoveredPort = (leg: SequenceRowUI): boolean =>
-    leg.isEuEea === true || isEuPort(leg.portUnloc || "") || (leg.ecaDistance || 0) > 0;
+  const isEuRegulatoryPortCall = (leg: SequenceRowUI): boolean => {
+    const op = (leg.operation || "").toLowerCase();
+    return !!(leg.portUnloc || leg.port || "").trim() && op !== "pssg" && op !== "bunkering";
+  };
 
   // ---- Styled Cell writing helpers ----
   function setText(c: number, r: number, v: string, style?: any) {
@@ -600,6 +604,11 @@ export function exportVoyageToExcel(data: ExportData) {
     DEPUTC: 38, // Leg departure (UTC)
     ARRUTC: 39, // Leg arrival (UTC)
     LAYT: 40,   // Laytime (h) — tanker sheets drive port time from laytime
+    EUWIN: 41,  // EU commercial voyage window (0/1)
+    UKFLG: 42,  // UK ETS port flag
+    UKZONE: 43, // gb / ni / blank
+    UKSEA: 44,  // UK ETS sea factor
+    UKPORT: 45, // UK ETS port factor
   };
 
   // Headers — styled
@@ -645,19 +654,21 @@ export function exportVoyageToExcel(data: ExportData) {
     "Leg Departure (UTC)",
     "Leg Arrival (UTC)",
     "Laytime Allowed (hours)",
+    "Inside EU ETS Commercial Window? (1 = Yes)",
+    "Port in UK ETS? (1 = Yes, 0 = No)",
+    "UK ETS Zone (GB / NI / blank)",
+    "UK ETS Sea Coverage Factor (0 / 0.5 / 1.0)",
+    "UK ETS Port Coverage Factor (0 / 1.0)",
   ];
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
 
-  // Pre-compute isLaden flags and ETS cargo brackets (matches useVoyageCalculation.ts)
+  // Pre-compute laden flags and regulatory coverage exactly as useVoyageCalculation.ts.
   // Ship is laden as long as cargo remains on board; ballast only when cargo reaches zero
   const ladenFlags: boolean[] = [];
   const bracketOriginIsEu: (boolean | null)[] = sequence.map(() => null);
   const bracketDestIsEu: (boolean | null)[] = sequence.map(() => null);
   let cargoOnBoardExcel = 0;
-  const cargoPortIndexes = sequence
-    .map((leg, i) => (isCargoPortCall(leg.operation) ? i : -1))
-    .filter(i => i >= 0);
   sequence.forEach((leg) => {
     // Laden state is determined BEFORE the current port operation (same as calculation engine)
     ladenFlags.push(cargoOnBoardExcel > 0);
@@ -669,22 +680,35 @@ export function exportVoyageToExcel(data: ExportData) {
       cargoOnBoardExcel = Math.max(0, cargoOnBoardExcel - legQty);
     }
   });
-  let cargoOnBoardBeforeLeg = 0;
+  const nextRegulatoryPortIdx: number[] = sequence.map(() => -1);
+  let nextRegulatoryIdx = -1;
+  for (let i = sequence.length - 1; i >= 0; i--) {
+    nextRegulatoryPortIdx[i] = nextRegulatoryIdx;
+    if (isEuRegulatoryPortCall(sequence[i])) nextRegulatoryIdx = i;
+  }
+  let previousRegulatoryIdx = -1;
   sequence.forEach((leg, i) => {
-    if (cargoOnBoardBeforeLeg > 0) {
-      const originIdx = [...cargoPortIndexes].reverse().find(idx => idx < i);
-      const destIdx = cargoPortIndexes.find(idx => idx >= i);
-
-      if (originIdx !== undefined && destIdx !== undefined && originIdx !== destIdx) {
-        bracketOriginIsEu[i] = isEtsCoveredPort(sequence[originIdx]);
-        bracketDestIsEu[i] = isEtsCoveredPort(sequence[destIdx]);
-      }
+    if (!(leg.portUnloc || leg.port || "").trim()) return;
+    const currentIsRegulatory = isEuRegulatoryPortCall(leg);
+    const destinationIdx = currentIsRegulatory ? i : nextRegulatoryPortIdx[i];
+    if (previousRegulatoryIdx >= 0 && destinationIdx >= 0) {
+      bracketOriginIsEu[i] = sequence[previousRegulatoryIdx].isEuEea === true;
+      bracketDestIsEu[i] = sequence[destinationIdx].isEuEea === true;
     }
-
-    const qty = Math.max(0, leg.quantity || 0);
-    if (isLoadOp(leg.operation)) cargoOnBoardBeforeLeg += qty;
-    else if (isDischargeOp(leg.operation)) cargoOnBoardBeforeLeg = Math.max(0, cargoOnBoardBeforeLeg - qty);
+    if (currentIsRegulatory) previousRegulatoryIdx = i;
   });
+
+  let firstLoadIdx = -1;
+  let lastDischargeIdx = -1;
+  sequence.forEach((leg, i) => {
+    if (firstLoadIdx === -1 && isLoadOp(leg.operation)) firstLoadIdx = i;
+    if (isDischargeOp(leg.operation)) lastDischargeIdx = i;
+  });
+  const euWindowValid = firstLoadIdx >= 0 && lastDischargeIdx >= firstLoadIdx;
+  const ballastStartsInEu = sequence[0]?.isEuEea === true;
+  const euStartIdx = euWindowValid && ballastStartsInEu && firstLoadIdx > 0 ? 0 : firstLoadIdx;
+  const inEuSeaWindow = (i: number) => euWindowValid && i > euStartIdx && i <= lastDischargeIdx;
+  const inEuPortWindow = (i: number) => euWindowValid && i >= euStartIdx && i <= lastDischargeIdx;
   const computeSeaEuFactor = (legIdx: number): number => {
     const originEu = bracketOriginIsEu[legIdx];
     const destEu = bracketDestIsEu[legIdx];
@@ -810,14 +834,15 @@ export function exportVoyageToExcel(data: ExportData) {
     const curEuCell = c(SC.EUFLG);
     const curIsEu = leg.isEuEea === true;
     const curPortKey = (leg.portUnloc || leg.port || "").trim();
-    const euSeaFactorVal = curPortKey ? computeSeaEuFactor(idx) : 0;
+    const euSeaFactorVal = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
-    // EU Port Factor: per leg-uniform ETS rule, port fuel inherits the
-    // bracketing sea-leg coverage (0 / 0.5 / 1.0). This keeps Excel parity
-    // with the software engine where portEuFactor === seaEuFactor.
-    setFormula(SC.EUPORT, rr, `${cellRef(SC.EUSEA, rr)}`, euSeaFactorVal, fStyle);
+    // EU port stays are 100% only when eu_zone=true and the row is inside the
+    // commercial window. PSSG/bunkering do not reset sea-leg endpoints, but an
+    // EU bunkering port stay is still covered as a port stay.
+    const euPortFactorVal = curPortKey && inEuPortWindow(idx) && curIsEu ? 1 : 0;
+    setFormula(SC.EUPORT, rr, `IF(AND(${curEuCell}=1,${inEuPortWindow(idx) ? 1 : 0}=1),1,0)`, euPortFactorVal, fStyle);
 
     // Turn time in days
     const turnTimeH = eff.turnTime;
@@ -834,6 +859,16 @@ export function exportVoyageToExcel(data: ExportData) {
     setText(SC.DEPUTC, rr, leg.legDepartureUtc ? leg.legDepartureUtc.replace("T", " ") : "", tStyle);
     setText(SC.ARRUTC, rr, leg.legArrivalUtc ? leg.legArrivalUtc.replace("T", " ") : "", tStyle);
     setNum(SC.LAYT, rr, (leg as any).layTime || 0, dStyle);
+    setNum(SC.EUWIN, rr, inEuSeaWindow(idx) || inEuPortWindow(idx) ? 1 : 0, fStyle);
+    const ukPortFlag = leg.ukEts === true ? 1 : 0;
+    const ukZone = leg.ukZone || "";
+    const previousUkZone = idx > 0 ? sequence[idx - 1]?.ukZone : null;
+    const ukSeaFactor = getUkEtsSeaCoverage(previousUkZone, leg.ukZone);
+    const ukPortFactor = getUkEtsPortCoverage(leg.ukEts);
+    setNum(SC.UKFLG, rr, ukPortFlag, dStyle);
+    setText(SC.UKZONE, rr, ukZone ? String(ukZone).toUpperCase() : "", tStyle);
+    setFormula(SC.UKSEA, rr, `${ukSeaFactor}`, ukSeaFactor, fStyle);
+    setFormula(SC.UKPORT, rr, `IF(${c(SC.UKFLG)}=1,1,0)`, ukPortFactor, fStyle);
   });
 
   const seqEndRow = seqStartRow + sequence.length - 1;
