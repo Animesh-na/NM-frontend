@@ -362,7 +362,7 @@ interface BunkerState {
 }
 
 // Helper to calculate port days
-function calculatePortDays(row: SequenceRowUI): number {
+export function calculatePortDays(row: SequenceRowUI): number {
   if (row.type === "open" || row.type === "repos") {
     return 0;
   }

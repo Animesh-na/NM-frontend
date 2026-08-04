@@ -2,6 +2,7 @@ import * as XLSX from "xlsx-js-style";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
+import { calculatePortDays } from "@/context/VoyageContext";
 import { isEuPort, CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
@@ -649,6 +650,36 @@ export function exportVoyageToExcel(data: ExportData) {
     return 0;
   };
 
+  // ── Effective port inputs ────────────────────────────────────────────────
+  // The calculation engine applies the Cargo-section operational overrides
+  // (quantity / productivity / terms / turn / extra) whenever demurrage or
+  // despatch is active. The raw sequence rows stay at the CP baseline, so the
+  // export MUST resolve the same effective values or port days — and therefore
+  // port fuel — will not match the software.
+  const effectiveLeg = (leg: SequenceRowUI) => {
+    let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
+    for (const c of cargos) {
+      const ddActive = (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0;
+      if (!ddActive) continue;
+      const o = c.opOverrides?.[leg.id];
+      if (o && Object.keys(o).length > 0) { opOv = o; break; }
+    }
+    const turnTime = opOv?.turnTime ?? leg.turnTime ?? 0;
+    const extraTime = opOv?.extraTime ?? leg.extraTime ?? 0;
+    const portDays = opOv
+      ? calculatePortDays({
+          ...leg,
+          quantity: opOv.quantity ?? leg.quantity,
+          productivity: opOv.productivity ?? leg.productivity,
+          turnTime,
+          extraTime,
+          terms: (opOv.terms as SequenceRowUI["terms"]) ?? leg.terms,
+          coefficientFactor: opOv.coefficientFactor ?? leg.coefficientFactor,
+        })
+      : (leg.calculatedPortDays || 0);
+    return { portDays, turnExtraH: turnTime + extraTime, turnTime, extraTime };
+  };
+
   const seqStartRow = r;
   sequence.forEach((leg, idx) => {
     const rr = r + idx;
@@ -661,8 +692,9 @@ export function exportVoyageToExcel(data: ExportData) {
     const portFuel = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
     const seaTime = leg.totalLegTime || 0;
     const ecaTime = leg.ecaTime || 0;
-    const portDays = leg.calculatedPortDays || 0;
-    const turnExtraH = (leg.turnTime || 0) + (leg.extraTime || 0);
+    const eff = effectiveLeg(leg);
+    const portDays = eff.portDays;
+    const turnExtraH = eff.turnExtraH;
     const isLadenLeg = ladenFlags[idx];
 
     // --- Data columns (inputs) ---
@@ -683,14 +715,18 @@ export function exportVoyageToExcel(data: ExportData) {
 
     setFormula(SC.NECAT, rr, `${c(SC.SEAT)}-${c(SC.ECAT)}`, seaTime - ecaTime, fStyle);
 
-    const wd = Math.max(0, portDays - turnExtraH / 24);
-    setFormula(SC.WDAYS, rr, `MAX(0,${c(SC.PORTD)}-${c(SC.TURNH)}/24)`, wd, fStyle);
-
+    // Engine rule: at a LOAD/DISCH call the WHOLE port stay (cargo working time
+    // plus turn + extra time) burns at the load/discharge rate — turn time is
+    // NOT split off to the idle rate. Any other call (waiting, bunkering,
+    // passage with port time) burns entirely at the idle rate.
     const isLoadDisch = op === "load" || op === "loading" || op === "disch" || op === "discharging";
-    const idleVal = isLoadDisch ? portDays - wd : portDays;
-    setFormula(SC.IDAYS, rr,
-      `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),${c(SC.PORTD)}-${c(SC.WDAYS)},${c(SC.PORTD)})`,
-      idleVal, fStyle);
+    const wd = isLoadDisch ? portDays : 0;
+    setFormula(SC.WDAYS, rr,
+      `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),${c(SC.PORTD)},0)`,
+      wd, fStyle);
+
+    const idleVal = isLoadDisch ? 0 : portDays;
+    setFormula(SC.IDAYS, rr, `${c(SC.PORTD)}-${c(SC.WDAYS)}`, idleVal, fStyle);
 
     setFormula(SC.BSEA, rr, `IF(${c(SC.LADEN)}=0,${c(SC.SEAT)},0)`, isLadenLeg ? 0 : seaTime, fStyle);
     setFormula(SC.LSEA, rr, `IF(${c(SC.LADEN)}=1,${c(SC.SEAT)},0)`, isLadenLeg ? seaTime : 0, fStyle);
@@ -740,8 +776,8 @@ export function exportVoyageToExcel(data: ExportData) {
     setFormula(SC.EUPORT, rr, `${cellRef(SC.EUSEA, rr)}`, euSeaFactorVal, fStyle);
 
     // Turn time in days
-    const turnTimeH = leg.turnTime || 0;
-    const extraTimeH = leg.extraTime || 0;
+    const turnTimeH = eff.turnTime;
+    const extraTimeH = eff.extraTime;
     setFormula(SC.TURND, rr, `${cellRef(SC.TURNH, rr)}/24`, turnExtraH / 24, fStyle);
     // Note: TURND is total turn+extra in days. Separate turn/extra:
     const turnDays = turnTimeH / 24;
@@ -802,9 +838,7 @@ export function exportVoyageToExcel(data: ExportData) {
     const st = (leg as any).totalLegTime || 0; // Total sea time (ECA + NonECA)
     const et = (leg as any).ecaTime || 0;
     const net = st - et;
-    const pd = (leg as any).calculatedPortDays || 0;
-    const teh = ((leg as any).turnTime || 0) + ((leg as any).extraTime || 0);
-    const wd = Math.max(0, pd - teh / 24);
+    const pd = effectiveLeg(leg).portDays;
     const op = String(leg.operation || "");
     const pf = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
     const isLd = op === "load" || op === "loading";
@@ -813,18 +847,17 @@ export function exportVoyageToExcel(data: ExportData) {
     if (il) { c_ecaLadD += et; c_necaLadD += net; }
     else { c_ecaBalD += et; c_necaBalD += net; }
 
+    // Whole port stay at the load/disch rate (engine parity); everything else idle.
     if (isLd) {
-      c_tload += wd;
-      if (pf === "hsfo") { c_hld += wd; c_hid += pd - wd; }
-      else if (pf === "vlsfo") { c_vld += wd; c_vid += pd - wd; }
-      else { c_lld += wd; c_lid += pd - wd; }
-      c_tidle += pd - wd;
+      c_tload += pd;
+      if (pf === "hsfo") c_hld += pd;
+      else if (pf === "vlsfo") c_vld += pd;
+      else c_lld += pd;
     } else if (isDc) {
-      c_tdisch += wd;
-      if (pf === "hsfo") { c_hdd += wd; c_hid += pd - wd; }
-      else if (pf === "vlsfo") { c_vdd += wd; c_vid += pd - wd; }
-      else { c_ldd += wd; c_lid += pd - wd; }
-      c_tidle += pd - wd;
+      c_tdisch += pd;
+      if (pf === "hsfo") c_hdd += pd;
+      else if (pf === "vlsfo") c_vdd += pd;
+      else c_ldd += pd;
     } else if (pd > 0) {
       if (pf === "hsfo") c_hid += pd;
       else if (pf === "vlsfo") c_vid += pd;
@@ -936,45 +969,45 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // --- PORT TIME AGGREGATES ---
-  setSubSectionHeader(r, "PORT TIME BY FUEL TYPE"); r++;
+  setSubSectionHeader(r, "PORT DAYS SPLIT BY PORT FUEL (load / disch stays include turn + extra time)"); r++;
 
-  setCalcLabel(r, "Loading Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HLD)})`, c_hld); const R_HLD = r; r++;
-  setCalcLabel(r, "Loading Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VLD)})`, c_vld); const R_VLD = r; r++;
-  setCalcLabel(r, "Loading Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LLD)})`, c_lld); const R_LLD = r; r++;
-  setCalcLabel(r, "Disch Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HDD)})`, c_hdd); const R_HDD = r; r++;
-  setCalcLabel(r, "Disch Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VDD)})`, c_vdd); const R_VDD = r; r++;
-  setCalcLabel(r, "Disch Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LDD)})`, c_ldd); const R_LDD = r; r++;
-  setCalcLabel(r, "Idle Days (HSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.HID)})`, c_hid); const R_HID = r; r++;
-  setCalcLabel(r, "Idle Days (VLSFO)"); setCalcFormula(r, `SUM(${seqRange(SC.VID)})`, c_vid); const R_VID = r; r++;
-  setCalcLabel(r, "Idle Days (LSMGO)"); setCalcFormula(r, `SUM(${seqRange(SC.LID)})`, c_lid); const R_LID = r; r++;
+  setCalcLabel(r, "Load Port Days on HSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.HLD)})`, c_hld); const R_HLD = r; r++;
+  setCalcLabel(r, "Load Port Days on VLSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.VLD)})`, c_vld); const R_VLD = r; r++;
+  setCalcLabel(r, "Load Port Days on LSMGO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.LLD)})`, c_lld); const R_LLD = r; r++;
+  setCalcLabel(r, "Disch Port Days on HSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.HDD)})`, c_hdd); const R_HDD = r; r++;
+  setCalcLabel(r, "Disch Port Days on VLSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.VDD)})`, c_vdd); const R_VDD = r; r++;
+  setCalcLabel(r, "Disch Port Days on LSMGO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.LDD)})`, c_ldd); const R_LDD = r; r++;
+  setCalcLabel(r, "Idle / Waiting / Bunkering Days on HSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.HID)})`, c_hid); const R_HID = r; r++;
+  setCalcLabel(r, "Idle / Waiting / Bunkering Days on VLSFO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.VID)})`, c_vid); const R_VID = r; r++;
+  setCalcLabel(r, "Idle / Waiting / Bunkering Days on LSMGO (d)"); setCalcFormula(r, `SUM(${seqRange(SC.LID)})`, c_lid); const R_LID = r; r++;
 
-  setCalcLabel(r, "Total Loading Days"); setCalcFormula(r, `${B(R_HLD)}+${B(R_VLD)}+${B(R_LLD)}`, c_tload); const R_TLOAD = r; r++;
-  setCalcLabel(r, "Total Disch Days"); setCalcFormula(r, `${B(R_HDD)}+${B(R_VDD)}+${B(R_LDD)}`, c_tdisch); const R_TDISCH = r; r++;
-  setCalcLabel(r, "Total Idle Days"); setCalcFormula(r, `${B(R_HID)}+${B(R_VID)}+${B(R_LID)}`, c_tidle); const R_TIDLE = r; r++;
+  setCalcLabel(r, "Total Load Port Days (d)"); setCalcFormula(r, `${B(R_HLD)}+${B(R_VLD)}+${B(R_LLD)}`, c_tload); const R_TLOAD = r; r++;
+  setCalcLabel(r, "Total Disch Port Days (d)"); setCalcFormula(r, `${B(R_HDD)}+${B(R_VDD)}+${B(R_LDD)}`, c_tdisch); const R_TDISCH = r; r++;
+  setCalcLabel(r, "Total Idle / Bunkering Days (d)"); setCalcFormula(r, `${B(R_HID)}+${B(R_VID)}+${B(R_LID)}`, c_tidle); const R_TIDLE = r; r++;
   r++;
 
   // ═══════════════════════════════════════════════════════
   // SECTION 4: BUNKER CONSUMPTION (FORMULAS)
   // ═══════════════════════════════════════════════════════
 
-  setSubSectionHeader(r, "BUNKER CONSUMPTION"); r++;
+  setSectionHeader(r, "BUNKER CONSUMPTION (mt) — SAME MODEL AS THE SOFTWARE ENGINE"); r++;
 
   // --- Sea Consumption ---
-  setSubSectionHeader(r, "Sea Consumption"); r++;
+  setSubSectionHeader(r, "1. Sea Consumption — Main Engine (outside ECA: HSFO if scrubber else VLSFO; inside ECA: LSMGO)"); r++;
 
-  setCalcLabel(r, "HSFO Sea (mt)");
+  setCalcLabel(r, "HSFO Sea outside ECA (mt)");
   setCalcFormula(r,
     `IF(${scrCell}=1,(${B(R_NECAB_D)}*${hBal}+${B(R_NECAL_D)}*${hLad}+${xSeaCell}*${hLad})*${rfCell},0)`,
     sv_hsfoSea);
   const R_HSFO_SEA = r; r++;
 
-  setCalcLabel(r, "VLSFO Sea (mt)");
+  setCalcLabel(r, "VLSFO Sea outside ECA (mt)");
   setCalcFormula(r,
     `IF(${scrCell}=0,(${B(R_NECAB_D)}*${vBal}+${B(R_NECAL_D)}*${vLad}+${xSeaCell}*${vLad})*${rfCell},0)`,
     sv_vlsfoSea);
   const R_VLSFO_SEA = r; r++;
 
-  setCalcLabel(r, "LSMGO Sea ECA (mt)");
+  setCalcLabel(r, "LSMGO Sea inside ECA (mt)");
   setCalcFormula(r,
     `(${B(R_ECAB_D)}*${lBal}+${B(R_ECAL_D)}*${lLad})*${rfCell}`,
     sv_lsmgoSea);
@@ -982,62 +1015,62 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // --- Port Consumption ---
-  setSubSectionHeader(r, "Port Consumption"); r++;
+  setSubSectionHeader(r, "2. Port Consumption — Main Engine (port days x matrix rate for the selected port fuel)"); r++;
 
-  setCalcLabel(r, "HSFO Loading (mt)"); setCalcFormula(r, `${B(R_HLD)}*${hLoad}`, sv_hLoad); const R_HL = r; r++;
-  setCalcLabel(r, "HSFO Disch (mt)"); setCalcFormula(r, `${B(R_HDD)}*${hDisch}`, sv_hDisch); const R_HD = r; r++;
-  setCalcLabel(r, "HSFO Idle (mt)");
+  setCalcLabel(r, "HSFO at Load Ports (mt)"); setCalcFormula(r, `${B(R_HLD)}*${hLoad}`, sv_hLoad); const R_HL = r; r++;
+  setCalcLabel(r, "HSFO at Disch Ports (mt)"); setCalcFormula(r, `${B(R_HDD)}*${hDisch}`, sv_hDisch); const R_HD = r; r++;
+  setCalcLabel(r, "HSFO Idle / Bunkering + Extra Port Days (mt)");
   setCalcFormula(r, `(${B(R_HID)}+IF(${scrCell}=1,${xPortCell},0))*${hIdle}`, sv_hIdle);
   const R_HI = r; r++;
-  setCalcLabel(r, "HSFO Canal (mt)");
+  setCalcLabel(r, "HSFO Canal Transit (mt)");
   setCalcFormula(r, `IF(${scrCell}=1,${xCanalCell}*${hCanal},0)`, sv_hCanal);
   const R_HC = r; r++;
 
-  setCalcLabel(r, "VLSFO Loading (mt)"); setCalcFormula(r, `${B(R_VLD)}*${vLoad}`, sv_vLoad); const R_VL = r; r++;
-  setCalcLabel(r, "VLSFO Disch (mt)"); setCalcFormula(r, `${B(R_VDD)}*${vDisch}`, sv_vDisch); const R_VD = r; r++;
-  setCalcLabel(r, "VLSFO Idle (mt)");
+  setCalcLabel(r, "VLSFO at Load Ports (mt)"); setCalcFormula(r, `${B(R_VLD)}*${vLoad}`, sv_vLoad); const R_VL = r; r++;
+  setCalcLabel(r, "VLSFO at Disch Ports (mt)"); setCalcFormula(r, `${B(R_VDD)}*${vDisch}`, sv_vDisch); const R_VD = r; r++;
+  setCalcLabel(r, "VLSFO Idle / Bunkering + Extra Port Days (mt)");
   setCalcFormula(r, `(${B(R_VID)}+IF(${scrCell}=0,${xPortCell},0))*${vIdle}`, sv_vIdle);
   const R_VI = r; r++;
-  setCalcLabel(r, "VLSFO Canal (mt)");
+  setCalcLabel(r, "VLSFO Canal Transit (mt)");
   setCalcFormula(r, `IF(${scrCell}=0,${xCanalCell}*${vCanal},0)`, sv_vCanal);
   const R_VC = r; r++;
 
-  setCalcLabel(r, "LSMGO Loading (mt)"); setCalcFormula(r, `${B(R_LLD)}*${lLoad}`, sv_lLoad); const R_LL = r; r++;
-  setCalcLabel(r, "LSMGO Disch (mt)"); setCalcFormula(r, `${B(R_LDD)}*${lDisch}`, sv_lDisch); const R_LD = r; r++;
-  setCalcLabel(r, "LSMGO Idle (mt)"); setCalcFormula(r, `${B(R_LID)}*${lIdle}`, sv_lIdle); const R_LI = r; r++;
-  setCalcLabel(r, "LSMGO Canal (mt)"); setCalcFormula(r, `0`, 0); const R_LC = r; r++;
+  setCalcLabel(r, "LSMGO at Load Ports (mt)"); setCalcFormula(r, `${B(R_LLD)}*${lLoad}`, sv_lLoad); const R_LL = r; r++;
+  setCalcLabel(r, "LSMGO at Disch Ports (mt)"); setCalcFormula(r, `${B(R_LDD)}*${lDisch}`, sv_lDisch); const R_LD = r; r++;
+  setCalcLabel(r, "LSMGO Idle / Bunkering Days (mt)"); setCalcFormula(r, `${B(R_LID)}*${lIdle}`, sv_lIdle); const R_LI = r; r++;
+  setCalcLabel(r, "LSMGO Canal Transit (mt) — ME does not burn LSMGO in canal"); setCalcFormula(r, `0`, 0); const R_LC = r; r++;
   r++;
 
   // --- AE Consumption (always LSMGO) ---
-  setSubSectionHeader(r, "AE Consumption (→ LSMGO)"); r++;
+  setSubSectionHeader(r, "3. Auxiliary Engine Consumption — always LSMGO (scrubber vessels use the AE+Scrubber row)"); r++;
 
-  setCalcLabel(r, "AE Sea (mt)");
+  setCalcLabel(r, "AE at Sea (mt)");
   setCalcFormula(r,
     `(${B(R_SBAL)}*(${aeBal})+${B(R_SLAD)}*(${aeLad})+${xSeaCell}*(${aeLad}))*${rfCell}`, sv_aeSea);
   const R_AES = r; r++;
 
-  setCalcLabel(r, "AE Port (mt)");
+  setCalcLabel(r, "AE in Port — load + disch + idle/bunkering (mt)");
   setCalcFormula(r,
     `${B(R_TLOAD)}*(${aeLoad})+${B(R_TDISCH)}*(${aeDisch})+(${B(R_TIDLE)}+${xPortCell})*(${aeIdle})`, sv_aePort);
   const R_AEP = r; r++;
 
-  setCalcLabel(r, "AE Total (mt)");
+  setCalcLabel(r, "AE Total → added to LSMGO (mt)");
   setCalcFormula(r, `${B(R_AES)}+${B(R_AEP)}`, sv_aeTotal);
   const R_AET = r; r++;
   r++;
 
   // --- TOTAL FUEL CONSUMPTION ---
-  setSubSectionHeader(r, "TOTAL FUEL CONSUMPTION"); r++;
+  setSubSectionHeader(r, "4. Total Fuel Consumption — must tie out to the Bunker section in the software"); r++;
 
-  setCalcLabel(r, "HSFO Total (mt)", true);
+  setCalcLabel(r, "HSFO Total Consumption (mt)", true);
   setCalcFormula(r, `${B(R_HSFO_SEA)}+${B(R_HL)}+${B(R_HD)}+${B(R_HI)}+${B(R_HC)}`, results.hsfoConsumption, true);
   const R_HSFOT = r; r++;
 
-  setCalcLabel(r, "VLSFO Total (mt)", true);
+  setCalcLabel(r, "VLSFO Total Consumption (mt)", true);
   setCalcFormula(r, `${B(R_VLSFO_SEA)}+${B(R_VL)}+${B(R_VD)}+${B(R_VI)}+${B(R_VC)}`, results.vlsfoConsumption, true);
   const R_VLSFOT = r; r++;
 
-  setCalcLabel(r, "LSMGO Total (mt)", true);
+  setCalcLabel(r, "LSMGO Total Consumption (mt) — incl. AE", true);
   setCalcFormula(r, `${B(R_LSMGO_SEA)}+${B(R_LL)}+${B(R_LD)}+${B(R_LI)}+${B(R_LC)}+${B(R_AET)}`, results.lsmgoConsumption, true);
   const R_LSMGOT = r; r++;
   r++;
@@ -1046,7 +1079,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // SECTION 5: BUNKER COST
   // ═══════════════════════════════════════════════════════
 
-  setSubSectionHeader(r, "BUNKER COST"); r++;
+  setSectionHeader(r, "BUNKER COST ($) — CONSUMPTION x EFFECTIVE PRICE"); r++;
 
   setCalcLabel(r, "HSFO Cost ($)");
   setCalcFormula(r, `${B(R_HSFOT)}*${B(R_HPE)}`, results.hsfoConsumption * effPriceValue.hsfo);
