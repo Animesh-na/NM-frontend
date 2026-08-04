@@ -1379,9 +1379,9 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // CO₂ emission factors
-  setCalcLabel(r, "CO₂ Factor HSFO (t/t)", false, false, true); setNum(1, r, 3.114, S.envFormula); const R_CFH = r; r++;
-  setCalcLabel(r, "CO₂ Factor VLSFO (t/t)", false, false, true); setNum(1, r, 3.151, S.envFormula); const R_CFV = r; r++;
-  setCalcLabel(r, "CO₂ Factor LSMGO (t/t)", false, false, true); setNum(1, r, 3.206, S.envFormula); const R_CFL = r; r++;
+  setCalcLabel(r, "CO₂ Factor HSFO (t/t)", false, false, true); setNum(1, r, CO2_EMISSION_FACTORS.hsfo, S.envFormula); const R_CFH = r; r++;
+  setCalcLabel(r, "CO₂ Factor VLSFO (t/t)", false, false, true); setNum(1, r, CO2_EMISSION_FACTORS.vlsfo, S.envFormula); const R_CFV = r; r++;
+  setCalcLabel(r, "CO₂ Factor LSMGO (t/t)", false, false, true); setNum(1, r, CO2_EMISSION_FACTORS.lsmgo, S.envFormula); const R_CFL = r; r++;
   r++;
 
   setCalcLabel(r, "CO₂ from HSFO (mt)", false, false, true);
@@ -1693,7 +1693,9 @@ export function exportVoyageToExcel(data: ExportData) {
   setCalcLabel(r, "EU CO₂ from Fuel (mt)", false, false, true);
   setCalcFormula(r,
     `${B(R_EU_HSFOT)}*${B(R_CFH)}+${B(R_EU_VLSFOT)}*${B(R_CFV)}+${B(R_EU_LSMGOT)}*${B(R_CFL)}`,
-    sv_euHsfo * 3.114 + sv_euVlsfo * 3.151 + sv_euLsmgo * 3.206,
+    sv_euHsfo * CO2_EMISSION_FACTORS.hsfo
+      + sv_euVlsfo * CO2_EMISSION_FACTORS.vlsfo
+      + sv_euLsmgo * CO2_EMISSION_FACTORS.lsmgo,
     false, false, true);
   const R_EUCO2 = r; r++;
 
@@ -1705,12 +1707,60 @@ export function exportVoyageToExcel(data: ExportData) {
   const R_CHCO2 = r; r++;
 
   setCalcLabel(r, "EUA CO₂ Cost ($)", false, false, true);
-  setCalcFormula(r, `${B(R_CHCO2)}*${B(R_CO2P)}`, results.euaCo2Cost, false, false, true);
+  setCalcFormula(r, `${B(R_CHCO2)}*${B(R_EUP)}`, results.euaCo2Cost, false, false, true);
   const R_EUACOST = r; r++;
 
   setCalcLabel(r, "EUA Freight Impact ($/mt)", false, false, true);
   setCalcFormula(r, `IF(${B(R_QTY)}>0,${B(R_EUACOST)}/${B(R_QTY)},0)`, results.euaFreightImpact, false, false, true);
   r++;
+  r++;
+
+  // ═══════════════════════════════════════════════════════
+  // UK ETS  (GB↔GB 100%, GB↔non-GB 50%, UK port stays 100%)
+  // ═══════════════════════════════════════════════════════
+  setSubSectionHeader(r, "UK ETS"); r++;
+  setCalcLabel(r, "UK Coverage (%) — informational", false, false, true);
+  setNum(1, r, (results.ukEtsVoyageCoverage || 0) * 100, S.envFormula);
+  setNum(2, r, (results.ukEtsVoyageCoverage || 0) * 100, S.envSoftware);
+  r++;
+
+  setCalcLabel(r, "UK ETS Phase-in (%)", false, false, true);
+  setNum(1, r, (results.ukEtsPhaseIn || 0) * 100, S.envFormula);
+  setNum(2, r, (results.ukEtsPhaseIn || 0) * 100, S.envSoftware);
+  const R_UKPHASE = r; r++;
+
+  setCalcLabel(r, "UK-Covered HSFO (mt)", false, false, true);
+  setNum(1, r, results.ukEtsResult?.ukCoveredFuel?.hsfo || 0, S.envFormula);
+  setNum(2, r, results.ukEtsResult?.ukCoveredFuel?.hsfo || 0, S.envSoftware);
+  const R_UK_H = r; r++;
+  setCalcLabel(r, "UK-Covered VLSFO (mt)", false, false, true);
+  setNum(1, r, results.ukEtsResult?.ukCoveredFuel?.vlsfo || 0, S.envFormula);
+  setNum(2, r, results.ukEtsResult?.ukCoveredFuel?.vlsfo || 0, S.envSoftware);
+  const R_UK_V = r; r++;
+  setCalcLabel(r, "UK-Covered LSMGO (mt)", false, false, true);
+  setNum(1, r, results.ukEtsResult?.ukCoveredFuel?.lsmgo || 0, S.envFormula);
+  setNum(2, r, results.ukEtsResult?.ukCoveredFuel?.lsmgo || 0, S.envSoftware);
+  const R_UK_L = r; r++;
+
+  setCalcLabel(r, "UK CO₂ from Fuel (mt)", false, false, true);
+  setCalcFormula(r,
+    `${B(R_UK_H)}*${B(R_CFH)}+${B(R_UK_V)}*${B(R_CFV)}+${B(R_UK_L)}*${B(R_CFL)}`,
+    (results.ukEtsResult?.ukCoveredFuel?.hsfo || 0) * CO2_EMISSION_FACTORS.hsfo
+      + (results.ukEtsResult?.ukCoveredFuel?.vlsfo || 0) * CO2_EMISSION_FACTORS.vlsfo
+      + (results.ukEtsResult?.ukCoveredFuel?.lsmgo || 0) * CO2_EMISSION_FACTORS.lsmgo,
+    false, false, true);
+  const R_UKCO2 = r; r++;
+
+  setCalcLabel(r, "Chargeable CO₂ UKA (mt)", false, false, true);
+  setCalcFormula(r, `${B(R_UKCO2)}*${B(R_UKPHASE)}/100`, results.ukEtsResult?.chargeableCo2 || 0, false, false, true);
+  const R_UKCH = r; r++;
+
+  setCalcLabel(r, "UK ETS Cost ($)", false, false, true);
+  setCalcFormula(r, `${B(R_UKCH)}*${B(R_UKP)}`, results.ukEtsCost || 0, false, false, true);
+  const R_UKCOST = r; r++;
+
+  setCalcLabel(r, "UK ETS Freight Impact ($/mt)", false, false, true);
+  setCalcFormula(r, `IF(${B(R_QTY)}>0,${B(R_UKCOST)}/${B(R_QTY)},0)`, results.ukEtsFreightImpact || 0, false, false, true);
   r++;
 
   // FuelEU Maritime
