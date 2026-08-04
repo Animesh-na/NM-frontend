@@ -19,7 +19,7 @@ import {
 } from "@/utils/emissionCalculations";
 import { vlog, vlogBegin, vlogEnd, exposeVoyageDebug } from "@/utils/voyageLogger";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
-import { computeFifoCoverage } from "@/utils/fuelBreakdown";
+import { computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
 import {
   getUkEtsSeaCoverage,
   getUkEtsPortCoverage,
@@ -89,6 +89,7 @@ export interface BunkerData {
   ignoreBOB?: boolean;
   portBunkering?: Array<{
     portUnloc?: string;
+    portName?: string;
     hsfo: { quantity: number; price: number };
     vlsfo: { quantity: number; price: number };
     lsmgo: { quantity: number; price: number };
@@ -657,15 +658,18 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     //  - ignoreBOB: BOB excluded, only bunkering port prices used
     // FIFO uses consumption coverage: how much fuel is burnt before each
     // re-bunkering, so the effective $/t is weighted by price AND consumption.
-    const fifoCoverage = computeFifoCoverage(
+    // Lots must be aligned to the order the bunkering calls occur in the voyage
+    // (the UI list order can differ), otherwise FIFO coverage lands on the wrong
+    // price lot and the effective $/mt collapses onto the BOB price.
+    const orderedLots = orderBunkerLots(
       sequence,
-      vessel,
-      (bunker.portBunkering as Array<{ portUnloc?: string }> | undefined)?.map((p) => p.portUnloc || "") || [],
-      rewardFactor,
+      (bunker.portBunkering as Array<{ portUnloc?: string; portName?: string }> | undefined) || [],
     );
-    const hsfoPrice = effectivePrice(buildFuelPricing(bunker, "hsfo", fifoCoverage.hsfo), hsfoConsumption);
-    const vlsfoPrice = effectivePrice(buildFuelPricing(bunker, "vlsfo", fifoCoverage.vlsfo), vlsfoConsumption);
-    const lsmgoPrice = effectivePrice(buildFuelPricing(bunker, "lsmgo", fifoCoverage.lsmgo), lsmgoConsumption);
+    const pricingBunker = { ...bunker, portBunkering: orderedLots } as typeof bunker;
+    const fifoCoverage = computeFifoCoverage(sequence, vessel, orderedLots, rewardFactor);
+    const hsfoPrice = effectivePrice(buildFuelPricing(pricingBunker, "hsfo", fifoCoverage.hsfo), hsfoConsumption);
+    const vlsfoPrice = effectivePrice(buildFuelPricing(pricingBunker, "vlsfo", fifoCoverage.vlsfo), vlsfoConsumption);
+    const lsmgoPrice = effectivePrice(buildFuelPricing(pricingBunker, "lsmgo", fifoCoverage.lsmgo), lsmgoConsumption);
 
     const hsfoCost = hsfoConsumption * hsfoPrice;
     const vlsfoCost = vlsfoConsumption * vlsfoPrice;

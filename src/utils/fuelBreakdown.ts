@@ -203,6 +203,7 @@ export interface FifoCoverageRow {
   type?: string;
   operation?: string;
   portUnloc?: string;
+  port?: string;
   seaTime?: number;
   ecaTime?: number;
   nonEcaTime?: number;
@@ -218,6 +219,61 @@ export interface FifoCoverageRow {
   quantity?: number;
 }
 
+/** Reference to a bunker price lot (a stem taken at a bunkering port). */
+export interface BunkerLotRef {
+  portUnloc?: string;
+  portName?: string;
+  port?: string;
+}
+
+const lotKey = (l: string | BunkerLotRef) =>
+  typeof l === "string" ? l : l.portUnloc || "";
+const lotName = (l: string | BunkerLotRef) =>
+  typeof l === "string" ? "" : (l.portName || l.port || "");
+const clean = (s?: string) => (s || "").trim().toLowerCase();
+
+/**
+ * Match a bunkering sequence row against the pending price lots.
+ * Tries UN/LOCODE, then port name, then falls back to the next pending lot so
+ * a missing/blank UN/LOCODE never collapses FIFO onto the BOB price.
+ */
+function matchLotIndex(
+  row: { portUnloc?: string; port?: string },
+  pending: Array<string | BunkerLotRef>,
+): number {
+  if (pending.length === 0) return -1;
+  const u = clean(row.portUnloc);
+  if (u) {
+    const i = pending.findIndex((l) => clean(lotKey(l)) === u);
+    if (i >= 0) return i;
+  }
+  const n = clean(row.port);
+  if (n) {
+    const i = pending.findIndex((l) => clean(lotName(l)) === n);
+    if (i >= 0) return i;
+  }
+  return 0; // positional fallback: stems apply in voyage order
+}
+
+/**
+ * Reorder bunker price lots to the order their bunkering calls occur in the
+ * voyage. FIFO coverage is positional, so lots added out of order in the UI
+ * must be aligned to the sequence before pricing.
+ */
+export function orderBunkerLots<T extends BunkerLotRef>(
+  rows: FifoCoverageRow[],
+  lots: T[],
+): T[] {
+  const pending = [...lots];
+  const ordered: T[] = [];
+  rows.forEach((r) => {
+    if (norm(r.operation) !== "bunkering" || pending.length === 0) return;
+    const idx = matchLotIndex(r, pending);
+    if (idx >= 0) ordered.push(...pending.splice(idx, 1));
+  });
+  return [...ordered, ...pending];
+}
+
 /**
  * FIFO coverage: how much of each fuel is burnt under each successive bunker
  * price lot.
@@ -231,7 +287,7 @@ export interface FifoCoverageRow {
 export function computeFifoCoverage(
   rows: FifoCoverageRow[],
   vessel: VesselData,
-  bunkeringUnlocs: string[],
+  bunkeringUnlocs: Array<string | BunkerLotRef>,
   rewardFactor = 1,
 ): Record<FuelKey, number[]> {
   const { profile, hasScrubber, aeProfile } = getProfiles(vessel);
@@ -277,7 +333,7 @@ export function computeFifoCoverage(
     // The inbound sea leg above is still BOB/previous-lot consumption; fuel
     // consumed at this port and afterwards belongs to the newly stemmed lot.
     if (op === "bunkering") {
-      const idx = r.portUnloc ? pending.indexOf(r.portUnloc) : -1;
+      const idx = matchLotIndex(r, pending);
       if (idx >= 0) {
         pending.splice(0, idx + 1);
         seg = Math.min(segCount - 1, seg + idx + 1);
