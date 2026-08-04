@@ -19,7 +19,7 @@ import {
 } from "@/utils/emissionCalculations";
 import { vlog, vlogBegin, vlogEnd, exposeVoyageDebug } from "@/utils/voyageLogger";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
-import { computeFifoCoverage } from "@/utils/fuelBreakdown";
+import { computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
 import {
   getUkEtsSeaCoverage,
   getUkEtsPortCoverage,
@@ -89,6 +89,7 @@ export interface BunkerData {
   ignoreBOB?: boolean;
   portBunkering?: Array<{
     portUnloc?: string;
+    portName?: string;
     hsfo: { quantity: number; price: number };
     vlsfo: { quantity: number; price: number };
     lsmgo: { quantity: number; price: number };

@@ -3,7 +3,7 @@ import { ChevronDown, Fuel, X } from "lucide-react";
 import { useVoyageContext, type FuelAccountingMode } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
-import { computeFifoCoverage } from "@/utils/fuelBreakdown";
+import { computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,23 +35,26 @@ export function BunkerSection() {
     lsmgo: results.lsmgoConsumption,
   } as const;
 
-  // Same consumption-weighted FIFO coverage the engine uses.
+  // Same consumption-weighted FIFO coverage the engine uses — lots first
+  // aligned to the order their bunkering calls occur in the voyage.
+  const orderedLots = orderBunkerLots(sequence, bunker.portBunkering);
+  const pricingBunker = { ...bunker, portBunkering: orderedLots };
   const fifoCoverage = computeFifoCoverage(
     sequence,
     vessel,
-    bunker.portBunkering.map((p) => p.portUnloc),
+    orderedLots,
     bunker.rewardFactor ?? 1,
   );
 
   // Mirrors the calculation engine: average / FIFO / ignore-BOB pricing
   const getAveragePrice = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') =>
-    effectivePrice(buildFuelPricing(bunker, fuelType, fifoCoverage[fuelType]), consumptionOf[fuelType]);
+    effectivePrice(buildFuelPricing(pricingBunker, fuelType, fifoCoverage[fuelType]), consumptionOf[fuelType]);
 
   // Per-lot price/coverage breakdown for the tooltip
   const getPriceBreakdown = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
     const lots = [
       { label: "BOB", price: bunker[fuelType].price || 0, skipped: !!bunker.ignoreBOB },
-      ...bunker.portBunkering.map((p) => ({
+      ...orderedLots.map((p) => ({
         label: p.portName,
         price: p[fuelType]?.price || 0,
         skipped: false,
