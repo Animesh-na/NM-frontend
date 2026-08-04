@@ -697,11 +697,19 @@ export function VoyageSummary() {
                   lsmgo: bunker.lsmgo,
                   co2Price: bunker.co2Price,
                   rewardFactor: bunker.rewardFactor,
+                  euEtsPrice: bunker.euEtsPrice,
+                  ukEtsPrice: bunker.ukEtsPrice,
+                  fuelMode: bunker.fuelMode,
+                  ignoreBOB: bunker.ignoreBOB,
+                  portBunkering: bunker.portBunkering,
                 },
                 misc,
                 hireRate,
                 netBB,
                 results,
+                applyEuaImpact,
+                applyFuelEuImpact,
+                applyUkEtsImpact,
                 });
               }}
             >
