@@ -405,12 +405,132 @@ export function exportVoyageToExcel(data: ExportData) {
   const R_DESP = r; r++;
   r++;
 
-  // --- BUNKER PRICES ---
-  setSectionHeader(r, "BUNKER PRICES"); r++;
-  setText(0, r, "HSFO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.hsfo.price); const R_HP = r; r++;
-  setText(0, r, "VLSFO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.vlsfo.price); const R_VP = r; r++;
-  setText(0, r, "LSMGO Price ($/mt)", S.inputLabel); setNum(1, r, bunker.lsmgo.price); const R_LP = r; r++;
+  // --- BUNKER PRICES (BOB + every bunkering port lot) ---
+  const portLots = bunker.portBunkering || [];
+  const fuelMode: "average" | "fifo" = bunker.fuelMode === "fifo" ? "fifo" : "average";
+  const ignoreBOB = bunker.ignoreBOB === true;
+
+  setSectionHeader(r, "BUNKER PRICES & FUEL ACCOUNTING"); r++;
+  setText(0, r, "Fuel Mode", S.inputLabel); setText(1, r, fuelMode, S.inputText); r++;
+  setText(0, r, "Ignore BOB (1=Yes, 0=No)", S.inputLabel); setNum(1, r, ignoreBOB ? 1 : 0); r++;
+
+  // BOB lot
+  setSubSectionHeader(r, "Bunker On Board (BOB)"); r++;
+  setText(0, r, "Fuel", S.seqHeader); setText(1, r, "Price ($/mt)", S.seqHeader); setText(2, r, "ROB (mt)", S.seqHeader); r++;
+  setText(0, r, "HSFO", S.inputLabel); setNum(1, r, bunker.hsfo.price); setNum(2, r, bunker.hsfo.robStart || 0); const R_HP = r; r++;
+  setText(0, r, "VLSFO", S.inputLabel); setNum(1, r, bunker.vlsfo.price); setNum(2, r, bunker.vlsfo.robStart || 0); const R_VP = r; r++;
+  setText(0, r, "LSMGO", S.inputLabel); setNum(1, r, bunker.lsmgo.price); setNum(2, r, bunker.lsmgo.robStart || 0); const R_LP = r; r++;
+  r++;
+
+  // Bunkering port lots — one row per stem, prices and (optional) quantities
+  const lotPriceRefs: Record<FuelKey, string[]> = { hsfo: [], vlsfo: [], lsmgo: [] };
+  const lotQtyRefs: Record<FuelKey, string[]> = { hsfo: [], vlsfo: [], lsmgo: [] };
+  if (portLots.length > 0) {
+    setSubSectionHeader(r, `BUNKERING PORTS (${portLots.length} stem${portLots.length === 1 ? "" : "s"})`); r++;
+    ["Port", "HSFO $/mt", "HSFO mt", "VLSFO $/mt", "VLSFO mt", "LSMGO $/mt", "LSMGO mt"]
+      .forEach((h, i) => setText(i, r, h, S.seqHeader));
+    r++;
+    portLots.forEach((p, i) => {
+      const isAlt = i % 2 === 1;
+      const dStyle = isAlt ? S.seqDataAlt : S.seqData;
+      const tStyle = isAlt ? S.seqTextAlt : S.seqText;
+      setText(0, r, p.port || p.portUnloc || `Stem ${i + 1}`, tStyle);
+      (["hsfo", "vlsfo", "lsmgo"] as FuelKey[]).forEach((f, fi) => {
+        const pc = 1 + fi * 2;
+        setNum(pc, r, p[f]?.price || 0, dStyle);
+        setNum(pc + 1, r, p[f]?.quantity || 0, dStyle);
+        lotPriceRefs[f].push(cellRef(pc, r));
+        lotQtyRefs[f].push(cellRef(pc + 1, r));
+      });
+      r++;
+    });
+    r++;
+  }
+
+  // Effective $/mt per fuel — mirrors utils/bunkerPricing (average / FIFO with
+  // consumption coverage) so multiple bunker stems price exactly as the engine.
+  const fifoCoverage = computeFifoCoverage(
+    sequence,
+    vessel,
+    portLots.map((p) => p.portUnloc || ""),
+    bunker.rewardFactor,
+  );
+  const bobPriceRef: Record<FuelKey, string> = {
+    hsfo: cellRef(1, R_HP), vlsfo: cellRef(1, R_VP), lsmgo: cellRef(1, R_LP),
+  };
+  const bobQtyRef: Record<FuelKey, string> = {
+    hsfo: cellRef(2, R_HP), vlsfo: cellRef(2, R_VP), lsmgo: cellRef(2, R_LP),
+  };
+  const consumptionFor: Record<FuelKey, number> = {
+    hsfo: results.hsfoConsumption,
+    vlsfo: results.vlsfoConsumption,
+    lsmgo: results.lsmgoConsumption,
+  };
+
+  /** Build the Excel formula that reproduces the effective price for one fuel. */
+  function priceFormula(fuel: FuelKey): string {
+    const prices = [bunker[fuel].price || 0, ...portLots.map((p) => p[fuel]?.price || 0)];
+    const qtys = [bunker[fuel].robStart || 0, ...portLots.map((p) => p[fuel]?.quantity || 0)];
+    const priceRefs = [bobPriceRef[fuel], ...lotPriceRefs[fuel]];
+    const qtyRefs = [bobQtyRef[fuel], ...lotQtyRefs[fuel]];
+    const skip = (i: number) => (i === 0 && ignoreBOB) || prices[i] <= 0;
+
+    if (fuelMode === "fifo") {
+      const cov = fifoCoverage[fuel] || [];
+      // Coverage of skipped lots carries forward to the next priced lot.
+      const weights: { ref: string; w: number }[] = [];
+      let carried = 0;
+      for (let i = 0; i < prices.length; i++) {
+        const c = Math.max(0, cov[i] || 0);
+        if (skip(i)) { carried += c; continue; }
+        weights.push({ ref: priceRefs[i], w: c + carried });
+        carried = 0;
+      }
+      const totalW = weights.reduce((s, x) => s + x.w, 0);
+      if (weights.length > 0 && totalW > 0) {
+        if (carried > 0) weights[weights.length - 1].w += carried;
+        const num = weights.map((x) => `${x.ref}*${x.w}`).join("+");
+        const den = weights.reduce((s, x) => s + x.w, 0);
+        return `(${num})/${den}`;
+      }
+    }
+
+    // Average mode (also the FIFO fallback when no coverage exists)
+    const active = prices.map((_, i) => i).filter((i) => !skip(i));
+    if (active.length === 0) return ignoreBOB ? "0" : bobPriceRef[fuel];
+    const totalQty = active.reduce((s, i) => s + Math.max(0, qtys[i]), 0);
+    if (totalQty > 0) {
+      const num = active.map((i) => `${priceRefs[i]}*${qtyRefs[i]}`).join("+");
+      const den = active.map((i) => qtyRefs[i]).join("+");
+      return `(${num})/(${den})`;
+    }
+    return `AVERAGE(${active.map((i) => priceRefs[i]).join(",")})`;
+  }
+
+  const effPriceValue: Record<FuelKey, number> = {
+    hsfo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "hsfo", fifoCoverage.hsfo), consumptionFor.hsfo),
+    vlsfo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "vlsfo", fifoCoverage.vlsfo), consumptionFor.vlsfo),
+    lsmgo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "lsmgo", fifoCoverage.lsmgo), consumptionFor.lsmgo),
+  };
+
+  setSubSectionHeader(r, `EFFECTIVE FUEL PRICE ($/mt) — mode: ${fuelMode}${ignoreBOB ? " (BOB ignored)" : ""}`); r++;
+  setText(0, r, "HSFO Effective Price", S.inputLabel);
+  setFormula(1, r, priceFormula("hsfo"), effPriceValue.hsfo, S.formula);
+  setNum(2, r, effPriceValue.hsfo, S.software);
+  const R_HPE = r; r++;
+  setText(0, r, "VLSFO Effective Price", S.inputLabel);
+  setFormula(1, r, priceFormula("vlsfo"), effPriceValue.vlsfo, S.formula);
+  setNum(2, r, effPriceValue.vlsfo, S.software);
+  const R_VPE = r; r++;
+  setText(0, r, "LSMGO Effective Price", S.inputLabel);
+  setFormula(1, r, priceFormula("lsmgo"), effPriceValue.lsmgo, S.formula);
+  setNum(2, r, effPriceValue.lsmgo, S.software);
+  const R_LPE = r; r++;
+  r++;
+
   setText(0, r, "CO₂ Price ($/mt)", S.inputLabel); setNum(1, r, bunker.co2Price); const R_CO2P = r; r++;
+  setText(0, r, "EU ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.euEtsPrice || bunker.co2Price || 0); const R_EUP = r; r++;
+  setText(0, r, "UK ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.ukEtsPrice || bunker.co2Price || 0); const R_UKP = r; r++;
   setText(0, r, "Reward Factor", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
   r++;
 
