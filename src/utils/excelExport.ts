@@ -3,7 +3,7 @@ import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
 import { calculatePortDays } from "@/context/VoyageContext";
-import { isEuPort, CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
+import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
 import { computeFifoCoverage } from "@/utils/fuelBreakdown";
@@ -1581,7 +1581,14 @@ export function exportVoyageToExcel(data: ExportData) {
   // ═══════════════════════════════════════════════════════
   // EU-COVERED FUEL (Segment-wise calculation)
   // ═══════════════════════════════════════════════════════
-  setSubSectionHeader(r, "EU-COVERED FUEL (Segment-Wise)"); r++;
+  setSubSectionHeader(r, "EU ETS & FuelEU COVERED FUEL — EXACT ENGINE COVERAGE"); r++;
+  setText(0, r, "Sea rule", S.inputLabel);
+  setText(1, r, "EU→EU 100%; EU↔Non-EU 50%; Non-EU→Non-EU 0%. PSSG and bunkering rows do not reset the surrounding regulatory sea leg.", S.inputText); r++;
+  setText(0, r, "Port-stay rule", S.inputLabel);
+  setText(1, r, "EU port (eu_zone=true) 100%; non-EU port 0%. Covers load, discharge, bunkering and passage/waiting port time inside the commercial window.", S.inputText); r++;
+  setText(0, r, "Commercial window", S.inputLabel);
+  setText(1, r, "First load through last discharge. If the opening port is EU, the opening ballast leg is included. Repositioning after final discharge is excluded.", S.inputText); r++;
+  r++;
 
   // Pre-compute EU-covered fuel using same logic as useVoyageCalculation.ts
   let sv_euHsfo = 0, sv_euVlsfo = 0, sv_euLsmgo = 0;
@@ -1634,13 +1641,14 @@ export function exportVoyageToExcel(data: ExportData) {
         }
       }
       
-      // Port fuel — per leg-uniform ETS rule: port inherits the sea-leg
-      // coverage of the arriving cargo bracket (0 / 0.5 / 1.0).
-      const portEuF = curPortKey ? computeSeaEuFactor(idx) : 0;
-      if (curPortKey && portEuF > 0 && (leg.calculatedPortDays || 0) > 0) {
+      // Port fuel uses the port's own eu_zone flag: EU 100%, non-EU 0%,
+      // constrained to the commercial voyage window.
+      const portEuF = curPortKey && inEuPortWindow(idx) && curIsEu ? 1 : 0;
+      const effectivePortDays = effectiveLeg(leg).portDays;
+      if (curPortKey && portEuF > 0 && effectivePortDays > 0) {
         const pf = (leg as any).portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
-        const pd = leg.calculatedPortDays || 0;
+        const pd = effectivePortDays;
         
         let pH = 0, pV = 0, pL = 0, pAeL = 0;
         const addF = (ft: string, amt: number) => { if (ft === 'hsfo') pH += amt; else if (ft === 'vlsfo') pV += amt; else pL += amt; };
