@@ -650,6 +650,36 @@ export function exportVoyageToExcel(data: ExportData) {
     return 0;
   };
 
+  // ── Effective port inputs ────────────────────────────────────────────────
+  // The calculation engine applies the Cargo-section operational overrides
+  // (quantity / productivity / terms / turn / extra) whenever demurrage or
+  // despatch is active. The raw sequence rows stay at the CP baseline, so the
+  // export MUST resolve the same effective values or port days — and therefore
+  // port fuel — will not match the software.
+  const effectiveLeg = (leg: SequenceRowUI) => {
+    let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
+    for (const c of cargos) {
+      const ddActive = (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0;
+      if (!ddActive) continue;
+      const o = c.opOverrides?.[leg.id];
+      if (o && Object.keys(o).length > 0) { opOv = o; break; }
+    }
+    const turnTime = opOv?.turnTime ?? leg.turnTime ?? 0;
+    const extraTime = opOv?.extraTime ?? leg.extraTime ?? 0;
+    const portDays = opOv
+      ? calculatePortDays({
+          ...leg,
+          quantity: opOv.quantity ?? leg.quantity,
+          productivity: opOv.productivity ?? leg.productivity,
+          turnTime,
+          extraTime,
+          terms: (opOv.terms as SequenceRowUI["terms"]) ?? leg.terms,
+          coefficientFactor: opOv.coefficientFactor ?? leg.coefficientFactor,
+        })
+      : (leg.calculatedPortDays || 0);
+    return { portDays, turnExtraH: turnTime + extraTime, turnTime, extraTime };
+  };
+
   const seqStartRow = r;
   sequence.forEach((leg, idx) => {
     const rr = r + idx;
