@@ -1590,6 +1590,23 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(1, r, "First load through last discharge. If the opening port is EU, the opening ballast leg is included. Repositioning after final discharge is excluded.", S.inputText); r++;
   r++;
 
+  setSubSectionHeader(r, "EU ETS COVERAGE AUDIT — PORT TYPE, SEA FACTOR & PORT-STAY FACTOR"); r++;
+  ["Origin", "Destination / Port", "Operation", "EU Origin?", "EU Destination?", "Sea Coverage %", "Port Coverage %", "Sea HSFO", "Sea VLSFO", "Sea LSMGO", "Port HSFO", "Port VLSFO", "Port LSMGO", "Covered CO₂"].forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
+  results.etsLegDetails.forEach((detail, index) => {
+    const seqLeg = sequence.find((leg) => (leg.portUnloc || leg.port || "").trim() === detail.destUnloc) || sequence[detail.legIndex];
+    const style = index % 2 ? S.seqDataAlt : S.seqData;
+    const textStyle = index % 2 ? S.seqTextAlt : S.seqText;
+    setText(0, r, detail.isPortOnly ? "Commercial start" : detail.originPort, textStyle);
+    setText(1, r, detail.destPort, textStyle);
+    setText(2, r, seqLeg?.operation || "", textStyle);
+    setNum(3, r, detail.originIsEu ? 1 : 0, style); setNum(4, r, detail.destIsEu ? 1 : 0, style);
+    setNum(5, r, detail.coveragePct, style); setNum(6, r, detail.portCoveragePct, style);
+    setNum(7, r, detail.seaHsfo, style); setNum(8, r, detail.seaVlsfo, style); setNum(9, r, detail.seaLsmgo, style);
+    setNum(10, r, detail.portHsfo, style); setNum(11, r, detail.portVlsfo, style); setNum(12, r, detail.portLsmgo, style);
+    setNum(13, r, detail.chargeableCo2, style); r++;
+  });
+  r++;
+
   // Pre-compute EU-covered fuel using same logic as useVoyageCalculation.ts
   let sv_euHsfo = 0, sv_euVlsfo = 0, sv_euLsmgo = 0;
   let sv_euHsfoSea = 0, sv_euVlsfoSea = 0, sv_euLsmgoSeaMe = 0, sv_euLsmgoSeaAe = 0;
@@ -1608,10 +1625,12 @@ export function exportVoyageToExcel(data: ExportData) {
       
       // Sea fuel - EU factor uses bracketing cargo-operation ports (same as software engine)
       if (curPortKey) {
-        const euF = computeSeaEuFactor(idx);
+        const euF = inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
         const legST = leg.totalLegTime || 0;
-        totalSeaTimeSegs += legST;
-        weightedEuSeaF += legST * euF;
+        if (inEuSeaWindow(idx)) {
+          totalSeaTimeSegs += legST;
+          weightedEuSeaF += legST * euF;
+        }
         
         if (euF > 0) {
           const legNET = (leg.totalLegTime || 0) - (leg.ecaTime || 0);
@@ -1882,6 +1901,21 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(1, r, "GB↔GB and NI↔NI 100%; GB↔NI 50%; UK↔non-UK and non-UK↔non-UK 0% in Phase 1.", S.inputText); r++;
   setText(0, r, "Port-stay rule", S.inputLabel);
   setText(1, r, "100% where uk_ets=true, otherwise 0%. Applies to load, discharge, bunkering and passage/waiting port time.", S.inputText); r++;
+  setText(0, r, "Phase-in rule", S.inputLabel);
+  setText(1, r, "0% before 1 July 2026; 100% from 1 July 2026. No gradual phase-in.", S.inputText); r++;
+
+  setText(0, r, "Origin", S.seqHeader); setText(1, r, "Destination / Port", S.seqHeader); setText(2, r, "Origin Zone", S.seqHeader); setText(3, r, "Destination Zone", S.seqHeader); setText(4, r, "Sea Coverage %", S.seqHeader); setText(5, r, "Port Coverage %", S.seqHeader); setText(6, r, "Covered HSFO", S.seqHeader); setText(7, r, "Covered VLSFO", S.seqHeader); setText(8, r, "Covered LSMGO", S.seqHeader); setText(9, r, "Covered CO₂", S.seqHeader); setText(10, r, "Chargeable CO₂", S.seqHeader); r++;
+  results.ukEtsResult.legBreakdown.forEach((detail, index) => {
+    const style = index % 2 ? S.seqDataAlt : S.seqData;
+    const textStyle = index % 2 ? S.seqTextAlt : S.seqText;
+    setText(0, r, detail.originPort, textStyle); setText(1, r, detail.destPort, textStyle);
+    setText(2, r, detail.originZone ? String(detail.originZone).toUpperCase() : "Non-UK", textStyle);
+    setText(3, r, detail.destZone ? String(detail.destZone).toUpperCase() : "Non-UK", textStyle);
+    setNum(4, r, detail.seaCoveragePct, style); setNum(5, r, detail.portCoveragePct, style);
+    setNum(6, r, detail.ukCoveredFuel.hsfo, style); setNum(7, r, detail.ukCoveredFuel.vlsfo, style); setNum(8, r, detail.ukCoveredFuel.lsmgo, style);
+    setNum(9, r, detail.ukCoveredCo2, style); setNum(10, r, detail.chargeableCo2, style); r++;
+  });
+  r++;
   setCalcLabel(r, "UK Sea Voyage Coverage (%) — time weighted", false, false, true);
   setNum(1, r, (results.ukEtsVoyageCoverage || 0) * 100, S.envFormula);
   setNum(2, r, (results.ukEtsVoyageCoverage || 0) * 100, S.envSoftware);
