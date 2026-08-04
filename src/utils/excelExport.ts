@@ -6,7 +6,7 @@ import { calculatePortDays } from "@/context/VoyageContext";
 import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
-import { computeFifoCoverage } from "@/utils/fuelBreakdown";
+import { computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
 import { getApiMode } from "@/services/apiMode";
 import { FUEL_EU_PENALTY_RATE_EUR_PER_MJ, FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
 import { getUkEtsPortCoverage, getUkEtsSeaCoverage } from "@/utils/ukEtsCalculations";
@@ -413,7 +413,9 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // --- BUNKER PRICES (BOB + every bunkering port lot) ---
-  const portLots = bunker.portBunkering || [];
+  // Align stems to the order their bunkering calls occur in the voyage so
+  // multi-stem FIFO coverage maps to the right price lot.
+  const portLots = orderBunkerLots(sequence, bunker.portBunkering || []);
   const fuelMode: "average" | "fifo" = bunker.fuelMode === "fifo" ? "fifo" : "average";
   const ignoreBOB = bunker.ignoreBOB === true;
 
@@ -466,7 +468,7 @@ export function exportVoyageToExcel(data: ExportData) {
   const fifoCoverage = computeFifoCoverage(
     coverageRows,
     vessel,
-    portLots.map((p) => p.portUnloc || ""),
+    portLots,
     bunker.rewardFactor,
   );
   const bobPriceRef: Record<FuelKey, string> = {
