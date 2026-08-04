@@ -1747,6 +1747,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       vlsfoConsumption,
       lsmgoConsumption,
       totalBunkerCost,
+      effectiveFuelPrices: { hsfo: hsfoPrice, vlsfo: vlsfoPrice, lsmgo: lsmgoPrice },
       // ECA-based breakdown
       nonEcaFuel,
       ecaFuel,
