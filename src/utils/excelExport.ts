@@ -1215,6 +1215,7 @@ export function exportVoyageToExcel(data: ExportData) {
       const vcRef = cref(inp.voyComm.col, inp.voyComm.row);
       const demRef = cref(inp.dem.col, inp.dem.row);
       const despRef = cref(inp.desp.col, inp.desp.row);
+      const effRateRef = cref(inp.effRate.col, inp.effRate.row);
 
       // Sub-header for the cargo block
       setSubSectionHeader(r, `Cargo ${pc.cargoLabel} — ${src?.rateType || "mt"} @ ${src?.rate ?? 0}`); r++;
@@ -1224,11 +1225,11 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcFormula(r, `${qtyRef}`, pc.loadedQty);
       const rRowQty = r; r++;
 
-      // Gross Freight = IF(type=lumpsum, rate, rate*qty)
+      // Gross Freight = IF(type=lumpsum, rate, WS-adjusted rate × qty)
       setCalcLabel(r, "Gross Freight ($)");
       setCalcFormula(
         r,
-        `IF(${typeRef}="lumpsum",${rateRef},${rateRef}*${B(rRowQty)})`,
+        `IF(${typeRef}="lumpsum",${rateRef},${effRateRef}*${B(rRowQty)})`,
         pc.grossFreight,
       );
       const rRowGF = r; r++;
@@ -1284,6 +1285,28 @@ export function exportVoyageToExcel(data: ExportData) {
       setCalcLabel(r, "Allocated Hire ($)");
       setCalcFormula(r, `${B(R_HIRECOST)}*${hireRatio}`, pc.allocatedHire);
       const rRowAH = r; r++;
+
+      // Allocated Misc / Canal (ton-mile share) and the full allocated cost
+      // base used by the per-cargo gross rate.
+      const miscRatio = results.miscCosts > 0 ? (pc.allocatedMiscCost || 0) / results.miscCosts : 0;
+      const canalRatio = results.canalCosts > 0 ? (pc.allocatedCanalCost || 0) / results.canalCosts : 0;
+
+      setCalcLabel(r, "Allocated Misc ($)");
+      setCalcFormula(r, `${B(R_MISCT)}*${miscRatio}`, pc.allocatedMiscCost || 0);
+      const rRowAM = r; r++;
+
+      setCalcLabel(r, "Allocated Canal ($)");
+      setCalcFormula(r, `${B(R_CANALT)}*${canalRatio}`, pc.allocatedCanalCost || 0);
+      const rRowAC = r; r++;
+
+      setCalcLabel(r, "Allocated Total Cost ($)", true);
+      setCalcFormula(
+        r,
+        `${B(rRowAV)}+${B(rRowAH)}+${B(rRowAM)}+${B(rRowAC)}`,
+        pc.allocatedTotalCost,
+        true,
+      );
+      const rRowATC = r; r++;
 
       const cargoDemDesp = src ? calculateCargoDemurrageDespatch(src, cargos, sequence) : undefined;
 
