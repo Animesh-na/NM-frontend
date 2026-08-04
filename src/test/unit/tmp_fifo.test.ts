@@ -23,7 +23,7 @@ const rows: any[] = [
 
 describe("fifo multi", () => {
   it("weights", () => {
-    const cov = computeFifoCoverage(rows, vessel, ["CCC", "DDD"], 1);
+    const cov = computeFifoCoverage(rows, vessel, [{portUnloc:"DDD",portName:"D"},{portUnloc:"CCC",portName:"C"}] as any, 1);
     console.log(cov);
     const bunker: any = {
       hsfo: { price: 0, robStart: 0 }, vlsfo: { price: 500, robStart: 300 }, lsmgo: { price: 800, robStart: 50 },
