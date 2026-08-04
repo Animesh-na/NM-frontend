@@ -456,8 +456,15 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // Effective $/mt per fuel — mirrors utils/bunkerPricing (average / FIFO with
   // consumption coverage) so multiple bunker stems price exactly as the engine.
+  // Coverage must be computed on the SAME effective rows the engine uses
+  // (operational overrides applied), otherwise multi-stem FIFO weights drift
+  // and the workbook falls back to a hardcoded price.
+  const coverageRows = sequence.map((leg) => ({
+    ...leg,
+    portDays: leg.type === "open" || leg.type === "repos" ? 0 : effectiveLeg(leg).portDays,
+  }));
   const fifoCoverage = computeFifoCoverage(
-    sequence,
+    coverageRows,
     vessel,
     portLots.map((p) => p.portUnloc || ""),
     bunker.rewardFactor,
@@ -474,6 +481,30 @@ export function exportVoyageToExcel(data: ExportData) {
     lsmgo: results.lsmgoConsumption,
   };
 
+  // --- FIFO CONSUMPTION COVERAGE AUDIT (one row per price lot) ---
+  // Each lot covers the fuel burnt from the moment it is stemmed until the next
+  // bunkering call. With several stems this is what makes FIFO a true
+  // consumption-weighted blend instead of a single price.
+  const covRefs: Record<FuelKey, string[]> = { hsfo: [], vlsfo: [], lsmgo: [] };
+  if (fuelMode === "fifo") {
+    setSubSectionHeader(r, "FIFO CONSUMPTION COVERAGE (mt burnt under each price lot)"); r++;
+    ["Price Lot", "HSFO covered (mt)", "VLSFO covered (mt)", "LSMGO covered (mt)"]
+      .forEach((h, i) => setText(i, r, h, S.seqHeader));
+    r++;
+    const lotNames = ["BOB (voyage start → 1st bunkering)",
+      ...portLots.map((p, i) => `Stem ${i + 1} — ${p.port || p.portUnloc || "Bunkering port"}`)];
+    lotNames.forEach((name, i) => {
+      const isAlt = i % 2 === 1;
+      setText(0, r, name, isAlt ? S.seqTextAlt : S.seqText);
+      (["hsfo", "vlsfo", "lsmgo"] as FuelKey[]).forEach((f, fi) => {
+        setNum(fi + 1, r, fifoCoverage[f]?.[i] || 0, isAlt ? S.seqDataAlt : S.seqData);
+        covRefs[f].push(cellRef(fi + 1, r));
+      });
+      r++;
+    });
+    r++;
+  }
+
   /** Build the Excel formula that reproduces the effective price for one fuel. */
   function priceFormula(fuel: FuelKey): string {
     const prices = [bunker[fuel].price || 0, ...portLots.map((p) => p[fuel]?.price || 0)];
@@ -484,19 +515,37 @@ export function exportVoyageToExcel(data: ExportData) {
 
     if (fuelMode === "fifo") {
       const cov = fifoCoverage[fuel] || [];
-      // Coverage of skipped lots carries forward to the next priced lot.
-      const weights: { ref: string; w: number }[] = [];
-      let carried = 0;
+      // Coverage of skipped lots (BOB ignored / no price) carries forward to the
+      // next priced lot, exactly like utils/bunkerPricing.coverageWeightedPrice.
+      const weights: { priceRef: string; covRefs: string[]; w: number }[] = [];
+      let carried: string[] = [];
+      let carriedW = 0;
       for (let i = 0; i < prices.length; i++) {
         const c = Math.max(0, cov[i] || 0);
-        if (skip(i)) { carried += c; continue; }
-        weights.push({ ref: priceRefs[i], w: c + carried });
-        carried = 0;
+        const ref = covRefs[fuel][i];
+        if (skip(i)) { if (ref) carried.push(ref); carriedW += c; continue; }
+        weights.push({
+          priceRef: priceRefs[i],
+          covRefs: [...(ref ? [ref] : []), ...carried],
+          w: c + carriedW,
+        });
+        carried = [];
+        carriedW = 0;
       }
       const totalW = weights.reduce((s, x) => s + x.w, 0);
       if (weights.length > 0 && totalW > 0) {
-        if (carried > 0) weights[weights.length - 1].w += carried;
-        const num = weights.map((x) => `${x.ref}*${x.w}`).join("+");
+        if (carriedW > 0) {
+          weights[weights.length - 1].w += carriedW;
+          weights[weights.length - 1].covRefs.push(...carried);
+        }
+        const usable = weights.every((x) => x.covRefs.length > 0);
+        if (usable) {
+          // Live formula: Σ(price × covered mt) / Σ(covered mt) across every lot.
+          const num = weights.map((x) => `${x.priceRef}*(${x.covRefs.join("+")})`).join("+");
+          const den = weights.map((x) => `(${x.covRefs.join("+")})`).join("+");
+          return `(${num})/(${den})`;
+        }
+        const num = weights.map((x) => `${x.priceRef}*${x.w}`).join("+");
         const den = weights.reduce((s, x) => s + x.w, 0);
         return `(${num})/${den}`;
       }
@@ -723,7 +772,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // despatch is active. The raw sequence rows stay at the CP baseline, so the
   // export MUST resolve the same effective values or port days — and therefore
   // port fuel — will not match the software.
-  const effectiveLeg = (leg: SequenceRowUI) => {
+  function effectiveLeg(leg: SequenceRowUI) {
     let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
     for (const c of cargos) {
       const ddActive = (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0;
@@ -745,7 +794,7 @@ export function exportVoyageToExcel(data: ExportData) {
         })
       : (leg.calculatedPortDays || 0);
     return { portDays, turnExtraH: turnTime + extraTime, turnTime, extraTime };
-  };
+  }
 
   const seqStartRow = r;
   sequence.forEach((leg, idx) => {
