@@ -204,7 +204,6 @@ export function exportVoyageToExcel(data: ExportData) {
     const o = (op || "").toLowerCase();
     return o === "disch" || o === "discharging";
   };
-  const isCargoPortCall = (op?: string) => isLoadOp(op) || isDischargeOp(op);
   const isEuRegulatoryPortCall = (leg: SequenceRowUI): boolean => {
     const op = (leg.operation || "").toLowerCase();
     return !!(leg.portUnloc || leg.port || "").trim() && op !== "pssg" && op !== "bunkering";
@@ -582,7 +581,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // SECTION 2: SEQUENCE TABLE (with formula helper columns)
   // ═══════════════════════════════════════════════════════
 
-  setSectionHeader(r, "VOYAGE SEQUENCE"); r++;
+  setSectionHeader(r, "VOYAGE SEQUENCE — PORT CALLS, SEA LEGS & REGULATORY COVERAGE"); r++;
 
   // Column indices
   const SC = {
@@ -2026,6 +2025,8 @@ export function exportVoyageToExcel(data: ExportData) {
     { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 },
     { wch: 11 }, { wch: 11 }, { wch: 11 },
     { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
   ];
 
   // Freeze panes — freeze first column for labels
