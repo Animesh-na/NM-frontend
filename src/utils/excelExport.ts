@@ -1833,13 +1833,14 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // EU ETS
-  setSubSectionHeader(r, "EU ETS"); r++;
-  // ETS Coverage % = informational weighted avg by sea time (display only — NOT used in chargeable CO₂)
-  setCalcLabel(r, "ETS Coverage (%) — informational", false, false, true);
+  setSubSectionHeader(r, "EU EMISSIONS TRADING SYSTEM (EU ETS) — BOTTOM-UP FROM COVERED FUEL"); r++;
+  setCalcLabel(r, "Commercial Sea Voyage Coverage (%) — time weighted", false, false, true);
   setCalcFormula(r,
-    `IF(${B(R_TSEA)}>0,SUMPRODUCT(${seqRange(SC.EUSEA)},${seqRange(SC.SEAT)})/${B(R_TSEA)}*100,0)`,
+    `IF(SUMPRODUCT(${seqRange(SC.EUWIN)},${seqRange(SC.SEAT)})>0,SUMPRODUCT(${seqRange(SC.EUSEA)},${seqRange(SC.SEAT)})/SUMPRODUCT(${seqRange(SC.EUWIN)},${seqRange(SC.SEAT)})*100,0)`,
     results.etsVoyageCoverage * 100, false, false, true);
   r++;
+  setText(0, r, "Important", S.inputLabel);
+  setText(1, r, "Voyage coverage is informational only. Chargeable CO₂ is calculated from covered sea fuel plus covered EU-port fuel, then multiplied by phase-in.", S.inputText); r++;
 
   setCalcLabel(r, "ETS Phase-in (%)", false, false, true);
   setNum(1, r, results.etsPhaseIn * 100, S.envFormula);
@@ -1874,10 +1875,14 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   // ═══════════════════════════════════════════════════════
-  // UK ETS  (GB↔GB 100%, GB↔non-GB 50%, UK port stays 100%)
+  // UK ETS — exact Phase 1 internal rules
   // ═══════════════════════════════════════════════════════
-  setSubSectionHeader(r, "UK ETS"); r++;
-  setCalcLabel(r, "UK Coverage (%) — informational", false, false, true);
+  setSubSectionHeader(r, "UNITED KINGDOM EMISSIONS TRADING SCHEME (UK ETS) — EXACT ENGINE LOGIC"); r++;
+  setText(0, r, "Sea rule", S.inputLabel);
+  setText(1, r, "GB↔GB and NI↔NI 100%; GB↔NI 50%; UK↔non-UK and non-UK↔non-UK 0% in Phase 1.", S.inputText); r++;
+  setText(0, r, "Port-stay rule", S.inputLabel);
+  setText(1, r, "100% where uk_ets=true, otherwise 0%. Applies to load, discharge, bunkering and passage/waiting port time.", S.inputText); r++;
+  setCalcLabel(r, "UK Sea Voyage Coverage (%) — time weighted", false, false, true);
   setNum(1, r, (results.ukEtsVoyageCoverage || 0) * 100, S.envFormula);
   setNum(2, r, (results.ukEtsVoyageCoverage || 0) * 100, S.envSoftware);
   r++;
