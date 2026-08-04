@@ -1043,15 +1043,15 @@ export function exportVoyageToExcel(data: ExportData) {
   setSubSectionHeader(r, "BUNKER COST"); r++;
 
   setCalcLabel(r, "HSFO Cost ($)");
-  setCalcFormula(r, `${B(R_HSFOT)}*${B(R_HP)}`, results.hsfoConsumption * bunker.hsfo.price);
+  setCalcFormula(r, `${B(R_HSFOT)}*${B(R_HPE)}`, results.hsfoConsumption * effPriceValue.hsfo);
   const R_HCOST = r; r++;
 
   setCalcLabel(r, "VLSFO Cost ($)");
-  setCalcFormula(r, `${B(R_VLSFOT)}*${B(R_VP)}`, results.vlsfoConsumption * bunker.vlsfo.price);
+  setCalcFormula(r, `${B(R_VLSFOT)}*${B(R_VPE)}`, results.vlsfoConsumption * effPriceValue.vlsfo);
   const R_VCOST = r; r++;
 
   setCalcLabel(r, "LSMGO Cost ($)");
-  setCalcFormula(r, `${B(R_LSMGOT)}*${B(R_LP)}`, results.lsmgoConsumption * bunker.lsmgo.price);
+  setCalcFormula(r, `${B(R_LSMGOT)}*${B(R_LPE)}`, results.lsmgoConsumption * effPriceValue.lsmgo);
   const R_LCOST = r; r++;
 
   setCalcLabel(r, "Total Bunker Cost ($)", true);
