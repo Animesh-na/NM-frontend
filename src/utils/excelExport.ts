@@ -1070,7 +1070,9 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   setCalcLabel(r, "Gross Freight ($)");
-  setCalcFormula(r, `IF(${B(R_RTYPE)}="lumpsum",${B(R_RATE)},${B(R_RATE)}*${B(R_QTY)})`, results.grossFreight);
+  // Engine: Gross Freight = Σ per-cargo freight (WS-adjusted for tanker)
+  //                         + Demurrage − Despatch
+  setCalcFormula(r, `${B(R_BASEGF)}+${B(R_DEM)}-${B(R_DESP)}`, results.grossFreight);
   const R_GF = r; r++;
 
   setCalcLabel(r, "Voyage Commission ($)");
@@ -1089,8 +1091,40 @@ export function exportVoyageToExcel(data: ExportData) {
   setCalcFormula(r, `${B(R_CC1)}+${B(R_CC2)}`, results.canalCosts);
   const R_CANALT = r; r++;
 
+  // --- Regulatory costs (only added when the corresponding toggle is on) ---
+  const applyEua = applyEuaImpact === true;
+  const applyFuelEu = applyFuelEuImpact === true;
+  const applyUk = applyUkEtsImpact === true;
+  const svEuaCost = results.euaCo2Cost || 0;
+  const svFuelEuCost = results.fuelEuTotalPenalty || 0;
+  const svUkCost = results.ukEtsCost || 0;
+
+  setCalcLabel(r, "Apply EU ETS (1/0)"); setNum(1, r, applyEua ? 1 : 0); setNum(2, r, applyEua ? 1 : 0, S.software);
+  const R_APP_EUA = r; r++;
+  setCalcLabel(r, "Apply FuelEU (1/0)"); setNum(1, r, applyFuelEu ? 1 : 0); setNum(2, r, applyFuelEu ? 1 : 0, S.software);
+  const R_APP_FEU = r; r++;
+  setCalcLabel(r, "Apply UK ETS (1/0)"); setNum(1, r, applyUk ? 1 : 0); setNum(2, r, applyUk ? 1 : 0, S.software);
+  const R_APP_UK = r; r++;
+
+  setCalcLabel(r, "EUA CO₂ Cost ($)"); setCalcFormula(r, `${svEuaCost}`, svEuaCost);
+  const R_REG_EUA = r; r++;
+  setCalcLabel(r, "FuelEU Penalty ($)"); setCalcFormula(r, `${svFuelEuCost}`, svFuelEuCost);
+  const R_REG_FEU = r; r++;
+  setCalcLabel(r, "UK ETS Cost ($)"); setCalcFormula(r, `${svUkCost}`, svUkCost);
+  const R_REG_UK = r; r++;
+
+  const svRegulatory =
+    (applyEua ? svEuaCost : 0) + (applyFuelEu ? svFuelEuCost : 0) + (applyUk ? svUkCost : 0);
+  setCalcLabel(r, "Regulatory Costs ($)", true);
+  setCalcFormula(
+    r,
+    `${B(R_APP_EUA)}*${B(R_REG_EUA)}+${B(R_APP_FEU)}*${B(R_REG_FEU)}+${B(R_APP_UK)}*${B(R_REG_UK)}`,
+    svRegulatory, true,
+  );
+  const R_REGT = r; r++;
+
   setCalcLabel(r, "Voyage Costs excl Hire ($)", true);
-  setCalcFormula(r, `${B(R_BUNKC)}+${B(R_PCOST)}+${B(R_MISCT)}+${B(R_CANALT)}`, results.voyageCostExclHire, true);
+  setCalcFormula(r, `${B(R_BUNKC)}+${B(R_PCOST)}+${B(R_MISCT)}+${B(R_CANALT)}+${B(R_REGT)}`, results.voyageCostExclHire, true);
   const R_VCEXH = r; r++;
 
   setCalcLabel(r, "Hire Cost ($)");
@@ -1113,7 +1147,8 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   setCalcLabel(r, "Gross Profit ($)", false, true);
-  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}-${B(R_DEM)}+${B(R_DESP)}`, results.grossProfit, false, true);
+  // Demurrage / Despatch are already baked into Gross Freight by the engine.
+  setCalcFormula(r, `${B(R_NF)}-${B(R_VCEXH)}`, results.grossProfit, false, true);
   const R_GP = r; r++;
 
   setCalcLabel(r, "P&L ($)", false, true);
