@@ -584,6 +584,7 @@ export function exportVoyageToExcel(data: ExportData) {
     WXDLY: 37,  // Weather delay (days)
     DEPUTC: 38, // Leg departure (UTC)
     ARRUTC: 39, // Leg arrival (UTC)
+    LAYT: 40,   // Laytime (h) — tanker sheets drive port time from laytime
   };
 
   // Headers — styled
@@ -598,6 +599,7 @@ export function exportVoyageToExcel(data: ExportData) {
     "HSFO Id D", "VLSFO Id D", "LSMGO Id D",
     "EU Sea F", "EU Port F", "Turn(d)", "Extra(d)",
     "Wx Delay (d)", "Leg Dep (UTC)", "Leg Arr (UTC)",
+    "Laytime (h)",
   ];
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
@@ -751,6 +753,7 @@ export function exportVoyageToExcel(data: ExportData) {
     setNum(SC.WXDLY, rr, wxHours / 24, dStyle);
     setText(SC.DEPUTC, rr, leg.legDepartureUtc ? leg.legDepartureUtc.replace("T", " ") : "", tStyle);
     setText(SC.ARRUTC, rr, leg.legArrivalUtc ? leg.legArrivalUtc.replace("T", " ") : "", tStyle);
+    setNum(SC.LAYT, rr, (leg as any).layTime || 0, dStyle);
   });
 
   const seqEndRow = seqStartRow + sequence.length - 1;
