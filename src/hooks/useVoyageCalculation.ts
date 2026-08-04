@@ -184,6 +184,8 @@ export interface VoyageResults {
   vlsfoConsumption: number;
   lsmgoConsumption: number;
   totalBunkerCost: number;
+  /** Effective $/mt actually used by the engine per fuel (average / FIFO / ignore-BOB). */
+  effectiveFuelPrices: { hsfo: number; vlsfo: number; lsmgo: number };
   
   // ECA-based fuel breakdown
   nonEcaFuel: { hsfo: number; vlsfo: number; lsmgo: number; total: number };
