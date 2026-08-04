@@ -1864,6 +1864,8 @@ export function exportVoyageToExcel(data: ExportData) {
   setNum(1, r, results.etsPhaseIn * 100, S.envFormula);
   setNum(2, r, results.etsPhaseIn * 100, S.envSoftware);
   const R_ETSPHASE = r; r++;
+  setText(0, r, "Phase-in basis", S.inputLabel);
+  setText(1, r, `Current calculation year ${new Date().getFullYear()} (2024: 40%, 2025: 70%, 2026 onward: 100%).`, S.inputText); r++;
 
   // EU CO₂ from fuel — BOTTOM-UP per EU MRV/ETS:
   // = HSFO_EU × 3.114 + VLSFO_EU × 3.151 + LSMGO_EU × 3.206
@@ -1997,6 +1999,16 @@ export function exportVoyageToExcel(data: ExportData) {
   setCalcLabel(r, "FuelEU Total Penalty ($)", true);
   setCalcFormula(r, `IF(AND(${B(R_FE_BAL)}<0,${B(R_FE_GHG)}>0),ABS(${B(R_FE_BAL)})/${B(R_FE_GHG)}*${B(R_FE_RATE)}*${rfCell},0)`, results.fuelEuTotalPenalty, true);
   const R_FE_TOTAL = r; r++;
+
+  // Replace the earlier regulatory source literals with live forward links to
+  // the detailed calculation blocks. All Financials, NTCE/GTCE and P&L rows
+  // therefore recalculate when coverage, prices or FuelEU assumptions change.
+  setFormula(1, R_REG_EUA, `${B(R_EUACOST)}`, svEuaCost, S.formula);
+  setNum(2, R_REG_EUA, svEuaCost, S.software);
+  setFormula(1, R_REG_UK, `${B(R_UKCOST)}`, svUkCost, S.formula);
+  setNum(2, R_REG_UK, svUkCost, S.software);
+  setFormula(1, R_REG_FEU, `${B(R_FE_TOTAL)}`, svFuelEuCost, S.formula);
+  setNum(2, R_REG_FEU, svFuelEuCost, S.software);
 
   r++;
   setSectionHeader(r, "FINAL PROFIT & LOSS AFTER REGULATORY IMPACTS"); r++;
