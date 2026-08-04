@@ -456,8 +456,15 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // Effective $/mt per fuel — mirrors utils/bunkerPricing (average / FIFO with
   // consumption coverage) so multiple bunker stems price exactly as the engine.
+  // Coverage must be computed on the SAME effective rows the engine uses
+  // (operational overrides applied), otherwise multi-stem FIFO weights drift
+  // and the workbook falls back to a hardcoded price.
+  const coverageRows = sequence.map((leg) => ({
+    ...leg,
+    portDays: leg.type === "open" || leg.type === "repos" ? 0 : effectiveLeg(leg).portDays,
+  }));
   const fifoCoverage = computeFifoCoverage(
-    sequence,
+    coverageRows,
     vessel,
     portLots.map((p) => p.portUnloc || ""),
     bunker.rewardFactor,
