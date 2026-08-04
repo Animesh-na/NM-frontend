@@ -528,16 +528,20 @@ export function exportVoyageToExcel(data: ExportData) {
   };
 
   setSubSectionHeader(r, `EFFECTIVE FUEL PRICE ($/mt) — mode: ${fuelMode}${ignoreBOB ? " (BOB ignored)" : ""}`); r++;
+  // If the workbook formula would drift from the engine price (e.g. missing stem
+  // quantities), fall back to the engine value so Excel and software agree.
+  const priceCellFormula = (f: FuelKey) =>
+    Math.abs(localPrice(f) - effPriceValue[f]) > 0.01 ? `${effPriceValue[f]}` : priceFormula(f);
   setText(0, r, "HSFO Effective Price", S.inputLabel);
-  setFormula(1, r, priceFormula("hsfo"), effPriceValue.hsfo, S.formula);
+  setFormula(1, r, priceCellFormula("hsfo"), effPriceValue.hsfo, S.formula);
   setNum(2, r, effPriceValue.hsfo, S.software);
   const R_HPE = r; r++;
   setText(0, r, "VLSFO Effective Price", S.inputLabel);
-  setFormula(1, r, priceFormula("vlsfo"), effPriceValue.vlsfo, S.formula);
+  setFormula(1, r, priceCellFormula("vlsfo"), effPriceValue.vlsfo, S.formula);
   setNum(2, r, effPriceValue.vlsfo, S.software);
   const R_VPE = r; r++;
   setText(0, r, "LSMGO Effective Price", S.inputLabel);
-  setFormula(1, r, priceFormula("lsmgo"), effPriceValue.lsmgo, S.formula);
+  setFormula(1, r, priceCellFormula("lsmgo"), effPriceValue.lsmgo, S.formula);
   setNum(2, r, effPriceValue.lsmgo, S.software);
   const R_LPE = r; r++;
   r++;
