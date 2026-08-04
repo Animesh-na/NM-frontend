@@ -1830,7 +1830,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // ═══════════════════════════════════════════════════════
 
   // Set sheet range (expanded for new EU columns)
-  ws["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: 36, r: r } });
+  ws["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: 40, r: r } });
 
   // Column widths (expanded for new EU columns)
   ws["!cols"] = [
