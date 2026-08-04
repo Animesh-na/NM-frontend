@@ -2,8 +2,20 @@ import * as XLSX from "xlsx-js-style";
 import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 import type { VesselData } from "@/data/vessels";
 import type { SequenceRowUI, CargoEntry, MiscState } from "@/context/VoyageContext";
-import { isEuPort } from "@/utils/emissionCalculations";
+import { isEuPort, CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
+import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
+import { computeFifoCoverage } from "@/utils/fuelBreakdown";
+import { getApiMode } from "@/services/apiMode";
+
+export interface ExportBunkerLot { quantity: number; price: number }
+export interface ExportPortBunkering {
+  portUnloc?: string;
+  port?: string;
+  hsfo: ExportBunkerLot;
+  vlsfo: ExportBunkerLot;
+  lsmgo: ExportBunkerLot;
+}
 
 interface ExportData {
   vessel: VesselData;
@@ -15,11 +27,19 @@ interface ExportData {
     lsmgo: { price: number; robStart: number };
     co2Price: number;
     rewardFactor: number;
+    euEtsPrice?: number;
+    ukEtsPrice?: number;
+    fuelMode?: "average" | "fifo";
+    ignoreBOB?: boolean;
+    portBunkering?: ExportPortBunkering[];
   };
   misc: MiscState;
   hireRate: number;
   netBB: number;
   results: VoyageResults;
+  applyEuaImpact?: boolean;
+  applyFuelEuImpact?: boolean;
+  applyUkEtsImpact?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════
