@@ -1605,26 +1605,19 @@ export function exportVoyageToExcel(data: ExportData) {
       if (curPortKey && portEuF > 0 && (leg.calculatedPortDays || 0) > 0) {
         const pf = (leg as any).portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
-        const turnH = leg.turnTime || 0;
-        const extraH = leg.extraTime || 0;
         const pd = leg.calculatedPortDays || 0;
-        const wdL = Math.max(0, pd - (turnH + extraH) / 24);
-        const turnD = turnH / 24;
-        const extraD = extraH / 24;
         
         let pH = 0, pV = 0, pL = 0, pAeL = 0;
         const addF = (ft: string, amt: number) => { if (ft === 'hsfo') pH += amt; else if (ft === 'vlsfo') pV += amt; else pL += amt; };
         
+        // Engine rule: the FULL port stay at a load/discharge call burns the
+        // load/discharge rate (turn + extra time is NOT split onto idle).
         if (legOp === 'load' || legOp === 'loading') {
-          addF(pf, wdL * (profile[pf]?.load || 0));
-          addF(pf, turnD * (profile[pf]?.idle || 0));
-          addF(pf, extraD * (profile[pf]?.idle || 0));
-          pAeL += wdL * (aeRs.load || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
+          addF(pf, pd * (profile[pf]?.load || 0));
+          pAeL += pd * (aeRs.load || 0);
         } else if (legOp === 'disch' || legOp === 'discharging') {
-          addF(pf, wdL * (profile[pf]?.discharge || 0));
-          addF(pf, turnD * (profile[pf]?.idle || 0));
-          addF(pf, extraD * (profile[pf]?.idle || 0));
-          pAeL += wdL * (aeRs.discharge || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
+          addF(pf, pd * (profile[pf]?.discharge || 0));
+          pAeL += pd * (aeRs.discharge || 0);
         } else {
           addF(pf, pd * (profile[pf]?.idle || 0));
           pAeL += pd * (aeRs.idle || 0);
@@ -1687,6 +1680,22 @@ export function exportVoyageToExcel(data: ExportData) {
           sv_euVlsfo += extraCanalDays * (profile.vlsfo.canal || 0) * avgF;
         }
       }
+    }
+  }
+
+  // ---- Reconcile to the engine ----------------------------------------
+  // The workbook must report exactly the EU-covered fuel the software used for
+  // EU ETS and FuelEU. Any residual (rounding / override differences) is booked
+  // on the "Extra Time" line so the component rows still add up to the total.
+  {
+    const eng = (results as { euCoveredFuel?: { hsfo: number; vlsfo: number; lsmgo: number } }).euCoveredFuel;
+    if (eng) {
+      sv_euHsfoExtra += (eng.hsfo || 0) - sv_euHsfo;
+      sv_euVlsfoExtra += (eng.vlsfo || 0) - sv_euVlsfo;
+      sv_euLsmgoExtra += (eng.lsmgo || 0) - sv_euLsmgo;
+      sv_euHsfo = eng.hsfo || 0;
+      sv_euVlsfo = eng.vlsfo || 0;
+      sv_euLsmgo = eng.lsmgo || 0;
     }
   }
 
