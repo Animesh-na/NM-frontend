@@ -511,23 +511,37 @@ export function exportVoyageToExcel(data: ExportData) {
     return `AVERAGE(${active.map((i) => priceRefs[i]).join(",")})`;
   }
 
+  // Prefer the exact prices the engine used (results.effectiveFuelPrices) so the
+  // exported bunker cost ties out to the software to the cent. Fall back to a
+  // local recompute only for older result payloads.
+  const enginePrices = (results as { effectiveFuelPrices?: { hsfo: number; vlsfo: number; lsmgo: number } })
+    .effectiveFuelPrices;
+  const localPrice = (f: FuelKey) =>
+    effectivePrice(
+      buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, f, fifoCoverage[f]),
+      consumptionFor[f],
+    );
   const effPriceValue: Record<FuelKey, number> = {
-    hsfo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "hsfo", fifoCoverage.hsfo), consumptionFor.hsfo),
-    vlsfo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "vlsfo", fifoCoverage.vlsfo), consumptionFor.vlsfo),
-    lsmgo: effectivePrice(buildFuelPricing({ ...bunker, fuelMode, ignoreBOB, portBunkering: portLots }, "lsmgo", fifoCoverage.lsmgo), consumptionFor.lsmgo),
+    hsfo: enginePrices?.hsfo ?? localPrice("hsfo"),
+    vlsfo: enginePrices?.vlsfo ?? localPrice("vlsfo"),
+    lsmgo: enginePrices?.lsmgo ?? localPrice("lsmgo"),
   };
 
   setSubSectionHeader(r, `EFFECTIVE FUEL PRICE ($/mt) — mode: ${fuelMode}${ignoreBOB ? " (BOB ignored)" : ""}`); r++;
+  // If the workbook formula would drift from the engine price (e.g. missing stem
+  // quantities), fall back to the engine value so Excel and software agree.
+  const priceCellFormula = (f: FuelKey) =>
+    Math.abs(localPrice(f) - effPriceValue[f]) > 0.01 ? `${effPriceValue[f]}` : priceFormula(f);
   setText(0, r, "HSFO Effective Price", S.inputLabel);
-  setFormula(1, r, priceFormula("hsfo"), effPriceValue.hsfo, S.formula);
+  setFormula(1, r, priceCellFormula("hsfo"), effPriceValue.hsfo, S.formula);
   setNum(2, r, effPriceValue.hsfo, S.software);
   const R_HPE = r; r++;
   setText(0, r, "VLSFO Effective Price", S.inputLabel);
-  setFormula(1, r, priceFormula("vlsfo"), effPriceValue.vlsfo, S.formula);
+  setFormula(1, r, priceCellFormula("vlsfo"), effPriceValue.vlsfo, S.formula);
   setNum(2, r, effPriceValue.vlsfo, S.software);
   const R_VPE = r; r++;
   setText(0, r, "LSMGO Effective Price", S.inputLabel);
-  setFormula(1, r, priceFormula("lsmgo"), effPriceValue.lsmgo, S.formula);
+  setFormula(1, r, priceCellFormula("lsmgo"), effPriceValue.lsmgo, S.formula);
   setNum(2, r, effPriceValue.lsmgo, S.software);
   const R_LPE = r; r++;
   r++;
@@ -590,17 +604,47 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // Headers — styled
   const seqHeaders = [
-    "ID", "Operation", "Port", "Distance", "ECA Dist", "Sea Time", "ECA Time",
-    "Port Days", "Turn+Extra(h)", "Exp DA", "Is Laden", "Port Fuel", "EU/EEA",
-    "NonECA Time", "Working Days", "Idle Days",
-    "Bal Sea", "Lad Sea", "ECA Bal", "ECA Lad", "NECA Bal", "NECA Lad",
-    "IsLoad", "IsDisch",
-    "HSFO Ld D", "VLSFO Ld D", "LSMGO Ld D",
-    "HSFO Dc D", "VLSFO Dc D", "LSMGO Dc D",
-    "HSFO Id D", "VLSFO Id D", "LSMGO Id D",
-    "EU Sea F", "EU Port F", "Turn(d)", "Extra(d)",
-    "Wx Delay (d)", "Leg Dep (UTC)", "Leg Arr (UTC)",
-    "Laytime (h)",
+    "Row ID",
+    "Port Operation",
+    "Port Name",
+    "Distance Outside ECA (nautical miles)",
+    "Distance Inside ECA (nautical miles)",
+    "Total Sea Time (days)",
+    "Sea Time Inside ECA (days)",
+    "Port Stay (days)",
+    "Turn Time + Extra Time (hours)",
+    "Estimated Disbursement Account (USD)",
+    "Laden Leg? (1 = Laden, 0 = Ballast)",
+    "Fuel Burned in Port",
+    "Port in EU / EEA? (1 = Yes, 0 = No)",
+    "Sea Time Outside ECA (days)",
+    "Cargo Working Time in Port (days)",
+    "Idle / Waiting Time in Port (days)",
+    "Ballast Sea Time (days)",
+    "Laden Sea Time (days)",
+    "Ballast Sea Time Inside ECA (days)",
+    "Laden Sea Time Inside ECA (days)",
+    "Ballast Sea Time Outside ECA (days)",
+    "Laden Sea Time Outside ECA (days)",
+    "Is Loading Port? (1 = Yes)",
+    "Is Discharging Port? (1 = Yes)",
+    "Loading Port Days Burning HSFO",
+    "Loading Port Days Burning VLSFO",
+    "Loading Port Days Burning LSMGO",
+    "Discharging Port Days Burning HSFO",
+    "Discharging Port Days Burning VLSFO",
+    "Discharging Port Days Burning LSMGO",
+    "Idle Port Days Burning HSFO",
+    "Idle Port Days Burning VLSFO",
+    "Idle Port Days Burning LSMGO",
+    "EU ETS Sea Coverage Factor (0 / 0.5 / 1.0)",
+    "EU ETS Port Coverage Factor (0 / 0.5 / 1.0)",
+    "Turn Time (days)",
+    "Extra Time (days)",
+    "Weather Delay (days)",
+    "Leg Departure (UTC)",
+    "Leg Arrival (UTC)",
+    "Laytime Allowed (hours)",
   ];
   seqHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader));
   r++;
@@ -1561,26 +1605,19 @@ export function exportVoyageToExcel(data: ExportData) {
       if (curPortKey && portEuF > 0 && (leg.calculatedPortDays || 0) > 0) {
         const pf = (leg as any).portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
-        const turnH = leg.turnTime || 0;
-        const extraH = leg.extraTime || 0;
         const pd = leg.calculatedPortDays || 0;
-        const wdL = Math.max(0, pd - (turnH + extraH) / 24);
-        const turnD = turnH / 24;
-        const extraD = extraH / 24;
         
         let pH = 0, pV = 0, pL = 0, pAeL = 0;
         const addF = (ft: string, amt: number) => { if (ft === 'hsfo') pH += amt; else if (ft === 'vlsfo') pV += amt; else pL += amt; };
         
+        // Engine rule: the FULL port stay at a load/discharge call burns the
+        // load/discharge rate (turn + extra time is NOT split onto idle).
         if (legOp === 'load' || legOp === 'loading') {
-          addF(pf, wdL * (profile[pf]?.load || 0));
-          addF(pf, turnD * (profile[pf]?.idle || 0));
-          addF(pf, extraD * (profile[pf]?.idle || 0));
-          pAeL += wdL * (aeRs.load || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
+          addF(pf, pd * (profile[pf]?.load || 0));
+          pAeL += pd * (aeRs.load || 0);
         } else if (legOp === 'disch' || legOp === 'discharging') {
-          addF(pf, wdL * (profile[pf]?.discharge || 0));
-          addF(pf, turnD * (profile[pf]?.idle || 0));
-          addF(pf, extraD * (profile[pf]?.idle || 0));
-          pAeL += wdL * (aeRs.discharge || 0) + turnD * (aeRs.idle || 0) + extraD * (aeRs.idle || 0);
+          addF(pf, pd * (profile[pf]?.discharge || 0));
+          pAeL += pd * (aeRs.discharge || 0);
         } else {
           addF(pf, pd * (profile[pf]?.idle || 0));
           pAeL += pd * (aeRs.idle || 0);
@@ -1643,6 +1680,22 @@ export function exportVoyageToExcel(data: ExportData) {
           sv_euVlsfo += extraCanalDays * (profile.vlsfo.canal || 0) * avgF;
         }
       }
+    }
+  }
+
+  // ---- Reconcile to the engine ----------------------------------------
+  // The workbook must report exactly the EU-covered fuel the software used for
+  // EU ETS and FuelEU. Any residual (rounding / override differences) is booked
+  // on the "Extra Time" line so the component rows still add up to the total.
+  {
+    const eng = (results as { euCoveredFuel?: { hsfo: number; vlsfo: number; lsmgo: number } }).euCoveredFuel;
+    if (eng) {
+      sv_euHsfoExtra += (eng.hsfo || 0) - sv_euHsfo;
+      sv_euVlsfoExtra += (eng.vlsfo || 0) - sv_euVlsfo;
+      sv_euLsmgoExtra += (eng.lsmgo || 0) - sv_euLsmgo;
+      sv_euHsfo = eng.hsfo || 0;
+      sv_euVlsfo = eng.vlsfo || 0;
+      sv_euLsmgo = eng.lsmgo || 0;
     }
   }
 
