@@ -1,5 +1,6 @@
 import { Ship, MapPin, Anchor } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
+import { VoyageMap } from "./VoyageMap";
 
 export function VoyageTimeline() {
   const { sequence } = useVoyageContext();
@@ -41,6 +42,9 @@ export function VoyageTimeline() {
         <span>Voyage Timeline</span>
       </div>
       <div className="p-2">
+        <div className="mb-2">
+          <VoyageMap />
+        </div>
         <div className="relative">
           {portsWithTime.map((row, idx) => {
             const isFirst = idx === 0;
