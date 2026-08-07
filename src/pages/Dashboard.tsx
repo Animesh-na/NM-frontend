@@ -515,6 +515,10 @@ export default function Dashboard() {
                 ["cargoes", "Cargo List", Package],
                 ["users", "Org Users", UserCircle2],
                 ["org", "Org Sheets", Users],
+                ["fleet_in_service", "Fleet in Service", Ship],
+                ["scheduled_deliveries", "Deliveries", ClipboardList],
+                ["demolitions", "Demolitions", Package],
+                ["valuations", "Valuations", DollarSign],
               ] as const).map(([key, label, Icon]) => (
                 <button
                   key={key}
