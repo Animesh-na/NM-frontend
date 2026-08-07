@@ -1,9 +1,12 @@
 import { memo } from "react";
 import {
   LayoutDashboard, FileText, Users, UserCircle2, Shield, ShieldCheck, LogOut, Ship, Package, ClipboardList,
+  Anchor, CalendarClock, Recycle, BadgeDollarSign,
 } from "lucide-react";
 
-export type DashSection = "overview" | "mine" | "fixtures" | "cargoes" | "users" | "org";
+export type DashSection =
+  | "overview" | "mine" | "fixtures" | "cargoes" | "users" | "org"
+  | "fleet_in_service" | "scheduled_deliveries" | "demolitions" | "valuations";
 
 interface Props {
   section: DashSection;
@@ -26,9 +29,34 @@ const NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
   { key: "org", label: "Organization Sheets", icon: Users },
 ];
 
+const SP_NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
+  { key: "fleet_in_service", label: "Fleet in Service", icon: Anchor },
+  { key: "scheduled_deliveries", label: "Scheduled Deliveries", icon: CalendarClock },
+  { key: "demolitions", label: "Demolitions", icon: Recycle },
+  { key: "valuations", label: "Valuations", icon: BadgeDollarSign },
+];
+
 function DashboardSidebarBase({
   section, onSelect, isAdmin, mfaEnabled, onAdmin, onSecurity, onLogout, userEmail, userRole,
 }: Props) {
+  const navButton = ({ key, label, icon: Icon }: { key: DashSection; label: string; icon: typeof FileText }) => {
+    const active = section === key;
+    return (
+      <button
+        key={key}
+        onClick={() => onSelect(key)}
+        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all duration-200"
+        style={{
+          background: active ? "hsl(0 0% 100% / 0.10)" : "transparent",
+          color: active ? "#fff" : "inherit",
+          boxShadow: active ? "inset 2px 0 0 hsl(var(--teal))" : "none",
+        }}
+      >
+        <Icon className="h-4 w-4 shrink-0" style={{ color: active ? "hsl(var(--teal))" : undefined }} />
+        <span className="truncate">{label}</span>
+      </button>
+    );
+  };
   return (
     <aside
       className="hidden lg:flex w-60 shrink-0 flex-col"
@@ -44,25 +72,12 @@ function DashboardSidebarBase({
         </span>
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
-        {NAV.map(({ key, label, icon: Icon }) => {
-          const active = section === key;
-          return (
-            <button
-              key={key}
-              onClick={() => onSelect(key)}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all duration-200"
-              style={{
-                background: active ? "hsl(0 0% 100% / 0.10)" : "transparent",
-                color: active ? "#fff" : "inherit",
-                boxShadow: active ? "inset 2px 0 0 hsl(var(--teal))" : "none",
-              }}
-            >
-              <Icon className="h-4 w-4 shrink-0" style={{ color: active ? "hsl(var(--teal))" : undefined }} />
-              <span className="truncate">{label}</span>
-            </button>
-          );
-        })}
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        {NAV.map((item) => navButton(item))}
+
+        <div className="my-3 h-px" style={{ background: "hsl(0 0% 100% / 0.08)" }} />
+        <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider opacity-50">S&amp;P / Orderbook</p>
+        {SP_NAV.map((item) => navButton(item))}
 
         <div className="my-3 h-px" style={{ background: "hsl(0 0% 100% / 0.08)" }} />
 
