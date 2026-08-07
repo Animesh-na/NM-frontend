@@ -435,3 +435,59 @@ export async function listFixtures(page: number = 1, limit: number = 20, query?:
     },
   };
 }
+
+// ============= S&P / Orderbook (Authenticated) =============
+
+export type OrderbookEndpoint =
+  | "fleet_in_service"
+  | "orderbook_scheduled_deliveries"
+  | "orderbook_demolitions"
+  | "valuations";
+
+export interface OrderbookResponse {
+  rows: CargoFixture[];
+  pagination: { total: number; page: number; limit: number; total_pages: number };
+}
+
+// 13. Generic orderbook / S&P list (mode-scoped, e.g. /dry-bulk/orderbook/valuations)
+export async function listOrderbook(
+  endpoint: OrderbookEndpoint,
+  page: number = 1,
+  limit: number = 20,
+  query?: string
+): Promise<OrderbookResponse> {
+  const params: Record<string, string | number> = { page, limit };
+  if (query && query.trim()) params.q = query.trim();
+  const data = await apiRequest<Record<string, unknown>>(
+    modePath(`/orderbook/${endpoint}`),
+    params,
+    { authenticated: true }
+  );
+
+  // Response arrays can arrive under several keys depending on the endpoint.
+  const candidateKeys = [
+    "data", "results", "rows", "records", "items",
+    endpoint, "fleet", "vessels", "deliveries", "demolitions", "valuations",
+  ];
+  let rows: CargoFixture[] = [];
+  for (const key of candidateKeys) {
+    const v = data[key];
+    if (Array.isArray(v)) { rows = v as CargoFixture[]; break; }
+  }
+  if (!rows.length) {
+    const firstArray = Object.values(data).find((v) => Array.isArray(v));
+    if (Array.isArray(firstArray)) rows = firstArray as CargoFixture[];
+  }
+
+  const pagination = (data.pagination as OrderbookResponse["pagination"] | undefined) ?? undefined;
+  const total = pagination?.total ?? (typeof data.total === "number" ? data.total : rows.length);
+  return {
+    rows,
+    pagination: pagination ?? {
+      total,
+      page,
+      limit,
+      total_pages: Math.max(1, Math.ceil(total / limit)),
+    },
+  };
+}
