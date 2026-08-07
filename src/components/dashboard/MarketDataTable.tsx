@@ -1,12 +1,42 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, PackageSearch, RefreshCw, Search } from "lucide-react";
-import { listCargoes, listFixtures, type CargoFixture } from "@/services/marineApi";
+import { listCargoes, listFixtures, listOrderbook, type CargoFixture, type OrderbookEndpoint } from "@/services/marineApi";
 import { useAuth } from "@/context/AuthContext";
 import { MODE_LABELS } from "@/services/apiMode";
 
 const PAGE_SIZE = 20;
 
-export type MarketKind = "fixtures" | "cargoes";
+export type MarketKind =
+  | "fixtures"
+  | "cargoes"
+  | "fleet_in_service"
+  | "scheduled_deliveries"
+  | "demolitions"
+  | "valuations";
+
+const ORDERBOOK_ENDPOINTS: Partial<Record<MarketKind, OrderbookEndpoint>> = {
+  fleet_in_service: "fleet_in_service",
+  scheduled_deliveries: "orderbook_scheduled_deliveries",
+  demolitions: "orderbook_demolitions",
+  valuations: "valuations",
+};
+
+const KIND_META: Record<MarketKind, { noun: string; subtitle: string }> = {
+  fixtures: { noun: "fixtures", subtitle: "Reported market fixtures" },
+  cargoes: { noun: "cargoes", subtitle: "Open cargo enquiries" },
+  fleet_in_service: { noun: "vessels", subtitle: "Fleet currently in service" },
+  scheduled_deliveries: { noun: "deliveries", subtitle: "Orderbook — scheduled newbuild deliveries" },
+  demolitions: { noun: "demolitions", subtitle: "Orderbook — reported demolitions" },
+  valuations: { noun: "valuations", subtitle: "Vessel sale & purchase valuations" },
+};
+
+/** Prettify an unknown API field key into a column label. */
+function humanize(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b(imo|dwt|teu|gt|nt|usd|id)\b/gi, (m) => m.toUpperCase())
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 interface ColumnDef {
   key: string;
@@ -98,12 +128,20 @@ export default function MarketDataTable({ kind }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = kind === "fixtures"
-        ? await listFixtures(page, PAGE_SIZE)
-        : await listCargoes(page, PAGE_SIZE);
-      setRows(res.cargoes || []);
-      setTotal(res.pagination?.total || 0);
-      setTotalPages(Math.max(1, res.pagination?.total_pages || 1));
+      const orderbookEndpoint = ORDERBOOK_ENDPOINTS[kind];
+      if (orderbookEndpoint) {
+        const res = await listOrderbook(orderbookEndpoint, page, PAGE_SIZE);
+        setRows(res.rows || []);
+        setTotal(res.pagination?.total || 0);
+        setTotalPages(Math.max(1, res.pagination?.total_pages || 1));
+      } else {
+        const res = kind === "fixtures"
+          ? await listFixtures(page, PAGE_SIZE)
+          : await listCargoes(page, PAGE_SIZE);
+        setRows(res.cargoes || []);
+        setTotal(res.pagination?.total || 0);
+        setTotalPages(Math.max(1, res.pagination?.total_pages || 1));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
       setRows([]);
@@ -116,11 +154,24 @@ export default function MarketDataTable({ kind }: Props) {
   useEffect(() => { void load(); }, [load, mode]);
 
   const columns = useMemo(() => {
-    const defs = kind === "fixtures" ? FIXTURE_COLUMNS : CARGO_COLUMNS;
     const present = new Set<string>();
     rows.forEach(r => Object.entries(r).forEach(([k, v]) => {
       if (v !== null && v !== undefined && v !== "") present.add(k);
     }));
+    if (ORDERBOOK_ENDPOINTS[kind]) {
+      // Unknown/variable shapes — derive columns from the payload itself.
+      return Array.from(present)
+        .filter((k) => !/^(id|_id)$/i.test(k))
+        .map<ColumnDef>((k, i) => ({
+          key: k,
+          label: humanize(k),
+          strong: i === 0,
+          align: rows.some(r => typeof r[k] === "number") ? "right" : undefined,
+          kind: /date|delivered|built/i.test(k) ? "date" : undefined,
+          wide: rows.some(r => String(r[k] ?? "").length > 40),
+        }));
+    }
+    const defs = kind === "fixtures" ? FIXTURE_COLUMNS : CARGO_COLUMNS;
     return defs.filter(c => present.has(c.key));
   }, [rows, kind]);
 
@@ -130,8 +181,7 @@ export default function MarketDataTable({ kind }: Props) {
     return rows.filter(r => Object.values(r).some(v => String(v ?? "").toLowerCase().includes(q)));
   }, [rows, query]);
 
-  const noun = kind === "fixtures" ? "fixtures" : "cargoes";
-  const subtitle = kind === "fixtures" ? "Reported market fixtures" : "Open cargo enquiries";
+  const { noun, subtitle } = KIND_META[kind];
 
   return (
     <div className="space-y-4">
