@@ -12,6 +12,7 @@ import MfaSetupGate from "@/components/mfa/MfaSetupGate";
 import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
 import { MODE_LABELS } from "@/services/apiMode";
 import { DashboardSidebar, type DashSection } from "@/components/dashboard/DashboardSidebar";
+import type { MarketKind } from "@/components/dashboard/MarketDataTable";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { VoyageStatusCards } from "@/components/dashboard/VoyageStatusCards";
 import { trackEvent, trackView } from "@/services/logger";
