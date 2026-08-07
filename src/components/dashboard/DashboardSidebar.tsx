@@ -72,7 +72,7 @@ function DashboardSidebarBase({
         </span>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3 dash-sidebar-scroll">
         {NAV.map((item) => navButton(item))}
 
         <div className="my-3 h-px" style={{ background: "hsl(0 0% 100% / 0.08)" }} />
