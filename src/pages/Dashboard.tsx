@@ -47,12 +47,15 @@ export default function Dashboard() {
   const [expandedUserId, setExpandedUserId] = useState<string | number | null>(null);
   const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[]; page: number; total: number }>>({});
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
-  const isMarketSection = section === "fixtures" || section === "cargoes";
+  const MARKET_SECTIONS: DashSection[] = [
+    "fixtures", "cargoes", "fleet_in_service", "scheduled_deliveries", "demolitions", "valuations",
+  ];
+  const isMarketSection = MARKET_SECTIONS.includes(section);
   const tab: "mine" | "users" | "org" =
-    section === "overview" || isMarketSection ? "mine" : section;
+    section === "users" ? "users" : section === "org" ? "org" : "mine";
 
   const fetchSheets = useCallback(async () => {
-    if (tab === "users" || section === "fixtures" || section === "cargoes") return;
+    if (tab === "users" || isMarketSection) return;
     setLoading(true);
     try {
       const res = tab === "mine"
@@ -188,6 +191,10 @@ export default function Dashboard() {
     cargoes: "Cargo List",
     users: "Organization Users",
     org: "Organization Sheets",
+    fleet_in_service: "Fleet in Service",
+    scheduled_deliveries: "Scheduled Deliveries",
+    demolitions: "Orderbook Demolitions",
+    valuations: "Vessel Valuations",
   };
 
   const navigate = (s: DashSection) => {
@@ -569,7 +576,7 @@ export default function Dashboard() {
               </>
             ) : isMarketSection ? (
               <Suspense fallback={<ChartSkeleton />}>
-                <MarketDataTable key={section} kind={section === "fixtures" ? "fixtures" : "cargoes"} />
+                <MarketDataTable key={section} kind={section as MarketKind} />
               </Suspense>
             ) : section === "users" ? (
               renderUsers()
