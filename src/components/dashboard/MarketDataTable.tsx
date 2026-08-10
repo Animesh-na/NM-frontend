@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, PackageSearch, RefreshCw, Search } from "lucide-react";
-import { listCargoes, listFixtures, listFlows, listOrderbook, type CargoFixture, type OrderbookEndpoint } from "@/services/marineApi";
+import { listCargoes, listFixtures, listFlows, listOrderbook, listReceivedFixtures, type CargoFixture, type OrderbookEndpoint } from "@/services/marineApi";
 import { useAuth } from "@/context/AuthContext";
 import { MODE_LABELS } from "@/services/apiMode";
 
@@ -8,6 +8,7 @@ const PAGE_SIZE = 20;
 
 export type MarketKind =
   | "fixtures"
+  | "received_fixtures"
   | "cargoes"
   | "fleet_in_service"
   | "scheduled_deliveries"
@@ -24,6 +25,7 @@ const ORDERBOOK_ENDPOINTS: Partial<Record<MarketKind, OrderbookEndpoint>> = {
 
 const KIND_META: Record<MarketKind, { noun: string; subtitle: string }> = {
   fixtures: { noun: "fixtures", subtitle: "Reported market fixtures" },
+  received_fixtures: { noun: "received fixtures", subtitle: "Fixtures received from broker feeds" },
   cargoes: { noun: "cargoes", subtitle: "Open cargo enquiries" },
   fleet_in_service: { noun: "vessels", subtitle: "Fleet currently in service" },
   scheduled_deliveries: { noun: "deliveries", subtitle: "Orderbook — scheduled newbuild deliveries" },
@@ -67,6 +69,24 @@ const FIXTURE_COLUMNS: ColumnDef[] = [
   { key: "discharge_redelivery", label: "Disch / Redel" },
   { key: "rate", label: "Rate" },
   { key: "source", label: "Source" },
+];
+
+const RECEIVED_FIXTURE_COLUMNS: ColumnDef[] = [
+  { key: "fixture_date", label: "Fixture Date", kind: "date" },
+  { key: "vessel_name", label: "Vessel", strong: true },
+  { key: "vessel_enriched", label: "Vessel (Enriched)" },
+  { key: "blt", label: "Built" },
+  { key: "dwt", label: "DWT", align: "right", kind: "number" },
+  { key: "state", label: "State", kind: "badge" },
+  { key: "commercial_operator", label: "Operator" },
+  { key: "charterer", label: "Charterer" },
+  { key: "cargo", label: "Cargo" },
+  { key: "laycan", label: "Laycan" },
+  { key: "load_via", label: "Load / Via" },
+  { key: "discharge_redelivery", label: "Disch / Redel" },
+  { key: "rate", label: "Rate" },
+  { key: "liquid_capacity", label: "Liquid Cap." },
+  { key: "source", label: "Source", wide: true },
 ];
 
 const CARGO_COLUMNS: ColumnDef[] = [
@@ -167,7 +187,9 @@ export default function MarketDataTable({ kind }: Props) {
       } else {
         const res = kind === "fixtures"
           ? await listFixtures(page, PAGE_SIZE)
-          : await listCargoes(page, PAGE_SIZE);
+          : kind === "received_fixtures"
+            ? await listReceivedFixtures(page, PAGE_SIZE)
+            : await listCargoes(page, PAGE_SIZE);
         setRows(res.cargoes || []);
         setTotal(res.pagination?.total || 0);
         setTotalPages(Math.max(1, res.pagination?.total_pages || 1));
@@ -204,7 +226,11 @@ export default function MarketDataTable({ kind }: Props) {
           wide: rows.some(r => String(r[k] ?? "").length > 40),
         }));
     }
-    const defs = kind === "fixtures" ? FIXTURE_COLUMNS : CARGO_COLUMNS;
+    const defs = kind === "fixtures"
+      ? FIXTURE_COLUMNS
+      : kind === "received_fixtures"
+        ? RECEIVED_FIXTURE_COLUMNS
+        : CARGO_COLUMNS;
     return defs.filter(c => present.has(c.key));
   }, [rows, kind]);
 

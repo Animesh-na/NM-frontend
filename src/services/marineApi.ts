@@ -453,6 +453,29 @@ export async function listFixtures(page: number = 1, limit: number = 20, query?:
 }
 
 // 12b. List trade flows (mode-scoped, e.g. /dry-bulk/flows)
+export async function listReceivedFixtures(
+  page: number = 1,
+  limit: number = 20,
+  filters: { cargo_status?: string; account?: string; broker?: string; type?: string; cargo_type?: string } = {}
+): Promise<CargoListResponse> {
+  const params: Record<string, string | number> = { page, limit };
+  for (const [k, v] of Object.entries(filters)) if (v && v.trim()) params[k] = v.trim();
+  const data = await apiRequest<Record<string, unknown>>(modePath("/received-fixtures"), params, { authenticated: true });
+  let rows: CargoFixture[] = [];
+  for (const key of ["received_fixtures", "fixtures", "data", "results", "rows", "items"]) {
+    const v = data[key];
+    if (Array.isArray(v)) { rows = v as CargoFixture[]; break; }
+  }
+  if (!rows.length) {
+    const firstArray = Object.values(data).find((v) => Array.isArray(v));
+    if (Array.isArray(firstArray)) rows = firstArray as CargoFixture[];
+  }
+  const pagination = (data.pagination as CargoListResponse["pagination"]) ?? {
+    total: rows.length, page, limit, total_pages: Math.max(1, Math.ceil(rows.length / limit)),
+  };
+  return { cargoes: rows, pagination };
+}
+
 export interface FlowsResponse {
   rows: CargoFixture[];
   pagination: { total: number; page: number; limit: number; total_pages: number };

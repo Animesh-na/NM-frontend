@@ -49,7 +49,7 @@ export default function Dashboard() {
   const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[]; page: number; total: number }>>({});
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
   const MARKET_SECTIONS: DashSection[] = [
-    "fixtures", "cargoes", "flows", "fleet_in_service", "scheduled_deliveries", "demolitions", "valuations",
+    "fixtures", "received_fixtures", "cargoes", "flows", "fleet_in_service", "scheduled_deliveries", "demolitions", "valuations",
   ];
   const isMarketSection = MARKET_SECTIONS.includes(section);
   const tab: "mine" | "users" | "org" =
@@ -189,6 +189,7 @@ export default function Dashboard() {
     overview: "Fleet Overview",
     mine: "My Sheets",
     fixtures: "Market Fixtures",
+    received_fixtures: "Received Fixtures",
     cargoes: "Cargo List",
     users: "Organization Users",
     org: "Organization Sheets",
@@ -513,6 +514,7 @@ export default function Dashboard() {
                 ["overview", "Overview", Ship],
                 ["mine", "My Sheets", FileText],
                 ["fixtures", "Fixtures", ClipboardList],
+                ["received_fixtures", "Received Fixtures", ClipboardList],
                 ["cargoes", "Cargo List", Package],
                 ["flows", "Flows", Package],
                 ["users", "Org Users", UserCircle2],
