@@ -33,6 +33,9 @@ export function BunkerSection() {
     sequence.find(r => r.port);
   const bobPortName = bobPortRow?.port || "";
   const [fetching, setFetching] = useState(false);
+  type FeedQuote = { port: string; hsfo: number | null; vlsfo: number | null; lsmgo: number | null; updatedAt?: string };
+  const [feed, setFeed] = useState<FeedQuote[]>([]);
+  const [feedAt, setFeedAt] = useState<string | null>(null);
   const autoFilled = useRef<Set<string>>(new Set());
 
   const fetchPrices = useCallback(async (opts: { force: boolean }) => {
@@ -76,11 +79,24 @@ export function BunkerSection() {
     try {
       const quotes = await Promise.all(pending.map(t => getBunkerPrices(t.name)));
       let hits = 0;
+      const collected: FeedQuote[] = [];
       pending.forEach((t, i) => {
         autoFilled.current.add(t.key);
         const q = quotes[i];
-        if (q) { t.apply(q); hits++; }
+        if (q) {
+          t.apply(q);
+          hits++;
+          collected.push({ port: t.name, hsfo: q.hsfo, vlsfo: q.vlsfo, lsmgo: q.lsmgo, updatedAt: q.updatedAt });
+        }
       });
+      if (collected.length) {
+        setFeed(prev => {
+          const map = new Map(prev.map(f => [f.port.toLowerCase(), f]));
+          collected.forEach(c => map.set(c.port.toLowerCase(), c));
+          return Array.from(map.values());
+        });
+        setFeedAt(new Date().toLocaleString());
+      }
       if (opts.force) {
         toast(hits
           ? { title: "Bunker prices updated", description: `Latest prices loaded for ${hits} port${hits > 1 ? "s" : ""}.` }
@@ -258,6 +274,40 @@ export function BunkerSection() {
               ))}
             </div>
           </div>
+
+          {/* Live market feed — what the last refresh returned */}
+          {feed.length > 0 && (
+            <div className="border border-border rounded overflow-hidden">
+              <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border flex items-center justify-between">
+                <span>Market Feed</span>
+                {feedAt && <span className="text-[9px] font-normal text-muted-foreground">Fetched {feedAt}</span>}
+              </div>
+              <table className="w-full text-[10px]">
+                <thead>
+                  <tr className="text-muted-foreground">
+                    <th className="text-left px-2 py-0.5 font-medium">Port</th>
+                    <th className="text-right px-2 py-0.5 font-medium">HSFO</th>
+                    <th className="text-right px-2 py-0.5 font-medium">VLSFO</th>
+                    <th className="text-right px-2 py-0.5 font-medium">LSMGO</th>
+                    <th className="text-right px-2 py-0.5 font-medium">Published</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feed.map(f => (
+                    <tr key={f.port} className="border-t border-border">
+                      <td className="px-2 py-0.5">{f.port}</td>
+                      <td className="px-2 py-0.5 text-right font-mono">{f.hsfo !== null ? f.hsfo.toFixed(2) : "—"}</td>
+                      <td className="px-2 py-0.5 text-right font-mono">{f.vlsfo !== null ? f.vlsfo.toFixed(2) : "—"}</td>
+                      <td className="px-2 py-0.5 text-right font-mono">{f.lsmgo !== null ? f.lsmgo.toFixed(2) : "—"}</td>
+                      <td className="px-2 py-0.5 text-right text-muted-foreground">
+                        {f.updatedAt ? new Date(f.updatedAt).toLocaleDateString() : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Port Bunkering - tabular (only when bunkering ports exist in sequence) */}
           {bunkeringPorts.length > 0 && (
