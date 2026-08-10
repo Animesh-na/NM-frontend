@@ -491,3 +491,82 @@ export async function listOrderbook(
     },
   };
 }
+
+// ============= Bunker Prices (Authenticated) =============
+
+export interface BunkerPriceQuote {
+  portName: string;
+  hsfo: number | null;
+  vlsfo: number | null;
+  lsmgo: number | null;
+  updatedAt?: string;
+  raw?: Record<string, unknown>;
+}
+
+const numOrNull = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "number" ? v : parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+const pickField = (row: Record<string, unknown>, keys: string[]): number | null => {
+  const lowered: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) lowered[k.toLowerCase().replace(/[^a-z0-9]/g, "")] = v;
+  for (const k of keys) {
+    const val = lowered[k];
+    const n = numOrNull(val);
+    if (n !== null) return n;
+  }
+  return null;
+};
+
+/** Latest bunker prices for a port (global endpoint, not mode-scoped). */
+export async function getBunkerPrices(portName: string): Promise<BunkerPriceQuote | null> {
+  const name = (portName || "").trim();
+  if (!name) return null;
+  try {
+    const data = await apiRequest<Record<string, unknown>>(
+      "/bunker_price",
+      { page: 1, limit: 20, port_name: name },
+      { authenticated: true }
+    );
+    let rows: Record<string, unknown>[] = [];
+    for (const key of ["data", "results", "rows", "records", "items", "bunker_prices", "prices"]) {
+      const v = data[key];
+      if (Array.isArray(v)) { rows = v as Record<string, unknown>[]; break; }
+    }
+    if (!rows.length) {
+      const firstArray = Object.values(data).find((v) => Array.isArray(v));
+      if (Array.isArray(firstArray)) rows = firstArray as Record<string, unknown>[];
+    }
+    if (!rows.length) return null;
+
+    // Merge across rows: some feeds return one row per fuel grade.
+    const quote: BunkerPriceQuote = { portName: name, hsfo: null, vlsfo: null, lsmgo: null, raw: rows[0] };
+    for (const row of rows) {
+      const grade = String(row.fuel_type ?? row.grade ?? row.fuel ?? row.product ?? "").toLowerCase();
+      const genericPrice = pickField(row, ["price", "priceusd", "usd", "value", "amount"]);
+
+      const hs = pickField(row, ["hsfo", "hsfo380", "ifo380", "hsfoprice", "hsfo_price"]);
+      const vl = pickField(row, ["vlsfo", "vlsfo05", "vlsfoprice", "vlsfo_price"]);
+      const lm = pickField(row, ["lsmgo", "mgo", "lsmgoprice", "lsmgo_price", "lsgo"]);
+
+      if (hs !== null && quote.hsfo === null) quote.hsfo = hs;
+      if (vl !== null && quote.vlsfo === null) quote.vlsfo = vl;
+      if (lm !== null && quote.lsmgo === null) quote.lsmgo = lm;
+
+      if (genericPrice !== null && grade) {
+        if (/hsfo|380|ifo/.test(grade) && quote.hsfo === null) quote.hsfo = genericPrice;
+        else if (/vlsfo|0\.5|lsfo/.test(grade) && quote.vlsfo === null) quote.vlsfo = genericPrice;
+        else if (/mgo|gasoil|lsmgo/.test(grade) && quote.lsmgo === null) quote.lsmgo = genericPrice;
+      }
+      const ts = row.updated_at ?? row.date ?? row.price_date ?? row.created_at;
+      if (!quote.updatedAt && ts) quote.updatedAt = String(ts);
+    }
+    if (quote.hsfo === null && quote.vlsfo === null && quote.lsmgo === null) return null;
+    return quote;
+  } catch (e) {
+    console.warn("[marineApi] bunker price fetch failed", e);
+    return null;
+  }
+}
