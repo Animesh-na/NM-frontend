@@ -78,7 +78,23 @@ export async function apiRequest<T>(
     if (response.status === 401 && typeof window !== "undefined") {
       dispatchSessionExpired();
     }
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    let detail = "";
+    try {
+      const text = await response.text();
+      if (text) {
+        try {
+          const parsed = JSON.parse(text) as { error?: string; message?: string; detail?: string };
+          detail = parsed.error || parsed.message || parsed.detail || text;
+        } catch {
+          detail = text;
+        }
+      }
+    } catch {
+      /* ignore body read failures */
+    }
+    throw new Error(
+      `API Error: ${response.status} ${response.statusText}${detail ? ` — ${detail.slice(0, 200)}` : ""}`
+    );
   }
 
   return response.json();
