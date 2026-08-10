@@ -24,8 +24,13 @@ export function BunkerSection() {
   const bunkeringPorts = sequence.filter(row => row.operation === "bunkering" && row.port);
 
   // ---- Live bunker price feed -------------------------------------------
-  // BOB price port = first loading port, else first port in the sequence.
-  const bobPortRow = sequence.find(r => r.operation === "loading" && r.port) || sequence.find(r => r.port);
+  // BOB price port = opening port (first row of the sequence); if that has no
+  // port set, fall back to the first loading port, then any port.
+  const openingRow = sequence[0]?.port ? sequence[0] : undefined;
+  const bobPortRow =
+    openingRow ||
+    sequence.find(r => r.operation === "loading" && r.port) ||
+    sequence.find(r => r.port);
   const bobPortName = bobPortRow?.port || "";
   const [fetching, setFetching] = useState(false);
   const autoFilled = useRef<Set<string>>(new Set());
