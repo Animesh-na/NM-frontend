@@ -544,7 +544,7 @@ export async function getBunkerPrices(portName: string): Promise<BunkerPriceQuot
     // Merge across rows: some feeds return one row per fuel grade.
     const quote: BunkerPriceQuote = { portName: name, hsfo: null, vlsfo: null, lsmgo: null, raw: rows[0] };
     for (const row of rows) {
-      const grade = String(row.fuel_type ?? row.grade ?? row.fuel ?? row.product ?? "").toLowerCase();
+      const grade = String(row.fuel_grade_id ?? row.fuel_grade_description ?? row.fuel_type ?? row.grade ?? row.fuel ?? row.product ?? "").toLowerCase();
       const genericPrice = pickField(row, ["price", "priceusd", "usd", "value", "amount"]);
 
       const hs = pickField(row, ["hsfo", "hsfo380", "ifo380", "hsfoprice", "hsfo_price"]);
@@ -556,11 +556,11 @@ export async function getBunkerPrices(portName: string): Promise<BunkerPriceQuot
       if (lm !== null && quote.lsmgo === null) quote.lsmgo = lm;
 
       if (genericPrice !== null && grade) {
-        if (/hsfo|380|ifo/.test(grade) && quote.hsfo === null) quote.hsfo = genericPrice;
-        else if (/vlsfo|0\.5|lsfo/.test(grade) && quote.vlsfo === null) quote.vlsfo = genericPrice;
-        else if (/mgo|gasoil|lsmgo/.test(grade) && quote.lsmgo === null) quote.lsmgo = genericPrice;
+        if (/hsfo|high sulfur|380|ifo/.test(grade) && quote.hsfo === null) quote.hsfo = genericPrice;
+        else if (/vlsfo|very low|0\.5|lsfo/.test(grade) && quote.vlsfo === null) quote.vlsfo = genericPrice;
+        else if (/mgo|gas oil|gasoil|lsmgo/.test(grade) && quote.lsmgo === null) quote.lsmgo = genericPrice;
       }
-      const ts = row.updated_at ?? row.date ?? row.price_date ?? row.created_at;
+      const ts = row.published_at ?? row.updated_at ?? row.date ?? row.price_date ?? row.created_at;
       if (!quote.updatedAt && ts) quote.updatedAt = String(ts);
     }
     if (quote.hsfo === null && quote.vlsfo === null && quote.lsmgo === null) return null;
