@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, PackageSearch, RefreshCw, Search } from "lucide-react";
-import { listCargoes, listFixtures, listFlows, listOrderbook, type CargoFixture, type OrderbookEndpoint } from "@/services/marineApi";
+import { listCargoes, listFixtures, listFlows, listOrderbook, listReceivedFixtures, type CargoFixture, type OrderbookEndpoint } from "@/services/marineApi";
 import { useAuth } from "@/context/AuthContext";
 import { MODE_LABELS } from "@/services/apiMode";
 
@@ -8,6 +8,7 @@ const PAGE_SIZE = 20;
 
 export type MarketKind =
   | "fixtures"
+  | "received_fixtures"
   | "cargoes"
   | "fleet_in_service"
   | "scheduled_deliveries"
@@ -24,6 +25,7 @@ const ORDERBOOK_ENDPOINTS: Partial<Record<MarketKind, OrderbookEndpoint>> = {
 
 const KIND_META: Record<MarketKind, { noun: string; subtitle: string }> = {
   fixtures: { noun: "fixtures", subtitle: "Reported market fixtures" },
+  received_fixtures: { noun: "received fixtures", subtitle: "Fixtures received from broker feeds" },
   cargoes: { noun: "cargoes", subtitle: "Open cargo enquiries" },
   fleet_in_service: { noun: "vessels", subtitle: "Fleet currently in service" },
   scheduled_deliveries: { noun: "deliveries", subtitle: "Orderbook — scheduled newbuild deliveries" },
