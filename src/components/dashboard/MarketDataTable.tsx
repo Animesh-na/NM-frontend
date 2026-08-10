@@ -71,10 +71,6 @@ const FIXTURE_COLUMNS: ColumnDef[] = [
   { key: "source", label: "Source" },
 ];
 
-const CARGO_COLUMNS: ColumnDef[] = [
-  { key: "cargo_type", label: "Cargo", strong: true },
-];
-
 const RECEIVED_FIXTURE_COLUMNS: ColumnDef[] = [
   { key: "fixture_date", label: "Fixture Date", kind: "date" },
   { key: "vessel_name", label: "Vessel", strong: true },
@@ -93,7 +89,7 @@ const RECEIVED_FIXTURE_COLUMNS: ColumnDef[] = [
   { key: "source", label: "Source", wide: true },
 ];
 
-const CARGO_COLUMNS_FULL: ColumnDef[] = [
+const CARGO_COLUMNS: ColumnDef[] = [
   { key: "cargo_type", label: "Cargo", strong: true },
   { key: "cargo", label: "Cargo", strong: true },
   { key: "quantity", label: "Quantity", align: "right" },
