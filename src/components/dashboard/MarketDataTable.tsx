@@ -73,6 +73,28 @@ const FIXTURE_COLUMNS: ColumnDef[] = [
 
 const CARGO_COLUMNS: ColumnDef[] = [
   { key: "cargo_type", label: "Cargo", strong: true },
+];
+
+const RECEIVED_FIXTURE_COLUMNS: ColumnDef[] = [
+  { key: "fixture_date", label: "Fixture Date", kind: "date" },
+  { key: "vessel_name", label: "Vessel", strong: true },
+  { key: "vessel_enriched", label: "Vessel (Enriched)" },
+  { key: "blt", label: "Built" },
+  { key: "dwt", label: "DWT", align: "right", kind: "number" },
+  { key: "state", label: "State", kind: "badge" },
+  { key: "commercial_operator", label: "Operator" },
+  { key: "charterer", label: "Charterer" },
+  { key: "cargo", label: "Cargo" },
+  { key: "laycan", label: "Laycan" },
+  { key: "load_via", label: "Load / Via" },
+  { key: "discharge_redelivery", label: "Disch / Redel" },
+  { key: "rate", label: "Rate" },
+  { key: "liquid_capacity", label: "Liquid Cap." },
+  { key: "source", label: "Source", wide: true },
+];
+
+const CARGO_COLUMNS_FULL: ColumnDef[] = [
+  { key: "cargo_type", label: "Cargo", strong: true },
   { key: "cargo", label: "Cargo", strong: true },
   { key: "quantity", label: "Quantity", align: "right" },
   { key: "load", label: "Load" },
