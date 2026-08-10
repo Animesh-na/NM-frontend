@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, PackageSearch, RefreshCw, Search } from "lucide-react";
-import { listCargoes, listFixtures, listOrderbook, type CargoFixture, type OrderbookEndpoint } from "@/services/marineApi";
+import { listCargoes, listFixtures, listFlows, listOrderbook, type CargoFixture, type OrderbookEndpoint } from "@/services/marineApi";
 import { useAuth } from "@/context/AuthContext";
 import { MODE_LABELS } from "@/services/apiMode";
 
@@ -12,7 +12,8 @@ export type MarketKind =
   | "fleet_in_service"
   | "scheduled_deliveries"
   | "demolitions"
-  | "valuations";
+  | "valuations"
+  | "flows";
 
 const ORDERBOOK_ENDPOINTS: Partial<Record<MarketKind, OrderbookEndpoint>> = {
   fleet_in_service: "fleet_in_service",
@@ -28,6 +29,7 @@ const KIND_META: Record<MarketKind, { noun: string; subtitle: string }> = {
   scheduled_deliveries: { noun: "deliveries", subtitle: "Orderbook — scheduled newbuild deliveries" },
   demolitions: { noun: "demolitions", subtitle: "Orderbook — reported demolitions" },
   valuations: { noun: "valuations", subtitle: "Vessel sale & purchase valuations" },
+  flows: { noun: "flows", subtitle: "Vessel trade flows — cargo movements by voyage" },
 };
 
 /** Prettify an unknown API field key into a column label. */
@@ -85,11 +87,34 @@ const CARGO_COLUMNS: ColumnDef[] = [
   { key: "dense_view", label: "Summary", wide: true },
 ];
 
+const FLOW_COLUMNS: ColumnDef[] = [
+  { key: "vessel_name", label: "Vessel", strong: true },
+  { key: "imo", label: "IMO" },
+  { key: "voyage_number", label: "Voyage" },
+  { key: "vessel_class", label: "Class", kind: "badge" },
+  { key: "dwt", label: "DWT", align: "right", kind: "number" },
+  { key: "year_built", label: "Built" },
+  { key: "commercial_operator", label: "Operator" },
+  { key: "cargo_grade", label: "Cargo Grade" },
+  { key: "cargo_type", label: "Cargo Type" },
+  { key: "quantity", label: "Quantity", align: "right", kind: "number" },
+  { key: "origin_port", label: "Load Port" },
+  { key: "origin_country", label: "Load Country" },
+  { key: "origin_area", label: "Load Area" },
+  { key: "destination_port", label: "Disch Port" },
+  { key: "destination_country", label: "Disch Country" },
+  { key: "destination_area", label: "Disch Area" },
+  { key: "load_date", label: "Load Date", kind: "date" },
+  { key: "discharge_date", label: "Disch Date", kind: "date" },
+  { key: "horizon", label: "Horizon", kind: "badge" },
+  { key: "sanctioned_flag", label: "Sanctioned", kind: "badge" },
+];
+
 function formatValue(value: unknown, col?: ColumnDef): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "number") {
-    if (col?.key === "imo" || col?.key === "blt" || col?.key === "id") return String(value);
+    if (col?.key === "imo" || col?.key === "blt" || col?.key === "id" || col?.key === "year_built" || col?.key === "voyage_number") return String(value);
     return value.toLocaleString();
   }
   const s = String(value);
@@ -129,7 +154,12 @@ export default function MarketDataTable({ kind }: Props) {
     setError(null);
     try {
       const orderbookEndpoint = ORDERBOOK_ENDPOINTS[kind];
-      if (orderbookEndpoint) {
+      if (kind === "flows") {
+        const res = await listFlows(page, PAGE_SIZE);
+        setRows(res.rows || []);
+        setTotal(res.pagination?.total || 0);
+        setTotalPages(Math.max(1, res.pagination?.total_pages || 1));
+      } else if (orderbookEndpoint) {
         const res = await listOrderbook(orderbookEndpoint, page, PAGE_SIZE);
         setRows(res.rows || []);
         setTotal(res.pagination?.total || 0);
@@ -158,6 +188,9 @@ export default function MarketDataTable({ kind }: Props) {
     rows.forEach(r => Object.entries(r).forEach(([k, v]) => {
       if (v !== null && v !== undefined && v !== "") present.add(k);
     }));
+    if (kind === "flows") {
+      return FLOW_COLUMNS.filter(c => present.has(c.key));
+    }
     if (ORDERBOOK_ENDPOINTS[kind]) {
       // Unknown/variable shapes — derive columns from the payload itself.
       return Array.from(present)
