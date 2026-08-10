@@ -187,7 +187,9 @@ export default function MarketDataTable({ kind }: Props) {
       } else {
         const res = kind === "fixtures"
           ? await listFixtures(page, PAGE_SIZE)
-          : await listCargoes(page, PAGE_SIZE);
+          : kind === "received_fixtures"
+            ? await listReceivedFixtures(page, PAGE_SIZE)
+            : await listCargoes(page, PAGE_SIZE);
         setRows(res.cargoes || []);
         setTotal(res.pagination?.total || 0);
         setTotalPages(Math.max(1, res.pagination?.total_pages || 1));
@@ -224,7 +226,11 @@ export default function MarketDataTable({ kind }: Props) {
           wide: rows.some(r => String(r[k] ?? "").length > 40),
         }));
     }
-    const defs = kind === "fixtures" ? FIXTURE_COLUMNS : CARGO_COLUMNS;
+    const defs = kind === "fixtures"
+      ? FIXTURE_COLUMNS
+      : kind === "received_fixtures"
+        ? RECEIVED_FIXTURE_COLUMNS
+        : CARGO_COLUMNS;
     return defs.filter(c => present.has(c.key));
   }, [rows, kind]);
 
