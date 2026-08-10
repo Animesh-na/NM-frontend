@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import { ChevronDown, Fuel, X } from "lucide-react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { ChevronDown, Fuel, X, RefreshCw } from "lucide-react";
 import { useVoyageContext, type FuelAccountingMode } from "@/context/VoyageContext";
+import { getBunkerPrices } from "@/services/marineApi";
+import { toast } from "@/hooks/use-toast";
 import { InfoTooltip } from "./InfoTooltip";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
 import { computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
@@ -20,6 +22,75 @@ export function BunkerSection() {
   
   const [isExpanded, setIsExpanded] = useState(true);
   const bunkeringPorts = sequence.filter(row => row.operation === "bunkering" && row.port);
+
+  // ---- Live bunker price feed -------------------------------------------
+  // BOB price port = first loading port, else first port in the sequence.
+  const bobPortRow = sequence.find(r => r.operation === "loading" && r.port) || sequence.find(r => r.port);
+  const bobPortName = bobPortRow?.port || "";
+  const [fetching, setFetching] = useState(false);
+  const autoFilled = useRef<Set<string>>(new Set());
+
+  const fetchPrices = useCallback(async (opts: { force: boolean }) => {
+    const targets: { key: string; name: string; apply: (q: { hsfo: number | null; vlsfo: number | null; lsmgo: number | null }) => void }[] = [];
+
+    if (bobPortName) {
+      const bobEmpty = !bunker.hsfo.price && !bunker.vlsfo.price && !bunker.lsmgo.price;
+      if (opts.force || bobEmpty) {
+        targets.push({
+          key: `bob:${bobPortName}`,
+          name: bobPortName,
+          apply: (q) => {
+            if (q.hsfo !== null) updateBunker("hsfo", "price", q.hsfo);
+            if (q.vlsfo !== null) updateBunker("vlsfo", "price", q.vlsfo);
+            if (q.lsmgo !== null) updateBunker("lsmgo", "price", q.lsmgo);
+          },
+        });
+      }
+    }
+
+    for (const p of bunker.portBunkering) {
+      const empty = !p.hsfo.price && !p.vlsfo.price && !p.lsmgo.price;
+      if (!p.portName) continue;
+      if (opts.force || empty) {
+        targets.push({
+          key: `port:${p.id}:${p.portName}`,
+          name: p.portName,
+          apply: (q) => {
+            if (q.hsfo !== null) updatePortBunkering(p.id, "hsfo", "price", q.hsfo);
+            if (q.vlsfo !== null) updatePortBunkering(p.id, "vlsfo", "price", q.vlsfo);
+            if (q.lsmgo !== null) updatePortBunkering(p.id, "lsmgo", "price", q.lsmgo);
+          },
+        });
+      }
+    }
+
+    const pending = targets.filter(t => opts.force || !autoFilled.current.has(t.key));
+    if (!pending.length) return;
+
+    setFetching(true);
+    try {
+      const quotes = await Promise.all(pending.map(t => getBunkerPrices(t.name)));
+      let hits = 0;
+      pending.forEach((t, i) => {
+        autoFilled.current.add(t.key);
+        const q = quotes[i];
+        if (q) { t.apply(q); hits++; }
+      });
+      if (opts.force) {
+        toast(hits
+          ? { title: "Bunker prices updated", description: `Latest prices loaded for ${hits} port${hits > 1 ? "s" : ""}.` }
+          : { title: "No prices found", description: "The price feed returned no data for these ports.", variant: "destructive" });
+      }
+    } finally {
+      setFetching(false);
+    }
+  }, [bobPortName, bunker.hsfo.price, bunker.vlsfo.price, bunker.lsmgo.price, bunker.portBunkering, updateBunker, updatePortBunkering]);
+
+  // One-time auto-fill per port while the fields are still empty. Saved or
+  // manually edited values are never overwritten automatically.
+  useEffect(() => {
+    fetchPrices({ force: false });
+  }, [fetchPrices]);
 
   const totalBunkeredHsfo = bunker.portBunkering.reduce((sum, p) => sum + p.hsfo.quantity, 0);
   const totalBunkeredVlsfo = bunker.portBunkering.reduce((sum, p) => sum + p.vlsfo.quantity, 0);
@@ -150,11 +221,24 @@ export function BunkerSection() {
               <input type="number" step="0.01" className="form-input-sm w-14 font-mono text-right text-xs"
                 value={bunker.rewardFactor} onChange={(e) => updateBunkerField("rewardFactor", parseFloat(e.target.value) || 1)} />
             </div>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => fetchPrices({ force: true })}
+              disabled={fetching || (!bobPortName && bunker.portBunkering.length === 0)}
+              className="h-6 px-2 text-[10px] gap-1 ml-auto"
+              title="Fetch latest market bunker prices"
+            >
+              <RefreshCw className={`h-3 w-3 ${fetching ? "animate-spin" : ""}`} />
+              Refresh Prices
+            </Button>
           </div>
 
           {/* BOB - single row layout */}
           <div className="border border-border rounded overflow-hidden">
-            <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border">BOB</div>
+            <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border flex items-center justify-between">
+              <span>BOB</span>
+              {bobPortName && <span className="text-[9px] font-normal text-muted-foreground">Prices: {bobPortName}</span>}
+            </div>
             <div className="flex divide-x divide-border">
               {fuels.map(fuel => (
                 <div key={fuel} className="flex-1 flex items-center gap-1 px-2 py-1">
