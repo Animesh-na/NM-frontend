@@ -221,23 +221,26 @@ export function BunkerSection() {
               <input type="number" step="0.01" className="form-input-sm w-14 font-mono text-right text-xs"
                 value={bunker.rewardFactor} onChange={(e) => updateBunkerField("rewardFactor", parseFloat(e.target.value) || 1)} />
             </div>
-            <Button
-              variant="outline" size="sm"
-              onClick={() => fetchPrices({ force: true })}
-              disabled={fetching || (!bobPortName && bunker.portBunkering.length === 0)}
-              className="h-6 px-2 text-[10px] gap-1 ml-auto"
-              title="Fetch latest market bunker prices"
-            >
-              <RefreshCw className={`h-3 w-3 ${fetching ? "animate-spin" : ""}`} />
-              Refresh Prices
-            </Button>
           </div>
 
           {/* BOB - single row layout */}
           <div className="border border-border rounded overflow-hidden">
             <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border flex items-center justify-between">
               <span>BOB</span>
-              {bobPortName && <span className="text-[9px] font-normal text-muted-foreground">Prices: {bobPortName}</span>}
+              <span className="flex items-center gap-2">
+                {bobPortName && <span className="text-[9px] font-normal text-muted-foreground">Prices: {bobPortName}</span>}
+                <Button
+                  type="button"
+                  variant="outline" size="sm"
+                  onClick={() => fetchPrices({ force: true })}
+                  disabled={fetching}
+                  className="h-5 px-1.5 text-[9px] gap-1"
+                  title="Fetch latest market bunker prices"
+                >
+                  <RefreshCw className={`h-3 w-3 ${fetching ? "animate-spin" : ""}`} />
+                  Refresh Prices
+                </Button>
+              </span>
             </div>
             <div className="flex divide-x divide-border">
               {fuels.map(fuel => (
