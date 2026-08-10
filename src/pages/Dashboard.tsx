@@ -322,6 +322,9 @@ export default function Dashboard() {
                 <th className="w-10 px-5 py-2.5 font-semibold"></th>
                 <th className="px-5 py-2.5 font-semibold">Email</th>
                 <th className="px-5 py-2.5 font-semibold">Role</th>
+                <th className="px-5 py-2.5 font-semibold">Access</th>
+                <th className="px-5 py-2.5 font-semibold">Status</th>
+                <th className="px-5 py-2.5 font-semibold">Created</th>
                 <th className="px-5 py-2.5 text-right font-semibold">Sheets</th>
               </tr>
             </thead>
@@ -346,13 +349,28 @@ export default function Dashboard() {
                         {isSelf && <span className="ml-2 dash-badge-success">You</span>}
                       </td>
                       <td className="px-5 py-3 text-[12px] uppercase dash-muted">{u.role || "user"}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {u.dry_bulk_access && <span className="dash-badge-success">Dry Bulk</span>}
+                          {u.tanker_access && <span className="dash-badge-success">Tanker</span>}
+                          {!u.dry_bulk_access && !u.tanker_access && <span className="text-[11px] dash-muted">None</span>}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={u.is_active === false ? "dash-badge-warning" : "dash-badge-success"}>
+                          {u.is_active === false ? "Inactive" : "Active"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-[12px] dash-muted">
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}
+                      </td>
                       <td className="px-5 py-3 text-right text-[12px] tabular-nums dash-muted">
                         {u.sheet_count ?? entry?.total ?? <FileText className="inline h-3.5 w-3.5 opacity-50" />}
                       </td>
                     </tr>
                     {expanded && (
                       <tr className="border-t" style={{ borderColor: "hsl(var(--dash-border))", background: "hsl(var(--dash-bg))" }}>
-                        <td colSpan={4} className="px-5 py-3">
+                        <td colSpan={7} className="px-5 py-3">
                           {entry?.loading && entry.sheets.length === 0 ? (
                             <div className="flex items-center gap-2 text-[12px] dash-muted">
                               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading sheets...

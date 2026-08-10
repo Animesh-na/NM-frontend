@@ -294,10 +294,15 @@ export interface OrganizationUser {
   role?: string;
   sheet_count?: number;
   created_at?: string;
+  updated_at?: string;
+  is_active?: boolean;
+  dry_bulk_access?: boolean;
+  tanker_access?: boolean;
 }
 
 export interface OrganizationUsersResponse {
   users: OrganizationUser[];
+  organizationName?: string;
   pagination?: {
     total: number;
     page: number;
@@ -308,13 +313,13 @@ export interface OrganizationUsersResponse {
 
 export async function listOrganizationUsers(page: number = 1, limit: number = 50): Promise<OrganizationUsersResponse> {
   try {
-    const data = await apiRequest<OrganizationUsersResponse & { organization?: { users?: OrganizationUser[] } }>(
-      modePath("/organization/users"),
+    const data = await apiRequest<OrganizationUsersResponse & { organization?: { name?: string; users?: OrganizationUser[] } }>(
+      "/organization/users",
       { page, limit },
       { authenticated: true }
     );
     const users = data.users || data.organization?.users || [];
-    return { users, pagination: data.pagination };
+    return { users, organizationName: data.organization?.name, pagination: data.pagination };
   } catch (error) {
     console.error("Failed to list organization users:", error);
     return { users: [] };
