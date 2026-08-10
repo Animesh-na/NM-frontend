@@ -1,12 +1,12 @@
 import { memo } from "react";
 import {
   LayoutDashboard, FileText, Users, UserCircle2, Shield, ShieldCheck, LogOut, Ship, Package, ClipboardList,
-  Anchor, CalendarClock, Recycle, BadgeDollarSign,
+  Anchor, CalendarClock, Recycle, BadgeDollarSign, Waypoints,
 } from "lucide-react";
 
 export type DashSection =
   | "overview" | "mine" | "fixtures" | "cargoes" | "users" | "org"
-  | "fleet_in_service" | "scheduled_deliveries" | "demolitions" | "valuations";
+  | "fleet_in_service" | "scheduled_deliveries" | "demolitions" | "valuations" | "flows";
 
 interface Props {
   section: DashSection;
@@ -25,6 +25,7 @@ const NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
   { key: "mine", label: "My Sheets", icon: FileText },
   { key: "fixtures", label: "Fixtures", icon: ClipboardList },
   { key: "cargoes", label: "Cargo List", icon: Package },
+  { key: "flows", label: "Dry Bulk Flows", icon: Waypoints },
   { key: "users", label: "Organization Users", icon: UserCircle2 },
   { key: "org", label: "Organization Sheets", icon: Users },
 ];

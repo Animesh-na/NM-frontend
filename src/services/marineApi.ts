@@ -436,6 +436,35 @@ export async function listFixtures(page: number = 1, limit: number = 20, query?:
   };
 }
 
+// 12b. List trade flows (mode-scoped, e.g. /dry-bulk/flows)
+export interface FlowsResponse {
+  rows: CargoFixture[];
+  pagination: { total: number; page: number; limit: number; total_pages: number };
+}
+
+export async function listFlows(
+  page: number = 1,
+  limit: number = 20,
+  filters: { cargo_status?: string; account?: string; broker?: string; type?: string; cargo_type?: string } = {}
+): Promise<FlowsResponse> {
+  const params: Record<string, string | number> = { page, limit };
+  for (const [k, v] of Object.entries(filters)) if (v && v.trim()) params[k] = v.trim();
+  const data = await apiRequest<Record<string, unknown>>(modePath("/flows"), params, { authenticated: true });
+  let rows: CargoFixture[] = [];
+  for (const key of ["flows", "data", "results", "rows", "records", "items"]) {
+    const v = data[key];
+    if (Array.isArray(v)) { rows = v as CargoFixture[]; break; }
+  }
+  if (!rows.length) {
+    const firstArray = Object.values(data).find((v) => Array.isArray(v));
+    if (Array.isArray(firstArray)) rows = firstArray as CargoFixture[];
+  }
+  const pg = (data.pagination as FlowsResponse["pagination"]) ?? {
+    total: rows.length, page, limit, total_pages: Math.max(1, Math.ceil(rows.length / limit)),
+  };
+  return { rows, pagination: pg };
+}
+
 // ============= S&P / Orderbook (Authenticated) =============
 
 export type OrderbookEndpoint =
