@@ -1792,6 +1792,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       // Port time breakdown for fuel consumption split
       turnTimeHours: effTurnTime || 0, // Turn time in hours
       extraTimeHours: effExtraTime || 0, // Extra time in hours
+      // Terms coefficient — >1 portion of working time burns at the idle rate
+      termsFactor: (() => {
+        const cf = hasOp ? (opOv!.coefficientFactor ?? row.coefficientFactor) : row.coefficientFactor;
+        const t = (hasOp ? ((opOv!.terms as string) ?? row.terms) : row.terms) || "";
+        const fallback = t === "sshex" ? 1.5555 : t === "fhex" ? 1.25 : t === "satpn" ? 1.33 : 1.0;
+        const f = Number(cf) > 0 ? Number(cf) : fallback;
+        return f < 1 ? 1 : f;
+      })(),
       portFuelType: row.portFuelType, // Port fuel type per leg
       isEuEea: row.isEuEea, // EU/EEA flag from port API
       ukEts: row.ukEts,
