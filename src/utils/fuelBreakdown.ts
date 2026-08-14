@@ -154,8 +154,10 @@ export function computeLegSeaFuel(
 
 /**
  * Port fuel per leg — matches the engine:
- *  - Load/Discharge ports: working + turn + extra time ALL burn at the
- *    load/discharge rate of the selected P.Fuel (AE at the matching AE rate).
+ *  - Load/Discharge ports: only the pure cargo-work portion
+ *    (quantity / mt-per-day, i.e. terms factor 1.0) burns at the
+ *    load/discharge rate of the selected P.Fuel. The terms surcharge portion
+ *    plus turn time and extra time burn at the IDLE rate.
  *  - Bunkering / waiting / other ports with port time: the FULL port time burns
  *    at the idle rate.
  */
@@ -175,7 +177,8 @@ export function computePortFuel(
       const turnDays = (r.turnTime || 0) / 24;
       const extraDays = (r.extraTime || 0) / 24;
       const turnExtraDays = turnDays + extraDays;
-      const workingDays = Math.max(0, totalPortDays - turnExtraDays);
+      const split = splitPortStay(totalPortDays, turnDays, extraDays, termsFactorOf(r));
+      const workingDays = split.workingDays;
 
       const fuel: FuelKey = (r.portFuelType as FuelKey) || (hasScrubber ? "hsfo" : "vlsfo");
       const meRateAt = (mode: "load" | "discharge" | "idle") => {
@@ -192,14 +195,14 @@ export function computePortFuel(
 
       if (isLoadOp(op)) {
         workingMode = "load";
-        const days = workingDays + turnExtraDays;
-        meTotal = days * meRateAt("load");
-        aeLsmgo = days * (aeProfile.load || 0);
+        idleDays = split.idleDays;
+        meTotal = workingDays * meRateAt("load") + idleDays * meRateAt("idle");
+        aeLsmgo = workingDays * (aeProfile.load || 0) + idleDays * (aeProfile.idle || 0);
       } else if (isDischOp(op)) {
         workingMode = "discharge";
-        const days = workingDays + turnExtraDays;
-        meTotal = days * meRateAt("discharge");
-        aeLsmgo = days * (aeProfile.discharge || 0);
+        idleDays = split.idleDays;
+        meTotal = workingDays * meRateAt("discharge") + idleDays * meRateAt("idle");
+        aeLsmgo = workingDays * (aeProfile.discharge || 0) + idleDays * (aeProfile.idle || 0);
       } else if (totalPortDays > 0) {
         workingMode = "idle";
         idleDays = totalPortDays;
