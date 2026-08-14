@@ -176,7 +176,6 @@ export function computePortFuel(
         : r.wdaysPortOverride ?? r.calculatedPortDays ?? 0;
       const turnDays = (r.turnTime || 0) / 24;
       const extraDays = (r.extraTime || 0) / 24;
-      const turnExtraDays = turnDays + extraDays;
       const split = splitPortStay(totalPortDays, turnDays, extraDays, termsFactorOf(r));
       const workingDays = split.workingDays;
 
