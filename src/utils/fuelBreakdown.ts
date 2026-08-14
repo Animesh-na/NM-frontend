@@ -254,6 +254,8 @@ export interface FifoCoverageRow {
   extraTime?: number;
   portFuelType?: FuelKey;
   quantity?: number;
+  terms?: string | null;
+  coefficientFactor?: number | null;
 }
 
 /** Reference to a bunker price lot (a stem taken at a bunkering port). */
@@ -390,8 +392,16 @@ export function computeFifoCoverage(
         if (isLoadOp(op)) mode = "load";
         else if (isDischOp(op)) mode = "discharge";
 
-        coverage[fuel][seg] += totalPortDays * meRateAt(mode);
-        coverage.lsmgo[seg] += totalPortDays * (aeProfile[mode] || 0);
+        if (mode === "idle") {
+          coverage[fuel][seg] += totalPortDays * meRateAt("idle");
+          coverage.lsmgo[seg] += totalPortDays * (aeProfile.idle || 0);
+        } else {
+          const turnDays = ((r.turnTimeHours ?? r.turnTime) || 0) / 24;
+          const extraDays = ((r.extraTimeHours ?? r.extraTime) || 0) / 24;
+          const { workingDays, idleDays } = splitPortStay(totalPortDays, turnDays, extraDays, termsFactorOf(r));
+          coverage[fuel][seg] += workingDays * meRateAt(mode) + idleDays * meRateAt("idle");
+          coverage.lsmgo[seg] += workingDays * (aeProfile[mode] || 0) + idleDays * (aeProfile.idle || 0);
+        }
       }
     }
 
