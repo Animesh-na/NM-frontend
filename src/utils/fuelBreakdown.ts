@@ -47,6 +47,41 @@ const norm = (op?: string) => (op || "").toLowerCase();
 const isLoadOp = (op: string) => op === "load" || op === "loading";
 const isDischOp = (op: string) => op === "disch" || op === "discharging";
 
+/** Terms coefficient (SHINC = 1.0, SSHEX = 1.5555, …). Never below 1. */
+export function termsFactorOf(row: { coefficientFactor?: number | null; terms?: string | null }): number {
+  const explicit = Number(row?.coefficientFactor);
+  const t = (row?.terms || "").toLowerCase();
+  const fallback = t === "sshex" ? 1.5555 : t === "fhex" ? 1.25 : t === "satpn" ? 1.33 : 1.0;
+  const f = explicit > 0 ? explicit : fallback;
+  return f < 1 ? 1 : f;
+}
+
+/**
+ * Split a port stay into the days that burn at the load/discharge rate and the
+ * days that burn at the IDLE rate.
+ *
+ * - Pure cargo work = (quantity / mt-per-day) → the terms factor 1.0 portion.
+ * - Anything the terms coefficient adds on top (e.g. SSHEX 1.5555 → 0.5555)
+ *   is non-working time and burns at the idle rate.
+ * - Turn time and extra time always burn at the idle rate.
+ */
+export function splitPortStay(
+  totalPortDays: number,
+  turnDays: number,
+  extraDays: number,
+  factor: number,
+): { workingDays: number; idleDays: number } {
+  const total = Math.max(0, totalPortDays || 0);
+  const turnExtra = Math.max(0, (turnDays || 0) + (extraDays || 0));
+  const grossWorking = Math.max(0, total - turnExtra);
+  const f = factor > 0 ? factor : 1;
+  const pureWorking = grossWorking / f;
+  return {
+    workingDays: pureWorking,
+    idleDays: (grossWorking - pureWorking) + turnExtra,
+  };
+}
+
 function getProfiles(vessel: VesselData) {
   const profile =
     vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
