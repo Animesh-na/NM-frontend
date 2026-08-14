@@ -47,6 +47,41 @@ const norm = (op?: string) => (op || "").toLowerCase();
 const isLoadOp = (op: string) => op === "load" || op === "loading";
 const isDischOp = (op: string) => op === "disch" || op === "discharging";
 
+/** Terms coefficient (SHINC = 1.0, SSHEX = 1.5555, …). Never below 1. */
+export function termsFactorOf(row: { coefficientFactor?: number | null; terms?: string | null }): number {
+  const explicit = Number(row?.coefficientFactor);
+  const t = (row?.terms || "").toLowerCase();
+  const fallback = t === "sshex" ? 1.5555 : t === "fhex" ? 1.25 : t === "satpn" ? 1.33 : 1.0;
+  const f = explicit > 0 ? explicit : fallback;
+  return f < 1 ? 1 : f;
+}
+
+/**
+ * Split a port stay into the days that burn at the load/discharge rate and the
+ * days that burn at the IDLE rate.
+ *
+ * - Pure cargo work = (quantity / mt-per-day) → the terms factor 1.0 portion.
+ * - Anything the terms coefficient adds on top (e.g. SSHEX 1.5555 → 0.5555)
+ *   is non-working time and burns at the idle rate.
+ * - Turn time and extra time always burn at the idle rate.
+ */
+export function splitPortStay(
+  totalPortDays: number,
+  turnDays: number,
+  extraDays: number,
+  factor: number,
+): { workingDays: number; idleDays: number } {
+  const total = Math.max(0, totalPortDays || 0);
+  const turnExtra = Math.max(0, (turnDays || 0) + (extraDays || 0));
+  const grossWorking = Math.max(0, total - turnExtra);
+  const f = factor > 0 ? factor : 1;
+  const pureWorking = grossWorking / f;
+  return {
+    workingDays: pureWorking,
+    idleDays: (grossWorking - pureWorking) + turnExtra,
+  };
+}
+
 function getProfiles(vessel: VesselData) {
   const profile =
     vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
@@ -119,8 +154,10 @@ export function computeLegSeaFuel(
 
 /**
  * Port fuel per leg — matches the engine:
- *  - Load/Discharge ports: working + turn + extra time ALL burn at the
- *    load/discharge rate of the selected P.Fuel (AE at the matching AE rate).
+ *  - Load/Discharge ports: only the pure cargo-work portion
+ *    (quantity / mt-per-day, i.e. terms factor 1.0) burns at the
+ *    load/discharge rate of the selected P.Fuel. The terms surcharge portion
+ *    plus turn time and extra time burn at the IDLE rate.
  *  - Bunkering / waiting / other ports with port time: the FULL port time burns
  *    at the idle rate.
  */
@@ -139,8 +176,8 @@ export function computePortFuel(
         : r.wdaysPortOverride ?? r.calculatedPortDays ?? 0;
       const turnDays = (r.turnTime || 0) / 24;
       const extraDays = (r.extraTime || 0) / 24;
-      const turnExtraDays = turnDays + extraDays;
-      const workingDays = Math.max(0, totalPortDays - turnExtraDays);
+      const split = splitPortStay(totalPortDays, turnDays, extraDays, termsFactorOf(r));
+      const workingDays = split.workingDays;
 
       const fuel: FuelKey = (r.portFuelType as FuelKey) || (hasScrubber ? "hsfo" : "vlsfo");
       const meRateAt = (mode: "load" | "discharge" | "idle") => {
@@ -157,14 +194,14 @@ export function computePortFuel(
 
       if (isLoadOp(op)) {
         workingMode = "load";
-        const days = workingDays + turnExtraDays;
-        meTotal = days * meRateAt("load");
-        aeLsmgo = days * (aeProfile.load || 0);
+        idleDays = split.idleDays;
+        meTotal = workingDays * meRateAt("load") + idleDays * meRateAt("idle");
+        aeLsmgo = workingDays * (aeProfile.load || 0) + idleDays * (aeProfile.idle || 0);
       } else if (isDischOp(op)) {
         workingMode = "discharge";
-        const days = workingDays + turnExtraDays;
-        meTotal = days * meRateAt("discharge");
-        aeLsmgo = days * (aeProfile.discharge || 0);
+        idleDays = split.idleDays;
+        meTotal = workingDays * meRateAt("discharge") + idleDays * meRateAt("idle");
+        aeLsmgo = workingDays * (aeProfile.discharge || 0) + idleDays * (aeProfile.idle || 0);
       } else if (totalPortDays > 0) {
         workingMode = "idle";
         idleDays = totalPortDays;
@@ -217,6 +254,8 @@ export interface FifoCoverageRow {
   extraTime?: number;
   portFuelType?: FuelKey;
   quantity?: number;
+  terms?: string | null;
+  coefficientFactor?: number | null;
 }
 
 /** Reference to a bunker price lot (a stem taken at a bunkering port). */
@@ -353,8 +392,16 @@ export function computeFifoCoverage(
         if (isLoadOp(op)) mode = "load";
         else if (isDischOp(op)) mode = "discharge";
 
-        coverage[fuel][seg] += totalPortDays * meRateAt(mode);
-        coverage.lsmgo[seg] += totalPortDays * (aeProfile[mode] || 0);
+        if (mode === "idle") {
+          coverage[fuel][seg] += totalPortDays * meRateAt("idle");
+          coverage.lsmgo[seg] += totalPortDays * (aeProfile.idle || 0);
+        } else {
+          const turnDays = ((r.turnTimeHours ?? r.turnTime) || 0) / 24;
+          const extraDays = ((r.extraTimeHours ?? r.extraTime) || 0) / 24;
+          const { workingDays, idleDays } = splitPortStay(totalPortDays, turnDays, extraDays, termsFactorOf(r));
+          coverage[fuel][seg] += workingDays * meRateAt(mode) + idleDays * meRateAt("idle");
+          coverage.lsmgo[seg] += workingDays * (aeProfile[mode] || 0) + idleDays * (aeProfile.idle || 0);
+        }
       }
     }
 
