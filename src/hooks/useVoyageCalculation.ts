@@ -1112,7 +1112,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           
           const turnTimeDays = (leg.turnTimeHours || 0) / 24;
           const extraTimeDays = (leg.extraTimeHours || 0) / 24;
-          const workingDaysLeg = Math.max(0, (leg.portDays || 0) - turnTimeDays - extraTimeDays);
+          const termsFactorLeg = (leg.termsFactor || 0) > 1 ? (leg.termsFactor as number) : 1;
+          const grossWorkingLeg = Math.max(0, (leg.portDays || 0) - turnTimeDays - extraTimeDays);
+          const workingDaysLeg = grossWorkingLeg / termsFactorLeg;
+          const idleDaysLeg = (grossWorkingLeg - workingDaysLeg) + turnTimeDays + extraTimeDays;
           
           let portHsfo = 0, portVlsfo = 0, portLsmgo = 0;
           
@@ -1123,13 +1126,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           };
           
           if (legOperation === 'load' || legOperation === 'loading') {
-            const totalLoadDays = workingDaysLeg + turnTimeDays + extraTimeDays;
-            addFuel(legPortFuel, totalLoadDays * (profile[legPortFuel]?.load || 0));
-            portLsmgo += totalLoadDays * (aeRates.load || 0);
+            addFuel(legPortFuel, workingDaysLeg * (profile[legPortFuel]?.load || 0) + idleDaysLeg * (profile[legPortFuel]?.idle || 0));
+            portLsmgo += workingDaysLeg * (aeRates.load || 0) + idleDaysLeg * (aeRates.idle || 0);
           } else if (legOperation === 'disch' || legOperation === 'discharging') {
-            const totalDischDays = workingDaysLeg + turnTimeDays + extraTimeDays;
-            addFuel(legPortFuel, totalDischDays * (profile[legPortFuel]?.discharge || 0));
-            portLsmgo += totalDischDays * (aeRates.discharge || 0);
+            addFuel(legPortFuel, workingDaysLeg * (profile[legPortFuel]?.discharge || 0) + idleDaysLeg * (profile[legPortFuel]?.idle || 0));
+            portLsmgo += workingDaysLeg * (aeRates.discharge || 0) + idleDaysLeg * (aeRates.idle || 0);
           } else if (legOperation === 'bunkering') {
             addFuel(legPortFuel, (leg.portDays || 0) * (profile[legPortFuel]?.idle || 0));
             portLsmgo += (leg.portDays || 0) * (aeRates.idle || 0);
