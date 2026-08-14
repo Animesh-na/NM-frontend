@@ -53,6 +53,9 @@ export interface SequenceRow {
   // Port time breakdown
   turnTimeHours?: number; // Turn time in hours
   extraTimeHours?: number; // Extra time in hours
+  // Terms coefficient (SHINC = 1, SSHEX = 1.5555, …) — the >1 portion of the
+  // working time is non-working and burns at the idle rate.
+  termsFactor?: number;
   // Port fuel type selection
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
   // EU/EEA flag from port API
