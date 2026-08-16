@@ -1730,23 +1730,26 @@ export function exportVoyageToExcel(data: ExportData) {
       // Port fuel uses the port's own eu_zone flag: EU 100%, non-EU 0%,
       // constrained to the commercial voyage window.
       const portEuF = curPortKey && inEuPortWindow(idx) && curIsEu ? 1 : 0;
-      const effectivePortDays = effectiveLeg(leg).portDays;
+      const effLeg = effectiveLeg(leg);
+      const effectivePortDays = effLeg.portDays;
       if (curPortKey && portEuF > 0 && effectivePortDays > 0) {
         const pf = (leg as any).portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
         const pd = effectivePortDays;
+        const wDays = effLeg.workingDays;
+        const iDays = effLeg.idleDays;
         
         let pH = 0, pV = 0, pL = 0, pAeL = 0;
         const addF = (ft: string, amt: number) => { if (ft === 'hsfo') pH += amt; else if (ft === 'vlsfo') pV += amt; else pL += amt; };
         
-        // Engine rule: the FULL port stay at a load/discharge call burns the
-        // load/discharge rate (turn + extra time is NOT split onto idle).
+        // Engine rule: pure cargo work at the load/discharge rate; terms
+        // surcharge + turn + extra time at the idle rate.
         if (legOp === 'load' || legOp === 'loading') {
-          addF(pf, pd * (profile[pf]?.load || 0));
-          pAeL += pd * (aeRs.load || 0);
+          addF(pf, wDays * (profile[pf]?.load || 0) + iDays * (profile[pf]?.idle || 0));
+          pAeL += wDays * (aeRs.load || 0) + iDays * (aeRs.idle || 0);
         } else if (legOp === 'disch' || legOp === 'discharging') {
-          addF(pf, pd * (profile[pf]?.discharge || 0));
-          pAeL += pd * (aeRs.discharge || 0);
+          addF(pf, wDays * (profile[pf]?.discharge || 0) + iDays * (profile[pf]?.idle || 0));
+          pAeL += wDays * (aeRs.discharge || 0) + iDays * (aeRs.idle || 0);
         } else {
           addF(pf, pd * (profile[pf]?.idle || 0));
           pAeL += pd * (aeRs.idle || 0);
