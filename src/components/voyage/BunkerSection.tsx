@@ -113,6 +113,32 @@ export function BunkerSection() {
     fetchPrices({ force: false });
   }, [fetchPrices]);
 
+  // Prune stale state when bunkering calls are removed from the sequence:
+  // drop their price rows, their market-feed quotes and their auto-fill marker.
+  useEffect(() => {
+    const validUnlocs = new Set(bunkeringPorts.map(p => p.portUnloc));
+    const stale = bunker.portBunkering.filter(p => !validUnlocs.has(p.portUnloc));
+    if (stale.length) {
+      stale.forEach(p => {
+        removePortBunkering(p.id);
+        autoFilled.current.delete(`port:${p.id}:${p.portName}`);
+      });
+    }
+  }, [bunkeringPorts, bunker.portBunkering, removePortBunkering]);
+
+  // Keep the market feed limited to ports still relevant to the voyage.
+  useEffect(() => {
+    const allowed = new Set(
+      [bobPortName, ...bunker.portBunkering.map(p => p.portName)]
+        .filter(Boolean)
+        .map(n => n.toLowerCase()),
+    );
+    setFeed(prev => {
+      const next = prev.filter(f => allowed.has(f.port.toLowerCase()));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [bobPortName, bunker.portBunkering]);
+
   const totalBunkeredHsfo = bunker.portBunkering.reduce((sum, p) => sum + p.hsfo.quantity, 0);
   const totalBunkeredVlsfo = bunker.portBunkering.reduce((sum, p) => sum + p.vlsfo.quantity, 0);
   const totalBunkeredLsmgo = bunker.portBunkering.reduce((sum, p) => sum + p.lsmgo.quantity, 0);
