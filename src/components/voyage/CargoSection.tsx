@@ -30,6 +30,9 @@ export function CargoSection() {
   const loadingRows = sequence.filter((r) => r.operation === "loading");
   const usesExplicitMapping = sequence.some((r) => (r.assignedCargoIds || []).length > 0);
   const perCargoQty = (cargoId: number, ci: number): number => {
+    if (cargos.length === 1) {
+      return loadingRows.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    }
     if (usesExplicitMapping) {
       return loadingRows
         .filter((r) => (r.assignedCargoIds || []).includes(cargoId))
