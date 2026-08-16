@@ -1719,6 +1719,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     const loadedQtyForCargo = (cargoId: number, ci: number): number => {
       // CP overrides are reference-only and never replace operational qty.
       const ovQty = (row: SequenceRowUI) => row.quantity || 0;
+      // Single cargo: all loading rows belong to it.
+      if (cargos.length === 1) {
+        return loadingRows.reduce((sum, r) => sum + ovQty(r), 0);
+      }
       if (usesExplicitMapping) {
         return loadingRows
           .filter((r) => (r.assignedCargoIds || []).includes(cargoId))
