@@ -980,7 +980,8 @@ export function exportVoyageToExcel(data: ExportData) {
     const st = (leg as any).totalLegTime || 0; // Total sea time (ECA + NonECA)
     const et = (leg as any).ecaTime || 0;
     const net = st - et;
-    const pd = effectiveLeg(leg).portDays;
+    const effL = effectiveLeg(leg);
+    const pd = effL.portDays;
     const op = String(leg.operation || "");
     const pf = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
     const isLd = op === "load" || op === "loading";
@@ -989,17 +990,20 @@ export function exportVoyageToExcel(data: ExportData) {
     if (il) { c_ecaLadD += et; c_necaLadD += net; }
     else { c_ecaBalD += et; c_necaBalD += net; }
 
-    // Whole port stay at the load/disch rate (engine parity); everything else idle.
+    // Engine parity: pure cargo work at the load/disch rate, terms surcharge +
+    // turn + extra time at the idle rate.
     if (isLd) {
-      c_tload += pd;
-      if (pf === "hsfo") c_hld += pd;
-      else if (pf === "vlsfo") c_vld += pd;
-      else c_lld += pd;
+      c_tload += effL.workingDays;
+      c_tidle += effL.idleDays;
+      if (pf === "hsfo") { c_hld += effL.workingDays; c_hid += effL.idleDays; }
+      else if (pf === "vlsfo") { c_vld += effL.workingDays; c_vid += effL.idleDays; }
+      else { c_lld += effL.workingDays; c_lid += effL.idleDays; }
     } else if (isDc) {
-      c_tdisch += pd;
-      if (pf === "hsfo") c_hdd += pd;
-      else if (pf === "vlsfo") c_vdd += pd;
-      else c_ldd += pd;
+      c_tdisch += effL.workingDays;
+      c_tidle += effL.idleDays;
+      if (pf === "hsfo") { c_hdd += effL.workingDays; c_hid += effL.idleDays; }
+      else if (pf === "vlsfo") { c_vdd += effL.workingDays; c_vid += effL.idleDays; }
+      else { c_ldd += effL.workingDays; c_lid += effL.idleDays; }
     } else if (pd > 0) {
       if (pf === "hsfo") c_hid += pd;
       else if (pf === "vlsfo") c_vid += pd;
