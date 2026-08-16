@@ -992,6 +992,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   // and scrubber status (H = HSFO, V = VLSFO, L = LSMGO inside ECA).
   // Applied only when the vessel changes profile/scrubber — never during sheet hydration.
   const setVesselSynced = useCallback((next: VesselData) => {
+    const vesselStateRef = vesselSyncRef;
     const prev = vesselStateRef.current;
     const changed =
       prev.speedProfile !== next.speedProfile ||
