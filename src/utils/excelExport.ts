@@ -846,17 +846,17 @@ export function exportVoyageToExcel(data: ExportData) {
 
     setFormula(SC.NECAT, rr, `${c(SC.SEAT)}-${c(SC.ECAT)}`, seaTime - ecaTime, fStyle);
 
-    // Engine rule: at a LOAD/DISCH call the WHOLE port stay (cargo working time
-    // plus turn + extra time) burns at the load/discharge rate — turn time is
-    // NOT split off to the idle rate. Any other call (waiting, bunkering,
-    // passage with port time) burns entirely at the idle rate.
+    // Engine rule: only the PURE cargo-work portion — (port stay − turn − extra)
+    // ÷ terms factor — burns at the load/discharge rate. The terms surcharge
+    // (e.g. SSHEX 1.5555 → 0.5555), turn time and extra time burn at the IDLE
+    // rate, as does the whole stay of any non-cargo call.
     const isLoadDisch = op === "load" || op === "loading" || op === "disch" || op === "discharging";
-    const wd = isLoadDisch ? portDays : 0;
+    const wd = isLoadDisch ? eff.workingDays : 0;
     setFormula(SC.WDAYS, rr,
-      `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),${c(SC.PORTD)},0)`,
+      `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),(${c(SC.PORTD)}-${c(SC.TURNH)}/24)/${eff.termsFactor},0)`,
       wd, fStyle);
 
-    const idleVal = isLoadDisch ? 0 : portDays;
+    const idleVal = portDays - wd;
     setFormula(SC.IDAYS, rr, `${c(SC.PORTD)}-${c(SC.WDAYS)}`, idleVal, fStyle);
 
     setFormula(SC.BSEA, rr, `IF(${c(SC.LADEN)}=0,${c(SC.SEAT)},0)`, isLadenLeg ? 0 : seaTime, fStyle);
