@@ -6,7 +6,7 @@ import { calculatePortDays } from "@/context/VoyageContext";
 import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
-import { computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
+import { computeFifoCoverage, orderBunkerLots, termsFactorOf, splitPortStay } from "@/utils/fuelBreakdown";
 import { getApiMode } from "@/services/apiMode";
 import { FUEL_EU_PENALTY_RATE_EUR_PER_MJ, FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
 import { getUkEtsPortCoverage, getUkEtsSeaCoverage } from "@/utils/ukEtsCalculations";
@@ -795,7 +795,20 @@ export function exportVoyageToExcel(data: ExportData) {
           coefficientFactor: opOv.coefficientFactor ?? leg.coefficientFactor,
         })
       : (leg.calculatedPortDays || 0);
-    return { portDays, turnExtraH: turnTime + extraTime, turnTime, extraTime };
+    const termsFactor = termsFactorOf({
+      coefficientFactor: opOv?.coefficientFactor ?? leg.coefficientFactor,
+      terms: (opOv?.terms as string) ?? leg.terms,
+    });
+    const split = splitPortStay(portDays, turnTime / 24, extraTime / 24, termsFactor);
+    return {
+      portDays,
+      turnExtraH: turnTime + extraTime,
+      turnTime,
+      extraTime,
+      termsFactor,
+      workingDays: split.workingDays,
+      idleDays: split.idleDays,
+    };
   }
 
   const seqStartRow = r;
