@@ -28,7 +28,8 @@ export type PortOperation = "loading" | "discharging" | "pssg" | "bunkering";
 // Speed context types for voyage legs
 // EV = Eco Voyage (Outside ECA), EL = Eco Local (Inside ECA)
 // FV = Full Voyage (Outside ECA), FL = Full Local (Inside ECA)
-export type SpeedContext = "EV" | "EL" | "FV" | "FL";
+// V = VLSFO (no scrubber), H = HSFO (scrubber), L = LSMGO (inside ECA)
+export type SpeedContext = "EV" | "EL" | "FV" | "FL" | "EH" | "FH";
 
 // Wdays unit types
 export type WdaysUnit = "VL" | "%";
@@ -408,7 +409,7 @@ function getSpeedForContext(
   vessel: VesselData
 ): { ecaSpeed: number; seaSpeed: number } {
   // Select the appropriate consumption matrix based on eco/full indicator in context
-  const isEcoContext = speedContext === "EV" || speedContext === "EL";
+  const isEcoContext = speedContext.startsWith("E");
   const matrix = isEcoContext ? vessel.ecoConsumption : vessel.fullConsumption;
   
   // Get speed based on laden/ballast state
@@ -572,7 +573,7 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   portUnloc: "",
   season: type === "open" ? "summer" : undefined,
   distance: 0,
-  distanceSpeedContext: speedProfile === "eco" ? "EV" : "FV", // Non-ECA speed context
+  distanceSpeedContext: (speedProfile === "eco" ? "E" : "F") + (hasScrubber ? "H" : "V") as SpeedContext, // Non-ECA speed context
   ecaDistance: 0,
   ecaDistanceSpeedContext: speedProfile === "eco" ? "EL" : "FL", // ECA speed context
   baseSeaTime: 0,
@@ -972,7 +973,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       const nonReposRows = prev.filter(r => r.type !== "repos");
       return [...nonReposRows, newRow, ...reposRows];
     });
-  }, [vessel.speedProfile]);
+  }, [vessel.speedProfile, vessel.hasScrubber]);
 
   const addRepositioning = useCallback(() => {
     setSequence(prev => {
@@ -985,7 +986,24 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       const newRow = createNewRow("repos", nextId, undefined, vessel.speedProfile, 4, vessel.hasScrubber);
       return [...prev, newRow];
     });
-  }, [vessel.speedProfile]);
+  }, [vessel.speedProfile, vessel.hasScrubber]);
+
+  // Keep sequence speed contexts in sync with the vessel speed profile (Eco/Full)
+  // and scrubber status (H = HSFO, V = VLSFO, L = LSMGO inside ECA).
+  useEffect(() => {
+    const prefix = vessel.speedProfile === "eco" ? "E" : "F";
+    const nonEca = `${prefix}${vessel.hasScrubber ? "H" : "V"}` as SpeedContext;
+    const eca = `${prefix}L` as SpeedContext;
+    setSequence(prev => {
+      let changed = false;
+      const next = prev.map(row => {
+        if (row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca) return row;
+        changed = true;
+        return { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca };
+      });
+      return changed ? next : prev;
+    });
+  }, [vessel.speedProfile, vessel.hasScrubber]);
 
   const removeSequence = useCallback((id: number) => {
     setSequence(prev => {

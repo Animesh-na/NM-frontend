@@ -36,10 +36,10 @@ const termsOptions = [
   { value: "custom", label: "custom" },
 ];
 
-const distanceSpeedContextOptions: { value: SpeedContext; label: string }[] = [
-  { value: "EV", label: "EV" },
-  { value: "FV", label: "FV" },
-];
+const getDistanceSpeedContextOptions = (hasScrubber: boolean): { value: SpeedContext; label: string }[] =>
+  hasScrubber
+    ? [{ value: "EH", label: "EH" }, { value: "FH", label: "FH" }]
+    : [{ value: "EV", label: "EV" }, { value: "FV", label: "FV" }];
 
 const ecaDistanceSpeedContextOptions: { value: SpeedContext; label: string }[] = [
   { value: "EL", label: "EL" },
@@ -370,7 +370,7 @@ export function SequenceTable() {
                                 value={row.distanceSpeedContext}
                                 onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value)}
                               >
-                                {distanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                {getDistanceSpeedContextOptions(!!vessel.hasScrubber).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                               </select>
                               {(() => { const err = getFieldError("sequence","distance",row.id); return (
                               <input id={getFieldId("sequence","distance",row.id)} aria-invalid={!!err} title={err}
