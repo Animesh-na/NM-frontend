@@ -28,7 +28,8 @@ export type PortOperation = "loading" | "discharging" | "pssg" | "bunkering";
 // Speed context types for voyage legs
 // EV = Eco Voyage (Outside ECA), EL = Eco Local (Inside ECA)
 // FV = Full Voyage (Outside ECA), FL = Full Local (Inside ECA)
-export type SpeedContext = "EV" | "EL" | "FV" | "FL";
+// V = VLSFO (no scrubber), H = HSFO (scrubber), L = LSMGO (inside ECA)
+export type SpeedContext = "EV" | "EL" | "FV" | "FL" | "EH" | "FH";
 
 // Wdays unit types
 export type WdaysUnit = "VL" | "%";
@@ -408,7 +409,7 @@ function getSpeedForContext(
   vessel: VesselData
 ): { ecaSpeed: number; seaSpeed: number } {
   // Select the appropriate consumption matrix based on eco/full indicator in context
-  const isEcoContext = speedContext === "EV" || speedContext === "EL";
+  const isEcoContext = speedContext.startsWith("E");
   const matrix = isEcoContext ? vessel.ecoConsumption : vessel.fullConsumption;
   
   // Get speed based on laden/ballast state
