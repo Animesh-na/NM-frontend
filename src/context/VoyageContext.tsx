@@ -1959,7 +1959,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         applyUkEtsImpact,
         setApplyUkEtsImpact,
         vessel,
-        setVessel,
+        setVessel: setVesselSynced,
         sequence,
         setSequence,
         updateSequenceRow,
