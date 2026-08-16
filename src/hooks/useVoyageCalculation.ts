@@ -1526,6 +1526,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         op: "load" | "disch",
       ): number[] => {
         const pool = op === "load" ? loadIdxsAll : dischIdxsAll;
+        // Single cargo: all load/discharge rows belong to it.
+        if (cargosForBreakdown.length === 1) return pool;
         if (usesExplicitMapping) {
           return pool.filter((idx) =>
             (sequence[idx].assignedCargoIds || []).includes(cargoId),
