@@ -299,7 +299,9 @@ export function SequenceTable() {
                                    className="shrink-0 text-[9px] px-1 py-0.5 rounded border border-border bg-muted/40 hover:bg-muted leading-tight font-mono"
                                    title="Assign cargos to this port"
                                  >
-                                   {(row.assignedCargoIds && row.assignedCargoIds.length > 0)
+                                    {cargos.length === 1
+                                      ? "#1"
+                                      : (row.assignedCargoIds && row.assignedCargoIds.length > 0)
                                      ? row.assignedCargoIds.map((id) => {
                                          const idx = cargos.findIndex((c) => c.id === id);
                                          return idx >= 0 ? `#${idx + 1}` : "";
@@ -312,7 +314,9 @@ export function SequenceTable() {
                                    Assign cargo
                                  </div>
                                  {cargos.map((c, i) => {
-                                   const assigned = (row.assignedCargoIds || []).includes(c.id);
+                                    const assigned =
+                                      cargos.length === 1 ||
+                                      (row.assignedCargoIds || []).includes(c.id);
                                    return (
                                      <label
                                        key={c.id}
@@ -321,6 +325,7 @@ export function SequenceTable() {
                                        <input
                                          type="checkbox"
                                          checked={assigned}
+                                          disabled={cargos.length === 1}
                                          onChange={() => {
                                            const current = row.assignedCargoIds || [];
                                            const next = assigned

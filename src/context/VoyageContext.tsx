@@ -1719,6 +1719,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     const loadedQtyForCargo = (cargoId: number, ci: number): number => {
       // CP overrides are reference-only and never replace operational qty.
       const ovQty = (row: SequenceRowUI) => row.quantity || 0;
+      // Single cargo: all loading rows belong to it.
+      if (cargos.length === 1) {
+        return loadingRows.reduce((sum, r) => sum + ovQty(r), 0);
+      }
       if (usesExplicitMapping) {
         return loadingRows
           .filter((r) => (r.assignedCargoIds || []).includes(cargoId))
@@ -1894,7 +1898,17 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     const loaded = new Map<number, number>();
     const disch = new Map<number, number>();
     const usesExplicit = sequence.some((r) => (r.assignedCargoIds || []).length > 0);
-    if (usesExplicit) {
+    if (cargos.length === 1) {
+      const only = cargos[0].id;
+      loaded.set(
+        only,
+        sequence.filter((r) => r.operation === "loading").reduce((s, r) => s + (r.quantity || 0), 0),
+      );
+      disch.set(
+        only,
+        sequence.filter((r) => r.operation === "discharging").reduce((s, r) => s + (r.quantity || 0), 0),
+      );
+    } else if (usesExplicit) {
       cargos.forEach((c) => {
         const l = sequence
           .filter((r) => r.operation === "loading" && (r.assignedCargoIds || []).includes(c.id))

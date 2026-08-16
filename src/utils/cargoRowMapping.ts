@@ -30,6 +30,18 @@ export function getCargoRowMap(
   sequence: SeqRowLike[],
 ): Map<number, number> {
   const map = new Map<number, number>();
+
+  // Single cargo: every load/discharge row belongs to that cargo by default,
+  // regardless of explicit chip assignment.
+  if (cargos.length === 1) {
+    const only = cargos[0].id;
+    sequence.forEach((r) => {
+      const op = (r.operation || "").toLowerCase();
+      if (op.startsWith("load") || op.startsWith("disch")) map.set(r.id, only);
+    });
+    return map;
+  }
+
   const usesExplicit = sequence.some(
     (r) => (r.assignedCargoIds || []).length > 0,
   );
