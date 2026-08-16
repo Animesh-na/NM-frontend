@@ -6,7 +6,7 @@ import { calculatePortDays } from "@/context/VoyageContext";
 import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
-import { computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
+import { computeFifoCoverage, orderBunkerLots, termsFactorOf, splitPortStay } from "@/utils/fuelBreakdown";
 import { getApiMode } from "@/services/apiMode";
 import { FUEL_EU_PENALTY_RATE_EUR_PER_MJ, FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
 import { getUkEtsPortCoverage, getUkEtsSeaCoverage } from "@/utils/ukEtsCalculations";
@@ -795,7 +795,20 @@ export function exportVoyageToExcel(data: ExportData) {
           coefficientFactor: opOv.coefficientFactor ?? leg.coefficientFactor,
         })
       : (leg.calculatedPortDays || 0);
-    return { portDays, turnExtraH: turnTime + extraTime, turnTime, extraTime };
+    const termsFactor = termsFactorOf({
+      coefficientFactor: opOv?.coefficientFactor ?? leg.coefficientFactor,
+      terms: (opOv?.terms as string) ?? leg.terms,
+    });
+    const split = splitPortStay(portDays, turnTime / 24, extraTime / 24, termsFactor);
+    return {
+      portDays,
+      turnExtraH: turnTime + extraTime,
+      turnTime,
+      extraTime,
+      termsFactor,
+      workingDays: split.workingDays,
+      idleDays: split.idleDays,
+    };
   }
 
   const seqStartRow = r;
@@ -833,17 +846,17 @@ export function exportVoyageToExcel(data: ExportData) {
 
     setFormula(SC.NECAT, rr, `${c(SC.SEAT)}-${c(SC.ECAT)}`, seaTime - ecaTime, fStyle);
 
-    // Engine rule: at a LOAD/DISCH call the WHOLE port stay (cargo working time
-    // plus turn + extra time) burns at the load/discharge rate — turn time is
-    // NOT split off to the idle rate. Any other call (waiting, bunkering,
-    // passage with port time) burns entirely at the idle rate.
+    // Engine rule: only the PURE cargo-work portion — (port stay − turn − extra)
+    // ÷ terms factor — burns at the load/discharge rate. The terms surcharge
+    // (e.g. SSHEX 1.5555 → 0.5555), turn time and extra time burn at the IDLE
+    // rate, as does the whole stay of any non-cargo call.
     const isLoadDisch = op === "load" || op === "loading" || op === "disch" || op === "discharging";
-    const wd = isLoadDisch ? portDays : 0;
+    const wd = isLoadDisch ? eff.workingDays : 0;
     setFormula(SC.WDAYS, rr,
-      `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),${c(SC.PORTD)},0)`,
+      `IF(OR(${c(SC.OP)}="load",${c(SC.OP)}="loading",${c(SC.OP)}="disch",${c(SC.OP)}="discharging"),(${c(SC.PORTD)}-${c(SC.TURNH)}/24)/${eff.termsFactor},0)`,
       wd, fStyle);
 
-    const idleVal = isLoadDisch ? 0 : portDays;
+    const idleVal = portDays - wd;
     setFormula(SC.IDAYS, rr, `${c(SC.PORTD)}-${c(SC.WDAYS)}`, idleVal, fStyle);
 
     setFormula(SC.BSEA, rr, `IF(${c(SC.LADEN)}=0,${c(SC.SEAT)},0)`, isLadenLeg ? 0 : seaTime, fStyle);
@@ -967,7 +980,8 @@ export function exportVoyageToExcel(data: ExportData) {
     const st = (leg as any).totalLegTime || 0; // Total sea time (ECA + NonECA)
     const et = (leg as any).ecaTime || 0;
     const net = st - et;
-    const pd = effectiveLeg(leg).portDays;
+    const effL = effectiveLeg(leg);
+    const pd = effL.portDays;
     const op = String(leg.operation || "");
     const pf = (leg as any).portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
     const isLd = op === "load" || op === "loading";
@@ -976,17 +990,20 @@ export function exportVoyageToExcel(data: ExportData) {
     if (il) { c_ecaLadD += et; c_necaLadD += net; }
     else { c_ecaBalD += et; c_necaBalD += net; }
 
-    // Whole port stay at the load/disch rate (engine parity); everything else idle.
+    // Engine parity: pure cargo work at the load/disch rate, terms surcharge +
+    // turn + extra time at the idle rate.
     if (isLd) {
-      c_tload += pd;
-      if (pf === "hsfo") c_hld += pd;
-      else if (pf === "vlsfo") c_vld += pd;
-      else c_lld += pd;
+      c_tload += effL.workingDays;
+      c_tidle += effL.idleDays;
+      if (pf === "hsfo") { c_hld += effL.workingDays; c_hid += effL.idleDays; }
+      else if (pf === "vlsfo") { c_vld += effL.workingDays; c_vid += effL.idleDays; }
+      else { c_lld += effL.workingDays; c_lid += effL.idleDays; }
     } else if (isDc) {
-      c_tdisch += pd;
-      if (pf === "hsfo") c_hdd += pd;
-      else if (pf === "vlsfo") c_vdd += pd;
-      else c_ldd += pd;
+      c_tdisch += effL.workingDays;
+      c_tidle += effL.idleDays;
+      if (pf === "hsfo") { c_hdd += effL.workingDays; c_hid += effL.idleDays; }
+      else if (pf === "vlsfo") { c_vdd += effL.workingDays; c_vid += effL.idleDays; }
+      else { c_ldd += effL.workingDays; c_lid += effL.idleDays; }
     } else if (pd > 0) {
       if (pf === "hsfo") c_hid += pd;
       else if (pf === "vlsfo") c_vid += pd;
@@ -1713,23 +1730,26 @@ export function exportVoyageToExcel(data: ExportData) {
       // Port fuel uses the port's own eu_zone flag: EU 100%, non-EU 0%,
       // constrained to the commercial voyage window.
       const portEuF = curPortKey && inEuPortWindow(idx) && curIsEu ? 1 : 0;
-      const effectivePortDays = effectiveLeg(leg).portDays;
+      const effLeg = effectiveLeg(leg);
+      const effectivePortDays = effLeg.portDays;
       if (curPortKey && portEuF > 0 && effectivePortDays > 0) {
         const pf = (leg as any).portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
         const aeRs = hasScrubber ? profile.aeScrubber : profile.ae;
         const pd = effectivePortDays;
+        const wDays = effLeg.workingDays;
+        const iDays = effLeg.idleDays;
         
         let pH = 0, pV = 0, pL = 0, pAeL = 0;
         const addF = (ft: string, amt: number) => { if (ft === 'hsfo') pH += amt; else if (ft === 'vlsfo') pV += amt; else pL += amt; };
         
-        // Engine rule: the FULL port stay at a load/discharge call burns the
-        // load/discharge rate (turn + extra time is NOT split onto idle).
+        // Engine rule: pure cargo work at the load/discharge rate; terms
+        // surcharge + turn + extra time at the idle rate.
         if (legOp === 'load' || legOp === 'loading') {
-          addF(pf, pd * (profile[pf]?.load || 0));
-          pAeL += pd * (aeRs.load || 0);
+          addF(pf, wDays * (profile[pf]?.load || 0) + iDays * (profile[pf]?.idle || 0));
+          pAeL += wDays * (aeRs.load || 0) + iDays * (aeRs.idle || 0);
         } else if (legOp === 'disch' || legOp === 'discharging') {
-          addF(pf, pd * (profile[pf]?.discharge || 0));
-          pAeL += pd * (aeRs.discharge || 0);
+          addF(pf, wDays * (profile[pf]?.discharge || 0) + iDays * (profile[pf]?.idle || 0));
+          pAeL += wDays * (aeRs.discharge || 0) + iDays * (aeRs.idle || 0);
         } else {
           addF(pf, pd * (profile[pf]?.idle || 0));
           pAeL += pd * (aeRs.idle || 0);
