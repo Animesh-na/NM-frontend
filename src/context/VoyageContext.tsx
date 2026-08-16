@@ -204,6 +204,7 @@ interface VoyageContextValue {
   setApplyUkEtsImpact: (v: boolean) => void;
   vessel: VesselData;
   setVessel: (vessel: VesselData) => void;
+  syncSequenceSpeedContexts: (speedProfile: "eco" | "full", hasScrubber: boolean) => void;
   
   // Sequence state
   sequence: SequenceRowUI[];
@@ -988,26 +989,17 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     });
   }, [vessel.speedProfile, vessel.hasScrubber]);
 
-  // Keep sequence speed contexts in sync with the vessel speed profile (Eco/Full)
-  // and scrubber status (H = HSFO, V = VLSFO, L = LSMGO inside ECA).
-  // Applied only when the vessel changes profile/scrubber — never during sheet hydration.
-  const setVesselSynced = useCallback((next: VesselData) => {
-    const prev = vesselRef.current;
-    const changed =
-      prev.speedProfile !== next.speedProfile ||
-      !!prev.hasScrubber !== !!next.hasScrubber;
-    vesselRef.current = next;
-    setVessel(next);
-    if (changed) {
-      const prefix = next.speedProfile === "eco" ? "E" : "F";
-      const nonEca = `${prefix}${next.hasScrubber ? "H" : "V"}` as SpeedContext;
-      const eca = `${prefix}L` as SpeedContext;
-      setSequence(rows => rows.map(row => (
-        row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca
-          ? row
-          : { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca }
-      )));
-    }
+  // Called only by the explicit Speed Profile and Scrubber controls. Keeping this
+  // separate from setVessel prevents sheet hydration and API updates from rewriting rows.
+  const syncSequenceSpeedContexts = useCallback((speedProfile: "eco" | "full", hasScrubber: boolean) => {
+    const prefix = speedProfile === "eco" ? "E" : "F";
+    const nonEca = `${prefix}${hasScrubber ? "H" : "V"}` as SpeedContext;
+    const eca = `${prefix}L` as SpeedContext;
+    setSequence(rows => rows.map(row => (
+      row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca
+        ? row
+        : { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca }
+    )));
   }, []);
 
   const removeSequence = useCallback((id: number) => {
@@ -1962,7 +1954,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         applyUkEtsImpact,
         setApplyUkEtsImpact,
         vessel,
-        setVessel: setVesselSynced,
+        setVessel,
+        syncSequenceSpeedContexts,
         sequence,
         setSequence,
         updateSequenceRow,
@@ -2031,6 +2024,7 @@ export function useVoyageContext() {
       setApplyUkEtsImpact: () => {},
       vessel: defaultVessel,
       setVessel: () => {},
+      syncSequenceSpeedContexts: () => {},
       sequence: [],
       setSequence: () => {},
       updateSequenceRow: () => {},

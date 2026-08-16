@@ -16,7 +16,7 @@ import { getFieldId } from "@/utils/validation";
 import { getApiMode, API_MODE_CHANGED_EVENT, type ApiMode } from "@/services/apiMode";
 
 export function VesselPanel() {
-  const { vessel, setVessel, getFieldError } = useVoyageContext();
+  const { vessel, setVessel, syncSequenceSpeedContexts, getFieldError } = useVoyageContext();
   const errCls = (msg?: string) =>
     msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   const [isExpanded, setIsExpanded] = useState(true);
@@ -40,6 +40,9 @@ export function VesselPanel() {
 
   const handleFieldChange = (field: keyof VesselData, value: string | number | boolean) => {
     setVessel({ ...vessel, [field]: value });
+    if (field === "hasScrubber") {
+      syncSequenceSpeedContexts(vessel.speedProfile, Boolean(value));
+    }
   };
 
   const handleSpeedProfileChange = (profile: SpeedProfile) => {
@@ -49,6 +52,7 @@ export function VesselPanel() {
       speedProfile: profile,
       consumption: syncLegacyConsumption(currentMatrix),
     });
+    syncSequenceSpeedContexts(profile, vessel.hasScrubber);
   };
 
   const handleConsumptionChange = (
