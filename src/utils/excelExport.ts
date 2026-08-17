@@ -901,11 +901,15 @@ export function exportVoyageToExcel(data: ExportData) {
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
-    // EU port stays are 100% only when eu_zone=true and the row is inside the
-    // commercial window. PSSG/bunkering do not reset sea-leg endpoints, but an
-    // EU bunkering port stay is still covered as a port stay.
-    const euPortFactorVal = curPortKey && inEuPortWindow(idx) && curIsEu ? 1 : 0;
-    setFormula(SC.EUPORT, rr, `IF(AND(${curEuCell}=1,${inEuPortWindow(idx) ? 1 : 0}=1),1,0)`, euPortFactorVal, fStyle);
+    // Port coverage is VOYAGE-based: the port stay inherits the higher of the
+    // arriving / departing sea-leg coverage factors (100% EU→EU, 50% EU↔non-EU),
+    // regardless of whether the port itself sits in an EU zone.
+    void curIsEu; void curEuCell;
+    const arrivingFactor = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
+    const departingFactor =
+      curPortKey && idx + 1 < sequence.length && inEuSeaWindow(idx + 1) ? computeSeaEuFactor(idx + 1) : 0;
+    const euPortFactorVal = curPortKey && inEuPortWindow(idx) ? Math.max(arrivingFactor, departingFactor) : 0;
+    setFormula(SC.EUPORT, rr, `${euPortFactorVal}`, euPortFactorVal, fStyle);
 
     // Turn time in days
     const turnTimeH = eff.turnTime;
@@ -1727,9 +1731,14 @@ export function exportVoyageToExcel(data: ExportData) {
         }
       }
       
-      // Port fuel uses the port's own eu_zone flag: EU 100%, non-EU 0%,
-      // constrained to the commercial voyage window.
-      const portEuF = curPortKey && inEuPortWindow(idx) && curIsEu ? 1 : 0;
+      // Port fuel coverage is VOYAGE-based: the port stay inherits the higher of
+      // the arriving / departing sea-leg factors (EU→EU 100%, EU↔non-EU 50%),
+      // regardless of the port's own eu_zone flag, within the commercial window.
+      void curIsEu;
+      const arrF = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
+      const depF =
+        curPortKey && idx + 1 < sequence.length && inEuSeaWindow(idx + 1) ? computeSeaEuFactor(idx + 1) : 0;
+      const portEuF = curPortKey && inEuPortWindow(idx) ? Math.max(arrF, depF) : 0;
       const effLeg = effectiveLeg(leg);
       const effectivePortDays = effLeg.portDays;
       if (curPortKey && portEuF > 0 && effectivePortDays > 0) {

@@ -1092,19 +1092,21 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         }
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
-        // Per regulation (and requested methodology):
-        //   - EU/EEA port stay (eu_zone === true) → 100%
-        //   - Any non-EU port stay (e.g. Gibraltar) → 0%
+        // Port coverage is VOYAGE-based (not port-zone based):
+        //   - The port stay inherits the coverage factor of the sea legs it sits
+        //     between (arriving leg / departing leg), taking the higher factor.
+        //   - EU → EU voyage  → 100% port coverage (regardless of port zone)
+        //   - EU ↔ Non-EU     → 50% port coverage (regardless of port zone)
+        //   - Non-EU → Non-EU → 0%
         //   - Outside commercial voyage window → 0%
         const arrivingSeaFactor = inEuSeaWindow(index) ? seaEuFactor : 0;
         const nextIndex = index + 1;
         const departingSeaFactor = (nextIndex < sequence.length && inEuSeaWindow(nextIndex))
           ? computeSeaEuFactor(nextIndex)
           : 0;
-        void arrivingSeaFactor; void departingSeaFactor;
         const portEuFactor = (!currentPortKey || !inEuPortWindow(index))
           ? 0
-          : (leg.isEuEea === true ? 1.0 : 0);
+          : Math.max(arrivingSeaFactor, departingSeaFactor);
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
@@ -1183,10 +1185,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
             coverageLabel = 'Non-EU → Non-EU: 0%';
           }
           
-          // Port coverage label — port stay uses its own EU flag (100% EU / 0% non-EU)
+          // Port coverage label — port stay inherits the voyage coverage factor
           const portLabel = leg.portDays > 0
             ? (inEuPortWindow(index)
-                ? ` | Port: ${portEuFactor * 100}%`
+                ? ` | Port: ${portEuFactor * 100}% (voyage-based)`
                 : ' | Port: excluded (outside cargo voyage)')
             : '';
           
