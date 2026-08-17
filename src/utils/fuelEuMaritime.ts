@@ -38,7 +38,16 @@ export const FUEL_EU_GHG_LIMITS: Array<{ year: number; limit: number }> = [
   { year: 2050, limit: 18.23 },
 ];
 
-// Penalty rate: €2,400 / t CO2eq  →  0.058537 €/MJ (using target intensity ~89.34 g/MJ)
+// Static FuelEU per-ton costs (USD/t) — configurable override for current pricing.
+// The user can update these constants later; the engine currently uses them directly
+// to compute FuelEU Maritime costs rather than deriving them from GHG balance.
+export const FUEL_EU_STATIC_COST_PER_TON: Record<FuelEuFuelType, number> = {
+  hsfo: 71.82,
+  vlsfo: 62.32,
+  lsmgo: 45.48,
+};
+
+// Legacy penalty rates retained for reference; static costs are now authoritative.
 export const FUEL_EU_PENALTY_RATE_EUR_PER_MJ = 0.058537;
 export const FUEL_EU_PENALTY_RATE_EUR_PER_T_CO2EQ = 2400;
 
