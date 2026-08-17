@@ -469,7 +469,7 @@ export function exportVoyageToExcel(data: ExportData) {
     coverageRows,
     vessel,
     portLots,
-    bunker.rewardFactor,
+    1,
   );
   const bobPriceRef: Record<FuelKey, string> = {
     hsfo: cellRef(1, R_HP), vlsfo: cellRef(1, R_VP), lsmgo: cellRef(1, R_LP),
@@ -603,7 +603,7 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "CO₂ Price ($/mt)", S.inputLabel); setNum(1, r, bunker.co2Price); const R_CO2P = r; r++;
   setText(0, r, "EU ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.euEtsPrice || bunker.co2Price || 0); const R_EUP = r; r++;
   setText(0, r, "UK ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.ukEtsPrice || bunker.co2Price || 0); const R_UKP = r; r++;
-  setText(0, r, "Reward Factor", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
+  setText(0, r, "Wind Reward Factor (FuelEU only)", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
   r++;
 
   // --- HIRE ---
@@ -2065,7 +2065,11 @@ export function exportVoyageToExcel(data: ExportData) {
     const qtyRow = [R_FE_HQ, R_FE_VQ, R_FE_LQ][index];
     const props = FUEL_EU_PROPERTIES[fuel];
     const detail = results.fuelEuResult.fuels[fuel];
-    const staticCostPerTon = fuelEuCostPerTonUsd(results.fuelEuResult.voyageYear)[fuel];
+    const staticCostPerTon = fuelEuCostPerTonUsd(
+      results.fuelEuResult.voyageYear,
+      undefined,
+      results.fuelEuResult.rewardFactor ?? 1,
+    )[fuel];
     setCalcLabel(r, `${fuel.toUpperCase()} Lower Calorific Value (MJ/g)`, false, false, true); setNum(1, r, props.lcv, S.envFormula); setNum(2, r, props.lcv, S.envSoftware); const lcvRow = r; r++;
     setCalcLabel(r, `${fuel.toUpperCase()} Well-to-Wake GHG (gCO₂e/MJ)`, false, false, true); setNum(1, r, props.ghg, S.envFormula); setNum(2, r, props.ghg, S.envSoftware); const ghgRow = r; r++;
     setCalcLabel(r, `${fuel.toUpperCase()} EU Energy (MJ)`, false, false, true); setCalcFormula(r, `${B(qtyRow)}*1000000*${B(lcvRow)}`, detail.euEnergy, false, false, true); const energyRow = r; r++;
