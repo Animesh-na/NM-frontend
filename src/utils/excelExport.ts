@@ -8,7 +8,7 @@ import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } fro
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
 import { computeFifoCoverage, orderBunkerLots, termsFactorOf, splitPortStay } from "@/utils/fuelBreakdown";
 import { getApiMode } from "@/services/apiMode";
-import { FUEL_EU_PENALTY_RATE_EUR_PER_MJ, FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
+import { FUEL_EU_STATIC_COST_PER_TON, FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
 import { getUkEtsPortCoverage, getUkEtsSeaCoverage } from "@/utils/ukEtsCalculations";
 
 export interface ExportBunkerLot { quantity: number; price: number }
