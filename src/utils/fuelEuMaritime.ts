@@ -211,21 +211,25 @@ export function calculateFuelEu(
 ): FuelEuResult {
   const voyageYear = year ?? new Date().getFullYear();
   const ghgLimit = getFuelEuGhgLimit(voyageYear);
-  const perTonne = calculateFuelEuPerTonne(voyageYear);
+  // rewardFactor = f_wind (wind-assisted propulsion). It adjusts the GHG
+  // intensity used by FuelEU only — it never changes fuel consumption.
+  const fWind = rewardFactor > 0 ? rewardFactor : 1.0;
+  const perTonne = calculateFuelEuPerTonne(voyageYear, DEFAULT_EUR_USD_RATE, fWind);
 
   const build = (fuelType: FuelEuFuelType): FuelEuFuelDetail => {
     const props = FUEL_EU_PROPERTIES[fuelType];
     const qty = Math.max(0, euCoveredFuel[fuelType] || 0);
     // Energy: tonnes × 1e6 g/t × LCV MJ/g  =  MJ
     const euEnergy = qty * 1_000_000 * props.lcv;
-    const balance = (ghgLimit - props.ghg) * euEnergy; // gCO2eq
+    const adjGhg = props.ghg * fWind;
+    const balance = (ghgLimit - adjGhg) * euEnergy; // gCO2eq
     const staticCostPerTon = perTonne[fuelType].usdPerTonne; // dynamic $/t
     const cost = qty * staticCostPerTon; // USD
     return {
       fuelType,
       euQuantity: qty,
       lcv: props.lcv,
-      ghg: props.ghg,
+      ghg: adjGhg,
       euEnergy,
       balance,
       penaltyEur: cost,    // legacy alias: static cost per fuel
@@ -246,9 +250,9 @@ export function calculateFuelEu(
     ? (hsfo.euEnergy * hsfo.ghg + vlsfo.euEnergy * vlsfo.ghg + lsmgo.euEnergy * lsmgo.ghg) / totalEuEnergy
     : 0;
 
-  // Static per-ton cost total applied to EU-covered fuel quantities.
-  // This replaces the GHG-balance-derived penalty for the current pricing model.
-  const penaltyEur = (hsfo.cost + vlsfo.cost + lsmgo.cost) * rewardFactor;
+  // Per-ton cost total applied to EU-covered fuel quantities. The wind reward
+  // factor is already baked into the per-tonne rates via the adjusted GHG.
+  const penaltyEur = hsfo.cost + vlsfo.cost + lsmgo.cost;
 
   // Per-leg breakdown (optional)
   const legOutputs: FuelEuLegOutput[] = [];
@@ -281,7 +285,7 @@ export function calculateFuelEu(
     totalBalance,
     penaltyEur,
     totalPenalty: penaltyEur,
-    rewardFactor,
+    rewardFactor: fWind,
     fuels: { hsfo, vlsfo, lsmgo },
     costPerTon: {
       hsfo: hsfo.costPerTon,
