@@ -8,7 +8,7 @@ import { calculateCargoDemurrageDespatch, calculateDemurrageDespatchTotals } fro
 import { buildFuelPricing, effectivePrice, type FuelKey } from "@/utils/bunkerPricing";
 import { computeFifoCoverage, orderBunkerLots, termsFactorOf, splitPortStay } from "@/utils/fuelBreakdown";
 import { getApiMode } from "@/services/apiMode";
-import { FUEL_EU_STATIC_COST_PER_TON, FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
+import { fuelEuCostPerTonUsd, FUEL_EU_PROPERTIES } from "@/utils/fuelEuMaritime";
 import { getUkEtsPortCoverage, getUkEtsSeaCoverage } from "@/utils/ukEtsCalculations";
 
 export interface ExportBunkerLot { quantity: number; price: number }
@@ -2064,12 +2064,12 @@ export function exportVoyageToExcel(data: ExportData) {
     const qtyRow = [R_FE_HQ, R_FE_VQ, R_FE_LQ][index];
     const props = FUEL_EU_PROPERTIES[fuel];
     const detail = results.fuelEuResult.fuels[fuel];
-    const staticCostPerTon = FUEL_EU_STATIC_COST_PER_TON[fuel];
+    const staticCostPerTon = fuelEuCostPerTonUsd(results.fuelEuResult.voyageYear)[fuel];
     setCalcLabel(r, `${fuel.toUpperCase()} Lower Calorific Value (MJ/g)`, false, false, true); setNum(1, r, props.lcv, S.envFormula); setNum(2, r, props.lcv, S.envSoftware); const lcvRow = r; r++;
     setCalcLabel(r, `${fuel.toUpperCase()} Well-to-Wake GHG (gCO₂e/MJ)`, false, false, true); setNum(1, r, props.ghg, S.envFormula); setNum(2, r, props.ghg, S.envSoftware); const ghgRow = r; r++;
     setCalcLabel(r, `${fuel.toUpperCase()} EU Energy (MJ)`, false, false, true); setCalcFormula(r, `${B(qtyRow)}*1000000*${B(lcvRow)}`, detail.euEnergy, false, false, true); const energyRow = r; r++;
     setCalcLabel(r, `${fuel.toUpperCase()} Compliance Balance (gCO₂e)`, false, false, true); setCalcFormula(r, `(${B(R_FE_LIMIT)}-${B(ghgRow)})*${B(energyRow)}`, detail.balance, false, false, true); const balanceRow = r; r++;
-    setCalcLabel(r, `${fuel.toUpperCase()} Static FuelEU Cost ($/t)`, false, false, true); setNum(1, r, staticCostPerTon, S.envFormula); setNum(2, r, staticCostPerTon, S.envSoftware); const costPerTonRow = r; r++;
+    setCalcLabel(r, `${fuel.toUpperCase()} FuelEU Cost ($/t)`, false, false, true); setNum(1, r, staticCostPerTon, S.envFormula); setNum(2, r, staticCostPerTon, S.envSoftware); const costPerTonRow = r; r++;
     setCalcLabel(r, `${fuel.toUpperCase()} FuelEU Cost ($)`, false, false, true); setCalcFormula(r, `${B(qtyRow)}*${B(costPerTonRow)}`, detail.cost, false, false, true); const costRow = r; r++;
     feRows[fuel] = { energy: energyRow, balance: balanceRow, costPerTon: costPerTonRow, costRow };
   });
