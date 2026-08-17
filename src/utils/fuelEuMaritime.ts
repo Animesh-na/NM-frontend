@@ -51,6 +51,8 @@ export const DEFAULT_EUR_USD_RATE = 1.157;
 export interface FuelEuPerTonneDetail {
   fuelType: FuelEuFuelType;
   fuelGhgIntensity: number;        // gCO2eq/MJ
+  windRewardFactor: number;        // f_wind (1.00 | 0.99 | 0.97 | 0.95)
+  adjustedGhgIntensity: number;    // gCO2eq/MJ  = ghg × f_wind
   fuelEuTarget: number;            // gCO2eq/MJ
   ghgDifference: number;           // gCO2eq/MJ
   energyPerTonneMj: number;        // MJ/t
@@ -67,17 +69,23 @@ export interface FuelEuPerTonneDetail {
  */
 export function calculateFuelEuPerTonne(
   year?: number,
-  eurUsdRate: number = DEFAULT_EUR_USD_RATE
+  eurUsdRate: number = DEFAULT_EUR_USD_RATE,
+  windRewardFactor: number = 1.0
 ): Record<FuelEuFuelType, FuelEuPerTonneDetail> {
   const target = getFuelEuGhgLimit(year);
+  const fWind = windRewardFactor > 0 ? windRewardFactor : 1.0;
   const build = (fuelType: FuelEuFuelType): FuelEuPerTonneDetail => {
     const props = FUEL_EU_PROPERTIES[fuelType];
-    const ghgDifference = props.ghg - target;
+    // Wind-assisted propulsion reward: GHGadjusted = GHGcalculated × f_wind
+    const adjustedGhg = props.ghg * fWind;
+    const ghgDifference = adjustedGhg - target;
     const energyPerTonneMj = props.lcv * 1_000_000;
     if (ghgDifference <= 0) {
       return {
         fuelType,
         fuelGhgIntensity: props.ghg,
+        windRewardFactor: fWind,
+        adjustedGhgIntensity: adjustedGhg,
         fuelEuTarget: target,
         ghgDifference,
         energyPerTonneMj,
@@ -89,11 +97,13 @@ export function calculateFuelEuPerTonne(
       };
     }
     const complianceDeficitGco2eq = ghgDifference * energyPerTonneMj;
-    const equivalentEnergyMj = complianceDeficitGco2eq / props.ghg;
+    const equivalentEnergyMj = complianceDeficitGco2eq / adjustedGhg;
     const eurPerTonne = equivalentEnergyMj * FUEL_EU_PENALTY_RATE_EUR_PER_MJ;
     return {
       fuelType,
       fuelGhgIntensity: props.ghg,
+      windRewardFactor: fWind,
+      adjustedGhgIntensity: adjustedGhg,
       fuelEuTarget: target,
       ghgDifference,
       energyPerTonneMj,
@@ -110,9 +120,10 @@ export function calculateFuelEuPerTonne(
 /** Convenience: USD per tonne map for a given year / FX rate. */
 export function fuelEuCostPerTonUsd(
   year?: number,
-  eurUsdRate: number = DEFAULT_EUR_USD_RATE
+  eurUsdRate: number = DEFAULT_EUR_USD_RATE,
+  windRewardFactor: number = 1.0
 ): Record<FuelEuFuelType, number> {
-  const d = calculateFuelEuPerTonne(year, eurUsdRate);
+  const d = calculateFuelEuPerTonne(year, eurUsdRate, windRewardFactor);
   return { hsfo: d.hsfo.usdPerTonne, vlsfo: d.vlsfo.usdPerTonne, lsmgo: d.lsmgo.usdPerTonne };
 }
 
@@ -200,21 +211,25 @@ export function calculateFuelEu(
 ): FuelEuResult {
   const voyageYear = year ?? new Date().getFullYear();
   const ghgLimit = getFuelEuGhgLimit(voyageYear);
-  const perTonne = calculateFuelEuPerTonne(voyageYear);
+  // rewardFactor = f_wind (wind-assisted propulsion). It adjusts the GHG
+  // intensity used by FuelEU only — it never changes fuel consumption.
+  const fWind = rewardFactor > 0 ? rewardFactor : 1.0;
+  const perTonne = calculateFuelEuPerTonne(voyageYear, DEFAULT_EUR_USD_RATE, fWind);
 
   const build = (fuelType: FuelEuFuelType): FuelEuFuelDetail => {
     const props = FUEL_EU_PROPERTIES[fuelType];
     const qty = Math.max(0, euCoveredFuel[fuelType] || 0);
     // Energy: tonnes × 1e6 g/t × LCV MJ/g  =  MJ
     const euEnergy = qty * 1_000_000 * props.lcv;
-    const balance = (ghgLimit - props.ghg) * euEnergy; // gCO2eq
+    const adjGhg = props.ghg * fWind;
+    const balance = (ghgLimit - adjGhg) * euEnergy; // gCO2eq
     const staticCostPerTon = perTonne[fuelType].usdPerTonne; // dynamic $/t
     const cost = qty * staticCostPerTon; // USD
     return {
       fuelType,
       euQuantity: qty,
       lcv: props.lcv,
-      ghg: props.ghg,
+      ghg: adjGhg,
       euEnergy,
       balance,
       penaltyEur: cost,    // legacy alias: static cost per fuel
@@ -235,9 +250,9 @@ export function calculateFuelEu(
     ? (hsfo.euEnergy * hsfo.ghg + vlsfo.euEnergy * vlsfo.ghg + lsmgo.euEnergy * lsmgo.ghg) / totalEuEnergy
     : 0;
 
-  // Static per-ton cost total applied to EU-covered fuel quantities.
-  // This replaces the GHG-balance-derived penalty for the current pricing model.
-  const penaltyEur = (hsfo.cost + vlsfo.cost + lsmgo.cost) * rewardFactor;
+  // Per-ton cost total applied to EU-covered fuel quantities. The wind reward
+  // factor is already baked into the per-tonne rates via the adjusted GHG.
+  const penaltyEur = hsfo.cost + vlsfo.cost + lsmgo.cost;
 
   // Per-leg breakdown (optional)
   const legOutputs: FuelEuLegOutput[] = [];
@@ -270,7 +285,7 @@ export function calculateFuelEu(
     totalBalance,
     penaltyEur,
     totalPenalty: penaltyEur,
-    rewardFactor,
+    rewardFactor: fWind,
     fuels: { hsfo, vlsfo, lsmgo },
     costPerTon: {
       hsfo: hsfo.costPerTon,

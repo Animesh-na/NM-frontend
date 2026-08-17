@@ -38,7 +38,8 @@ export function BunkerCalculationPanel({ bunker, results, vessel, sequence }: Bu
   const formatDays = (value: number) => `${value.toFixed(2)} d`;
   
   const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
-  const rewardFactor = bunker.rewardFactor || 1.0;
+  // Wind reward factor affects FuelEU GHG intensity only, not consumption.
+  const rewardFactor = 1.0;
 
   // ============================================
   // DETAILED CONSUMPTION CALCULATIONS (for validation)

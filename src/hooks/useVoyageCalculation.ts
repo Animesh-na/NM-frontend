@@ -507,8 +507,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     // Get the appropriate consumption profile based on vessel speed profile
     const profile = vessel.speedProfile === "eco" ? vessel.ecoConsumption : vessel.fullConsumption;
     
-    // Reward factor adjusts consumption (wind-assisted propulsion, etc.)
-    const rewardFactor = bunker?.rewardFactor ?? 1.0;
+    // Wind-assisted propulsion reward factor impacts FuelEU GHG intensity ONLY.
+    // Fuel consumption is never scaled by it.
+    const rewardFactor = 1.0;
     
     // --- Sea Consumption (Ballast + Laden) split by ECA / Non-ECA ---
     // SCRUBBER LOGIC:

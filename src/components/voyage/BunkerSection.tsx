@@ -264,9 +264,22 @@ export function BunkerSection() {
             </>
             )}
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-muted-foreground">Reward</span>
-              <input type="number" step="0.01" className="form-input-sm w-14 font-mono text-right text-xs"
-                value={bunker.rewardFactor} onChange={(e) => updateBunkerField("rewardFactor", parseFloat(e.target.value) || 1)} />
+              <span
+                className="text-[10px] text-muted-foreground"
+                title="Reward factor for wind-assisted propulsion — adjusts FuelEU GHG intensity only (GHGadjusted = GHGcalculated × f). No impact on fuel consumption."
+              >
+                Wind Reward (FuelEU)
+              </span>
+              <select
+                className="form-input-sm w-16 font-mono text-right text-xs"
+                value={String(bunker.rewardFactor ?? 1)}
+                onChange={(e) => updateBunkerField("rewardFactor", parseFloat(e.target.value) || 1)}
+              >
+                <option value="1">1.00</option>
+                <option value="0.99">0.99</option>
+                <option value="0.97">0.97</option>
+                <option value="0.95">0.95</option>
+              </select>
             </div>
           </div>
 

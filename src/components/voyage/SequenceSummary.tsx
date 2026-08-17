@@ -16,7 +16,7 @@ export function SequenceSummary() {
   const [fuelView, setFuelView] = useState<"leg" | "port">("leg");
 
   // ---------- Per-Leg (sea) and Per-Port fuel usage — shared engine-parity logic ----------
-  const legFuelRows = computeLegSeaFuel(sequence, vessel, bunker?.rewardFactor ?? 1).map((r) => ({
+  const legFuelRows = computeLegSeaFuel(sequence, vessel, 1).map((r) => ({
     id: r.id,
     from: r.from,
     to: r.to,

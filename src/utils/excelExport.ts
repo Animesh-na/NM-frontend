@@ -469,7 +469,7 @@ export function exportVoyageToExcel(data: ExportData) {
     coverageRows,
     vessel,
     portLots,
-    bunker.rewardFactor,
+    1,
   );
   const bobPriceRef: Record<FuelKey, string> = {
     hsfo: cellRef(1, R_HP), vlsfo: cellRef(1, R_VP), lsmgo: cellRef(1, R_LP),
@@ -603,7 +603,7 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "CO₂ Price ($/mt)", S.inputLabel); setNum(1, r, bunker.co2Price); const R_CO2P = r; r++;
   setText(0, r, "EU ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.euEtsPrice || bunker.co2Price || 0); const R_EUP = r; r++;
   setText(0, r, "UK ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.ukEtsPrice || bunker.co2Price || 0); const R_UKP = r; r++;
-  setText(0, r, "Reward Factor", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
+  setText(0, r, "Wind Reward Factor (FuelEU only)", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
   r++;
 
   // --- HIRE ---
@@ -948,7 +948,9 @@ export function exportVoyageToExcel(data: ExportData) {
   // Cell references for input cells (shorthand)
   const B = (row: number) => cellRef(1, row);
   const scrCell = B(R_SCR);
-  const rfCell = B(R_RF);
+  // Wind reward factor cell (FuelEU GHG only). Consumption formulas use 1.
+  const windRfCell = B(R_RF);
+  const rfCell = "1";
   const xSeaCell = B(R_XSEA);
   const xPortCell = B(R_XPORT);
   const xCanalCell = B(R_XCANAL);
@@ -978,7 +980,8 @@ export function exportVoyageToExcel(data: ExportData) {
   let c_hdd = 0, c_vdd = 0, c_ldd = 0;
   let c_hid = 0, c_vid = 0, c_lid = 0;
   let c_tload = 0, c_tdisch = 0, c_tidle = 0;
-  const rewardFactor = bunker.rewardFactor;
+  // Wind reward factor affects FuelEU GHG intensity only, never consumption.
+  const rewardFactor = 1;
 
   sequence.forEach((leg, idx) => {
     const il = ladenFlags[idx];
@@ -2064,7 +2067,11 @@ export function exportVoyageToExcel(data: ExportData) {
     const qtyRow = [R_FE_HQ, R_FE_VQ, R_FE_LQ][index];
     const props = FUEL_EU_PROPERTIES[fuel];
     const detail = results.fuelEuResult.fuels[fuel];
-    const staticCostPerTon = fuelEuCostPerTonUsd(results.fuelEuResult.voyageYear)[fuel];
+    const staticCostPerTon = fuelEuCostPerTonUsd(
+      results.fuelEuResult.voyageYear,
+      undefined,
+      results.fuelEuResult.rewardFactor ?? 1,
+    )[fuel];
     setCalcLabel(r, `${fuel.toUpperCase()} Lower Calorific Value (MJ/g)`, false, false, true); setNum(1, r, props.lcv, S.envFormula); setNum(2, r, props.lcv, S.envSoftware); const lcvRow = r; r++;
     setCalcLabel(r, `${fuel.toUpperCase()} Well-to-Wake GHG (gCO₂e/MJ)`, false, false, true); setNum(1, r, props.ghg, S.envFormula); setNum(2, r, props.ghg, S.envSoftware); const ghgRow = r; r++;
     setCalcLabel(r, `${fuel.toUpperCase()} EU Energy (MJ)`, false, false, true); setCalcFormula(r, `${B(qtyRow)}*1000000*${B(lcvRow)}`, detail.euEnergy, false, false, true); const energyRow = r; r++;
@@ -2077,10 +2084,10 @@ export function exportVoyageToExcel(data: ExportData) {
   if (!feH || !feV || !feL) return;
   setCalcLabel(r, "Total EU Energy (MJ)", true); setCalcFormula(r, `${B(feH.energy)}+${B(feV.energy)}+${B(feL.energy)}`, results.fuelEuResult.totalEuEnergy, true); const R_FE_ENERGY = r; r++;
   setCalcLabel(r, "Total Compliance Balance (gCO₂e; negative = deficit)", true); setCalcFormula(r, `${B(feH.balance)}+${B(feV.balance)}+${B(feL.balance)}`, results.fuelEuResult.totalBalance, true); const R_FE_BAL = r; r++;
-  setCalcLabel(r, "Weighted Voyage GHG Intensity (gCO₂e/MJ)", false, false, true); setCalcFormula(r, `IF(${B(R_FE_ENERGY)}>0,(${B(feH.energy)}*${FUEL_EU_PROPERTIES.hsfo.ghg}+${B(feV.energy)}*${FUEL_EU_PROPERTIES.vlsfo.ghg}+${B(feL.energy)}*${FUEL_EU_PROPERTIES.lsmgo.ghg})/${B(R_FE_ENERGY)},0)`, results.fuelEuResult.voyageGhg, false, false, true); const R_FE_GHG = r; r++;
+  setCalcLabel(r, "Weighted Voyage GHG Intensity (gCO₂e/MJ, wind-adjusted)", false, false, true); setCalcFormula(r, `IF(${B(R_FE_ENERGY)}>0,(${B(feH.energy)}*${FUEL_EU_PROPERTIES.hsfo.ghg}+${B(feV.energy)}*${FUEL_EU_PROPERTIES.vlsfo.ghg}+${B(feL.energy)}*${FUEL_EU_PROPERTIES.lsmgo.ghg})/${B(R_FE_ENERGY)}*${windRfCell},0)`, results.fuelEuResult.voyageGhg, false, false, true); const R_FE_GHG = r; r++;
 
   setCalcLabel(r, "FuelEU Total Cost ($)", true);
-  setCalcFormula(r, `(${B(feH.costRow)}+${B(feV.costRow)}+${B(feL.costRow)})*${rfCell}`, results.fuelEuTotalPenalty, true);
+  setCalcFormula(r, `${B(feH.costRow)}+${B(feV.costRow)}+${B(feL.costRow)}`, results.fuelEuTotalPenalty, true);
   const R_FE_TOTAL = r; r++;
 
   // Replace the earlier regulatory source literals with live forward links to
