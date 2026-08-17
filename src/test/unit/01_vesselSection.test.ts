@@ -70,8 +70,8 @@ describe("Vessel Section", () => {
     });
   });
 
-  describe("Reward factor (wind assistance)", () => {
-    it("rewardFactor below 1 reduces sea fuel and bunker cost for custom inputs", () => {
+  describe("Wind reward factor (FuelEU only)", () => {
+    it("rewardFactor below 1 leaves sea fuel and bunker cost unchanged", () => {
       const sequence = [
         customLeg({ id: 1, operation: "load", distance: 1_500, seaTime: 5, ecaTime: 0, nonEcaTime: 5, portDays: 0 }),
         customLeg({ id: 2, operation: "disch", distance: 3_000, seaTime: 10, ecaTime: 0, nonEcaTime: 10, portDays: 0 }),
@@ -85,8 +85,8 @@ describe("Vessel Section", () => {
         useVoyageCalculation(createVoyageTestInputs({ vessel, sequence, bunker: customBunker({ rewardFactor: 0.8 }) })),
       ).result.current;
 
-      expect(assisted.vlsfoConsumption).toBeLessThan(base.vlsfoConsumption);
-      expect(assisted.totalBunkerCost).toBeLessThan(base.totalBunkerCost);
+      expect(assisted.vlsfoConsumption).toBeCloseTo(base.vlsfoConsumption, 4);
+      expect(assisted.totalBunkerCost).toBeCloseTo(base.totalBunkerCost, 4);
     });
 
     it("rewardFactor equal to 1 leaves the custom baseline unchanged", () => {
