@@ -109,7 +109,7 @@ export default function CalculationBreakdown() {
           <CargoCalculationPanel cargos={cargos} results={results} sequence={sequence} />
           <BunkerCalculationPanel bunker={bunker} results={results} vessel={vessel} sequence={sequence} />
           <PortTimeCalculationPanel sequence={sequence} misc={misc} results={results} />
-          <PerLegSeaFuelPanel sequence={sequence} vessel={vessel} rewardFactor={bunker?.rewardFactor ?? 1} />
+          <PerLegSeaFuelPanel sequence={sequence} vessel={vessel} rewardFactor={1} />
           <PerPortFuelPanel sequence={sequence} vessel={vessel} />
           <MiscCalculationPanel misc={misc} results={results} />
           <EmissionCalculationPanel 
