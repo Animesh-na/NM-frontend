@@ -592,7 +592,7 @@ export function VoyageSummary() {
           
           <div className="bg-muted rounded-sm p-1.5 space-y-0.5 text-[9px]">
             <div className="flex justify-between text-muted-foreground">
-              <span>Reward Factor</span>
+              <span>Wind Reward Factor</span>
               <span className="font-mono">{results.fuelEuResult.rewardFactor.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
