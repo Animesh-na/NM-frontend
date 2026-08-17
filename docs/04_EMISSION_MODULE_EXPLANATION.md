@@ -15,7 +15,7 @@ Pure utility module containing all environmental/emission formulas: CO₂ calcul
 ```typescript
 export const CO2_EMISSION_FACTORS = {
   hsfo:  3.114,  // t CO₂ per t fuel (Heavy Fuel Oil)
-  vlsfo: 3.114,  // t CO₂ per t fuel (Very Low Sulphur Fuel Oil)
+  vlsfo: 3.151,  // t CO₂ per t fuel (Very Low Sulphur Fuel Oil)
   lsmgo: 3.206,  // t CO₂ per t fuel (Low Sulphur Marine Gas Oil)
 };
 ```
@@ -23,7 +23,7 @@ export const CO2_EMISSION_FACTORS = {
 ### `calculateCo2Emissions(fuel)`
 Multiplies each fuel type's consumption by its emission factor:
 ```
-CO₂_total = (HSFO × 3.114) + (VLSFO × 3.114) + (LSMGO × 3.206)
+CO₂_total = (HSFO × 3.114) + (VLSFO × 3.151) + (LSMGO × 3.206)
 ```
 
 ---
