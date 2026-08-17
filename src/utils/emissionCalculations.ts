@@ -27,12 +27,12 @@ export function calculateCo2eFactor(f: FuelEmissionFactors): number {
   return Math.round(raw * 1000) / 1000;
 }
 
-// Derived CO2e emission factors — DO NOT hardcode; computed from TTW factors + GWP100.
-// HSFO  ≈ 3.163, VLSFO ≈ 3.200, LSMGO ≈ 3.255
+// Pure CO₂ emission factors used for EU ETS, UK ETS, CII, and EFOI.
+// Values are the TTW CO₂ factors per fuel type.
 export const CO2_EMISSION_FACTORS = {
-  hsfo:  calculateCo2eFactor(TTW_EMISSION_FACTORS.hsfo),
-  vlsfo: calculateCo2eFactor(TTW_EMISSION_FACTORS.vlsfo),
-  lsmgo: calculateCo2eFactor(TTW_EMISSION_FACTORS.lsmgo),
+  hsfo:  TTW_EMISSION_FACTORS.hsfo.co2,
+  vlsfo: TTW_EMISSION_FACTORS.vlsfo.co2,
+  lsmgo: TTW_EMISSION_FACTORS.lsmgo.co2,
 } as const;
 
 // ===========================================
