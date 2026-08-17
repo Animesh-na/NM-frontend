@@ -38,7 +38,16 @@ export const FUEL_EU_GHG_LIMITS: Array<{ year: number; limit: number }> = [
   { year: 2050, limit: 18.23 },
 ];
 
-// Penalty rate: €2,400 / t CO2eq  →  0.058537 €/MJ (using target intensity ~89.34 g/MJ)
+// Static FuelEU per-ton costs (USD/t) — configurable override for current pricing.
+// The user can update these constants later; the engine currently uses them directly
+// to compute FuelEU Maritime costs rather than deriving them from GHG balance.
+export const FUEL_EU_STATIC_COST_PER_TON: Record<FuelEuFuelType, number> = {
+  hsfo: 71.82,
+  vlsfo: 62.32,
+  lsmgo: 45.48,
+};
+
+// Legacy penalty rates retained for reference; static costs are now authoritative.
 export const FUEL_EU_PENALTY_RATE_EUR_PER_MJ = 0.058537;
 export const FUEL_EU_PENALTY_RATE_EUR_PER_T_CO2EQ = 2400;
 
@@ -133,6 +142,8 @@ export function calculateFuelEu(
     // Energy: tonnes × 1e6 g/t × LCV MJ/g  =  MJ
     const euEnergy = qty * 1_000_000 * props.lcv;
     const balance = (ghgLimit - props.ghg) * euEnergy; // gCO2eq
+    const staticCostPerTon = FUEL_EU_STATIC_COST_PER_TON[fuelType];
+    const cost = qty * staticCostPerTon; // USD (static FuelEU cost)
     return {
       fuelType,
       euQuantity: qty,
@@ -140,9 +151,9 @@ export function calculateFuelEu(
       ghg: props.ghg,
       euEnergy,
       balance,
-      penaltyEur: 0,
-      costPerTon: 0,
-      cost: 0,
+      penaltyEur: cost,    // legacy alias: static cost per fuel
+      costPerTon: staticCostPerTon,
+      cost,
     };
   };
 
@@ -158,25 +169,9 @@ export function calculateFuelEu(
     ? (hsfo.euEnergy * hsfo.ghg + vlsfo.euEnergy * vlsfo.ghg + lsmgo.euEnergy * lsmgo.ghg) / totalEuEnergy
     : 0;
 
-  // Penalty only if non-compliant (negative balance)
-  //   Penalty (€) = (|Total Balance gCO2eq| / voyageGhg gCO2eq/MJ) × 0.058537 €/MJ
-  //   (Total Balance / voyageGhg) yields MJ of the shortfall, then × penalty €/MJ
-  let penaltyEur = 0;
-  if (totalBalance < 0 && voyageGhg > 0) {
-    const shortfallMj = Math.abs(totalBalance) / voyageGhg;
-    penaltyEur = shortfallMj * FUEL_EU_PENALTY_RATE_EUR_PER_MJ * rewardFactor;
-  }
-
-  // Distribute penalty across fuels using each fuel's share of the negative balance
-  const negatives = [hsfo, vlsfo, lsmgo].map((f) => (f.balance < 0 ? Math.abs(f.balance) : 0));
-  const totalNeg = negatives.reduce((s, v) => s + v, 0);
-  const perFuel = [hsfo, vlsfo, lsmgo];
-  perFuel.forEach((f, i) => {
-    const share = totalNeg > 0 ? negatives[i] / totalNeg : 0;
-    f.penaltyEur = penaltyEur * share;
-    f.cost = f.penaltyEur;
-    f.costPerTon = f.euQuantity > 0 ? f.penaltyEur / f.euQuantity : 0;
-  });
+  // Static per-ton cost total applied to EU-covered fuel quantities.
+  // This replaces the GHG-balance-derived penalty for the current pricing model.
+  const penaltyEur = (hsfo.cost + vlsfo.cost + lsmgo.cost) * rewardFactor;
 
   // Per-leg breakdown (optional)
   const legOutputs: FuelEuLegOutput[] = [];
