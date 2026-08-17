@@ -978,7 +978,8 @@ export function exportVoyageToExcel(data: ExportData) {
   let c_hdd = 0, c_vdd = 0, c_ldd = 0;
   let c_hid = 0, c_vid = 0, c_lid = 0;
   let c_tload = 0, c_tdisch = 0, c_tidle = 0;
-  const rewardFactor = bunker.rewardFactor;
+  // Wind reward factor affects FuelEU GHG intensity only, never consumption.
+  const rewardFactor = 1;
 
   sequence.forEach((leg, idx) => {
     const il = ladenFlags[idx];
