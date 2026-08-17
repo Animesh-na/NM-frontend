@@ -2036,7 +2036,7 @@ export function exportVoyageToExcel(data: ExportData) {
   setSubSectionHeader(r, "FUELEU MARITIME — STATIC PER-TON COST MODEL"); r++;
   setText(0, r, "Coverage basis", S.inputLabel); setText(1, r, "Uses the same EU-covered fuel above: sea 100/50/0 plus EU port stays at 100%.", S.inputText); r++;
   setCalcLabel(r, "Voyage Year", false, false, true); setNum(1, r, results.fuelEuResult.voyageYear, S.envFormula); setNum(2, r, results.fuelEuResult.voyageYear, S.envSoftware); r++;
-  setCalcLabel(r, "GHG Intensity Limit (gCO₂e/MJ)", false, false, true); setNum(1, r, results.fuelEuResult.ghgLimit, S.envFormula); setNum(2, r, results.fuelEuResult.ghgLimit, S.envSoftware); r++;
+  setCalcLabel(r, "GHG Intensity Limit (gCO₂e/MJ)", false, false, true); setNum(1, r, results.fuelEuResult.ghgLimit, S.envFormula); setNum(2, r, results.fuelEuResult.ghgLimit, S.envSoftware); const R_FE_LIMIT = r; r++;
 
   // EU-covered fuel quantities (link back to EU fuel totals)
   setCalcLabel(r, "HSFO EU Fuel (mt)", false, false, true);
