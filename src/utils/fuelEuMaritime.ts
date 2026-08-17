@@ -200,6 +200,7 @@ export function calculateFuelEu(
 ): FuelEuResult {
   const voyageYear = year ?? new Date().getFullYear();
   const ghgLimit = getFuelEuGhgLimit(voyageYear);
+  const perTonne = calculateFuelEuPerTonne(voyageYear);
 
   const build = (fuelType: FuelEuFuelType): FuelEuFuelDetail => {
     const props = FUEL_EU_PROPERTIES[fuelType];
@@ -207,8 +208,8 @@ export function calculateFuelEu(
     // Energy: tonnes × 1e6 g/t × LCV MJ/g  =  MJ
     const euEnergy = qty * 1_000_000 * props.lcv;
     const balance = (ghgLimit - props.ghg) * euEnergy; // gCO2eq
-    const staticCostPerTon = FUEL_EU_STATIC_COST_PER_TON[fuelType];
-    const cost = qty * staticCostPerTon; // USD (static FuelEU cost)
+    const staticCostPerTon = perTonne[fuelType].usdPerTonne; // dynamic $/t
+    const cost = qty * staticCostPerTon; // USD
     return {
       fuelType,
       euQuantity: qty,
