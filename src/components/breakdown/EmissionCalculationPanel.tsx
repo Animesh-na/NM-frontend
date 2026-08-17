@@ -965,8 +965,8 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
             <div className="font-mono font-semibold text-lg text-red-600">${results.ukEtsCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
           </div>
           <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
-            <div className="text-xs text-muted-foreground">FuelEU Penalty</div>
-            <div className="font-mono font-semibold text-lg text-emerald-700">€{results.fuelEuTotalPenalty.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+            <div className="text-xs text-muted-foreground">FuelEU Cost</div>
+            <div className="font-mono font-semibold text-lg text-emerald-700">${results.fuelEuTotalPenalty.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
           </div>
           <div className={`rounded-lg p-3 text-center ${getCiiColor(results.ciiRating)}`}>
             <div className="text-xs text-white/80">CII Rating</div>
