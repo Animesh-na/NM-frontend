@@ -948,7 +948,9 @@ export function exportVoyageToExcel(data: ExportData) {
   // Cell references for input cells (shorthand)
   const B = (row: number) => cellRef(1, row);
   const scrCell = B(R_SCR);
-  const rfCell = B(R_RF);
+  // Wind reward factor cell (FuelEU GHG only). Consumption formulas use 1.
+  const windRfCell = B(R_RF);
+  const rfCell = "1";
   const xSeaCell = B(R_XSEA);
   const xPortCell = B(R_XPORT);
   const xCanalCell = B(R_XCANAL);
@@ -2082,10 +2084,10 @@ export function exportVoyageToExcel(data: ExportData) {
   if (!feH || !feV || !feL) return;
   setCalcLabel(r, "Total EU Energy (MJ)", true); setCalcFormula(r, `${B(feH.energy)}+${B(feV.energy)}+${B(feL.energy)}`, results.fuelEuResult.totalEuEnergy, true); const R_FE_ENERGY = r; r++;
   setCalcLabel(r, "Total Compliance Balance (gCO₂e; negative = deficit)", true); setCalcFormula(r, `${B(feH.balance)}+${B(feV.balance)}+${B(feL.balance)}`, results.fuelEuResult.totalBalance, true); const R_FE_BAL = r; r++;
-  setCalcLabel(r, "Weighted Voyage GHG Intensity (gCO₂e/MJ)", false, false, true); setCalcFormula(r, `IF(${B(R_FE_ENERGY)}>0,(${B(feH.energy)}*${FUEL_EU_PROPERTIES.hsfo.ghg}+${B(feV.energy)}*${FUEL_EU_PROPERTIES.vlsfo.ghg}+${B(feL.energy)}*${FUEL_EU_PROPERTIES.lsmgo.ghg})/${B(R_FE_ENERGY)},0)`, results.fuelEuResult.voyageGhg, false, false, true); const R_FE_GHG = r; r++;
+  setCalcLabel(r, "Weighted Voyage GHG Intensity (gCO₂e/MJ, wind-adjusted)", false, false, true); setCalcFormula(r, `IF(${B(R_FE_ENERGY)}>0,(${B(feH.energy)}*${FUEL_EU_PROPERTIES.hsfo.ghg}+${B(feV.energy)}*${FUEL_EU_PROPERTIES.vlsfo.ghg}+${B(feL.energy)}*${FUEL_EU_PROPERTIES.lsmgo.ghg})/${B(R_FE_ENERGY)}*${windRfCell},0)`, results.fuelEuResult.voyageGhg, false, false, true); const R_FE_GHG = r; r++;
 
   setCalcLabel(r, "FuelEU Total Cost ($)", true);
-  setCalcFormula(r, `(${B(feH.costRow)}+${B(feV.costRow)}+${B(feL.costRow)})*${rfCell}`, results.fuelEuTotalPenalty, true);
+  setCalcFormula(r, `${B(feH.costRow)}+${B(feV.costRow)}+${B(feL.costRow)}`, results.fuelEuTotalPenalty, true);
   const R_FE_TOTAL = r; r++;
 
   // Replace the earlier regulatory source literals with live forward links to
