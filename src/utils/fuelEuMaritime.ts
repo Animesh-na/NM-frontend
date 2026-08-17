@@ -23,14 +23,15 @@ export interface FuelEuFuelProperties {
 
 // Fuel properties per FuelEU Maritime Annex II
 export const FUEL_EU_PROPERTIES: Record<FuelEuFuelType, FuelEuFuelProperties> = {
-  hsfo:  { lcv: 0.0405, wtt: 13.5, ttwCf: 3.1631, wtwCf: 78.1012, ghg: 91.6012 },
-  vlsfo: { lcv: 0.0410, wtt: 13.2, ttwCf: 3.2001, wtwCf: 78.0512, ghg: 91.2512 },
-  lsmgo: { lcv: 0.0427, wtt: 14.4, ttwCf: 3.2551, wtwCf: 76.2319, ghg: 90.6319 },
+  hsfo:  { lcv: 0.0405, wtt: 13.5, ttwCf: 3.1631, wtwCf: 78.1012, ghg: 91.74 },
+  vlsfo: { lcv: 0.0410, wtt: 13.2, ttwCf: 3.2001, wtwCf: 78.0512, ghg: 91.39 },
+  lsmgo: { lcv: 0.0427, wtt: 14.4, ttwCf: 3.2551, wtwCf: 76.2319, ghg: 90.77 },
 };
 
 // Year-specific GHG intensity limits (gCO2eq/MJ)
 export const FUEL_EU_GHG_LIMITS: Array<{ year: number; limit: number }> = [
   { year: 2025, limit: 89.34 },
+  { year: 2026, limit: 89.34 },
   { year: 2030, limit: 85.69 },
   { year: 2035, limit: 77.94 },
   { year: 2040, limit: 62.90 },
@@ -38,18 +39,82 @@ export const FUEL_EU_GHG_LIMITS: Array<{ year: number; limit: number }> = [
   { year: 2050, limit: 18.23 },
 ];
 
-// Static FuelEU per-ton costs (USD/t) — configurable override for current pricing.
-// The user can update these constants later; the engine currently uses them directly
-// to compute FuelEU Maritime costs rather than deriving them from GHG balance.
-export const FUEL_EU_STATIC_COST_PER_TON: Record<FuelEuFuelType, number> = {
-  hsfo: 71.82,
-  vlsfo: 62.32,
-  lsmgo: 45.48,
-};
-
-// Legacy penalty rates retained for reference; static costs are now authoritative.
-export const FUEL_EU_PENALTY_RATE_EUR_PER_MJ = 0.058537;
+// FuelEU penalty factor: €2,400 per 41,000 MJ of VLSFO-equivalent energy.
+export const FUEL_EU_PENALTY_REFERENCE_ENERGY_MJ = 41_000;
 export const FUEL_EU_PENALTY_RATE_EUR_PER_T_CO2EQ = 2400;
+export const FUEL_EU_PENALTY_RATE_EUR_PER_MJ =
+  FUEL_EU_PENALTY_RATE_EUR_PER_T_CO2EQ / FUEL_EU_PENALTY_REFERENCE_ENERGY_MJ; // 0.058536585…
+
+// Configurable EUR → USD conversion rate used to express FuelEU cost in USD.
+export const DEFAULT_EUR_USD_RATE = 1.157;
+
+export interface FuelEuPerTonneDetail {
+  fuelType: FuelEuFuelType;
+  fuelGhgIntensity: number;        // gCO2eq/MJ
+  fuelEuTarget: number;            // gCO2eq/MJ
+  ghgDifference: number;           // gCO2eq/MJ
+  energyPerTonneMj: number;        // MJ/t
+  complianceDeficitGco2eq: number; // gCO2eq/t
+  equivalentEnergyMj: number;      // MJ
+  eurPerTonne: number;             // €/t
+  usdPerTonne: number;             // $/t
+  eurUsdRate: number;
+}
+
+/**
+ * Dynamic FuelEU Maritime penalty per tonne of each fuel.
+ * Pure fuel-specific sensitivity — no EU ETS / CII / voyage compliance logic.
+ */
+export function calculateFuelEuPerTonne(
+  year?: number,
+  eurUsdRate: number = DEFAULT_EUR_USD_RATE
+): Record<FuelEuFuelType, FuelEuPerTonneDetail> {
+  const target = getFuelEuGhgLimit(year);
+  const build = (fuelType: FuelEuFuelType): FuelEuPerTonneDetail => {
+    const props = FUEL_EU_PROPERTIES[fuelType];
+    const ghgDifference = props.ghg - target;
+    const energyPerTonneMj = props.lcv * 1_000_000;
+    if (ghgDifference <= 0) {
+      return {
+        fuelType,
+        fuelGhgIntensity: props.ghg,
+        fuelEuTarget: target,
+        ghgDifference,
+        energyPerTonneMj,
+        complianceDeficitGco2eq: 0,
+        equivalentEnergyMj: 0,
+        eurPerTonne: 0,
+        usdPerTonne: 0,
+        eurUsdRate,
+      };
+    }
+    const complianceDeficitGco2eq = ghgDifference * energyPerTonneMj;
+    const equivalentEnergyMj = complianceDeficitGco2eq / props.ghg;
+    const eurPerTonne = equivalentEnergyMj * FUEL_EU_PENALTY_RATE_EUR_PER_MJ;
+    return {
+      fuelType,
+      fuelGhgIntensity: props.ghg,
+      fuelEuTarget: target,
+      ghgDifference,
+      energyPerTonneMj,
+      complianceDeficitGco2eq,
+      equivalentEnergyMj,
+      eurPerTonne,
+      usdPerTonne: eurPerTonne * eurUsdRate,
+      eurUsdRate,
+    };
+  };
+  return { hsfo: build('hsfo'), vlsfo: build('vlsfo'), lsmgo: build('lsmgo') };
+}
+
+/** Convenience: USD per tonne map for a given year / FX rate. */
+export function fuelEuCostPerTonUsd(
+  year?: number,
+  eurUsdRate: number = DEFAULT_EUR_USD_RATE
+): Record<FuelEuFuelType, number> {
+  const d = calculateFuelEuPerTonne(year, eurUsdRate);
+  return { hsfo: d.hsfo.usdPerTonne, vlsfo: d.vlsfo.usdPerTonne, lsmgo: d.lsmgo.usdPerTonne };
+}
 
 /** Select the GHG limit that applies to the given voyage year (piecewise-constant). */
 export function getFuelEuGhgLimit(year?: number): number {
