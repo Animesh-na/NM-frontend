@@ -758,7 +758,8 @@ export function exportVoyageToExcel(data: ExportData) {
   const ballastStartsInEu = sequence[0]?.isEuEea === true;
   const euStartIdx = euWindowValid && ballastStartsInEu && firstLoadIdx > 0 ? 0 : firstLoadIdx;
   const inEuSeaWindow = (i: number) => euWindowValid && i > euStartIdx && i <= lastDischargeIdx;
-  const inEuPortWindow = (i: number) => euWindowValid && i >= euStartIdx && i <= lastDischargeIdx;
+  // Initial load / opening port stay excluded from EU ETS port coverage.
+  const inEuPortWindow = (i: number) => euWindowValid && i > euStartIdx && i <= lastDischargeIdx;
   const computeSeaEuFactor = (legIdx: number): number => {
     const originEu = bracketOriginIsEu[legIdx];
     const destEu = bracketDestIsEu[legIdx];
