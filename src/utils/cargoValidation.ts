@@ -1,4 +1,5 @@
 import type { CargoEntry, SequenceRowUI } from "@/context/VoyageContext";
+import { getCargoRowMap } from "@/utils/cargoRowMapping";
 
 export interface CargoValidationError {
   cargoId: number;
@@ -17,9 +18,14 @@ export interface CargoValidationResult {
 
 const EPS = 0.001; // 1 kg tolerance on MT
 
-function sumQty(rows: SequenceRowUI[], op: "loading" | "discharging", cargoId: number): number {
+function sumQty(
+  rows: SequenceRowUI[],
+  op: "loading" | "discharging",
+  cargoId: number,
+  rowMap: Map<number, number>,
+): number {
   return rows
-    .filter((r) => r.operation === op && (r.assignedCargoIds || []).includes(cargoId))
+    .filter((r) => r.operation === op && rowMap.get(r.id) === cargoId)
     .reduce((s, r) => s + (r.quantity || 0), 0);
 }
 
@@ -27,9 +33,10 @@ export function validateCargoAssignments(
   cargos: CargoEntry[],
   sequence: SequenceRowUI[],
 ): CargoValidationResult {
-  const usesExplicitMapping = sequence.some(
-    (r) => Array.isArray(r.assignedCargoIds) && r.assignedCargoIds.length > 0,
-  );
+  const usesExplicitMapping =
+    cargos.length === 1 ||
+    sequence.some((r) => Array.isArray(r.assignedCargoIds) && r.assignedCargoIds.length > 0);
+  const rowMap = getCargoRowMap(cargos, sequence);
 
   const errors: CargoValidationError[] = [];
   if (!usesExplicitMapping) {
@@ -38,8 +45,8 @@ export function validateCargoAssignments(
 
   cargos.forEach((cargo, idx) => {
     const label = `Cargo #${idx + 1}`;
-    const loaded = sumQty(sequence, "loading", cargo.id);
-    const discharged = sumQty(sequence, "discharging", cargo.id);
+    const loaded = sumQty(sequence, "loading", cargo.id, rowMap);
+    const discharged = sumQty(sequence, "discharging", cargo.id, rowMap);
 
     if (loaded === 0 && discharged === 0) {
       // Cargo not assigned anywhere — skip validation (treated as unused).
@@ -90,10 +97,12 @@ export function getCargoLoadedQuantities(
   sequence: SequenceRowUI[],
 ): Map<number, number> {
   const map = new Map<number, number>();
-  const usesMapping = sequence.some((r) => (r.assignedCargoIds || []).length > 0);
+  const usesMapping =
+    cargos.length === 1 || sequence.some((r) => (r.assignedCargoIds || []).length > 0);
+  const rowMap = getCargoRowMap(cargos, sequence);
 
   if (usesMapping) {
-    cargos.forEach((c) => map.set(c.id, sumQty(sequence, "loading", c.id)));
+    cargos.forEach((c) => map.set(c.id, sumQty(sequence, "loading", c.id, rowMap)));
     return map;
   }
 
