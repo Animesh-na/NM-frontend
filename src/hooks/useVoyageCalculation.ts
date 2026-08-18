@@ -1095,16 +1095,18 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         
         // ── 2/3/4. PORT FUEL: Working + Turn + Extra ──
         // Port coverage is VOYAGE-based (not port-zone based):
-        //   - The port stay inherits the coverage factor of the ARRIVING sea leg
-        //     only (the voyage that brought the vessel to this port).
+        //   - A port physically located in the EU/EEA is always 100% covered.
+        //   - Otherwise the port stay inherits the coverage factor of the
+        //     ARRIVING sea leg (the voyage that brought the vessel there).
         //   - EU → EU voyage  → 100% port coverage (regardless of port zone)
         //   - EU ↔ Non-EU     → 50% port coverage (regardless of port zone)
         //   - Non-EU → Non-EU → 0% (e.g. Paradip → Mongla: sea 0%, port 0%)
         //   - Outside commercial voyage window → 0%
         const arrivingSeaFactor = inEuSeaWindow(index) ? seaEuFactor : 0;
+        const portIsEu = leg.isEuEea === true;
         const portEuFactor = (!currentPortKey || !inEuPortWindow(index))
           ? 0
-          : arrivingSeaFactor;
+          : (portIsEu ? 1.0 : arrivingSeaFactor);
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
