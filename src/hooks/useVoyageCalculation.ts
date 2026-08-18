@@ -1100,9 +1100,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         //     EU load port 100%, non-EU discharge port 0%).
         //   - Outside commercial voyage window → 0%
         const portIsEu = leg.isEuEea === true;
+        // Passing / bunkering waypoints are not commercial calls — they inherit
+        // the arriving sea leg's coverage (e.g. 50% on a Non-EU → EU voyage).
+        const isPassageStop = legOperation === 'pssg' || legOperation === 'passage' || legOperation === 'bunkering';
         const portEuFactor = (!currentPortKey || !inEuPortWindow(index))
           ? 0
-          : (portIsEu ? 1.0 : 0);
+          : (portIsEu ? 1.0 : (isPassageStop ? seaEuFactor : 0));
         
         if (currentPortKey && leg.portDays > 0) {
           const legPortFuel = leg.portFuelType || (hasScrubber ? 'hsfo' : 'vlsfo');
@@ -1184,7 +1187,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           // Port coverage label — port stay inherits the voyage coverage factor
           const portLabel = leg.portDays > 0
             ? (inEuPortWindow(index)
-                ? ` | Port: ${portEuFactor * 100}% (port-zone based)`
+                ? ` | Port: ${portEuFactor * 100}% (${isPassageStop && !portIsEu ? 'passing port — inherits leg factor' : 'port-zone based'})`
                 : ' | Port: excluded (outside cargo voyage)')
             : '';
           
