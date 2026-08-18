@@ -1734,14 +1734,10 @@ export function exportVoyageToExcel(data: ExportData) {
         }
       }
       
-      // Port fuel coverage is VOYAGE-based: the port stay inherits the higher of
-      // the arriving / departing sea-leg factors (EU→EU 100%, EU↔non-EU 50%),
-      // regardless of the port's own eu_zone flag, within the commercial window.
-      void curIsEu;
+      // Port coverage: EU/EEA ports are always 100%; non-EU ports inherit the
+      // arriving sea-leg factor, within the commercial window.
       const arrF = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
-      const depF =
-        curPortKey && idx + 1 < sequence.length && inEuSeaWindow(idx + 1) ? computeSeaEuFactor(idx + 1) : 0;
-      const portEuF = curPortKey && inEuPortWindow(idx) ? Math.max(arrF, depF) : 0;
+      const portEuF = curPortKey && inEuPortWindow(idx) ? (curIsEu ? 1 : arrF) : 0;
       const effLeg = effectiveLeg(leg);
       const effectivePortDays = effLeg.portDays;
       if (curPortKey && portEuF > 0 && effectivePortDays > 0) {
