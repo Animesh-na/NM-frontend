@@ -902,12 +902,13 @@ export function exportVoyageToExcel(data: ExportData) {
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
-    // Port coverage is VOYAGE-based: the port stay inherits the ARRIVING
-    // sea-leg coverage factor only (100% EU→EU, 50% EU↔non-EU, 0% non-EU→non-EU),
-    // regardless of whether the port itself sits in an EU zone.
-    void curIsEu; void curEuCell;
+    // Port coverage: EU/EEA ports are always 100%; non-EU ports inherit the
+    // ARRIVING sea-leg factor (50% EU↔non-EU, 0% non-EU→non-EU).
+    void curEuCell;
     const arrivingFactor = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
-    const euPortFactorVal = curPortKey && inEuPortWindow(idx) ? arrivingFactor : 0;
+    const euPortFactorVal = curPortKey && inEuPortWindow(idx)
+      ? (curIsEu ? 1 : arrivingFactor)
+      : 0;
     setFormula(SC.EUPORT, rr, `${euPortFactorVal}`, euPortFactorVal, fStyle);
 
     // Turn time in days
@@ -1733,14 +1734,10 @@ export function exportVoyageToExcel(data: ExportData) {
         }
       }
       
-      // Port fuel coverage is VOYAGE-based: the port stay inherits the higher of
-      // the arriving / departing sea-leg factors (EU→EU 100%, EU↔non-EU 50%),
-      // regardless of the port's own eu_zone flag, within the commercial window.
-      void curIsEu;
+      // Port coverage: EU/EEA ports are always 100%; non-EU ports inherit the
+      // arriving sea-leg factor, within the commercial window.
       const arrF = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
-      const depF =
-        curPortKey && idx + 1 < sequence.length && inEuSeaWindow(idx + 1) ? computeSeaEuFactor(idx + 1) : 0;
-      const portEuF = curPortKey && inEuPortWindow(idx) ? Math.max(arrF, depF) : 0;
+      const portEuF = curPortKey && inEuPortWindow(idx) ? (curIsEu ? 1 : arrF) : 0;
       const effLeg = effectiveLeg(leg);
       const effectivePortDays = effLeg.portDays;
       if (curPortKey && portEuF > 0 && effectivePortDays > 0) {
