@@ -1736,8 +1736,13 @@ export function exportVoyageToExcel(data: ExportData) {
         }
       }
       
-      // Port coverage: EU/EEA ports 100%; non-EU ports 0%, within the window.
-      const portEuF = curPortKey && inEuPortWindow(idx) ? (curIsEu ? 1 : 0) : 0;
+      // Port coverage: EU/EEA ports 100%; non-EU commercial calls 0%;
+      // passing / bunkering waypoints inherit the arriving sea leg factor.
+      const isPassageStopLeg = legOp === 'pssg' || legOp === 'passage' || legOp === 'bunkering';
+      const seaFactorHere = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
+      const portEuF = curPortKey && inEuPortWindow(idx)
+        ? (curIsEu ? 1 : (isPassageStopLeg ? seaFactorHere : 0))
+        : 0;
       const effLeg = effectiveLeg(leg);
       const effectivePortDays = effLeg.portDays;
       if (curPortKey && portEuF > 0 && effectivePortDays > 0) {
