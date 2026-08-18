@@ -1184,7 +1184,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           // Port coverage label — port stay inherits the voyage coverage factor
           const portLabel = leg.portDays > 0
             ? (inEuPortWindow(index)
-                ? ` | Port: ${portEuFactor * 100}% (voyage-based)`
+                ? ` | Port: ${portEuFactor * 100}% (port-zone based)`
                 : ' | Port: excluded (outside cargo voyage)')
             : '';
           
