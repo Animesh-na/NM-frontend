@@ -902,10 +902,14 @@ export function exportVoyageToExcel(data: ExportData) {
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
-    // Port coverage: EU/EEA ports are 100%; non-EU ports are 0%.
+    // Port coverage: EU/EEA ports are 100%; non-EU commercial calls are 0%;
+    // passing / bunkering waypoints inherit the arriving sea leg factor (e.g. 50%).
     void curEuCell;
+    const isPassageStopRow = ["pssg", "passage", "bunkering"].includes(
+      String(leg.operation || "").toLowerCase(),
+    );
     const euPortFactorVal = curPortKey && inEuPortWindow(idx)
-      ? (curIsEu ? 1 : 0)
+      ? (curIsEu ? 1 : (isPassageStopRow ? euSeaFactorVal : 0))
       : 0;
     setFormula(SC.EUPORT, rr, `${euPortFactorVal}`, euPortFactorVal, fStyle);
 
