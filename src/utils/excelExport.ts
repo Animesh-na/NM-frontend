@@ -902,12 +902,13 @@ export function exportVoyageToExcel(data: ExportData) {
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
-    // Port coverage is VOYAGE-based: the port stay inherits the ARRIVING
-    // sea-leg coverage factor only (100% EU→EU, 50% EU↔non-EU, 0% non-EU→non-EU),
-    // regardless of whether the port itself sits in an EU zone.
-    void curIsEu; void curEuCell;
+    // Port coverage: EU/EEA ports are always 100%; non-EU ports inherit the
+    // ARRIVING sea-leg factor (50% EU↔non-EU, 0% non-EU→non-EU).
+    void curEuCell;
     const arrivingFactor = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
-    const euPortFactorVal = curPortKey && inEuPortWindow(idx) ? arrivingFactor : 0;
+    const euPortFactorVal = curPortKey && inEuPortWindow(idx)
+      ? (curIsEu ? 1 : arrivingFactor)
+      : 0;
     setFormula(SC.EUPORT, rr, `${euPortFactorVal}`, euPortFactorVal, fStyle);
 
     // Turn time in days
