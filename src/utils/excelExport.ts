@@ -902,12 +902,10 @@ export function exportVoyageToExcel(data: ExportData) {
     const euSeaFactorFormula = `${euSeaFactorVal}`;
     setFormula(SC.EUSEA, rr, euSeaFactorFormula, euSeaFactorVal, fStyle);
 
-    // Port coverage: EU/EEA ports are always 100%; non-EU ports inherit the
-    // ARRIVING sea-leg factor (50% EU↔non-EU, 0% non-EU→non-EU).
+    // Port coverage: EU/EEA ports are 100%; non-EU ports are 0%.
     void curEuCell;
-    const arrivingFactor = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
     const euPortFactorVal = curPortKey && inEuPortWindow(idx)
-      ? (curIsEu ? 1 : arrivingFactor)
+      ? (curIsEu ? 1 : 0)
       : 0;
     setFormula(SC.EUPORT, rr, `${euPortFactorVal}`, euPortFactorVal, fStyle);
 
@@ -1734,10 +1732,8 @@ export function exportVoyageToExcel(data: ExportData) {
         }
       }
       
-      // Port coverage: EU/EEA ports are always 100%; non-EU ports inherit the
-      // arriving sea-leg factor, within the commercial window.
-      const arrF = curPortKey && inEuSeaWindow(idx) ? computeSeaEuFactor(idx) : 0;
-      const portEuF = curPortKey && inEuPortWindow(idx) ? (curIsEu ? 1 : arrF) : 0;
+      // Port coverage: EU/EEA ports 100%; non-EU ports 0%, within the window.
+      const portEuF = curPortKey && inEuPortWindow(idx) ? (curIsEu ? 1 : 0) : 0;
       const effLeg = effectiveLeg(leg);
       const effectivePortDays = effLeg.portDays;
       if (curPortKey && portEuF > 0 && effectivePortDays > 0) {
