@@ -887,7 +887,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const inEuSeaWindow = (i: number) => euWindowValid && i > euStartIdx && i <= lastDischargeIdx;
     // Port stays include first load through last discharge (inclusive).
     // The initial load / opening port stay is NOT counted for EU ETS port coverage.
-    const inEuPortWindow = (i: number) => euWindowValid && i > euStartIdx && i <= lastDischargeIdx;
+    const inEuPortWindow = (i: number) => euWindowValid && i >= euStartIdx && i <= lastDischargeIdx;
 
     // Build one informational sea leg per actual regulatory port call. Passage
     // rows between calls are grouped into the surrounding commercial leg.
