@@ -1829,6 +1829,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         return f < 1 ? 1 : f;
       })(),
       portFuelType: row.portFuelType, // Port fuel type per leg
+      distanceSpeedContext: row.distanceSpeedContext, // non-ECA speed/fuel context
+      ecaDistanceSpeedContext: row.ecaDistanceSpeedContext, // ECA speed/fuel context
       isEuEea: row.isEuEea, // EU/EEA flag from port API
       ukEts: row.ukEts,
       ukZone: row.ukZone ?? null,
