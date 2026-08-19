@@ -183,9 +183,10 @@ export function SequenceTable() {
     setSequence(prev => prev.map(row => {
       if (row.id !== id) return row;
       const updated = { ...row, port: port?.name || "", portUnloc: port?.unloc || "", portId: port?.id, coordinates: port?.coordinates, isEuEea: port?.isEuEea, portCountry: port?.country, ukEts: port?.ukEts, ukZone: port?.ukZone ?? null };
-      // Auto-set port fuel to LSMGO if port is in ECA zone
+      // Auto-set port fuel to LSMGO in ECA zones — unless the vessel has a
+      // scrubber, in which case it may burn HSFO inside ECA too.
       if (port?.ecaZone) {
-        updated.portFuelType = "lsmgo";
+        updated.portFuelType = vessel.hasScrubber ? "hsfo" : "lsmgo";
       }
       return updated;
     }));
