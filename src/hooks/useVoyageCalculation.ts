@@ -336,6 +336,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let ecaSeaDaysLaden = 0;
     let nonEcaSeaDaysBallast = 0;
     let nonEcaSeaDaysLaden = 0;
+    // Same sea days, but bucketed by the fuel the leg's speed context selects.
+    // Scrubber vessels may burn HSFO inside ECA zones too.
+    const seaDaysByFuel: Record<"hsfo" | "vlsfo" | "lsmgo", { ballast: number; laden: number }> = {
+      hsfo: { ballast: 0, laden: 0 },
+      vlsfo: { ballast: 0, laden: 0 },
+      lsmgo: { ballast: 0, laden: 0 },
+    };
     
     // Track operation-specific time for detailed consumption
     // Split by port fuel type selection
@@ -397,6 +404,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         seaDaysBallast += legSeaTime;
         ecaSeaDaysBallast += legEcaTime;
         nonEcaSeaDaysBallast += legNonEcaTime;
+      }
+
+      {
+        const side = legIsLaden ? "laden" : "ballast";
+        const nonEcaFuel = contextFuel(leg.distanceSpeedContext, hasScrubber ? "hsfo" : "vlsfo");
+        const ecaFuel = contextFuel(leg.ecaDistanceSpeedContext, "lsmgo");
+        seaDaysByFuel[nonEcaFuel][side] += legNonEcaTime;
+        seaDaysByFuel[ecaFuel][side] += legEcaTime;
       }
 
       // Port time breakdown
