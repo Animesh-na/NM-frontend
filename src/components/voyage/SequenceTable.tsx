@@ -20,6 +20,7 @@ import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { toast } from "@/hooks/use-toast";
 import { getFieldId } from "@/utils/validation";
 import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
+import { buildContext, contextFuel, contextProfile, FUEL_LABEL, type ContextFuel } from "@/utils/speedContext";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
@@ -36,15 +37,66 @@ const termsOptions = [
   { value: "custom", label: "custom" },
 ];
 
-const getDistanceSpeedContextOptions = (hasScrubber: boolean): { value: SpeedContext; label: string }[] =>
-  hasScrubber
-    ? [{ value: "EH", label: "EH" }, { value: "FH", label: "FH" }]
-    : [{ value: "EV", label: "EV" }, { value: "FV", label: "FV" }];
-
-const ecaDistanceSpeedContextOptions: { value: SpeedContext; label: string }[] = [
-  { value: "EL", label: "EL" },
-  { value: "FL", label: "FL" },
-];
+/**
+ * Speed/fuel context picker — a small popup with two dropdowns:
+ *   1. speed profile (Eco / Full)
+ *   2. fuel (VLSFO / LSMGO / HSFO + Scrubber)
+ * HSFO is only selectable when the vessel is scrubber-fitted; such vessels may
+ * also burn HSFO inside ECA zones.
+ */
+function SpeedContextPicker({
+  value,
+  hasScrubber,
+  onChange,
+}: {
+  value: SpeedContext;
+  hasScrubber: boolean;
+  onChange: (v: SpeedContext) => void;
+}) {
+  const profile = contextProfile(value);
+  const fuel = contextFuel(value, "vlsfo");
+  const set = (p: "eco" | "full", f: ContextFuel) => onChange(buildContext(p, f) as SpeedContext);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          title={`${profile === "eco" ? "Eco" : "Full"} speed · ${FUEL_LABEL[fuel]}`}
+          className="form-select-sm w-[46px] text-[10px] font-mono text-center hover:bg-muted"
+        >
+          {value}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-52 p-2 space-y-2 z-50 bg-popover">
+        <div>
+          <div className="text-[10px] text-muted-foreground mb-0.5">Speed</div>
+          <select
+            className="form-select-sm w-full text-[11px]"
+            value={profile}
+            onChange={(e) => set(e.target.value as "eco" | "full", fuel)}
+          >
+            <option value="full">Full Speed</option>
+            <option value="eco">Eco Speed</option>
+          </select>
+        </div>
+        <div>
+          <div className="text-[10px] text-muted-foreground mb-0.5">Fuel</div>
+          <select
+            className="form-select-sm w-full text-[11px]"
+            value={fuel}
+            onChange={(e) => set(profile, e.target.value as ContextFuel)}
+          >
+            <option value="vlsfo">VLSFO</option>
+            <option value="lsmgo">LSMGO</option>
+            <option value="hsfo" disabled={!hasScrubber}>
+              HSFO + Scrubber{hasScrubber ? "" : " (no scrubber)"}
+            </option>
+          </select>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function SequenceTable() {
   const { 
@@ -370,13 +422,11 @@ export function SequenceTable() {
                             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground mx-auto" />
                           ) : (
                             <div className="flex items-center gap-0.5">
-                              <select
-                                className="form-select-sm w-[52px] text-[10px]"
+                              <SpeedContextPicker
                                 value={row.distanceSpeedContext}
-                                onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value)}
-                              >
-                                {getDistanceSpeedContextOptions(!!vessel.hasScrubber).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                              </select>
+                                hasScrubber={!!vessel.hasScrubber}
+                                onChange={(v) => updateSequenceRow(row.id, "distanceSpeedContext", v)}
+                              />
                               {(() => { const err = getFieldError("sequence","distance",row.id); return (
                               <input id={getFieldId("sequence","distance",row.id)} aria-invalid={!!err} title={err}
                                 type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
@@ -391,10 +441,11 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                           <div className="flex items-center gap-0.5">
-                            <select className="form-select-sm w-[52px] text-[10px]" value={row.ecaDistanceSpeedContext}
-                              onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value)}>
-                              {ecaDistanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            </select>
+                            <SpeedContextPicker
+                              value={row.ecaDistanceSpeedContext}
+                              hasScrubber={!!vessel.hasScrubber}
+                              onChange={(v) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", v)}
+                            />
                             {(() => { const err = getFieldError("sequence","ecaDistance",row.id); return (
                             <input id={getFieldId("sequence","ecaDistance",row.id)} aria-invalid={!!err} title={err}
                               type="number" className={`form-input-sm w-12 font-mono text-right text-[10px] ${errCls(err)}`}

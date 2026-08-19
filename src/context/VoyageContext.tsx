@@ -993,13 +993,22 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   // separate from setVessel prevents sheet hydration and API updates from rewriting rows.
   const syncSequenceSpeedContexts = useCallback((speedProfile: "eco" | "full", hasScrubber: boolean) => {
     const prefix = speedProfile === "eco" ? "E" : "F";
-    const nonEca = `${prefix}${hasScrubber ? "H" : "V"}` as SpeedContext;
-    const eca = `${prefix}L` as SpeedContext;
-    setSequence(rows => rows.map(row => (
-      row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca
+    // Keep the user's per-row fuel letter, only re-map the speed prefix.
+    // HSFO is downgraded when the vessel has no scrubber.
+    const remap = (ctx: string, fallbackFuel: "H" | "V" | "L"): SpeedContext => {
+      let fuel = (ctx || "").toUpperCase().slice(1, 2) || fallbackFuel;
+      if (fuel === "H" && !hasScrubber) fuel = fallbackFuel === "L" ? "L" : "V";
+      if (!hasScrubber && fuel === "H") fuel = "V";
+      if (fuel !== "H" && fuel !== "V" && fuel !== "L") fuel = fallbackFuel;
+      return `${prefix}${fuel}` as SpeedContext;
+    };
+    setSequence(rows => rows.map(row => {
+      const nonEca = remap(row.distanceSpeedContext, hasScrubber ? "H" : "V");
+      const eca = remap(row.ecaDistanceSpeedContext, "L");
+      return row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca
         ? row
-        : { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca }
-    )));
+        : { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca };
+    }));
   }, []);
 
   const removeSequence = useCallback((id: number) => {
@@ -1820,6 +1829,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         return f < 1 ? 1 : f;
       })(),
       portFuelType: row.portFuelType, // Port fuel type per leg
+      distanceSpeedContext: row.distanceSpeedContext, // non-ECA speed/fuel context
+      ecaDistanceSpeedContext: row.ecaDistanceSpeedContext, // ECA speed/fuel context
       isEuEea: row.isEuEea, // EU/EEA flag from port API
       ukEts: row.ukEts,
       ukZone: row.ukZone ?? null,

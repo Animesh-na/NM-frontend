@@ -30,6 +30,7 @@ import {
   type UkEtsLegDetail,
   type UkZone,
 } from "@/utils/ukEtsCalculations";
+import { contextFuel } from "@/utils/speedContext";
 
 // Types for voyage calculation inputs
 export interface SequenceRow {
@@ -58,6 +59,9 @@ export interface SequenceRow {
   termsFactor?: number;
   // Port fuel type selection
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
+  // Per-leg speed/fuel contexts (e.g. "EV", "FH", "EL")
+  distanceSpeedContext?: string;
+  ecaDistanceSpeedContext?: string;
   // EU/EEA flag from port API
   isEuEea?: boolean;
   // UK ETS flags from port API (independent from EU ETS)
@@ -333,6 +337,13 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let ecaSeaDaysLaden = 0;
     let nonEcaSeaDaysBallast = 0;
     let nonEcaSeaDaysLaden = 0;
+    // Same sea days, but bucketed by the fuel the leg's speed context selects.
+    // Scrubber vessels may burn HSFO inside ECA zones too.
+    const seaDaysByFuel: Record<"hsfo" | "vlsfo" | "lsmgo", { ballast: number; laden: number }> = {
+      hsfo: { ballast: 0, laden: 0 },
+      vlsfo: { ballast: 0, laden: 0 },
+      lsmgo: { ballast: 0, laden: 0 },
+    };
     
     // Track operation-specific time for detailed consumption
     // Split by port fuel type selection
@@ -394,6 +405,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         seaDaysBallast += legSeaTime;
         ecaSeaDaysBallast += legEcaTime;
         nonEcaSeaDaysBallast += legNonEcaTime;
+      }
+
+      {
+        const side = legIsLaden ? "laden" : "ballast";
+        const nonEcaFuel = contextFuel(leg.distanceSpeedContext, hasScrubber ? "hsfo" : "vlsfo");
+        const ecaFuel = contextFuel(leg.ecaDistanceSpeedContext, "lsmgo");
+        seaDaysByFuel[nonEcaFuel][side] += legNonEcaTime;
+        seaDaysByFuel[ecaFuel][side] += legEcaTime;
       }
 
       // Port time breakdown
@@ -520,29 +539,27 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const totalNonEcaSeaDays = nonEcaSeaDaysBallast + nonEcaSeaDaysLaden;
     // hasScrubber moved above sequence loop
     
-    // --- Non-ECA Sea Consumption ---
-    // If scrubber: use HSFO rates, VLSFO = 0
-    // If no scrubber: use VLSFO rates, HSFO = 0
-    const hsfoSeaBallastNonEca = hasScrubber ? nonEcaSeaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0) : 0;
-    const hsfoSeaLadenNonEca = hasScrubber ? nonEcaSeaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0) : 0;
+    // --- Sea Consumption by fuel, driven by each leg's speed/fuel context ---
+    // Scrubber vessels may select HSFO for ECA legs as well (EH / FH).
+    const hsfoSeaBallastNonEca = seaDaysByFuel.hsfo.ballast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0);
+    const hsfoSeaLadenNonEca = seaDaysByFuel.hsfo.laden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
     const hsfoSeaExtraNonEca = hasScrubber ? extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0) : 0;
     const hsfoSeaTotal = (hsfoSeaBallastNonEca + hsfoSeaLadenNonEca + hsfoSeaExtraNonEca) * rewardFactor;
     
-    const vlsfoSeaBallastNonEca = !hasScrubber ? nonEcaSeaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0) : 0;
-    const vlsfoSeaLadenNonEca = !hasScrubber ? nonEcaSeaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0) : 0;
+    const vlsfoSeaBallastNonEca = seaDaysByFuel.vlsfo.ballast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0);
+    const vlsfoSeaLadenNonEca = seaDaysByFuel.vlsfo.laden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
     const vlsfoSeaExtraNonEca = !hasScrubber ? extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0) : 0;
     const vlsfoSeaTotal = (vlsfoSeaBallastNonEca + vlsfoSeaLadenNonEca + vlsfoSeaExtraNonEca) * rewardFactor;
     
     // Non-ECA LSMGO: ZERO — LSMGO is only used inside ECA zones
     const lsmgoSeaNonEcaTotal = 0;
     
-    // --- ECA Sea Consumption (LSMGO only — uses LSMGO matrix rate directly) ---
-    // In ECA zones, HSFO/VLSFO = 0, vessel burns LSMGO at the rate defined in the matrix
+    // --- LSMGO sea consumption (legs whose context selects LSMGO — normally ECA) ---
     const ecaLsmgoBallastRate = profile.lsmgo.ballast || 0;
     const ecaLsmgoLadenRate = profile.lsmgo.laden || 0;
     const lsmgoEcaFromHsfoVlsfo = (
-      ecaSeaDaysBallast * ecaLsmgoBallastRate + 
-      ecaSeaDaysLaden * ecaLsmgoLadenRate
+      seaDaysByFuel.lsmgo.ballast * ecaLsmgoBallastRate +
+      seaDaysByFuel.lsmgo.laden * ecaLsmgoLadenRate
     ) * rewardFactor;
     
     // Total LSMGO sea consumption = ECA only (no LSMGO outside ECA)
@@ -1061,16 +1078,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const legNonEcaTime = leg.nonEcaTime || ((leg.seaTime || 0) - (leg.ecaTime || 0));
           const legEcaTime = leg.ecaTime || 0;
           
-          if (hasScrubber) {
-            const rate = legIsLaden ? (profile.hsfo.laden || 0) : (profile.hsfo.ballast || 0);
-            legSeaHsfo = legNonEcaTime * rate * rewardFactor;
-          } else {
-            const rate = legIsLaden ? (profile.vlsfo.laden || 0) : (profile.vlsfo.ballast || 0);
-            legSeaVlsfo = legNonEcaTime * rate * rewardFactor;
-          }
-          
-          const ecaRate = legIsLaden ? (profile.lsmgo.laden || 0) : (profile.lsmgo.ballast || 0);
-          const segLsmgoEca = legEcaTime * ecaRate * rewardFactor;
+          const rateFor = (f: "hsfo" | "vlsfo" | "lsmgo") =>
+            legIsLaden ? (profile[f].laden || 0) : (profile[f].ballast || 0);
+          const legNonEcaFuel = contextFuel(leg.distanceSpeedContext, hasScrubber ? "hsfo" : "vlsfo");
+          const legEcaFuel = contextFuel(leg.ecaDistanceSpeedContext, "lsmgo");
+          let segLsmgoEca = 0;
+          const addSea = (fuel: "hsfo" | "vlsfo" | "lsmgo", days: number) => {
+            const mt = days * rateFor(fuel) * rewardFactor;
+            if (fuel === "hsfo") legSeaHsfo += mt;
+            else if (fuel === "vlsfo") legSeaVlsfo += mt;
+            else segLsmgoEca += mt;
+          };
+          addSea(legNonEcaFuel, legNonEcaTime);
+          addSea(legEcaFuel, legEcaTime);
           
           const aeRates = hasScrubber ? profile.aeScrubber : profile.ae;
           const aeRate = legIsLaden ? (aeRates.laden || 0) : (aeRates.ballast || 0);
