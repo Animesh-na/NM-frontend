@@ -58,6 +58,9 @@ export interface SequenceRow {
   termsFactor?: number;
   // Port fuel type selection
   portFuelType?: "hsfo" | "vlsfo" | "lsmgo";
+  // Per-leg speed/fuel contexts (e.g. "EV", "FH", "EL")
+  distanceSpeedContext?: string;
+  ecaDistanceSpeedContext?: string;
   // EU/EEA flag from port API
   isEuEea?: boolean;
   // UK ETS flags from port API (independent from EU ETS)
