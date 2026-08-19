@@ -36,15 +36,66 @@ const termsOptions = [
   { value: "custom", label: "custom" },
 ];
 
-const getDistanceSpeedContextOptions = (hasScrubber: boolean): { value: SpeedContext; label: string }[] =>
-  hasScrubber
-    ? [{ value: "EH", label: "EH" }, { value: "FH", label: "FH" }]
-    : [{ value: "EV", label: "EV" }, { value: "FV", label: "FV" }];
-
-const ecaDistanceSpeedContextOptions: { value: SpeedContext; label: string }[] = [
-  { value: "EL", label: "EL" },
-  { value: "FL", label: "FL" },
-];
+/**
+ * Speed/fuel context picker — a small popup with two dropdowns:
+ *   1. speed profile (Eco / Full)
+ *   2. fuel (VLSFO / LSMGO / HSFO + Scrubber)
+ * HSFO is only selectable when the vessel is scrubber-fitted; such vessels may
+ * also burn HSFO inside ECA zones.
+ */
+function SpeedContextPicker({
+  value,
+  hasScrubber,
+  onChange,
+}: {
+  value: SpeedContext;
+  hasScrubber: boolean;
+  onChange: (v: SpeedContext) => void;
+}) {
+  const profile = contextProfile(value);
+  const fuel = contextFuel(value, "vlsfo");
+  const set = (p: "eco" | "full", f: ContextFuel) => onChange(buildContext(p, f) as SpeedContext);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          title={`${profile === "eco" ? "Eco" : "Full"} speed · ${FUEL_LABEL[fuel]}`}
+          className="form-select-sm w-[46px] text-[10px] font-mono text-center hover:bg-muted"
+        >
+          {value}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-52 p-2 space-y-2 z-50 bg-popover">
+        <div>
+          <div className="text-[10px] text-muted-foreground mb-0.5">Speed</div>
+          <select
+            className="form-select-sm w-full text-[11px]"
+            value={profile}
+            onChange={(e) => set(e.target.value as "eco" | "full", fuel)}
+          >
+            <option value="full">Full Speed</option>
+            <option value="eco">Eco Speed</option>
+          </select>
+        </div>
+        <div>
+          <div className="text-[10px] text-muted-foreground mb-0.5">Fuel</div>
+          <select
+            className="form-select-sm w-full text-[11px]"
+            value={fuel}
+            onChange={(e) => set(profile, e.target.value as ContextFuel)}
+          >
+            <option value="vlsfo">VLSFO</option>
+            <option value="lsmgo">LSMGO</option>
+            <option value="hsfo" disabled={!hasScrubber}>
+              HSFO + Scrubber{hasScrubber ? "" : " (no scrubber)"}
+            </option>
+          </select>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function SequenceTable() {
   const { 
