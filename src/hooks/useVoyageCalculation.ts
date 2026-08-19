@@ -30,6 +30,7 @@ import {
   type UkEtsLegDetail,
   type UkZone,
 } from "@/utils/ukEtsCalculations";
+import { contextFuel } from "@/utils/speedContext";
 
 // Types for voyage calculation inputs
 export interface SequenceRow {
