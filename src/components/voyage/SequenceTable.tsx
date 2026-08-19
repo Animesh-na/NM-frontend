@@ -20,6 +20,7 @@ import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { toast } from "@/hooks/use-toast";
 import { getFieldId } from "@/utils/validation";
 import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
+import { buildContext, contextFuel, contextProfile, FUEL_LABEL, type ContextFuel } from "@/utils/speedContext";
 
 const seasonOptions: { value: Season; label: string }[] = [
   { value: "summer", label: "Summer" },
