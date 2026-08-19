@@ -1,5 +1,6 @@
 import type { SequenceRowUI } from "@/context/VoyageContext";
 import type { VesselData } from "@/data/vessels";
+import { contextFuel } from "@/utils/speedContext";
 
 /**
  * Shared per-leg / per-port fuel breakdown.
@@ -117,13 +118,16 @@ export function computeLegSeaFuel(
 
     let meHsfo = 0;
     let meVlsfo = 0;
-    if (hasScrubber) {
-      meHsfo = nonEcaDays * (isLaden ? profile.hsfo.laden || 0 : profile.hsfo.ballast || 0) * rf;
-    } else {
-      meVlsfo = nonEcaDays * (isLaden ? profile.vlsfo.laden || 0 : profile.vlsfo.ballast || 0) * rf;
-    }
-    const meLsmgoEca =
-      ecaDays * (isLaden ? profile.lsmgo.laden || 0 : profile.lsmgo.ballast || 0) * rf;
+    let meLsmgoEca = 0;
+    const rateFor = (f: FuelKey) => (isLaden ? profile[f].laden || 0 : profile[f].ballast || 0);
+    const addSea = (f: FuelKey, days: number) => {
+      const mt = days * rateFor(f) * rf;
+      if (f === "hsfo") meHsfo += mt;
+      else if (f === "vlsfo") meVlsfo += mt;
+      else meLsmgoEca += mt;
+    };
+    addSea(contextFuel(r.distanceSpeedContext, hasScrubber ? "hsfo" : "vlsfo"), nonEcaDays);
+    addSea(contextFuel(r.ecaDistanceSpeedContext, "lsmgo"), ecaDays);
     const aeLsmgo =
       (nonEcaDays + ecaDays) * (isLaden ? aeProfile.laden || 0 : aeProfile.ballast || 0) * rf;
 
