@@ -1078,16 +1078,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           const legNonEcaTime = leg.nonEcaTime || ((leg.seaTime || 0) - (leg.ecaTime || 0));
           const legEcaTime = leg.ecaTime || 0;
           
-          if (hasScrubber) {
-            const rate = legIsLaden ? (profile.hsfo.laden || 0) : (profile.hsfo.ballast || 0);
-            legSeaHsfo = legNonEcaTime * rate * rewardFactor;
-          } else {
-            const rate = legIsLaden ? (profile.vlsfo.laden || 0) : (profile.vlsfo.ballast || 0);
-            legSeaVlsfo = legNonEcaTime * rate * rewardFactor;
-          }
-          
-          const ecaRate = legIsLaden ? (profile.lsmgo.laden || 0) : (profile.lsmgo.ballast || 0);
-          const segLsmgoEca = legEcaTime * ecaRate * rewardFactor;
+          const rateFor = (f: "hsfo" | "vlsfo" | "lsmgo") =>
+            legIsLaden ? (profile[f].laden || 0) : (profile[f].ballast || 0);
+          const legNonEcaFuel = contextFuel(leg.distanceSpeedContext, hasScrubber ? "hsfo" : "vlsfo");
+          const legEcaFuel = contextFuel(leg.ecaDistanceSpeedContext, "lsmgo");
+          let segLsmgoEca = 0;
+          const addSea = (fuel: "hsfo" | "vlsfo" | "lsmgo", days: number) => {
+            const mt = days * rateFor(fuel) * rewardFactor;
+            if (fuel === "hsfo") legSeaHsfo += mt;
+            else if (fuel === "vlsfo") legSeaVlsfo += mt;
+            else segLsmgoEca += mt;
+          };
+          addSea(legNonEcaFuel, legNonEcaTime);
+          addSea(legEcaFuel, legEcaTime);
           
           const aeRates = hasScrubber ? profile.aeScrubber : profile.ae;
           const aeRate = legIsLaden ? (aeRates.laden || 0) : (aeRates.ballast || 0);
