@@ -258,6 +258,8 @@ export interface FifoCoverageRow {
   extraTime?: number;
   portFuelType?: FuelKey;
   quantity?: number;
+  distanceSpeedContext?: string;
+  ecaDistanceSpeedContext?: string;
   terms?: string | null;
   coefficientFactor?: number | null;
 }
@@ -356,15 +358,11 @@ export function computeFifoCoverage(
       const nonEcaDays =
         r.nonEcaTime ?? r.seaTime ?? Math.max(0, (r.totalLegTime || 0) - ecaDays);
 
-      if (hasScrubber) {
-        coverage.hsfo[seg] +=
-          nonEcaDays * (isLaden ? profile.hsfo.laden || 0 : profile.hsfo.ballast || 0) * rf;
-      } else {
-        coverage.vlsfo[seg] +=
-          nonEcaDays * (isLaden ? profile.vlsfo.laden || 0 : profile.vlsfo.ballast || 0) * rf;
-      }
-      coverage.lsmgo[seg] +=
-        ecaDays * (isLaden ? profile.lsmgo.laden || 0 : profile.lsmgo.ballast || 0) * rf;
+      const addSeg = (f: FuelKey, days: number) => {
+        coverage[f][seg] += days * (isLaden ? profile[f].laden || 0 : profile[f].ballast || 0) * rf;
+      };
+      addSeg(contextFuel(r.distanceSpeedContext, hasScrubber ? "hsfo" : "vlsfo"), nonEcaDays);
+      addSeg(contextFuel(r.ecaDistanceSpeedContext, "lsmgo"), ecaDays);
       coverage.lsmgo[seg] +=
         (nonEcaDays + ecaDays) *
         (isLaden ? aeProfile.laden || 0 : aeProfile.ballast || 0) *
