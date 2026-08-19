@@ -576,7 +576,8 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   distance: 0,
   distanceSpeedContext: (speedProfile === "eco" ? "E" : "F") + (hasScrubber ? "H" : "V") as SpeedContext, // Non-ECA speed context
   ecaDistance: 0,
-  ecaDistanceSpeedContext: speedProfile === "eco" ? "EL" : "FL", // ECA speed context
+  // Scrubber-fitted vessels may burn HSFO inside ECA zones too → default EH/FH
+  ecaDistanceSpeedContext: (speedProfile === "eco" ? "E" : "F") + (hasScrubber ? "H" : "L") as SpeedContext,
   baseSeaTime: 0,
   seaMarginTime: 0,
   ecaTime: 0,
