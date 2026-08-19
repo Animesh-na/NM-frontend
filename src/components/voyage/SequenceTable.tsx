@@ -422,13 +422,11 @@ export function SequenceTable() {
                             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground mx-auto" />
                           ) : (
                             <div className="flex items-center gap-0.5">
-                              <select
-                                className="form-select-sm w-[52px] text-[10px]"
+                              <SpeedContextPicker
                                 value={row.distanceSpeedContext}
-                                onChange={(e) => updateSequenceRow(row.id, "distanceSpeedContext", e.target.value)}
-                              >
-                                {getDistanceSpeedContextOptions(!!vessel.hasScrubber).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                              </select>
+                                hasScrubber={!!vessel.hasScrubber}
+                                onChange={(v) => updateSequenceRow(row.id, "distanceSpeedContext", v)}
+                              />
                               {(() => { const err = getFieldError("sequence","distance",row.id); return (
                               <input id={getFieldId("sequence","distance",row.id)} aria-invalid={!!err} title={err}
                                 type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
@@ -443,10 +441,11 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                           <div className="flex items-center gap-0.5">
-                            <select className="form-select-sm w-[52px] text-[10px]" value={row.ecaDistanceSpeedContext}
-                              onChange={(e) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", e.target.value)}>
-                              {ecaDistanceSpeedContextOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            </select>
+                            <SpeedContextPicker
+                              value={row.ecaDistanceSpeedContext}
+                              hasScrubber={!!vessel.hasScrubber}
+                              onChange={(v) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", v)}
+                            />
                             {(() => { const err = getFieldError("sequence","ecaDistance",row.id); return (
                             <input id={getFieldId("sequence","ecaDistance",row.id)} aria-invalid={!!err} title={err}
                               type="number" className={`form-input-sm w-12 font-mono text-right text-[10px] ${errCls(err)}`}
