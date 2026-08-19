@@ -539,29 +539,27 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const totalNonEcaSeaDays = nonEcaSeaDaysBallast + nonEcaSeaDaysLaden;
     // hasScrubber moved above sequence loop
     
-    // --- Non-ECA Sea Consumption ---
-    // If scrubber: use HSFO rates, VLSFO = 0
-    // If no scrubber: use VLSFO rates, HSFO = 0
-    const hsfoSeaBallastNonEca = hasScrubber ? nonEcaSeaDaysBallast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0) : 0;
-    const hsfoSeaLadenNonEca = hasScrubber ? nonEcaSeaDaysLaden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0) : 0;
+    // --- Sea Consumption by fuel, driven by each leg's speed/fuel context ---
+    // Scrubber vessels may select HSFO for ECA legs as well (EH / FH).
+    const hsfoSeaBallastNonEca = seaDaysByFuel.hsfo.ballast * (profile.hsfo.ballast || vessel.consumption.hsfo.ecoBallast || 0);
+    const hsfoSeaLadenNonEca = seaDaysByFuel.hsfo.laden * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0);
     const hsfoSeaExtraNonEca = hasScrubber ? extraSeaDays * (profile.hsfo.laden || vessel.consumption.hsfo.ecoLaden || 0) : 0;
     const hsfoSeaTotal = (hsfoSeaBallastNonEca + hsfoSeaLadenNonEca + hsfoSeaExtraNonEca) * rewardFactor;
     
-    const vlsfoSeaBallastNonEca = !hasScrubber ? nonEcaSeaDaysBallast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0) : 0;
-    const vlsfoSeaLadenNonEca = !hasScrubber ? nonEcaSeaDaysLaden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0) : 0;
+    const vlsfoSeaBallastNonEca = seaDaysByFuel.vlsfo.ballast * (profile.vlsfo.ballast || vessel.consumption.vlsfo.ecoBallast || 0);
+    const vlsfoSeaLadenNonEca = seaDaysByFuel.vlsfo.laden * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0);
     const vlsfoSeaExtraNonEca = !hasScrubber ? extraSeaDays * (profile.vlsfo.laden || vessel.consumption.vlsfo.ecoLaden || 0) : 0;
     const vlsfoSeaTotal = (vlsfoSeaBallastNonEca + vlsfoSeaLadenNonEca + vlsfoSeaExtraNonEca) * rewardFactor;
     
     // Non-ECA LSMGO: ZERO — LSMGO is only used inside ECA zones
     const lsmgoSeaNonEcaTotal = 0;
     
-    // --- ECA Sea Consumption (LSMGO only — uses LSMGO matrix rate directly) ---
-    // In ECA zones, HSFO/VLSFO = 0, vessel burns LSMGO at the rate defined in the matrix
+    // --- LSMGO sea consumption (legs whose context selects LSMGO — normally ECA) ---
     const ecaLsmgoBallastRate = profile.lsmgo.ballast || 0;
     const ecaLsmgoLadenRate = profile.lsmgo.laden || 0;
     const lsmgoEcaFromHsfoVlsfo = (
-      ecaSeaDaysBallast * ecaLsmgoBallastRate + 
-      ecaSeaDaysLaden * ecaLsmgoLadenRate
+      seaDaysByFuel.lsmgo.ballast * ecaLsmgoBallastRate +
+      seaDaysByFuel.lsmgo.laden * ecaLsmgoLadenRate
     ) * rewardFactor;
     
     // Total LSMGO sea consumption = ECA only (no LSMGO outside ECA)
