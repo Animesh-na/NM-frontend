@@ -576,7 +576,8 @@ const createNewRow = (type: "open" | "port" | "repos", nextId: number, operation
   distance: 0,
   distanceSpeedContext: (speedProfile === "eco" ? "E" : "F") + (hasScrubber ? "H" : "V") as SpeedContext, // Non-ECA speed context
   ecaDistance: 0,
-  ecaDistanceSpeedContext: speedProfile === "eco" ? "EL" : "FL", // ECA speed context
+  // Scrubber-fitted vessels may burn HSFO inside ECA zones too → default EH/FH
+  ecaDistanceSpeedContext: (speedProfile === "eco" ? "E" : "F") + (hasScrubber ? "H" : "L") as SpeedContext,
   baseSeaTime: 0,
   seaMarginTime: 0,
   ecaTime: 0,
@@ -993,21 +994,24 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   // separate from setVessel prevents sheet hydration and API updates from rewriting rows.
   const syncSequenceSpeedContexts = useCallback((speedProfile: "eco" | "full", hasScrubber: boolean) => {
     const prefix = speedProfile === "eco" ? "E" : "F";
-    // Keep the user's per-row fuel letter, only re-map the speed prefix.
-    // HSFO is downgraded when the vessel has no scrubber.
+    // Scrubber-fitted vessels default to HSFO everywhere (non-ECA and ECA).
+    // Without a scrubber, HSFO is downgraded to VLSFO / LSMGO.
     const remap = (ctx: string, fallbackFuel: "H" | "V" | "L"): SpeedContext => {
       let fuel = (ctx || "").toUpperCase().slice(1, 2) || fallbackFuel;
-      if (fuel === "H" && !hasScrubber) fuel = fallbackFuel === "L" ? "L" : "V";
-      if (!hasScrubber && fuel === "H") fuel = "V";
       if (fuel !== "H" && fuel !== "V" && fuel !== "L") fuel = fallbackFuel;
+      if (hasScrubber) fuel = "H";
+      else if (fuel === "H") fuel = fallbackFuel === "L" ? "L" : "V";
       return `${prefix}${fuel}` as SpeedContext;
     };
     setSequence(rows => rows.map(row => {
-      const nonEca = remap(row.distanceSpeedContext, hasScrubber ? "H" : "V");
+      const nonEca = remap(row.distanceSpeedContext, "V");
       const eca = remap(row.ecaDistanceSpeedContext, "L");
-      return row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca
+      const portFuelType: "hsfo" | "vlsfo" | "lsmgo" = hasScrubber
+        ? "hsfo"
+        : row.portFuelType === "hsfo" ? "vlsfo" : row.portFuelType;
+      return row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca && row.portFuelType === portFuelType
         ? row
-        : { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca };
+        : { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca, portFuelType };
     }));
   }, []);
 
