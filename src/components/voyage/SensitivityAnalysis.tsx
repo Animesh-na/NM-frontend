@@ -36,10 +36,19 @@ const money = (v: number) =>
 
 const signCls = (v: number) => (v >= 0 ? "text-success" : "text-destructive");
 
+type FuelKey = "hsfo" | "vlsfo" | "lsmgo";
+
+const FUELS: { key: FuelKey; label: string }[] = [
+  { key: "hsfo", label: "HSFO" },
+  { key: "vlsfo", label: "VLSFO" },
+  { key: "lsmgo", label: "LSMGO" },
+];
+
 export function SensitivityAnalysis() {
   const { results, cargos, sequence } = useVoyageContext();
   const [freightStep, setFreightStep] = useState(0.5);
   const [bunkerStep, setBunkerStep] = useState(1);
+  const [fuel, setFuel] = useState<FuelKey>("vlsfo");
 
   // Base figures
   const loadQty = useMemo(
@@ -56,10 +65,14 @@ export function SensitivityAnalysis() {
   // GTCE = NTCE / (1 - tcComm)
   const tcPct = Math.min(Math.max((cargos[0]?.tcCommission || 0) / 100, 0), 0.95);
   const grossUp = 1 / (1 - tcPct);
-  const totalFuelTons =
-    results.hsfoConsumption + results.vlsfoConsumption + results.lsmgoConsumption;
+  const fuelTons: Record<FuelKey, number> = {
+    hsfo: results.hsfoConsumption || 0,
+    vlsfo: results.vlsfoConsumption || 0,
+    lsmgo: results.lsmgoConsumption || 0,
+  };
+  const totalFuelTons = fuelTons.hsfo + fuelTons.vlsfo + fuelTons.lsmgo;
 
-  const buildRows = (mode: "freight" | "bunker", step: number): Row[] => {
+  const buildRows = (mode: "freight" | "bunker", step: number, tons = 0): Row[] => {
     const out: Row[] = [];
     for (let i = -5; i <= 5; i++) {
       const delta = i * step;
@@ -68,7 +81,7 @@ export function SensitivityAnalysis() {
       if (mode === "freight") {
         dNetFreight = delta * loadQty * (1 - commPct);
       } else {
-        dCost = delta * totalFuelTons;
+        dCost = delta * tons;
       }
       const pAndL = results.pAndL + dNetFreight - dCost;
       const ntce = days > 0 ? results.ntce + (dNetFreight - dCost) / days : 0;
@@ -89,10 +102,11 @@ export function SensitivityAnalysis() {
     [freightStep, results, loadQty, commPct, days, baseRate, grossUp]
   );
   const bunkerRows = useMemo(
-    () => buildRows("bunker", bunkerStep || 0),
+    () => buildRows("bunker", bunkerStep || 0, fuelTons[fuel]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bunkerStep, results, totalFuelTons, days, grossUp]
+    [bunkerStep, results, fuel, days, grossUp]
   );
+
 
   const renderTable = (rows: Row[], mode: "freight" | "bunker") => (
     <div className="border border-border rounded-sm overflow-hidden">
