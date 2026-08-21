@@ -19,6 +19,7 @@ import {
   Legend,
 } from "recharts";
 import { useVoyageContext } from "@/context/VoyageContext";
+import { getCargoLoadedQuantities } from "@/utils/cargoValidation";
 
 interface Row {
   delta: number;
@@ -49,28 +50,41 @@ export function SensitivityAnalysis() {
   const [freightStep, setFreightStep] = useState(0.5);
   const [bunkerStep, setBunkerStep] = useState(1);
   const [fuel, setFuel] = useState<FuelKey>("vlsfo");
+  const [cargoId, setCargoId] = useState<number | null>(null);
 
-  // Base figures
-  const loadQty = useMemo(
+  const activeCargo =
+    cargos.find((c) => c.id === cargoId) || cargos[0];
+
+  // Per-cargo loaded quantities (falls back to total when unmapped)
+  const cargoQtys = useMemo(
+    () => getCargoLoadedQuantities(cargos, sequence),
+    [cargos, sequence]
+  );
+  const totalLoadQty = useMemo(
     () =>
       sequence
         .filter((r) => r.operation === "loading")
         .reduce((s, r) => s + (r.quantity || 0), 0),
     [sequence]
   );
-  const baseRate = cargos[0]?.rate || 0;
+  const loadQty =
+    (activeCargo ? cargoQtys.get(activeCargo.id) : 0) || totalLoadQty;
+  const baseRate = activeCargo?.rate || 0;
   const days = results.totalVoyageDays || 0;
-  const commPct =
-    results.grossFreight > 0 ? results.voyageCommission / results.grossFreight : 0;
+  const commPct = activeCargo
+    ? Math.min(Math.max((activeCargo.voyageCommission || 0) / 100, 0), 0.95)
+    : results.grossFreight > 0
+      ? results.voyageCommission / results.grossFreight
+      : 0;
   // GTCE = NTCE / (1 - tcComm)
-  const tcPct = Math.min(Math.max((cargos[0]?.tcCommission || 0) / 100, 0), 0.95);
+  const tcPct = Math.min(Math.max((activeCargo?.tcCommission || 0) / 100, 0), 0.95);
   const grossUp = 1 / (1 - tcPct);
   const fuelTons: Record<FuelKey, number> = {
     hsfo: results.hsfoConsumption || 0,
     vlsfo: results.vlsfoConsumption || 0,
     lsmgo: results.lsmgoConsumption || 0,
   };
-  const totalFuelTons = fuelTons.hsfo + fuelTons.vlsfo + fuelTons.lsmgo;
+
 
   const buildRows = (mode: "freight" | "bunker", step: number, tons = 0): Row[] => {
     const out: Row[] = [];
@@ -192,6 +206,32 @@ export function SensitivityAnalysis() {
         <DialogHeader>
           <DialogTitle className="text-sm">Sensitivity Analysis</DialogTitle>
         </DialogHeader>
+
+        {cargos.length > 1 && (
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="text-muted-foreground">Cargo:</span>
+            <div className="inline-flex rounded-sm border border-border overflow-hidden">
+              {cargos.map((c, i) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCargoId(c.id)}
+                  className={`px-2 h-7 text-[11px] font-medium transition-colors ${
+                    (activeCargo?.id ?? cargos[0]?.id) === c.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent"
+                  }`}
+                >
+                  Cargo #{i + 1}
+                </button>
+              ))}
+            </div>
+            <span className="text-muted-foreground">
+              freight sensitivity applies to the selected cargo only
+            </span>
+          </div>
+        )}
+
 
         <div className="grid grid-cols-6 gap-2 text-[10px]">
           <div className="bg-muted rounded-sm p-2">
