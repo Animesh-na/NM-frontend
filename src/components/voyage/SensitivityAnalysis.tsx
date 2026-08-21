@@ -54,7 +54,8 @@ export function SensitivityAnalysis() {
   const commPct =
     results.grossFreight > 0 ? results.voyageCommission / results.grossFreight : 0;
   // GTCE = NTCE / (1 - tcComm)
-  const grossUp = 1 / (1 - (cargos[0]?.tcCommission || 0) / 100 || 1);
+  const tcPct = Math.min(Math.max((cargos[0]?.tcCommission || 0) / 100, 0), 0.95);
+  const grossUp = 1 / (1 - tcPct);
   const totalFuelTons =
     results.hsfoConsumption + results.vlsfoConsumption + results.lsmgoConsumption;
 
