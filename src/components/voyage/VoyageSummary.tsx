@@ -224,6 +224,7 @@ export function VoyageSummary() {
           <div className="flex items-center gap-1 mb-2 border-b border-border pb-1">
             <DollarSign className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">Cargo / Economics</span>
+            <SensitivityAnalysis />
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
             <div className="flex justify-between">
