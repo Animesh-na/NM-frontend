@@ -19,6 +19,7 @@ import {
   Legend,
 } from "recharts";
 import { useVoyageContext } from "@/context/VoyageContext";
+import { getCargoLoadedQuantities } from "@/utils/cargoValidation";
 
 interface Row {
   delta: number;
