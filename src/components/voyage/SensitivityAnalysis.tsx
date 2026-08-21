@@ -36,10 +36,19 @@ const money = (v: number) =>
 
 const signCls = (v: number) => (v >= 0 ? "text-success" : "text-destructive");
 
+type FuelKey = "hsfo" | "vlsfo" | "lsmgo";
+
+const FUELS: { key: FuelKey; label: string }[] = [
+  { key: "hsfo", label: "HSFO" },
+  { key: "vlsfo", label: "VLSFO" },
+  { key: "lsmgo", label: "LSMGO" },
+];
+
 export function SensitivityAnalysis() {
   const { results, cargos, sequence } = useVoyageContext();
   const [freightStep, setFreightStep] = useState(0.5);
   const [bunkerStep, setBunkerStep] = useState(1);
+  const [fuel, setFuel] = useState<FuelKey>("vlsfo");
 
   // Base figures
   const loadQty = useMemo(
@@ -56,10 +65,14 @@ export function SensitivityAnalysis() {
   // GTCE = NTCE / (1 - tcComm)
   const tcPct = Math.min(Math.max((cargos[0]?.tcCommission || 0) / 100, 0), 0.95);
   const grossUp = 1 / (1 - tcPct);
-  const totalFuelTons =
-    results.hsfoConsumption + results.vlsfoConsumption + results.lsmgoConsumption;
+  const fuelTons: Record<FuelKey, number> = {
+    hsfo: results.hsfoConsumption || 0,
+    vlsfo: results.vlsfoConsumption || 0,
+    lsmgo: results.lsmgoConsumption || 0,
+  };
+  const totalFuelTons = fuelTons.hsfo + fuelTons.vlsfo + fuelTons.lsmgo;
 
-  const buildRows = (mode: "freight" | "bunker", step: number): Row[] => {
+  const buildRows = (mode: "freight" | "bunker", step: number, tons = 0): Row[] => {
     const out: Row[] = [];
     for (let i = -5; i <= 5; i++) {
       const delta = i * step;
@@ -68,7 +81,7 @@ export function SensitivityAnalysis() {
       if (mode === "freight") {
         dNetFreight = delta * loadQty * (1 - commPct);
       } else {
-        dCost = delta * totalFuelTons;
+        dCost = delta * tons;
       }
       const pAndL = results.pAndL + dNetFreight - dCost;
       const ntce = days > 0 ? results.ntce + (dNetFreight - dCost) / days : 0;
@@ -89,10 +102,11 @@ export function SensitivityAnalysis() {
     [freightStep, results, loadQty, commPct, days, baseRate, grossUp]
   );
   const bunkerRows = useMemo(
-    () => buildRows("bunker", bunkerStep || 0),
+    () => buildRows("bunker", bunkerStep || 0, fuelTons[fuel]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bunkerStep, results, totalFuelTons, days, grossUp]
+    [bunkerStep, results, fuel, days, grossUp]
   );
+
 
   const renderTable = (rows: Row[], mode: "freight" | "bunker") => (
     <div className="border border-border rounded-sm overflow-hidden">
@@ -174,12 +188,12 @@ export function SensitivityAnalysis() {
           Sensitivity
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm">Sensitivity Analysis</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-4 gap-2 text-[10px]">
+        <div className="grid grid-cols-6 gap-2 text-[10px]">
           <div className="bg-muted rounded-sm p-2">
             <div className="text-muted-foreground">Base Freight Rate</div>
             <div className="font-mono font-semibold">${baseRate.toFixed(2)} /mt</div>
@@ -189,8 +203,16 @@ export function SensitivityAnalysis() {
             <div className="font-mono font-semibold">{loadQty.toLocaleString()} mt</div>
           </div>
           <div className="bg-muted rounded-sm p-2">
-            <div className="text-muted-foreground">Total Fuel</div>
-            <div className="font-mono font-semibold">{totalFuelTons.toFixed(1)} mt</div>
+            <div className="text-muted-foreground">HSFO</div>
+            <div className="font-mono font-semibold">{fuelTons.hsfo.toFixed(1)} mt</div>
+          </div>
+          <div className="bg-muted rounded-sm p-2">
+            <div className="text-muted-foreground">VLSFO</div>
+            <div className="font-mono font-semibold">{fuelTons.vlsfo.toFixed(1)} mt</div>
+          </div>
+          <div className="bg-muted rounded-sm p-2">
+            <div className="text-muted-foreground">LSMGO</div>
+            <div className="font-mono font-semibold">{fuelTons.lsmgo.toFixed(1)} mt</div>
           </div>
           <div className="bg-muted rounded-sm p-2">
             <div className="text-muted-foreground">Voyage Days</div>
@@ -216,13 +238,30 @@ export function SensitivityAnalysis() {
               />
               <span className="text-muted-foreground">5 steps up / 5 steps down</span>
             </label>
-            {renderTable(freightRows, "freight")}
-            {renderChart(freightRows, "freight")}
+            <div className="grid grid-cols-2 gap-3 items-start">
+              {renderTable(freightRows, "freight")}
+              {renderChart(freightRows, "freight")}
+            </div>
           </TabsContent>
 
           <TabsContent value="bunker" className="space-y-2">
-            <label className="flex items-center gap-2 text-[11px]">
-              <span className="text-muted-foreground">Step ($/t per row):</span>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="text-muted-foreground">Fuel:</span>
+              <div className="inline-flex rounded-sm border border-border overflow-hidden">
+                {FUELS.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setFuel(f.key)}
+                    className={`px-2 h-7 text-[11px] font-medium transition-colors ${
+                      fuel === f.key ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-muted-foreground ml-2">Step ($/t per row):</span>
               <input
                 type="number"
                 step="1"
@@ -230,13 +269,19 @@ export function SensitivityAnalysis() {
                 onChange={(e) => setBunkerStep(Number(e.target.value))}
                 className="sheet-input w-24 h-7 px-2 border border-border rounded-sm font-mono text-[11px]"
               />
-              <span className="text-muted-foreground">applied to all fuels</span>
-            </label>
-            {renderTable(bunkerRows, "bunker")}
-            {renderChart(bunkerRows, "bunker")}
+              <span className="text-muted-foreground">
+                applied to {FUELS.find((f) => f.key === fuel)?.label} only ·{" "}
+                {fuelTons[fuel].toFixed(1)} mt burnt
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 items-start">
+              {renderTable(bunkerRows, "bunker")}
+              {renderChart(bunkerRows, "bunker")}
+            </div>
           </TabsContent>
         </Tabs>
       </DialogContent>
+
     </Dialog>
   );
 }
