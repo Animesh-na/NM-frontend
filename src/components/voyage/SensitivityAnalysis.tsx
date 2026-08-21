@@ -49,28 +49,41 @@ export function SensitivityAnalysis() {
   const [freightStep, setFreightStep] = useState(0.5);
   const [bunkerStep, setBunkerStep] = useState(1);
   const [fuel, setFuel] = useState<FuelKey>("vlsfo");
+  const [cargoId, setCargoId] = useState<number | null>(null);
 
-  // Base figures
-  const loadQty = useMemo(
+  const activeCargo =
+    cargos.find((c) => c.id === cargoId) || cargos[0];
+
+  // Per-cargo loaded quantities (falls back to total when unmapped)
+  const cargoQtys = useMemo(
+    () => getCargoLoadedQuantities(cargos, sequence),
+    [cargos, sequence]
+  );
+  const totalLoadQty = useMemo(
     () =>
       sequence
         .filter((r) => r.operation === "loading")
         .reduce((s, r) => s + (r.quantity || 0), 0),
     [sequence]
   );
-  const baseRate = cargos[0]?.rate || 0;
+  const loadQty =
+    (activeCargo ? cargoQtys.get(activeCargo.id) : 0) || totalLoadQty;
+  const baseRate = activeCargo?.rate || 0;
   const days = results.totalVoyageDays || 0;
-  const commPct =
-    results.grossFreight > 0 ? results.voyageCommission / results.grossFreight : 0;
+  const commPct = activeCargo
+    ? Math.min(Math.max((activeCargo.voyageCommission || 0) / 100, 0), 0.95)
+    : results.grossFreight > 0
+      ? results.voyageCommission / results.grossFreight
+      : 0;
   // GTCE = NTCE / (1 - tcComm)
-  const tcPct = Math.min(Math.max((cargos[0]?.tcCommission || 0) / 100, 0), 0.95);
+  const tcPct = Math.min(Math.max((activeCargo?.tcCommission || 0) / 100, 0), 0.95);
   const grossUp = 1 / (1 - tcPct);
   const fuelTons: Record<FuelKey, number> = {
     hsfo: results.hsfoConsumption || 0,
     vlsfo: results.vlsfoConsumption || 0,
     lsmgo: results.lsmgoConsumption || 0,
   };
-  const totalFuelTons = fuelTons.hsfo + fuelTons.vlsfo + fuelTons.lsmgo;
+
 
   const buildRows = (mode: "freight" | "bunker", step: number, tons = 0): Row[] => {
     const out: Row[] = [];
