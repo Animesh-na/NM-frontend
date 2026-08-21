@@ -207,6 +207,32 @@ export function SensitivityAnalysis() {
           <DialogTitle className="text-sm">Sensitivity Analysis</DialogTitle>
         </DialogHeader>
 
+        {cargos.length > 1 && (
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="text-muted-foreground">Cargo:</span>
+            <div className="inline-flex rounded-sm border border-border overflow-hidden">
+              {cargos.map((c, i) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCargoId(c.id)}
+                  className={`px-2 h-7 text-[11px] font-medium transition-colors ${
+                    (activeCargo?.id ?? cargos[0]?.id) === c.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent"
+                  }`}
+                >
+                  Cargo #{i + 1}
+                </button>
+              ))}
+            </div>
+            <span className="text-muted-foreground">
+              freight sensitivity applies to the selected cargo only
+            </span>
+          </div>
+        )}
+
+
         <div className="grid grid-cols-6 gap-2 text-[10px]">
           <div className="bg-muted rounded-sm p-2">
             <div className="text-muted-foreground">Base Freight Rate</div>
