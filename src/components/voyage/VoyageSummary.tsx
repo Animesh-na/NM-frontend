@@ -10,6 +10,7 @@ import { exportVoyageToExcel } from "@/utils/excelExport";
 import { trackEvent } from "@/services/logger";
 import { useAuth } from "@/context/AuthContext";
 import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
+import { SensitivityAnalysis } from "./SensitivityAnalysis";
 
 
 export function VoyageSummary() {
