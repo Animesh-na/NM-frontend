@@ -182,15 +182,15 @@ export function SequenceSummary() {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Non-ECA:</span>
-                <span className="font-mono tabular-nums">{results.nonEcaDistance.toLocaleString()} nm</span>
+                <span className="font-mono tabular-nums">{results.nonEcaDistance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">ECA:</span>
-                <span className="font-mono tabular-nums">{results.totalEcaDistance.toLocaleString()} nm</span>
+                <span className="font-mono tabular-nums">{results.totalEcaDistance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
               </div>
               <div className="flex justify-between text-xs border-t pt-0.5 mt-0.5 font-medium">
                 <span>Total:</span>
-                <span className="font-mono tabular-nums">{(results.nonEcaDistance + results.totalEcaDistance).toLocaleString()} nm</span>
+                <span className="font-mono tabular-nums">{(results.nonEcaDistance + results.totalEcaDistance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
               </div>
             </div>
 

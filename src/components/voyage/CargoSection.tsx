@@ -610,8 +610,8 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           })}
           <div className="flex justify-end gap-3 border-t border-border pt-1 text-[10px] font-semibold">
             <span>CP − Op time: <span className="font-mono">{totalExtraDays.toFixed(2)} d</span></span>
-            <span>Demurrage: <span className="font-mono">${Math.round(totalDem).toLocaleString()}</span></span>
-            <span>Despatch: <span className="font-mono">${Math.round(totalDesp).toLocaleString()}</span></span>
+            <span>Demurrage: <span className="font-mono">${totalDem.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+            <span>Despatch: <span className="font-mono">${totalDesp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
           </div>
         </div>
       )}

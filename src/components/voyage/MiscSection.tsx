@@ -48,11 +48,11 @@ export function MiscSection() {
           <div className="flex flex-wrap gap-2">
             <div className="flex-1 min-w-[130px] flex items-center justify-between rounded-md border border-border bg-muted/40 px-2 py-1">
               <span className="text-[10px] font-medium text-muted-foreground">Total Misc</span>
-              <span className="font-mono text-xs font-semibold">${totalMiscCosts.toLocaleString()}</span>
+              <span className="font-mono text-xs font-semibold">${totalMiscCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="flex-1 min-w-[130px] flex items-center justify-between rounded-md border border-border bg-muted/40 px-2 py-1">
               <span className="text-[10px] font-medium text-muted-foreground">Total Canal</span>
-              <span className="font-mono text-xs font-semibold">${totalCanalCosts.toLocaleString()}</span>
+              <span className="font-mono text-xs font-semibold">${totalCanalCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>
