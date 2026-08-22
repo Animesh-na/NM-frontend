@@ -316,13 +316,19 @@ export function SensitivityAnalysis() {
             <div className="text-muted-foreground">Voyage Days</div>
             <div className="font-mono font-semibold">{days.toFixed(2)} d</div>
           </div>
+          <div className="bg-muted rounded-sm p-2">
+            <div className="text-muted-foreground">Base GTC</div>
+            <div className="font-mono font-semibold">${baseGtc.toFixed(0)} /d</div>
+          </div>
         </div>
 
         <Tabs defaultValue="freight" className="mt-2">
           <TabsList className="h-7">
             <TabsTrigger value="freight" className="text-[11px] h-6">Freight Rate</TabsTrigger>
             <TabsTrigger value="bunker" className="text-[11px] h-6">Bunker Price</TabsTrigger>
+            <TabsTrigger value="gtc" className="text-[11px] h-6">GTC (Hire)</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="freight" className="space-y-2">
             <label className="flex items-center gap-2 text-[11px]">
