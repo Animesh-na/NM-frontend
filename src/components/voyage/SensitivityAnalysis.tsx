@@ -98,8 +98,11 @@ export function SensitivityAnalysis() {
     tons = 0
   ): Row[] => {
     const out: Row[] = [];
-    for (let i = -5; i <= 5; i++) {
-      const delta = i * step;
+    // A zero/invalid step would produce 11 identical rows — show only the base row.
+    const validStep = Number.isFinite(step) && Math.abs(step) > 0;
+    const steps = validStep ? [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5] : [0];
+    for (const i of steps) {
+      const delta = i * (validStep ? step : 0);
       let dNetFreight = 0;
       let dCost = 0;   // affects TCE (voyage costs)
       let dHire = 0;   // affects P&L only (hire is excluded from TCE)
