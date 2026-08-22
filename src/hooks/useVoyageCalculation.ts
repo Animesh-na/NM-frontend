@@ -1471,9 +1471,20 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       : 0;
     const adjustedGtce = tcCommissionPct < 1 ? adjustedNtce / (1 - tcCommissionPct) : 0;
     const adjustedTce = adjustedGtce;
-    const adjustedBaseRatePerMt = cargo.quantity > 0 ? adjustedVoyageCostInclHire / cargo.quantity : 0;
     const voyageCommissionPct2 = cargo.voyageCommission / 100;
-    const adjustedGrossRate = voyageCommissionPct2 < 1 ? adjustedBaseRatePerMt / (1 - voyageCommissionPct2) : 0;
+    // Gross Rate (spec): freight rate × (1 − voy comm) − total voyage P&L / cargo qty, floored at 0
+    const grossRateFreightRate =
+      cargo.rateType === "lumpsum"
+        ? (cargo.quantity > 0 ? (cargo.rate || 0) / cargo.quantity : 0)
+        : (cargo.rate || 0);
+    const adjustedGrossRate =
+      cargo.quantity > 0
+        ? Math.max(
+            0,
+            grossRateFreightRate * (1 - voyageCommissionPct2) -
+              adjustedPAndL / cargo.quantity,
+          )
+        : 0;
 
     vlog(`\n[Step 13] REGULATORY COSTS & FUEL EU:
     FuelEU Costs: HSFO=$${fuelEuResult.fuels.hsfo.cost.toFixed(2)}, VLSFO=$${fuelEuResult.fuels.vlsfo.cost.toFixed(2)}, LSMGO=$${fuelEuResult.fuels.lsmgo.cost.toFixed(2)}
