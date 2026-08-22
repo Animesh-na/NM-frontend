@@ -11,6 +11,7 @@ import { trackEvent } from "@/services/logger";
 import { useAuth } from "@/context/AuthContext";
 import { calculateDemurrageDespatchTotals } from "@/utils/demurrageDespatch";
 import { SensitivityAnalysis } from "./SensitivityAnalysis";
+import { InsightsPanel } from "./InsightsPanel";
 
 
 export function VoyageSummary() {
