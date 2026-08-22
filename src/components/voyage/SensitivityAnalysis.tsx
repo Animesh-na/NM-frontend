@@ -27,7 +27,9 @@ interface Row {
   ntce: number;
   gtce: number;
   pAndL: number;
+  grossRate: number;
 }
+
 
 const money = (v: number) =>
   `${v < 0 ? "-" : ""}$${Math.abs(v).toLocaleString(undefined, {
@@ -46,11 +48,13 @@ const FUELS: { key: FuelKey; label: string }[] = [
 ];
 
 export function SensitivityAnalysis() {
-  const { results, cargos, sequence } = useVoyageContext();
+  const { results, cargos, sequence, hireRate } = useVoyageContext();
   const [freightStep, setFreightStep] = useState(0.5);
   const [bunkerStep, setBunkerStep] = useState(1);
+  const [gtcStep, setGtcStep] = useState(250);
   const [fuel, setFuel] = useState<FuelKey>("vlsfo");
   const [cargoId, setCargoId] = useState<number | null>(null);
+
 
   const activeCargo =
     cargos.find((c) => c.id === cargoId) || cargos[0];
@@ -86,25 +90,46 @@ export function SensitivityAnalysis() {
   };
 
 
-  const buildRows = (mode: "freight" | "bunker", step: number, tons = 0): Row[] => {
+  const baseGtc = tcPct < 1 ? hireRate / (1 - tcPct) : hireRate;
+
+  const buildRows = (
+    mode: "freight" | "bunker" | "gtc",
+    step: number,
+    tons = 0
+  ): Row[] => {
     const out: Row[] = [];
     for (let i = -5; i <= 5; i++) {
       const delta = i * step;
       let dNetFreight = 0;
-      let dCost = 0;
+      let dCost = 0;   // affects TCE (voyage costs)
+      let dHire = 0;   // affects P&L only (hire is excluded from TCE)
       if (mode === "freight") {
         dNetFreight = delta * loadQty * (1 - commPct);
-      } else {
+      } else if (mode === "bunker") {
         dCost = delta * tons;
+      } else {
+        // ΔGTC ($/day, gross) → Δ hire rate = ΔGTC × (1 − tcComm)
+        dHire = delta * (1 - tcPct) * days;
       }
-      const pAndL = results.pAndL + dNetFreight - dCost;
+      const pAndL = results.pAndL + dNetFreight - dCost - dHire;
       const ntce = days > 0 ? results.ntce + (dNetFreight - dCost) / days : 0;
+      const freightRate = mode === "freight" ? baseRate + delta : baseRate;
+      const netRateAfterPnl =
+        loadQty > 0 ? freightRate * (1 - commPct) - pAndL / loadQty : 0;
+      const grossRate =
+        loadQty > 0 && commPct < 1 ? Math.max(0, netRateAfterPnl / (1 - commPct)) : 0;
       out.push({
         delta,
-        input: mode === "freight" ? baseRate + delta : delta,
+        input:
+          mode === "freight"
+            ? baseRate + delta
+            : mode === "gtc"
+              ? baseGtc + delta
+              : delta,
         ntce,
         gtce: ntce * grossUp,
         pAndL,
+        grossRate,
       });
     }
     return out;
@@ -118,23 +143,32 @@ export function SensitivityAnalysis() {
   const bunkerRows = useMemo(
     () => buildRows("bunker", bunkerStep || 0, fuelTons[fuel]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bunkerStep, results, fuel, days, grossUp]
+    [bunkerStep, results, fuel, days, grossUp, loadQty, commPct, baseRate]
+  );
+  const gtcRows = useMemo(
+    () => buildRows("gtc", gtcStep || 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gtcStep, results, days, grossUp, loadQty, commPct, baseRate, baseGtc, tcPct]
+
   );
 
 
-  const renderTable = (rows: Row[], mode: "freight" | "bunker") => (
+  type Mode = "freight" | "bunker" | "gtc";
+
+  const renderTable = (rows: Row[], mode: Mode) => (
     <div className="border border-border rounded-sm overflow-hidden">
       <table className="w-full text-[11px]">
         <thead className="bg-muted">
           <tr className="text-left">
             <th className="px-2 py-1 font-medium">
-              {mode === "freight" ? "Δ Rate ($/mt)" : "Δ Bunker ($/t)"}
+              {mode === "freight" ? "Δ Rate ($/mt)" : mode === "gtc" ? "Δ GTC ($/d)" : "Δ Bunker ($/t)"}
             </th>
             <th className="px-2 py-1 font-medium">
-              {mode === "freight" ? "Freight Rate" : "Bunker Δ applied"}
+              {mode === "freight" ? "Freight Rate" : mode === "gtc" ? "GTC ($/d)" : "Bunker Δ applied"}
             </th>
             <th className="px-2 py-1 font-medium text-right">Net TCE ($/d)</th>
             <th className="px-2 py-1 font-medium text-right">Gross TCE ($/d)</th>
+            <th className="px-2 py-1 font-medium text-right">Gross Rate ($/mt)</th>
             <th className="px-2 py-1 font-medium text-right">P&amp;L ($)</th>
           </tr>
         </thead>
@@ -149,10 +183,13 @@ export function SensitivityAnalysis() {
                 {r.delta.toFixed(2)}
               </td>
               <td className="px-2 py-1">
-                {mode === "freight" ? `$${r.input.toFixed(2)}` : `${r.delta >= 0 ? "+" : ""}$${r.delta.toFixed(2)}`}
+                {mode === "bunker"
+                  ? `${r.delta >= 0 ? "+" : ""}$${r.delta.toFixed(2)}`
+                  : `$${r.input.toFixed(2)}`}
               </td>
               <td className={`px-2 py-1 text-right ${signCls(r.ntce)}`}>{money(r.ntce)}</td>
               <td className={`px-2 py-1 text-right ${signCls(r.gtce)}`}>{money(r.gtce)}</td>
+              <td className="px-2 py-1 text-right">${r.grossRate.toFixed(2)}</td>
               <td className={`px-2 py-1 text-right ${signCls(r.pAndL)}`}>{money(r.pAndL)}</td>
             </tr>
           ))}
@@ -161,34 +198,55 @@ export function SensitivityAnalysis() {
     </div>
   );
 
-  const renderChart = (rows: Row[], mode: "freight" | "bunker") => (
-    <div className="h-64 w-full mt-3">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis
-            dataKey={mode === "freight" ? "input" : "delta"}
-            tick={{ fontSize: 10 }}
-            tickFormatter={(v: number) => (mode === "freight" ? `$${v.toFixed(1)}` : `${v > 0 ? "+" : ""}${v}`)}
-            label={{
-              value: mode === "freight" ? "Freight rate ($/mt)" : "Bunker price change ($/t)",
-              position: "insideBottom",
-              offset: -4,
-              fontSize: 10,
-            }}
-          />
-          <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} />
-          <ReTooltip
-            formatter={(v: number, n: string) => [money(v), n]}
-            contentStyle={{ fontSize: 11 }}
-          />
-          <Legend wrapperStyle={{ fontSize: 10 }} />
-          <Line type="monotone" dataKey="gtce" name="Gross TCE" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="ntce" name="Net TCE" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  const renderChart = (rows: Row[], mode: Mode) => {
+    const vals = rows.flatMap((r) => [r.gtce, r.ntce]);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = Math.max((max - min) * 0.08, Math.abs(max) * 0.01, 1);
+    return (
+      <div className="h-64 w-full mt-3">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis
+              dataKey={mode === "bunker" ? "delta" : "input"}
+              tick={{ fontSize: 10 }}
+              tickFormatter={(v: number) =>
+                mode === "bunker" ? `${v > 0 ? "+" : ""}${v}` : `$${v.toFixed(mode === "gtc" ? 0 : 1)}`
+              }
+              label={{
+                value:
+                  mode === "freight"
+                    ? "Freight rate ($/mt)"
+                    : mode === "gtc"
+                      ? "GTC hire ($/day)"
+                      : "Bunker price change ($/t)",
+                position: "insideBottom",
+                offset: -4,
+                fontSize: 10,
+              }}
+            />
+            <YAxis
+              tick={{ fontSize: 10 }}
+              domain={[min - pad, max + pad]}
+              allowDecimals={false}
+              tickFormatter={(v: number) =>
+                Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`
+              }
+            />
+            <ReTooltip
+              formatter={(v: number, n: string) => [money(v), n]}
+              contentStyle={{ fontSize: 11 }}
+            />
+            <Legend wrapperStyle={{ fontSize: 10 }} />
+            <Line type="monotone" dataKey="gtce" name="Gross TCE" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="ntce" name="Net TCE" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  };
+
 
   return (
     <Dialog>
@@ -233,7 +291,7 @@ export function SensitivityAnalysis() {
         )}
 
 
-        <div className="grid grid-cols-6 gap-2 text-[10px]">
+        <div className="grid grid-cols-7 gap-2 text-[10px]">
           <div className="bg-muted rounded-sm p-2">
             <div className="text-muted-foreground">Base Freight Rate</div>
             <div className="font-mono font-semibold">${baseRate.toFixed(2)} /mt</div>
@@ -258,13 +316,19 @@ export function SensitivityAnalysis() {
             <div className="text-muted-foreground">Voyage Days</div>
             <div className="font-mono font-semibold">{days.toFixed(2)} d</div>
           </div>
+          <div className="bg-muted rounded-sm p-2">
+            <div className="text-muted-foreground">Base GTC</div>
+            <div className="font-mono font-semibold">${baseGtc.toFixed(0)} /d</div>
+          </div>
         </div>
 
         <Tabs defaultValue="freight" className="mt-2">
           <TabsList className="h-7">
             <TabsTrigger value="freight" className="text-[11px] h-6">Freight Rate</TabsTrigger>
             <TabsTrigger value="bunker" className="text-[11px] h-6">Bunker Price</TabsTrigger>
+            <TabsTrigger value="gtc" className="text-[11px] h-6">GTC (Hire)</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="freight" className="space-y-2">
             <label className="flex items-center gap-2 text-[11px]">
@@ -319,7 +383,28 @@ export function SensitivityAnalysis() {
               {renderChart(bunkerRows, "bunker")}
             </div>
           </TabsContent>
+
+          <TabsContent value="gtc" className="space-y-2">
+            <label className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="text-muted-foreground">Step ($/day per row):</span>
+              <input
+                type="number"
+                step="50"
+                value={gtcStep}
+                onChange={(e) => setGtcStep(Number(e.target.value))}
+                className="sheet-input w-24 h-7 px-2 border border-border rounded-sm font-mono text-[11px]"
+              />
+              <span className="text-muted-foreground">
+                base GTC ${baseGtc.toFixed(0)}/d × {days.toFixed(2)} d — hire affects P&amp;L and Gross Rate (TCE is quoted excl. hire)
+              </span>
+            </label>
+            <div className="grid grid-cols-2 gap-3 items-start">
+              {renderTable(gtcRows, "gtc")}
+              {renderChart(gtcRows, "gtc")}
+            </div>
+          </TabsContent>
         </Tabs>
+
       </DialogContent>
 
     </Dialog>
