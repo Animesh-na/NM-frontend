@@ -383,7 +383,28 @@ export function SensitivityAnalysis() {
               {renderChart(bunkerRows, "bunker")}
             </div>
           </TabsContent>
+
+          <TabsContent value="gtc" className="space-y-2">
+            <label className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="text-muted-foreground">Step ($/day per row):</span>
+              <input
+                type="number"
+                step="50"
+                value={gtcStep}
+                onChange={(e) => setGtcStep(Number(e.target.value))}
+                className="sheet-input w-24 h-7 px-2 border border-border rounded-sm font-mono text-[11px]"
+              />
+              <span className="text-muted-foreground">
+                base GTC ${baseGtc.toFixed(0)}/d × {days.toFixed(2)} d — hire affects P&amp;L and Gross Rate (TCE is quoted excl. hire)
+              </span>
+            </label>
+            <div className="grid grid-cols-2 gap-3 items-start">
+              {renderTable(gtcRows, "gtc")}
+              {renderChart(gtcRows, "gtc")}
+            </div>
+          </TabsContent>
         </Tabs>
+
       </DialogContent>
 
     </Dialog>
