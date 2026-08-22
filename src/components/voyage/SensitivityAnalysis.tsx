@@ -90,25 +90,46 @@ export function SensitivityAnalysis() {
   };
 
 
-  const buildRows = (mode: "freight" | "bunker", step: number, tons = 0): Row[] => {
+  const baseGtc = tcPct < 1 ? hireRate / (1 - tcPct) : hireRate;
+
+  const buildRows = (
+    mode: "freight" | "bunker" | "gtc",
+    step: number,
+    tons = 0
+  ): Row[] => {
     const out: Row[] = [];
     for (let i = -5; i <= 5; i++) {
       const delta = i * step;
       let dNetFreight = 0;
-      let dCost = 0;
+      let dCost = 0;   // affects TCE (voyage costs)
+      let dHire = 0;   // affects P&L only (hire is excluded from TCE)
       if (mode === "freight") {
         dNetFreight = delta * loadQty * (1 - commPct);
-      } else {
+      } else if (mode === "bunker") {
         dCost = delta * tons;
+      } else {
+        // ΔGTC ($/day, gross) → Δ hire rate = ΔGTC × (1 − tcComm)
+        dHire = delta * (1 - tcPct) * days;
       }
-      const pAndL = results.pAndL + dNetFreight - dCost;
+      const pAndL = results.pAndL + dNetFreight - dCost - dHire;
       const ntce = days > 0 ? results.ntce + (dNetFreight - dCost) / days : 0;
+      const freightRate = mode === "freight" ? baseRate + delta : baseRate;
+      const netRateAfterPnl =
+        loadQty > 0 ? freightRate * (1 - commPct) - pAndL / loadQty : 0;
+      const grossRate =
+        loadQty > 0 && commPct < 1 ? Math.max(0, netRateAfterPnl / (1 - commPct)) : 0;
       out.push({
         delta,
-        input: mode === "freight" ? baseRate + delta : delta,
+        input:
+          mode === "freight"
+            ? baseRate + delta
+            : mode === "gtc"
+              ? baseGtc + delta
+              : delta,
         ntce,
         gtce: ntce * grossUp,
         pAndL,
+        grossRate,
       });
     }
     return out;
@@ -122,7 +143,13 @@ export function SensitivityAnalysis() {
   const bunkerRows = useMemo(
     () => buildRows("bunker", bunkerStep || 0, fuelTons[fuel]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bunkerStep, results, fuel, days, grossUp]
+    [bunkerStep, results, fuel, days, grossUp, loadQty, commPct, baseRate]
+  );
+  const gtcRows = useMemo(
+    () => buildRows("gtc", gtcStep || 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gtcStep, results, days, grossUp, loadQty, commPct, baseRate, baseGtc, tcPct]
+
   );
 
 
