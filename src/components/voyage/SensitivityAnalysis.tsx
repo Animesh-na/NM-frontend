@@ -218,16 +218,6 @@ export function SensitivityAnalysis() {
   const grossRateVariation = (d: Driver, c: (typeof cargoInfo)[number]) =>
     c.qty > 0 && c.comm < 1 ? -d.pnlPerStep / c.qty / (1 - c.comm) : 0;
 
-  const comboChartData = useMemo(() => {
-    const pts: Array<Record<string, number>> = [];
-    for (let i = -5; i <= 5; i++) {
-      const p: Record<string, number> = { step: i };
-      for (const d of drivers) p[d.key] = tcVariation(d) * i;
-      pts.push(p);
-    }
-    return pts;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comboTc, comboFuelStep, comboFreight, results, cargos, sequence, days]);
 
   const COMBO_COLORS = [
     "hsl(var(--primary))",
