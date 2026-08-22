@@ -48,12 +48,21 @@ const FUELS: { key: FuelKey; label: string }[] = [
 ];
 
 export function SensitivityAnalysis() {
-  const { results, cargos, sequence, hireRate } = useVoyageContext();
+  const { results, cargos, sequence, hireRate, bunker } = useVoyageContext();
   const [freightStep, setFreightStep] = useState(0.5);
   const [bunkerStep, setBunkerStep] = useState(1);
   const [gtcStep, setGtcStep] = useState(250);
   const [fuel, setFuel] = useState<FuelKey>("vlsfo");
   const [cargoId, setCargoId] = useState<number | null>(null);
+  // Combined (multi-driver) sensitivity steps
+  const [comboTc, setComboTc] = useState(10000);
+  const [comboFuelStep, setComboFuelStep] = useState<Record<FuelKey, number>>({
+    hsfo: 10,
+    vlsfo: 10,
+    lsmgo: 10,
+  });
+  const [comboFreight, setComboFreight] = useState<Record<number, number>>({});
+
 
 
   const activeCargo =
@@ -159,8 +168,79 @@ export function SensitivityAnalysis() {
 
   );
 
+  // ---------- Combined (multi-driver) sensitivity ----------
+  interface Driver {
+    key: string;
+    label: string;
+    base: number;
+    unit: string;
+    step: number;
+    /** ΔP&L ($) produced by one step of this driver */
+    pnlPerStep: number;
+  }
+
+  const cargoInfo = cargos.map((c, i) => {
+    const qty = cargoQtys.get(c.id) || (cargos.length === 1 ? totalLoadQty : 0);
+    const comm = Math.min(Math.max((c.voyageCommission || 0) / 100, 0), 0.95);
+    return { cargo: c, index: i, qty, comm };
+  });
+
+  const drivers: Driver[] = [
+    ...cargoInfo.map(({ cargo, index, qty, comm }) => ({
+      key: `cargo-${cargo.id}`,
+      label: `V${index + 1} Freight cargo #${index + 1}`,
+      base: cargo.rate || 0,
+      unit: "$/mt",
+      step: comboFreight[cargo.id] ?? 0.5,
+      pnlPerStep: (comboFreight[cargo.id] ?? 0.5) * qty * (1 - comm),
+    })),
+    ...FUELS.map((f) => ({
+      key: f.key,
+      label: `${f.label} price`,
+      base: bunker?.[f.key]?.price || 0,
+      unit: "$/t",
+      step: comboFuelStep[f.key],
+      pnlPerStep: -comboFuelStep[f.key] * (fuelTons[f.key] || 0),
+    })),
+    {
+      key: "tc",
+      label: "TC (hire)",
+      base: baseGtc,
+      unit: "$/d",
+      step: comboTc,
+      pnlPerStep: -comboTc * (1 - tcPct) * days,
+    },
+  ];
+
+  /** TC ($/day) variation caused by one step of the driver */
+  const tcVariation = (d: Driver) => (days > 0 ? d.pnlPerStep / days : 0);
+  /** Gross (break-even) rate variation for a cargo caused by one step of the driver */
+  const grossRateVariation = (d: Driver, c: (typeof cargoInfo)[number]) =>
+    c.qty > 0 && c.comm < 1 ? -d.pnlPerStep / c.qty / (1 - c.comm) : 0;
+
+  const comboChartData = useMemo(() => {
+    const pts: Array<Record<string, number>> = [];
+    for (let i = -5; i <= 5; i++) {
+      const p: Record<string, number> = { step: i };
+      for (const d of drivers) p[d.key] = tcVariation(d) * i;
+      pts.push(p);
+    }
+    return pts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comboTc, comboFuelStep, comboFreight, results, cargos, sequence, days]);
+
+  const COMBO_COLORS = [
+    "hsl(var(--primary))",
+    "hsl(var(--destructive))",
+    "hsl(var(--muted-foreground))",
+    "#0ea5e9",
+    "#f59e0b",
+    "#16a34a",
+    "#9333ea",
+  ];
 
   type Mode = "freight" | "bunker" | "gtc";
+
 
   const renderTable = (rows: Row[], mode: Mode) => (
     <div className="border border-border rounded-sm overflow-hidden">
@@ -340,7 +420,9 @@ export function SensitivityAnalysis() {
             <TabsTrigger value="freight" className="text-[11px] h-6">Freight Rate</TabsTrigger>
             <TabsTrigger value="bunker" className="text-[11px] h-6">Bunker Price</TabsTrigger>
             <TabsTrigger value="gtc" className="text-[11px] h-6">GTC (Hire)</TabsTrigger>
+            <TabsTrigger value="combined" className="text-[11px] h-6">Combined</TabsTrigger>
           </TabsList>
+
 
 
           <TabsContent value="freight" className="space-y-2">
@@ -416,7 +498,179 @@ export function SensitivityAnalysis() {
               {renderChart(gtcRows, "gtc")}
             </div>
           </TabsContent>
+
+
+          <TabsContent value="combined" className="space-y-3">
+            <div className="flex flex-wrap items-end gap-3 text-[11px]">
+              {cargoInfo.map(({ cargo, index }) => (
+                <label key={cargo.id} className="flex flex-col gap-0.5">
+                  <span className="text-muted-foreground">
+                    Freight sensitivity cargo #{index + 1} ($/mt)
+                  </span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={comboFreight[cargo.id] ?? 0.5}
+                    onChange={(e) =>
+                      setComboFreight((p) => ({ ...p, [cargo.id]: Number(e.target.value) }))
+                    }
+                    className="sheet-input w-28 h-7 px-2 border border-border rounded-sm font-mono text-[11px]"
+                  />
+                </label>
+              ))}
+              {FUELS.map((f) => (
+                <label key={f.key} className="flex flex-col gap-0.5">
+                  <span className="text-muted-foreground">{f.label} sensitivity ($/t)</span>
+                  <input
+                    type="number"
+                    step="1"
+                    value={comboFuelStep[f.key]}
+                    onChange={(e) =>
+                      setComboFuelStep((p) => ({ ...p, [f.key]: Number(e.target.value) }))
+                    }
+                    className="sheet-input w-28 h-7 px-2 border border-border rounded-sm font-mono text-[11px]"
+                  />
+                </label>
+              ))}
+              <label className="flex flex-col gap-0.5">
+                <span className="text-muted-foreground">TC sensitivity ($/d)</span>
+                <input
+                  type="number"
+                  step="500"
+                  value={comboTc}
+                  onChange={(e) => setComboTc(Number(e.target.value))}
+                  className="sheet-input w-28 h-7 px-2 border border-border rounded-sm font-mono text-[11px]"
+                />
+              </label>
+            </div>
+
+            <div className="border border-border rounded-sm overflow-hidden">
+              <table className="w-full text-[11px]">
+                <thead className="bg-muted">
+                  <tr className="text-left">
+                    <th className="px-2 py-1 font-medium">Driver</th>
+                    <th className="px-2 py-1 font-medium text-right">Base</th>
+                    <th className="px-2 py-1 font-medium text-right">Sensitivity</th>
+                    <th className="px-2 py-1 font-medium text-right">TC variation ($/d)</th>
+                    {cargoInfo.map(({ cargo, index }) => (
+                      <th key={cargo.id} className="px-2 py-1 font-medium text-right">
+                        V{index + 1} Gross Rate cargo #{index + 1} variation ($/mt)
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="font-mono tabular-nums">
+                  {drivers.map((d, i) => {
+                    const tcv = tcVariation(d);
+                    return (
+                      <tr key={d.key} className="border-t border-border">
+                        <td className="px-2 py-1 font-sans">
+                          <span
+                            className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle"
+                            style={{ background: COMBO_COLORS[i % COMBO_COLORS.length] }}
+                          />
+                          {d.label}
+                        </td>
+                        <td className="px-2 py-1 text-right">
+                          {d.base.toLocaleString(undefined, { maximumFractionDigits: 2 })} {d.unit}
+                        </td>
+                        <td className="px-2 py-1 text-right">
+                          {d.step > 0 ? "+" : ""}
+                          {d.step.toLocaleString(undefined, { maximumFractionDigits: 2 })} {d.unit}
+                        </td>
+                        <td className={`px-2 py-1 text-right ${signCls(tcv)}`}>
+                          {tcv >= 0 ? "+" : ""}
+                          {tcv.toFixed(2)}
+                        </td>
+                        {cargoInfo.map((c) => {
+                          const gv = grossRateVariation(d, c);
+                          return (
+                            <td
+                              key={c.cargo.id}
+                              className={`px-2 py-1 text-right ${signCls(gv)}`}
+                            >
+                              {gv >= 0 ? "+" : ""}
+                              {gv.toFixed(2)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                  <tr className="border-t border-border bg-primary/10 font-semibold">
+                    <td className="px-2 py-1 font-sans">All drivers combined (1 step each)</td>
+                    <td className="px-2 py-1" />
+                    <td className="px-2 py-1" />
+                    <td
+                      className={`px-2 py-1 text-right ${signCls(
+                        drivers.reduce((s, d) => s + tcVariation(d), 0)
+                      )}`}
+                    >
+                      {drivers.reduce((s, d) => s + tcVariation(d), 0).toFixed(2)}
+                    </td>
+                    {cargoInfo.map((c) => {
+                      const tot = drivers.reduce((s, d) => s + grossRateVariation(d, c), 0);
+                      return (
+                        <td key={c.cargo.id} className={`px-2 py-1 text-right ${signCls(tot)}`}>
+                          {tot.toFixed(2)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={comboChartData} margin={{ top: 8, right: 16, bottom: 16, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="step"
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v}×`}
+                    label={{
+                      value: "Sensitivity steps applied",
+                      position: "insideBottom",
+                      offset: -8,
+                      fontSize: 10,
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(v: number) =>
+                      Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`
+                    }
+                    label={{
+                      value: "TC variation ($/d)",
+                      angle: -90,
+                      position: "insideLeft",
+                      fontSize: 10,
+                    }}
+                  />
+                  <ReTooltip
+                    formatter={(v: number, n: string) => [money(v), n]}
+                    contentStyle={{ fontSize: 11 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 10 }} />
+                  {drivers.map((d, i) => (
+                    <Line
+                      key={d.key}
+                      type="monotone"
+                      dataKey={d.key}
+                      name={d.label}
+                      stroke={COMBO_COLORS[i % COMBO_COLORS.length]}
+                      strokeWidth={1.8}
+                      dot={false}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </TabsContent>
         </Tabs>
+
+
 
       </DialogContent>
 
