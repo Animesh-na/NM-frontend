@@ -498,7 +498,7 @@ export function SensitivityAnalysis() {
               {renderChart(gtcRows, "gtc")}
             </div>
           </TabsContent>
-          </TabsContent>
+
 
           <TabsContent value="combined" className="space-y-3">
             <div className="flex flex-wrap items-end gap-3 text-[11px]">
