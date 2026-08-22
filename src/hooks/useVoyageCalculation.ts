@@ -296,7 +296,7 @@ export interface PerCargoBreakdown {
   allocatedPortCosts: number;
   allocatedVoyageCosts: number; // bunker + port (route-bounded)
   allocatedHire: number; // hire over the route window
-  grossRate: number; // (allocatedVoyageCosts + allocatedHire) / qty, grossed up by voyComm
+  grossRate: number; // Net Rate / (1 − voy comm%), where Net Rate = own freight rate × (1 − voy comm%) − total voyage P&L / own qty
   routeStartIdx: number;
   routeEndIdx: number;
   // ── Ton-mile allocation (spec: Multi-Cargo Gross Rate) ──
