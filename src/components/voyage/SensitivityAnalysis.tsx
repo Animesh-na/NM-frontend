@@ -218,16 +218,6 @@ export function SensitivityAnalysis() {
   const grossRateVariation = (d: Driver, c: (typeof cargoInfo)[number]) =>
     c.qty > 0 && c.comm < 1 ? -d.pnlPerStep / c.qty / (1 - c.comm) : 0;
 
-  const comboChartData = useMemo(() => {
-    const pts: Array<Record<string, number>> = [];
-    for (let i = -5; i <= 5; i++) {
-      const p: Record<string, number> = { step: i };
-      for (const d of drivers) p[d.key] = tcVariation(d) * i;
-      pts.push(p);
-    }
-    return pts;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comboTc, comboFuelStep, comboFreight, results, cargos, sequence, days]);
 
   const COMBO_COLORS = [
     "hsl(var(--primary))",
@@ -621,53 +611,58 @@ export function SensitivityAnalysis() {
               </table>
             </div>
 
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={comboChartData} margin={{ top: 8, right: 16, bottom: 16, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="step"
-                    tick={{ fontSize: 10 }}
-                    tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v}×`}
-                    label={{
-                      value: "Sensitivity steps applied",
-                      position: "insideBottom",
-                      offset: -8,
-                      fontSize: 10,
-                    }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10 }}
-                    tickFormatter={(v: number) =>
-                      Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`
-                    }
-                    label={{
-                      value: "TC variation ($/d)",
-                      angle: -90,
-                      position: "insideLeft",
-                      fontSize: 10,
-                    }}
-                  />
-                  <ReTooltip
-                    formatter={(v: number, n: string) => [money(v), n]}
-                    contentStyle={{ fontSize: 11 }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                  {drivers.map((d, i) => (
-                    <Line
-                      key={d.key}
-                      type="monotone"
-                      dataKey={d.key}
-                      name={d.label}
-                      stroke={COMBO_COLORS[i % COMBO_COLORS.length]}
-                      strokeWidth={1.8}
-                      dot={false}
-                    />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="border border-border rounded-sm overflow-hidden">
+              <table className="w-full text-[11px]">
+                <thead className="bg-muted">
+                  <tr className="text-left">
+                    <th className="px-2 py-1 font-medium">Combined steps</th>
+                    <th className="px-2 py-1 font-medium text-right">Net TCE ($/d)</th>
+                    <th className="px-2 py-1 font-medium text-right">Gross TCE ($/d)</th>
+                    {cargoInfo.map(({ cargo, index }) => (
+                      <th key={cargo.id} className="px-2 py-1 font-medium text-right">
+                        V{index + 1} Gross Rate cargo #{index + 1} ($/mt)
+                      </th>
+                    ))}
+                    <th className="px-2 py-1 font-medium text-right">P&amp;L ($)</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono tabular-nums">
+                  {[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((step) => {
+                    const totalPnlDelta = drivers.reduce((s, d) => s + d.pnlPerStep * step, 0);
+                    const totalTcDelta = drivers.reduce((s, d) => s + tcVariation(d) * step, 0);
+                    const ntce = days > 0 ? results.ntce + totalTcDelta : 0;
+                    const gtce = ntce * grossUp;
+                    const pAndL = results.pAndL + totalPnlDelta;
+                    return (
+                      <tr
+                        key={step}
+                        className={`border-t border-border ${step === 0 ? "bg-primary/10 font-semibold" : ""}`}
+                      >
+                        <td className="px-2 py-1">
+                          {step === 0 ? "Base" : `${step > 0 ? "+" : ""}${step}×`}
+                        </td>
+                        <td className={`px-2 py-1 text-right ${signCls(ntce)}`}>{money(ntce)}</td>
+                        <td className={`px-2 py-1 text-right ${signCls(gtce)}`}>{money(gtce)}</td>
+                        {cargoInfo.map((c) => {
+                          const netRateAfterPnl =
+                            c.qty > 0 ? c.cargo.rate * (1 - c.comm) - (results.pAndL - totalPnlDelta) / c.qty : 0;
+                          const grossRate =
+                            c.qty > 0 && c.comm < 1 ? Math.max(0, netRateAfterPnl / (1 - c.comm)) : 0;
+                          return (
+                            <td key={c.cargo.id} className="px-2 py-1 text-right">
+                              ${grossRate.toFixed(2)}
+                            </td>
+                          );
+                        })}
+                        <td className={`px-2 py-1 text-right ${signCls(pAndL)}`}>{money(pAndL)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </TabsContent>
+
         </Tabs>
 
 
