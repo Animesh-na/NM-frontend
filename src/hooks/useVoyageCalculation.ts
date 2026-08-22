@@ -1748,7 +1748,18 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
         const voyCommPct = (c.voyageCommission || 0) / 100;
         const netRate = loadedQty > 0 ? allocatedTotalCost / loadedQty : 0;
-        const grossRate = voyCommPct < 1 ? netRate / (1 - voyCommPct) : netRate;
+        // Gross Rate (spec): own freight rate × (1 − voy comm) − TOTAL voyage P&L / own qty
+        const cargoFreightRate =
+          c.rateType === "lumpsum"
+            ? (loadedQty > 0 ? (c.rate || 0) / loadedQty : 0)
+            : (c.rate || 0);
+        const grossRate =
+          loadedQty > 0
+            ? Math.max(
+                0,
+                cargoFreightRate * (1 - voyCommPct) - adjustedPAndL / loadedQty,
+              )
+            : 0;
 
         perCargoBreakdown.push({
           cargoId: c.id,
