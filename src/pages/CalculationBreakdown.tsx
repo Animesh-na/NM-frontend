@@ -81,17 +81,17 @@ export default function CalculationBreakdown() {
           <SummaryCard 
             icon={<Fuel className="h-4 w-4" />}
             label="Bunker Cost"
-            value={`$${results.totalBunkerCost.toLocaleString()}`}
+            value={`$${results.totalBunkerCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           />
           <SummaryCard 
             icon={<DollarSign className="h-4 w-4" />}
             label="TCE"
-            value={`$${results.tce.toFixed(0)}/d`}
+            value={`$${results.tce.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/d`}
           />
           <SummaryCard 
             icon={<DollarSign className="h-4 w-4" />}
             label="P&L"
-            value={`$${results.pAndL.toLocaleString()}`}
+            value={`$${results.pAndL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             variant={results.pAndL >= 0 ? "success" : "destructive"}
           />
           <SummaryCard 

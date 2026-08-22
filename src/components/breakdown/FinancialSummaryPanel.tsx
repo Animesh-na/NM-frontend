@@ -181,19 +181,19 @@ export function FinancialSummaryPanel({ results, hireRate, cargos }: FinancialSu
               <div className="bg-muted/30 rounded-lg p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">NTC Base</span>
-                  <span className="font-mono">${primaryCargo.ntcBase}/day</span>
+                  <span className="font-mono">${primaryCargo.ntcBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/day</span>
                 </div>
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-xs text-muted-foreground">Actual NTCE</span>
                   <span className={`font-mono font-semibold ${results.ntce >= primaryCargo.ntcBase ? "text-success" : "text-destructive"}`}>
-                    ${results.ntce.toFixed(0)}/day
+                    {formatCurrency(results.ntce)}/day
                   </span>
                 </div>
                 <div className="text-xs mt-2">
                   {results.ntce >= primaryCargo.ntcBase ? (
-                    <span className="text-success">✓ Above benchmark by ${(results.ntce - primaryCargo.ntcBase).toFixed(0)}/day</span>
+                    <span className="text-success">✓ Above benchmark by {formatCurrency(results.ntce - primaryCargo.ntcBase)}/day</span>
                   ) : (
-                    <span className="text-destructive">✗ Below benchmark by ${(primaryCargo.ntcBase - results.ntce).toFixed(0)}/day</span>
+                    <span className="text-destructive">✗ Below benchmark by {formatCurrency(primaryCargo.ntcBase - results.ntce)}/day</span>
                   )}
                 </div>
               </div>
@@ -202,19 +202,19 @@ export function FinancialSummaryPanel({ results, hireRate, cargos }: FinancialSu
               <div className="bg-muted/30 rounded-lg p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">GTC Target</span>
-                  <span className="font-mono">${primaryCargo.gtcTarget}/day</span>
+                  <span className="font-mono">${primaryCargo.gtcTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/day</span>
                 </div>
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-xs text-muted-foreground">Actual GTCE</span>
                   <span className={`font-mono font-semibold ${results.gtce >= primaryCargo.gtcTarget ? "text-success" : "text-destructive"}`}>
-                    ${results.gtce.toFixed(0)}/day
+                    {formatCurrency(results.gtce)}/day
                   </span>
                 </div>
                 <div className="text-xs mt-2">
                   {results.gtce >= primaryCargo.gtcTarget ? (
-                    <span className="text-success">✓ Above target by ${(results.gtce - primaryCargo.gtcTarget).toFixed(0)}/day</span>
+                    <span className="text-success">✓ Above target by {formatCurrency(results.gtce - primaryCargo.gtcTarget)}/day</span>
                   ) : (
-                    <span className="text-destructive">✗ Below target by ${(primaryCargo.gtcTarget - results.gtce).toFixed(0)}/day</span>
+                    <span className="text-destructive">✗ Below target by {formatCurrency(primaryCargo.gtcTarget - results.gtce)}/day</span>
                   )}
                 </div>
               </div>

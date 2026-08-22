@@ -416,7 +416,7 @@ export function BunkerSection() {
           <details className="border border-border rounded overflow-hidden">
             <summary className="subsection-header px-2 py-1 cursor-pointer text-[10px] font-medium flex items-center justify-between">
               <span>Summary</span>
-              <span className="font-mono text-primary">${results.totalBunkerCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="font-mono text-primary">${results.totalBunkerCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </summary>
             <table className="w-full text-xs">
               <thead>
@@ -443,7 +443,7 @@ export function BunkerSection() {
                         <InfoTooltip {...getPriceBreakdown(f.key)} />
                       </span>
                     </td>
-                    <td className="px-2 py-0.5 font-mono text-right text-[10px]">${(f.consumed * f.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                    <td className="px-2 py-0.5 font-mono text-right text-[10px]">${(f.consumed * f.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td className="px-2 py-0.5 font-mono text-right text-[10px]">{f.robEnd.toFixed(1)} t</td>
                   </tr>
                 ))}
