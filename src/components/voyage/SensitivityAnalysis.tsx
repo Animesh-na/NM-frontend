@@ -27,7 +27,9 @@ interface Row {
   ntce: number;
   gtce: number;
   pAndL: number;
+  grossRate: number;
 }
+
 
 const money = (v: number) =>
   `${v < 0 ? "-" : ""}$${Math.abs(v).toLocaleString(undefined, {
