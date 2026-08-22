@@ -175,7 +175,13 @@ export function SensitivityAnalysis() {
             </th>
             <th className="px-2 py-1 font-medium text-right">Net TCE ($/d)</th>
             <th className="px-2 py-1 font-medium text-right">Gross TCE ($/d)</th>
-            <th className="px-2 py-1 font-medium text-right">Gross Rate ($/mt)</th>
+            <th
+              className="px-2 py-1 font-medium text-right"
+              title="Break-even gross freight rate for this scenario (rate at which P&L = 0). Independent of the freight-rate step, so it only moves on the Bunker and GTC tabs."
+            >
+              Gross Rate ($/mt)
+            </th>
+
             <th className="px-2 py-1 font-medium text-right">P&amp;L ($)</th>
           </tr>
         </thead>
