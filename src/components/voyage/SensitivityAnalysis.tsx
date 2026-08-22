@@ -168,8 +168,79 @@ export function SensitivityAnalysis() {
 
   );
 
+  // ---------- Combined (multi-driver) sensitivity ----------
+  interface Driver {
+    key: string;
+    label: string;
+    base: number;
+    unit: string;
+    step: number;
+    /** ΔP&L ($) produced by one step of this driver */
+    pnlPerStep: number;
+  }
+
+  const cargoInfo = cargos.map((c, i) => {
+    const qty = cargoQtys.get(c.id) || (cargos.length === 1 ? totalLoadQty : 0);
+    const comm = Math.min(Math.max((c.voyageCommission || 0) / 100, 0), 0.95);
+    return { cargo: c, index: i, qty, comm };
+  });
+
+  const drivers: Driver[] = [
+    ...cargoInfo.map(({ cargo, index, qty, comm }) => ({
+      key: `cargo-${cargo.id}`,
+      label: `V${index + 1} Freight cargo #${index + 1}`,
+      base: cargo.rate || 0,
+      unit: "$/mt",
+      step: comboFreight[cargo.id] ?? 0.5,
+      pnlPerStep: (comboFreight[cargo.id] ?? 0.5) * qty * (1 - comm),
+    })),
+    ...FUELS.map((f) => ({
+      key: f.key,
+      label: `${f.label} price`,
+      base: bunker?.[f.key]?.price || 0,
+      unit: "$/t",
+      step: comboFuelStep[f.key],
+      pnlPerStep: -comboFuelStep[f.key] * (fuelTons[f.key] || 0),
+    })),
+    {
+      key: "tc",
+      label: "TC (hire)",
+      base: baseGtc,
+      unit: "$/d",
+      step: comboTc,
+      pnlPerStep: -comboTc * (1 - tcPct) * days,
+    },
+  ];
+
+  /** TC ($/day) variation caused by one step of the driver */
+  const tcVariation = (d: Driver) => (days > 0 ? d.pnlPerStep / days : 0);
+  /** Gross (break-even) rate variation for a cargo caused by one step of the driver */
+  const grossRateVariation = (d: Driver, c: (typeof cargoInfo)[number]) =>
+    c.qty > 0 && c.comm < 1 ? -d.pnlPerStep / c.qty / (1 - c.comm) : 0;
+
+  const comboChartData = useMemo(() => {
+    const pts: Array<Record<string, number>> = [];
+    for (let i = -5; i <= 5; i++) {
+      const p: Record<string, number> = { step: i };
+      for (const d of drivers) p[d.key] = tcVariation(d) * i;
+      pts.push(p);
+    }
+    return pts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comboTc, comboFuelStep, comboFreight, results, cargos, sequence, days]);
+
+  const COMBO_COLORS = [
+    "hsl(var(--primary))",
+    "hsl(var(--destructive))",
+    "hsl(var(--muted-foreground))",
+    "#0ea5e9",
+    "#f59e0b",
+    "#16a34a",
+    "#9333ea",
+  ];
 
   type Mode = "freight" | "bunker" | "gtc";
+
 
   const renderTable = (rows: Row[], mode: Mode) => (
     <div className="border border-border rounded-sm overflow-hidden">
