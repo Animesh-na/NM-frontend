@@ -48,12 +48,21 @@ const FUELS: { key: FuelKey; label: string }[] = [
 ];
 
 export function SensitivityAnalysis() {
-  const { results, cargos, sequence, hireRate } = useVoyageContext();
+  const { results, cargos, sequence, hireRate, bunker } = useVoyageContext();
   const [freightStep, setFreightStep] = useState(0.5);
   const [bunkerStep, setBunkerStep] = useState(1);
   const [gtcStep, setGtcStep] = useState(250);
   const [fuel, setFuel] = useState<FuelKey>("vlsfo");
   const [cargoId, setCargoId] = useState<number | null>(null);
+  // Combined (multi-driver) sensitivity steps
+  const [comboTc, setComboTc] = useState(10000);
+  const [comboFuelStep, setComboFuelStep] = useState<Record<FuelKey, number>>({
+    hsfo: 10,
+    vlsfo: 10,
+    lsmgo: 10,
+  });
+  const [comboFreight, setComboFreight] = useState<Record<number, number>>({});
+
 
 
   const activeCargo =
