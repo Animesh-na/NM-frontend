@@ -153,19 +153,22 @@ export function SensitivityAnalysis() {
   );
 
 
-  const renderTable = (rows: Row[], mode: "freight" | "bunker") => (
+  type Mode = "freight" | "bunker" | "gtc";
+
+  const renderTable = (rows: Row[], mode: Mode) => (
     <div className="border border-border rounded-sm overflow-hidden">
       <table className="w-full text-[11px]">
         <thead className="bg-muted">
           <tr className="text-left">
             <th className="px-2 py-1 font-medium">
-              {mode === "freight" ? "Δ Rate ($/mt)" : "Δ Bunker ($/t)"}
+              {mode === "freight" ? "Δ Rate ($/mt)" : mode === "gtc" ? "Δ GTC ($/d)" : "Δ Bunker ($/t)"}
             </th>
             <th className="px-2 py-1 font-medium">
-              {mode === "freight" ? "Freight Rate" : "Bunker Δ applied"}
+              {mode === "freight" ? "Freight Rate" : mode === "gtc" ? "GTC ($/d)" : "Bunker Δ applied"}
             </th>
             <th className="px-2 py-1 font-medium text-right">Net TCE ($/d)</th>
             <th className="px-2 py-1 font-medium text-right">Gross TCE ($/d)</th>
+            <th className="px-2 py-1 font-medium text-right">Gross Rate ($/mt)</th>
             <th className="px-2 py-1 font-medium text-right">P&amp;L ($)</th>
           </tr>
         </thead>
@@ -180,10 +183,13 @@ export function SensitivityAnalysis() {
                 {r.delta.toFixed(2)}
               </td>
               <td className="px-2 py-1">
-                {mode === "freight" ? `$${r.input.toFixed(2)}` : `${r.delta >= 0 ? "+" : ""}$${r.delta.toFixed(2)}`}
+                {mode === "bunker"
+                  ? `${r.delta >= 0 ? "+" : ""}$${r.delta.toFixed(2)}`
+                  : `$${r.input.toFixed(2)}`}
               </td>
               <td className={`px-2 py-1 text-right ${signCls(r.ntce)}`}>{money(r.ntce)}</td>
               <td className={`px-2 py-1 text-right ${signCls(r.gtce)}`}>{money(r.gtce)}</td>
+              <td className="px-2 py-1 text-right">${r.grossRate.toFixed(2)}</td>
               <td className={`px-2 py-1 text-right ${signCls(r.pAndL)}`}>{money(r.pAndL)}</td>
             </tr>
           ))}
@@ -192,32 +198,52 @@ export function SensitivityAnalysis() {
     </div>
   );
 
-  const renderChart = (rows: Row[], mode: "freight" | "bunker") => (
-    <div className="h-64 w-full mt-3">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis
-            dataKey={mode === "freight" ? "input" : "delta"}
-            tick={{ fontSize: 10 }}
-            tickFormatter={(v: number) => (mode === "freight" ? `$${v.toFixed(1)}` : `${v > 0 ? "+" : ""}${v}`)}
-            label={{
-              value: mode === "freight" ? "Freight rate ($/mt)" : "Bunker price change ($/t)",
-              position: "insideBottom",
-              offset: -4,
-              fontSize: 10,
-            }}
-          />
-          <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} />
-          <ReTooltip
-            formatter={(v: number, n: string) => [money(v), n]}
-            contentStyle={{ fontSize: 11 }}
-          />
-          <Legend wrapperStyle={{ fontSize: 10 }} />
-          <Line type="monotone" dataKey="gtce" name="Gross TCE" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="ntce" name="Net TCE" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} />
-        </LineChart>
-      </ResponsiveContainer>
+  const renderChart = (rows: Row[], mode: Mode) => {
+    const vals = rows.flatMap((r) => [r.gtce, r.ntce]);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = Math.max((max - min) * 0.08, Math.abs(max) * 0.01, 1);
+    return (
+      <div className="h-64 w-full mt-3">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis
+              dataKey={mode === "bunker" ? "delta" : "input"}
+              tick={{ fontSize: 10 }}
+              tickFormatter={(v: number) =>
+                mode === "bunker" ? `${v > 0 ? "+" : ""}${v}` : `$${v.toFixed(mode === "gtc" ? 0 : 1)}`
+              }
+              label={{
+                value:
+                  mode === "freight"
+                    ? "Freight rate ($/mt)"
+                    : mode === "gtc"
+                      ? "GTC hire ($/day)"
+                      : "Bunker price change ($/t)",
+                position: "insideBottom",
+                offset: -4,
+                fontSize: 10,
+              }}
+            />
+            <YAxis
+              tick={{ fontSize: 10 }}
+              domain={[min - pad, max + pad]}
+              allowDecimals={false}
+              tickFormatter={(v: number) =>
+                Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`
+              }
+            />
+            <ReTooltip
+              formatter={(v: number, n: string) => [money(v), n]}
+              contentStyle={{ fontSize: 11 }}
+            />
+            <Legend wrapperStyle={{ fontSize: 10 }} />
+            <Line type="monotone" dataKey="gtce" name="Gross TCE" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="ntce" name="Net TCE" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+
     </div>
   );
 
