@@ -284,6 +284,18 @@ export function VoyageSummary() {
                 ${formatCurrency(results.pAndL)}
               </span>
             </div>
+            <div className="flex justify-between bg-success/5 rounded-sm px-1 py-0.5 -mx-1">
+              <span className="text-muted-foreground flex items-center font-semibold">
+                P&L/d
+                <InfoTooltip 
+                  formula="P&L / Total Voyage Days"
+                  description="Profit & Loss per day for the voyage"
+                />
+              </span>
+              <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL / (results.totalVoyageDays || 1))}`}>
+                ${formatCurrency(results.totalVoyageDays > 0 ? results.pAndL / results.totalVoyageDays : 0)}
+              </span>
+            </div>
             {showLaytimeImpact && (
               <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1">
                 <span className="text-muted-foreground flex items-center font-semibold">
