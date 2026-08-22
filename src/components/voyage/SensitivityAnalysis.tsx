@@ -243,9 +243,10 @@ export function SensitivityAnalysis() {
             <Line type="monotone" dataKey="ntce" name="Net TCE" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} />
           </LineChart>
         </ResponsiveContainer>
+      </div>
+    );
+  };
 
-    </div>
-  );
 
   return (
     <Dialog>
