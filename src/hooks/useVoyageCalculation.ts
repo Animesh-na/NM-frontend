@@ -257,8 +257,9 @@ export interface VoyageResults {
   // Laden distance (for EFOI)
   ladenDistance: number;
   
-  // Gross Rate (voyage cost incl hire / load qty, grossed up by voyage commission)
+  // Gross Rate: Net Rate / (1 − voyage commission %) where Net Rate = freight rate × (1 − voy comm) − total voyage P&L / cargo qty
   grossRate: number;
+
 
   // EU-covered fuel quantities (for EU ETS & FuelEU)
   euCoveredFuel: { hsfo: number; vlsfo: number; lsmgo: number };
@@ -295,7 +296,7 @@ export interface PerCargoBreakdown {
   allocatedPortCosts: number;
   allocatedVoyageCosts: number; // bunker + port (route-bounded)
   allocatedHire: number; // hire over the route window
-  grossRate: number; // (allocatedVoyageCosts + allocatedHire) / qty, grossed up by voyComm
+  grossRate: number; // Net Rate / (1 − voy comm%), where Net Rate = own freight rate × (1 − voy comm%) − total voyage P&L / own qty
   routeStartIdx: number;
   routeEndIdx: number;
   // ── Ton-mile allocation (spec: Multi-Cargo Gross Rate) ──
@@ -1472,19 +1473,19 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const adjustedGtce = tcCommissionPct < 1 ? adjustedNtce / (1 - tcCommissionPct) : 0;
     const adjustedTce = adjustedGtce;
     const voyageCommissionPct2 = cargo.voyageCommission / 100;
-    // Gross Rate (spec): freight rate × (1 − voy comm) − total voyage P&L / cargo qty, floored at 0
+    // Gross Rate (spec): Net Rate / (1 − Voy Commission %) where Net Rate = freight rate × (1 − voy comm) − total voyage P&L / cargo qty
     const grossRateFreightRate =
       cargo.rateType === "lumpsum"
         ? (cargo.quantity > 0 ? (cargo.rate || 0) / cargo.quantity : 0)
         : (cargo.rate || 0);
+    const netRateAfterPnl =
+      grossRateFreightRate * (1 - voyageCommissionPct2) -
+      adjustedPAndL / cargo.quantity;
     const adjustedGrossRate =
-      cargo.quantity > 0
-        ? Math.max(
-            0,
-            grossRateFreightRate * (1 - voyageCommissionPct2) -
-              adjustedPAndL / cargo.quantity,
-          )
+      cargo.quantity > 0 && voyageCommissionPct2 < 1
+        ? Math.max(0, netRateAfterPnl / (1 - voyageCommissionPct2))
         : 0;
+
 
     vlog(`\n[Step 13] REGULATORY COSTS & FUEL EU:
     FuelEU Costs: HSFO=$${fuelEuResult.fuels.hsfo.cost.toFixed(2)}, VLSFO=$${fuelEuResult.fuels.vlsfo.cost.toFixed(2)}, LSMGO=$${fuelEuResult.fuels.lsmgo.cost.toFixed(2)}
@@ -1748,18 +1749,18 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
         const voyCommPct = (c.voyageCommission || 0) / 100;
         const netRate = loadedQty > 0 ? allocatedTotalCost / loadedQty : 0;
-        // Gross Rate (spec): own freight rate × (1 − voy comm) − TOTAL voyage P&L / own qty
+        // Gross Rate (spec): Net Rate / (1 − Voy Commission %) where Net Rate = own freight rate × (1 − voy comm) − TOTAL voyage P&L / own qty
         const cargoFreightRate =
           c.rateType === "lumpsum"
             ? (loadedQty > 0 ? (c.rate || 0) / loadedQty : 0)
             : (c.rate || 0);
+        const netRateAfterPnl =
+          cargoFreightRate * (1 - voyCommPct) - adjustedPAndL / loadedQty;
         const grossRate =
-          loadedQty > 0
-            ? Math.max(
-                0,
-                cargoFreightRate * (1 - voyCommPct) - adjustedPAndL / loadedQty,
-              )
+          loadedQty > 0 && voyCommPct < 1
+            ? Math.max(0, netRateAfterPnl / (1 - voyCommPct))
             : 0;
+
 
         perCargoBreakdown.push({
           cargoId: c.id,
