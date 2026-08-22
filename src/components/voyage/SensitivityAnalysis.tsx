@@ -116,11 +116,15 @@ export function SensitivityAnalysis() {
       }
       const pAndL = results.pAndL + dNetFreight - dCost - dHire;
       const ntce = days > 0 ? results.ntce + (dNetFreight - dCost) / days : 0;
-      const freightRate = mode === "freight" ? baseRate + delta : baseRate;
+      // Gross Rate = break-even freight rate for this scenario.
+      // It must be measured against the P&L *excluding* the freight delta itself,
+      // otherwise the freight step cancels out algebraically and the column never moves.
+      const pAndLExFreight = results.pAndL - dCost - dHire;
       const netRateAfterPnl =
-        loadQty > 0 ? freightRate * (1 - commPct) - pAndL / loadQty : 0;
+        loadQty > 0 ? baseRate * (1 - commPct) - pAndLExFreight / loadQty : 0;
       const grossRate =
         loadQty > 0 && commPct < 1 ? Math.max(0, netRateAfterPnl / (1 - commPct)) : 0;
+
       out.push({
         delta,
         input:
