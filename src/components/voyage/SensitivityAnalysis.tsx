@@ -116,11 +116,15 @@ export function SensitivityAnalysis() {
       }
       const pAndL = results.pAndL + dNetFreight - dCost - dHire;
       const ntce = days > 0 ? results.ntce + (dNetFreight - dCost) / days : 0;
-      const freightRate = mode === "freight" ? baseRate + delta : baseRate;
+      // Gross Rate = break-even freight rate for this scenario.
+      // It must be measured against the P&L *excluding* the freight delta itself,
+      // otherwise the freight step cancels out algebraically and the column never moves.
+      const pAndLExFreight = results.pAndL - dCost - dHire;
       const netRateAfterPnl =
-        loadQty > 0 ? freightRate * (1 - commPct) - pAndL / loadQty : 0;
+        loadQty > 0 ? baseRate * (1 - commPct) - pAndLExFreight / loadQty : 0;
       const grossRate =
         loadQty > 0 && commPct < 1 ? Math.max(0, netRateAfterPnl / (1 - commPct)) : 0;
+
       out.push({
         delta,
         input:
@@ -171,7 +175,13 @@ export function SensitivityAnalysis() {
             </th>
             <th className="px-2 py-1 font-medium text-right">Net TCE ($/d)</th>
             <th className="px-2 py-1 font-medium text-right">Gross TCE ($/d)</th>
-            <th className="px-2 py-1 font-medium text-right">Gross Rate ($/mt)</th>
+            <th
+              className="px-2 py-1 font-medium text-right"
+              title="Break-even gross freight rate for this scenario (rate at which P&L = 0). Independent of the freight-rate step, so it only moves on the Bunker and GTC tabs."
+            >
+              Gross Rate ($/mt)
+            </th>
+
             <th className="px-2 py-1 font-medium text-right">P&amp;L ($)</th>
           </tr>
         </thead>
