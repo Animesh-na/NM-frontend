@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BarChart3 } from "lucide-react";
+import { PieChart as PieChartIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  PieChart,
+  Pie,
   Cell,
   Tooltip as ReTooltip,
+  Legend,
 } from "recharts";
 import { useVoyageContext } from "@/context/VoyageContext";
 
@@ -75,7 +73,7 @@ export function InsightsPanel() {
           title="Voyage cost insights"
           className="ml-auto inline-flex items-center gap-1 rounded-sm border border-border px-1.5 py-0.5 text-[9px] font-medium hover:bg-accent transition-colors"
         >
-          <BarChart3 className="h-3 w-3" />
+          <PieChartIcon className="h-3 w-3" />
           Insights
         </button>
       </DialogTrigger>
@@ -85,20 +83,32 @@ export function InsightsPanel() {
         </DialogHeader>
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-4">
-          {/* Bar chart */}
+          {/* Pie chart */}
           <div className="rounded-md border border-border p-3">
             <div className="text-[11px] font-semibold mb-2">Cost & Profit Distribution</div>
             <div className="h-[420px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 16, left: 16, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
-                  <YAxis
-                    tick={{ fontSize: 10 }}
-                    tickFormatter={(v: number) => `$${(v / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}k`}
+                <PieChart>
+                  <ReTooltip
+                    formatter={(v: number, n: string) => [money(v), n]}
+                    contentStyle={{ fontSize: 11 }}
                   />
-                  <ReTooltip formatter={(v: number) => money(v)} />
-                  <Bar dataKey="value" radius={[3, 3, 0, 0]}>
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: 10 }}
+                  />
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius="45%"
+                    outerRadius="70%"
+                    paddingAngle={2}
+                    labelLine={false}
+                    label={(d) => `${d.name}`}
+                  >
                     {chartData.map((d) => (
                       <Cell
                         key={d.name}
@@ -109,10 +119,12 @@ export function InsightsPanel() {
                               : "hsl(var(--destructive))"
                             : "hsl(var(--primary))"
                         }
+                        stroke="hsl(var(--background))"
+                        strokeWidth={2}
                       />
                     ))}
-                  </Bar>
-                </BarChart>
+                  </Pie>
+                </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
