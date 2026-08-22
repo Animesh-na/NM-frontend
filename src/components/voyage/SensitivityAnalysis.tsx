@@ -291,7 +291,7 @@ export function SensitivityAnalysis() {
         )}
 
 
-        <div className="grid grid-cols-6 gap-2 text-[10px]">
+        <div className="grid grid-cols-7 gap-2 text-[10px]">
           <div className="bg-muted rounded-sm p-2">
             <div className="text-muted-foreground">Base Freight Rate</div>
             <div className="font-mono font-semibold">${baseRate.toFixed(2)} /mt</div>
