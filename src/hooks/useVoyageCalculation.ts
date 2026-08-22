@@ -257,8 +257,9 @@ export interface VoyageResults {
   // Laden distance (for EFOI)
   ladenDistance: number;
   
-  // Gross Rate (voyage cost incl hire / load qty, grossed up by voyage commission)
+  // Gross Rate: Net Rate / (1 − voyage commission %) where Net Rate = freight rate × (1 − voy comm) − total voyage P&L / cargo qty
   grossRate: number;
+
 
   // EU-covered fuel quantities (for EU ETS & FuelEU)
   euCoveredFuel: { hsfo: number; vlsfo: number; lsmgo: number };
