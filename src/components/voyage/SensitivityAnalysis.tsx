@@ -420,7 +420,9 @@ export function SensitivityAnalysis() {
             <TabsTrigger value="freight" className="text-[11px] h-6">Freight Rate</TabsTrigger>
             <TabsTrigger value="bunker" className="text-[11px] h-6">Bunker Price</TabsTrigger>
             <TabsTrigger value="gtc" className="text-[11px] h-6">GTC (Hire)</TabsTrigger>
+            <TabsTrigger value="combined" className="text-[11px] h-6">Combined</TabsTrigger>
           </TabsList>
+
 
 
           <TabsContent value="freight" className="space-y-2">
