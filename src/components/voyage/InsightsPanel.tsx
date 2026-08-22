@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BarChart3 } from "lucide-react";
+import { PieChart as PieChartIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  PieChart,
+  Pie,
   Cell,
   Tooltip as ReTooltip,
+  Legend,
 } from "recharts";
 import { useVoyageContext } from "@/context/VoyageContext";
 
