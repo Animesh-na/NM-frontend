@@ -208,7 +208,7 @@ export function VoyageSummary() {
                 description="Sum of all leg distances via sea route"
               />
             </span>
-            <span className="font-mono text-right">{(results.totalDistance + results.totalEcaDistance).toLocaleString()} nm</span>
+            <span className="font-mono text-right">{(results.totalDistance + results.totalEcaDistance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
             <span className="flex items-center">
               ECA distance
               <InfoTooltip 
@@ -216,7 +216,7 @@ export function VoyageSummary() {
                 description="Distance within Emission Control Areas"
               />
             </span>
-            <span className="font-mono text-right">{results.totalEcaDistance.toLocaleString()} nm</span>
+            <span className="font-mono text-right">{results.totalEcaDistance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
           </div>
         </div>
 

@@ -60,8 +60,8 @@ interface Metric {
   fmt?: (v: number) => string;
 }
 
-const $ = (v: number) => `$${Math.round(v).toLocaleString()}`;
-const num = (d = 1) => (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
+const $ = (v: number) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const num = (d = 2) => (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
 
 const METRICS: Metric[] = [
   // Voyage Metrics

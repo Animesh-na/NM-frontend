@@ -33,8 +33,8 @@ interface Row {
 
 const money = (v: number) =>
   `${v < 0 ? "-" : ""}$${Math.abs(v).toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   })}`;
 
 const signCls = (v: number) => (v >= 0 ? "text-success" : "text-destructive");
