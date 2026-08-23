@@ -126,7 +126,6 @@ export function saveCustomStowageFactor(entry: { name: string; sf: number }): St
 export function removeCustomStowageFactor(name: string): StowageFactorOption[] {
   const next = loadCustomStowageFactors().filter((e) => e.name !== name);
   try {
-    localStorage.setItem(CUSTOM_KEY, JSON.stringify(next.map(({ n, s }: never) => ({ n, s })) as never));
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(next.map(({ name: n, sf: s }) => ({ name: n, sf: s }))));
   } catch {
     /* ignore */
