@@ -2,6 +2,13 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { type VesselData } from "@/data/vessels";
+import {
+  STOWAGE_FACTORS,
+  loadCustomStowageFactors,
+  saveCustomStowageFactor,
+  removeCustomStowageFactor,
+  type StowageFactorOption,
+} from "@/data/stowageFactors";
 
 export type IntakeSeason = "summer" | "winter" | "tropical";
 export type IntakeWater = "sw" | "bw" | "fw" | "tfw";
@@ -85,6 +92,25 @@ export function IntakeCalculator({
   const [grainCuM, setGrainCuM] = useState("");
   const [sf, setSf] = useState("");
   const [cargoType, setCargoType] = useState("");
+  const [customCargos, setCustomCargos] = useState<StowageFactorOption[]>(() => loadCustomStowageFactors());
+  const [newCargoName, setNewCargoName] = useState("");
+  const [newCargoSf, setNewCargoSf] = useState("");
+
+  const cargoOptions = useMemo(
+    () => [...customCargos, ...STOWAGE_FACTORS].sort((a, b) => a.name.localeCompare(b.name)),
+    [customCargos],
+  );
+
+  const addCustomCargo = useCallback(() => {
+    const name = newCargoName.trim();
+    const value = parseFloat(newCargoSf);
+    if (!name || isNaN(value)) return;
+    setCustomCargos(saveCustomStowageFactor({ name, sf: value }));
+    setCargoType(name);
+    setSf(String(value));
+    setNewCargoName("");
+    setNewCargoSf("");
+  }, [newCargoName, newCargoSf]);
 
   const [rows, setRows] = useState<
     Record<number, { draft: string; water: IntakeWater; season: IntakeSeason }>
