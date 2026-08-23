@@ -258,22 +258,82 @@ export function IntakeCalculator({
           </div>
 
           {/* Cargo row */}
-          <div className="rounded-lg border border-border bg-background p-3 grid grid-cols-2 lg:grid-cols-5 gap-3">
-            <Field label="Cargo Type">
-              <input className="form-input-sm h-8 w-full text-[12px]" value={cargoType} onChange={(e) => setCargoType(e.target.value)} placeholder="—" />
-            </Field>
-            <Field label="Stowage" unit="ft³/ton">
-              <input type="number" step="0.1" className={inputBox} value={sf} onChange={(e) => setSf(e.target.value)} />
-            </Field>
-            <Field label="Stowage" unit="m³/ton">
-              <input readOnly className={`${inputBox} bg-muted/60`} value={sfM3} />
-            </Field>
-            <Field label="Restricted Intake (DWT)" unit="tons">
-              <input readOnly className={`${inputBox} bg-muted/60`} value={calc.restrictedDwt.toLocaleString()} />
-            </Field>
-            <Field label="Restricted Intake (cubics)" unit="tons">
-              <input readOnly className={`${inputBox} bg-muted/60`} value={Number.isFinite(calc.cubicIntake) ? calc.cubicIntake.toLocaleString() : "—"} />
-            </Field>
+          <div className="rounded-lg border border-border bg-background p-3 space-y-3">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              <Field label="Cargo Type">
+                <select
+                  className="form-input-sm h-8 w-full text-[12px]"
+                  value={cargoOptions.some((o) => o.name === cargoType) ? cargoType : ""}
+                  onChange={(e) => {
+                    const opt = cargoOptions.find((o) => o.name === e.target.value);
+                    setCargoType(e.target.value);
+                    if (opt) setSf(String(opt.sf));
+                  }}
+                >
+                  <option value="">— Select cargo —</option>
+                  {cargoOptions.map((o) => (
+                    <option key={o.name} value={o.name}>
+                      {o.custom ? `★ ${o.name}` : o.name} ({o.sf.toFixed(2)})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Stowage" unit="ft³/ton">
+                <input type="number" step="0.1" className={inputBox} value={sf} onChange={(e) => setSf(e.target.value)} />
+              </Field>
+              <Field label="Stowage" unit="m³/ton">
+                <input readOnly className={`${inputBox} bg-muted/60`} value={sfM3} />
+              </Field>
+              <Field label="Restricted Intake (DWT)" unit="tons">
+                <input readOnly className={`${inputBox} bg-muted/60`} value={calc.restrictedDwt.toLocaleString()} />
+              </Field>
+              <Field label="Restricted Intake (cubics)" unit="tons">
+                <input readOnly className={`${inputBox} bg-muted/60`} value={Number.isFinite(calc.cubicIntake) ? calc.cubicIntake.toLocaleString() : "—"} />
+              </Field>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
+              <div className="flex flex-col gap-1">
+                <span className={fieldLabel}>Custom cargo</span>
+                <input
+                  className="form-input-sm h-8 w-48 text-[12px]"
+                  placeholder="Cargo name"
+                  value={newCargoName}
+                  onChange={(e) => setNewCargoName(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className={fieldLabel}>SF (ft³/ton)</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="form-input-sm h-8 w-32 text-[12px] font-mono tabular-nums"
+                  placeholder="0.00"
+                  value={newCargoSf}
+                  onChange={(e) => setNewCargoSf(e.target.value)}
+                />
+              </div>
+              <Button type="button" size="sm" variant="outline" className="h-8 text-[11px]" onClick={addCustomCargo}>
+                Add cargo
+              </Button>
+              {customCargos.some((c) => c.name === cargoType) && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-[11px] text-destructive"
+                  onClick={() => {
+                    setCustomCargos(removeCustomStowageFactor(cargoType));
+                    setCargoType("");
+                  }}
+                >
+                  Remove "{cargoType}"
+                </Button>
+              )}
+              <span className="text-[10px] text-muted-foreground ml-auto">
+                Custom cargoes are saved on this device and marked ★.
+              </span>
+            </div>
           </div>
 
           {/* Ports table */}
