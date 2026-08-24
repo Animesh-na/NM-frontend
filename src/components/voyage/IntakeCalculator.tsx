@@ -10,7 +10,7 @@ import {
   type StowageFactorOption,
 } from "@/data/stowageFactors";
 
-export type IntakeSeason = "summer" | "winter" | "tropical";
+export type IntakeSeason = "summer" | "winter";
 export type IntakeWater = "sw" | "bw" | "fw" | "tfw";
 
 export interface IntakePortInput {
@@ -36,7 +36,6 @@ const waterOptions: { value: IntakeWater; label: string; short: string; density:
 const seasonOptions: { value: IntakeSeason; label: string }[] = [
   { value: "summer", label: "Summer" },
   { value: "winter", label: "Winter" },
-  { value: "tropical", label: "Tropical" },
 ];
 
 const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? 0 : n; };
