@@ -173,27 +173,45 @@ export function IntakeCalculator({
     const grainCuFtVal = num(grainCuFt) > 0 ? num(grainCuFt) : num(grainCuM) * 35.3147;
     const cubicIntake = _sf > 0 ? grainCuFtVal / _sf : Infinity;
 
+    // Deadweight capacity (cubic side) uses seasonal DWT, no density/draft restriction
     const perPort = ports.map((p) => {
       const r = rows[p.id] ?? { draft: "", water: "sw" as IntakeWater, season: "summer" as IntakeSeason };
-      const density = (waterOptions.find((w) => w.value === r.water)?.density ?? 1.025) / 1.025;
+      const density = waterOptions.find((w) => w.value === r.water)?.density ?? 1;
+
+      // 1. Seasonal draft / DWT
       const seasonalDraft =
         r.season === "winter"
-          ? _summerDraft - _summerDraft / 48
+          ? (_summerDraft * 47) / 48
           : r.season === "tropical"
-            ? _summerDraft + _summerDraft / 48
+            ? (_summerDraft * 49) / 48
             : _summerDraft;
+      const seasonalDwt = _summerDwt - (_summerDraft - seasonalDraft) * 100 * _tpc;
 
-      const seasonalDwt = _summerDwt - (_summerDraft - seasonalDraft) * (_tpc * 100);
+      // 2. Port draft restriction
       const portDraft = num(r.draft);
-      const dwtLoss = portDraft > 0 ? Math.max(0, (_summerDraft - portDraft) * 100 * _tpc) : 0;
-      const dwtAfter = (seasonalDwt - dwtLoss) * density;
-      const dwcc = dwtAfter - totalDeductions;
-      const restricted = Math.max(
-        0,
-        Math.min(Math.round(dwcc), Math.round(cubicIntake), Math.round(absoluteCap)),
-      );
-      return { port: p, seasonalDraft, dwtLoss, restricted, dwccRaw: Math.max(0, Math.round(dwcc)) };
+      const draftLimitedDwt =
+        portDraft > 0 && portDraft < seasonalDraft
+          ? seasonalDwt - (seasonalDraft - portDraft) * 100 * _tpc
+          : seasonalDwt;
+      const dwtLoss = Math.max(0, seasonalDwt - draftLimitedDwt);
+      const roundedDraftLimitedDwt = Math.round(draftLimitedDwt);
+
+      // 3. Water density
+      const waterAdjustedDwt = roundedDraftLimitedDwt * density;
+
+      // 4. DWCC Calc
+      const dwccCalc = waterAdjustedDwt - totalDeductions;
+
+      // 5. DWCC Cubic
+      const deadweightCapacity = seasonalDwt - totalDeductions;
+      const dwccCubic = Math.min(cubicIntake, deadweightCapacity);
+
+      // 6. Final DWCC
+      const finalDwcc = Math.max(0, Math.round(Math.min(dwccCalc, dwccCubic)));
+
+      return { port: p, seasonalDraft, dwtLoss, restricted: finalDwcc, dwccRaw: Math.max(0, Math.round(dwccCalc)) };
     });
+
 
     const relevant = perPort.filter((r) => r.port.kind !== "repos");
     const maxIntake = relevant.length
