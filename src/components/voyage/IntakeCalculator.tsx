@@ -10,7 +10,7 @@ import {
   type StowageFactorOption,
 } from "@/data/stowageFactors";
 
-export type IntakeSeason = "summer" | "winter" | "tropical";
+export type IntakeSeason = "summer" | "winter";
 export type IntakeWater = "sw" | "bw" | "fw" | "tfw";
 
 export interface IntakePortInput {
@@ -36,7 +36,6 @@ const waterOptions: { value: IntakeWater; label: string; short: string; density:
 const seasonOptions: { value: IntakeSeason; label: string }[] = [
   { value: "summer", label: "Summer" },
   { value: "winter", label: "Winter" },
-  { value: "tropical", label: "Tropical" },
 ];
 
 const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? 0 : n; };
@@ -154,8 +153,7 @@ export function IntakeCalculator({
     if (patch.season) {
       const base = num(baseDraft);
       if (base > 0) {
-        const seasonal =
-          patch.season === "winter" ? base - base / 48 : patch.season === "tropical" ? base + base / 48 : base;
+        const seasonal = patch.season === "winter" ? base - base / 48 : base;
         setSummerDraft(seasonal.toFixed(2));
       }
     }
@@ -179,12 +177,7 @@ export function IntakeCalculator({
       const density = waterOptions.find((w) => w.value === r.water)?.density ?? 1;
 
       // 1. Seasonal draft / DWT
-      const seasonalDraft =
-        r.season === "winter"
-          ? (_summerDraft * 47) / 48
-          : r.season === "tropical"
-            ? (_summerDraft * 49) / 48
-            : _summerDraft;
+      const seasonalDraft = r.season === "winter" ? (_summerDraft * 47) / 48 : _summerDraft;
       const seasonalDwt = _summerDwt - (_summerDraft - seasonalDraft) * 100 * _tpc;
 
       // 2. Port draft restriction
