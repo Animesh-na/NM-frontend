@@ -153,8 +153,7 @@ export function IntakeCalculator({
     if (patch.season) {
       const base = num(baseDraft);
       if (base > 0) {
-        const seasonal =
-          patch.season === "winter" ? base - base / 48 : patch.season === "tropical" ? base + base / 48 : base;
+        const seasonal = patch.season === "winter" ? base - base / 48 : base;
         setSummerDraft(seasonal.toFixed(2));
       }
     }
