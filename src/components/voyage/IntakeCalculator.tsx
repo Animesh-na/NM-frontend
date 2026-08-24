@@ -27,10 +27,10 @@ export interface IntakePortResult {
 }
 
 const waterOptions: { value: IntakeWater; label: string; short: string; density: number }[] = [
-  { value: "sw", label: "Salt (SW : 1.0000)", short: "Salt", density: 1.025 },
-  { value: "bw", label: "Brackish (BW : 0.9878)", short: "Brackish", density: 1.0125 },
-  { value: "fw", label: "Fresh (FW : 0.9756)", short: "Fresh", density: 1.0 },
-  { value: "tfw", label: "Tropical Fresh (TFW : 0.9717)", short: "Trop. Fresh", density: 0.9971 },
+  { value: "sw", label: "Salt (SW : 1.0000)", short: "Salt", density: 1.0 },
+  { value: "bw", label: "Brackish (BW : 0.9878)", short: "Brackish", density: 0.9878 },
+  { value: "fw", label: "Fresh (FW : 0.9756)", short: "Fresh", density: 0.9756 },
+  { value: "tfw", label: "Tropical Fresh (TFW : 0.9717)", short: "Trop. Fresh", density: 0.9717 },
 ];
 
 const seasonOptions: { value: IntakeSeason; label: string }[] = [
