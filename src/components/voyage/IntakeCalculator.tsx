@@ -177,12 +177,7 @@ export function IntakeCalculator({
       const density = waterOptions.find((w) => w.value === r.water)?.density ?? 1;
 
       // 1. Seasonal draft / DWT
-      const seasonalDraft =
-        r.season === "winter"
-          ? (_summerDraft * 47) / 48
-          : r.season === "tropical"
-            ? (_summerDraft * 49) / 48
-            : _summerDraft;
+      const seasonalDraft = r.season === "winter" ? (_summerDraft * 47) / 48 : _summerDraft;
       const seasonalDwt = _summerDwt - (_summerDraft - seasonalDraft) * 100 * _tpc;
 
       // 2. Port draft restriction
