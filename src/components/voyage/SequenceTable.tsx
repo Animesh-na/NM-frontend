@@ -680,12 +680,15 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                           (() => { const err = getFieldError("sequence","expDa",row.id); return (
-                          <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err} title={err}
+                          <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err}
+                            title={err || "Double-click to view port DA history"}
+                            onDoubleClick={() => { if (row.port) setDaPort({ rowId: row.id, port: row.port }); }}
                             type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
                             value={row.expDa || ""} onChange={(e) => updateSequenceRow(row.id, "expDa", parseFloat(e.target.value) || 0)} placeholder="0" />
                           );})()
                         )}
                       </td>
+
 
                       {/* Actions */}
                       <td className={tdClass}>
