@@ -796,6 +796,15 @@ export function SequenceTable() {
         );
       })()}
 
+      <PortDaDialog
+        open={daPort !== null}
+        onOpenChange={(v) => { if (!v) setDaPort(null); }}
+        port={daPort?.port || ""}
+        onSelect={(amount) => { if (daPort) updateSequenceRow(daPort.rowId, "expDa", amount); }}
+      />
+
+
+
     </div>
   );
 }
