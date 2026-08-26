@@ -110,6 +110,8 @@ export function SequenceTable() {
   
   const [isExpanded, setIsExpanded] = useState(true);
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
+  const [daPort, setDaPort] = useState<{ rowId: number; port: string } | null>(null);
+
   const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
   const [savedCustomTerms, setSavedCustomTerms] = useState<{ name: string; coefficient: number }[]>([]);
 
