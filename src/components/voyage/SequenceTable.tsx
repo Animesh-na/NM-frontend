@@ -16,6 +16,8 @@ import {
 import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
+import { PortDaDialog } from "./PortDaDialog";
+
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { toast } from "@/hooks/use-toast";
 import { getFieldId } from "@/utils/validation";
@@ -110,6 +112,8 @@ export function SequenceTable() {
   
   const [isExpanded, setIsExpanded] = useState(true);
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
+  const [daPort, setDaPort] = useState<{ rowId: number; port: string } | null>(null);
+
   const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
   const [savedCustomTerms, setSavedCustomTerms] = useState<{ name: string; coefficient: number }[]>([]);
 
@@ -680,12 +684,15 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                           (() => { const err = getFieldError("sequence","expDa",row.id); return (
-                          <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err} title={err}
+                          <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err}
+                            title={err || "Double-click to view port DA history"}
+                            onDoubleClick={() => { if (row.port) setDaPort({ rowId: row.id, port: row.port }); }}
                             type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
                             value={row.expDa || ""} onChange={(e) => updateSequenceRow(row.id, "expDa", parseFloat(e.target.value) || 0)} placeholder="0" />
                           );})()
                         )}
                       </td>
+
 
                       {/* Actions */}
                       <td className={tdClass}>
@@ -792,6 +799,15 @@ export function SequenceTable() {
           />
         );
       })()}
+
+      <PortDaDialog
+        open={daPort !== null}
+        onOpenChange={(v) => { if (!v) setDaPort(null); }}
+        port={daPort?.port || ""}
+        onSelect={(amount) => { if (daPort) updateSequenceRow(daPort.rowId, "expDa", amount); }}
+      />
+
+
 
     </div>
   );
