@@ -643,3 +643,44 @@ export async function getBunkerPrices(portName: string): Promise<BunkerPriceQuot
     return null;
   }
 }
+
+// ============= Port DA (Authenticated) =============
+
+export interface PortDaRecord {
+  id: string;
+  port: string;
+  dwt?: string;
+  updated?: string;
+  date?: string;
+  operation?: string;
+  amount_local?: number;
+  currency?: string;
+  usd?: string;
+}
+
+export interface PortDaResponse {
+  port_da: PortDaRecord[];
+  pagination: { total: number; page: number; limit: number; total_pages: number };
+}
+
+/** Port disbursement account history for a port (mode-scoped, e.g. /dry-bulk/port-da). */
+export async function getPortDa(port: string, page = 1, limit = 20): Promise<PortDaResponse> {
+  const data = await apiRequest<Record<string, unknown>>(
+    modePath("/port-da"),
+    { port, page, limit },
+    { authenticated: true }
+  );
+  let rows: PortDaRecord[] = [];
+  for (const key of ["port_da", "data", "results", "rows", "records", "items"]) {
+    const v = data[key];
+    if (Array.isArray(v)) { rows = v as PortDaRecord[]; break; }
+  }
+  if (!rows.length) {
+    const firstArray = Object.values(data).find((v) => Array.isArray(v));
+    if (Array.isArray(firstArray)) rows = firstArray as PortDaRecord[];
+  }
+  const pagination = (data.pagination as PortDaResponse["pagination"]) ?? {
+    total: rows.length, page, limit, total_pages: 1,
+  };
+  return { port_da: rows, pagination };
+}
