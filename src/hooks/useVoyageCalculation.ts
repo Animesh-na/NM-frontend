@@ -602,7 +602,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     
     // --- AE (Auxiliary Engine) Consumption ---
     // If scrubber fitted → use aeScrubber rates; otherwise → use ae rates
-    // AE always runs on LSMGO across ALL operations EXCEPT canal
+    // AE runs on LSMGO across ALL operations including canal transit
     const aeProfile = hasScrubber ? profile.aeScrubber : profile.ae;
     
     // Sea: ballast + laden (both ECA and non-ECA) + extra sea days
@@ -618,11 +618,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       dischargingDays * (aeProfile.discharge || 0) +
       idleAndBunkeringDays * (aeProfile.idle || 0);
     
-    // Canal: AE is NOT used during canal transit
-    const aeCanalConsumption = 0;
+    // Canal: AE also runs during canal transit at the canal AE rate
+    const aeCanalConsumption = totalCanalDays * (aeProfile.canal || 0);
     
-    // Total AE contribution to LSMGO = sea + port (no canal)
-    const lsmgoAeTotal = aeSeaConsumption + aePortConsumption;
+    // Total AE contribution to LSMGO = sea + port + canal
+    const lsmgoAeTotal = aeSeaConsumption + aePortConsumption + aeCanalConsumption;
     
     // --- Total Fuel Consumption ---
     const hsfoConsumption = hsfoSeaTotal + hsfoLoading + hsfoDischarging + hsfoIdle + hsfoCanal;
@@ -654,6 +654,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     --- AE Consumption (always LSMGO) ---
     AE Sea: (ballast(${nonEcaSeaDaysBallast+ecaSeaDaysBallast}×${profile.ae.ballast}) + laden(${nonEcaSeaDaysLaden+ecaSeaDaysLaden}×${profile.ae.laden}) + extra(${extraSeaDays}×${profile.ae.laden})) × RF${rewardFactor} = ${aeSeaConsumption} mt
     AE Port: load(${loadingDays}×${profile.ae.load}) + disch(${dischargingDays}×${profile.ae.discharge}) + idle(${idleAndBunkeringDays}×${profile.ae.idle}) = ${aePortConsumption} mt
+    AE Canal: ${totalCanalDays}×${aeProfile.canal} = ${aeCanalConsumption} mt
     AE Total = ${lsmgoAeTotal} mt
     
     --- TOTAL CONSUMPTION ---
