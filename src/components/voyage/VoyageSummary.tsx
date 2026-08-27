@@ -460,18 +460,6 @@ export function VoyageSummary() {
           )}
           
 
-          {/* EU ETS fuel allocation */}
-          <div className="bg-muted rounded-sm p-1.5 mt-1 space-y-0.5">
-            <div className="text-[9px] text-muted-foreground font-medium">EU ETS & Fuel EU Allocation</div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-              <span className="text-muted-foreground">HSFO (EU)</span>
-              <span className="font-mono tabular-nums text-right">{results.euCoveredFuel.hsfo.toFixed(2)} t</span>
-              <span className="text-muted-foreground">VLSFO (EU)</span>
-              <span className="font-mono tabular-nums text-right">{results.euCoveredFuel.vlsfo.toFixed(2)} t</span>
-              <span className="text-muted-foreground">LSMGO (EU)</span>
-              <span className="font-mono tabular-nums text-right">{results.euCoveredFuel.lsmgo.toFixed(2)} t</span>
-            </div>
-          </div>
 
           {/* CO2 totals */}
           <div className="mt-1 space-y-0.5">
