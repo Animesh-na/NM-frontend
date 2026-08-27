@@ -20,7 +20,9 @@ export function MiscSection() {
   const canalDays = canal.unit === "days" ? canal.value : canal.value / 24;
   const canalMatrix = vessel?.speedProfile === "full" ? vessel?.fullConsumption : vessel?.ecoConsumption;
   const canalRate = canalMatrix?.[canalFuel]?.canal || 0;
+  const aeCanalRate = (vessel?.hasScrubber ? canalMatrix?.aeScrubber : canalMatrix?.ae)?.canal || 0;
   const canalFuelMt = canalDays * canalRate;
+  const canalAeMt = canalDays * aeCanalRate;
 
   const costFields = [
     { key: "miscCost", label: "Misc Costs" },
