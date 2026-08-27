@@ -100,10 +100,10 @@ export function MiscSection() {
 
             <div className="flex items-center gap-2 min-w-0">
               <label className="form-label flex-1 min-w-0 truncate mb-0">
-                Canal Cons. ({canalRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} mt/d)
+                Canal Cons. ({canalRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} + AE {aeCanalRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} mt/d)
               </label>
               <span className="w-[130px] shrink-0 text-right font-mono text-xs font-semibold">
-                {canalFuelMt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mt
+                {(canalFuelMt + canalAeMt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mt
               </span>
             </div>
           </div>
