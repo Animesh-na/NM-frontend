@@ -654,6 +654,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     --- AE Consumption (always LSMGO) ---
     AE Sea: (ballast(${nonEcaSeaDaysBallast+ecaSeaDaysBallast}×${profile.ae.ballast}) + laden(${nonEcaSeaDaysLaden+ecaSeaDaysLaden}×${profile.ae.laden}) + extra(${extraSeaDays}×${profile.ae.laden})) × RF${rewardFactor} = ${aeSeaConsumption} mt
     AE Port: load(${loadingDays}×${profile.ae.load}) + disch(${dischargingDays}×${profile.ae.discharge}) + idle(${idleAndBunkeringDays}×${profile.ae.idle}) = ${aePortConsumption} mt
+    AE Canal: ${totalCanalDays}×${aeProfile.canal} = ${aeCanalConsumption} mt
     AE Total = ${lsmgoAeTotal} mt
     
     --- TOTAL CONSUMPTION ---
