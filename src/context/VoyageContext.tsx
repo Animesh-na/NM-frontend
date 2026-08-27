@@ -1894,6 +1894,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         ? misc.extraTime.atSea.value 
         : misc.extraTime.atSea.value / 24,
       atSeaSpeedContext: misc.extraTime.atSea.mode,
+      canalFuel: misc.canalFuel,
     },
     applyEuaImpact,
     applyFuelEuImpact,
