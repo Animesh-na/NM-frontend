@@ -808,6 +808,7 @@ const initialMisc: MiscState = {
   canalCost1: 0,
   canalCost2: 0,
   tradeType: "",
+  canalFuel: "vlsfo",
   extraTime: {
     canal1: { mode: "VL", value: 0, unit: "days" },
     canal2: { mode: "VL", value: 0, unit: "days" },
