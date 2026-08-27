@@ -110,6 +110,7 @@ export interface ExtraTimeData {
   idlePortDays: number; // Extra idle port time in days
   atSeaDays: number; // Extra at sea time in days
   atSeaSpeedContext: string; // EV or FV for fuel consumption
+  canalFuel?: "hsfo" | "vlsfo" | "lsmgo"; // ME fuel burned during canal transit
 }
 
 // Misc costs data
@@ -594,9 +595,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     
     // Canal consumption — uses scrubber default fuel, no per-leg override
     const totalCanalDays = canalDays + extraCanalDays;
-    const hsfoCanal = hasScrubber ? totalCanalDays * (profile.hsfo.canal || 0) : 0;
-    const vlsfoCanal = !hasScrubber ? totalCanalDays * (profile.vlsfo.canal || 0) : 0;
-    const lsmgoCanal = 0; // LSMGO canal only via AE, not ME
+    const canalFuel = extraTime?.canalFuel || (hasScrubber ? "hsfo" : "vlsfo");
+    const hsfoCanal = canalFuel === "hsfo" && hasScrubber ? totalCanalDays * (profile.hsfo.canal || 0) : 0;
+    const vlsfoCanal = canalFuel === "vlsfo" || (canalFuel === "hsfo" && !hasScrubber) ? totalCanalDays * (profile.vlsfo.canal || 0) : 0;
+    const lsmgoCanal = canalFuel === "lsmgo" ? totalCanalDays * (profile.lsmgo.canal || 0) : 0;
     
     // --- AE (Auxiliary Engine) Consumption ---
     // If scrubber fitted → use aeScrubber rates; otherwise → use ae rates

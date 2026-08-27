@@ -328,6 +328,8 @@ export interface MiscState {
   canalCost1: number;
   canalCost2: number;
   tradeType: string;
+  /** Fuel burned by the main engine during canal transit. */
+  canalFuel?: "hsfo" | "vlsfo" | "lsmgo";
   
   // Extra time
   extraTime: ExtraTimeState;
@@ -806,6 +808,7 @@ const initialMisc: MiscState = {
   canalCost1: 0,
   canalCost2: 0,
   tradeType: "",
+  canalFuel: "vlsfo",
   extraTime: {
     canal1: { mode: "VL", value: 0, unit: "days" },
     canal2: { mode: "VL", value: 0, unit: "days" },
@@ -1372,6 +1375,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       canalCost1: 0,
       canalCost2: 0,
       tradeType: "",
+      canalFuel: "vlsfo",
       extraTime: {
         canal1: { mode: "VL", value: 0, unit: "days" },
         canal2: { mode: "VL", value: 0, unit: "days" },
@@ -1890,6 +1894,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         ? misc.extraTime.atSea.value 
         : misc.extraTime.atSea.value / 24,
       atSeaSpeedContext: misc.extraTime.atSea.mode,
+      canalFuel: misc.canalFuel,
     },
     applyEuaImpact,
     applyFuelEuImpact,
