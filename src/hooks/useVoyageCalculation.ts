@@ -473,6 +473,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         idleDays += portIdleDays;
         addDischDays(workingDays, portIdleDays);
         vlog(`    → DISCHARGING (${legPortFuel}): dischRate days=${workingDays}, idleRate days=${portIdleDays}`);
+      } else if (operation === "pssg" || operation === "passage") {
+        // Passing port: turn time + extra time burn at the CANAL rate (ME + AE)
+        const days = leg.portDays || 0;
+        canalDays += days;
+        if (legPortFuel === "hsfo") canalDays_hsfo += days;
+        else if (legPortFuel === "vlsfo") canalDays_vlsfo += days;
+        else canalDays_lsmgo += days;
+        vlog(`    → PASSING (${legPortFuel}): ${days} days added to canalDays (canal rate)`);
       } else if (operation === "waiting" || operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
