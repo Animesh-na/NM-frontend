@@ -393,14 +393,19 @@ export function computeFifoCoverage(
         r.portDays ?? r.wdaysPortOverride ?? r.calculatedPortDays ?? 0;
       if (totalPortDays > 0) {
         const fuel: FuelKey = r.portFuelType || (hasScrubber ? "hsfo" : "vlsfo");
-        const meRateAt = (mode: "load" | "discharge" | "idle") =>
+        const meRateAt = (mode: "load" | "discharge" | "idle" | "canal") =>
           (fuel === "hsfo" ? profile.hsfo[mode] : fuel === "vlsfo" ? profile.vlsfo[mode] : profile.lsmgo[mode]) || 0;
 
         let mode: "load" | "discharge" | "idle" = "idle";
         if (isLoadOp(op)) mode = "load";
         else if (isDischOp(op)) mode = "discharge";
 
-        if (mode === "idle") {
+        const isPassing = op === "pssg" || op === "passage";
+        if (isPassing) {
+          // Passing port: canal rate for both ME and AE
+          coverage[fuel][seg] += totalPortDays * meRateAt("canal");
+          coverage.lsmgo[seg] += totalPortDays * (aeProfile.canal || 0);
+        } else if (mode === "idle") {
           coverage[fuel][seg] += totalPortDays * meRateAt("idle");
           coverage.lsmgo[seg] += totalPortDays * (aeProfile.idle || 0);
         } else {
