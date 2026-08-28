@@ -1170,6 +1170,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           } else if (legOperation === 'disch' || legOperation === 'discharging') {
             addFuel(legPortFuel, workingDaysLeg * (profile[legPortFuel]?.discharge || 0) + idleDaysLeg * (profile[legPortFuel]?.idle || 0));
             portLsmgo += workingDaysLeg * (aeRates.discharge || 0) + idleDaysLeg * (aeRates.idle || 0);
+          } else if (legOperation === 'pssg' || legOperation === 'passage') {
+            // Passing port: turn + extra time burn at the CANAL rate
+            addFuel(legPortFuel, (leg.portDays || 0) * (profile[legPortFuel]?.canal || 0));
+            portLsmgo += (leg.portDays || 0) * (aeRates.canal || 0);
           } else if (legOperation === 'bunkering') {
             addFuel(legPortFuel, (leg.portDays || 0) * (profile[legPortFuel]?.idle || 0));
             portLsmgo += (leg.portDays || 0) * (aeRates.idle || 0);
