@@ -358,6 +358,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let idleDays = 0;
     let bunkeringDays = 0;
     let canalDays = 0;
+    // Passing (pssg) ports burn at the CANAL rate — their turn + extra time only
+    let canalDays_hsfo = 0, canalDays_vlsfo = 0, canalDays_lsmgo = 0;
     const hasScrubber = vessel.hasScrubber === true;
     let cargoOnBoard = 0;
 
@@ -471,6 +473,14 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
         idleDays += portIdleDays;
         addDischDays(workingDays, portIdleDays);
         vlog(`    → DISCHARGING (${legPortFuel}): dischRate days=${workingDays}, idleRate days=${portIdleDays}`);
+      } else if (operation === "pssg" || operation === "passage") {
+        // Passing port: turn time + extra time burn at the CANAL rate (ME + AE)
+        const days = leg.portDays || 0;
+        canalDays += days;
+        if (legPortFuel === "hsfo") canalDays_hsfo += days;
+        else if (legPortFuel === "vlsfo") canalDays_vlsfo += days;
+        else canalDays_lsmgo += days;
+        vlog(`    → PASSING (${legPortFuel}): ${days} days added to canalDays (canal rate)`);
       } else if (operation === "waiting" || operation === "idle") {
         idleDays += leg.portDays || 0;
         addIdleDays(leg.portDays || 0);
@@ -593,12 +603,16 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const vlsfoIdle = (idleDays_vlsfo + bunkeringDays_vlsfo + extraIdleDays_vlsfo) * (profile.vlsfo.idle || 0);
     const lsmgoIdle = (idleDays_lsmgo + bunkeringDays_lsmgo + extraIdleDays_lsmgo) * (profile.lsmgo.idle || 0);
     
-    // Canal consumption — uses scrubber default fuel, no per-leg override
+    // Canal consumption — misc canal time uses the selected canal fuel;
+    // passing (pssg) ports use their own P.Fuel at the canal rate.
     const totalCanalDays = canalDays + extraCanalDays;
     const canalFuel = extraTime?.canalFuel || (hasScrubber ? "hsfo" : "vlsfo");
-    const hsfoCanal = canalFuel === "hsfo" && hasScrubber ? totalCanalDays * (profile.hsfo.canal || 0) : 0;
-    const vlsfoCanal = canalFuel === "vlsfo" || (canalFuel === "hsfo" && !hasScrubber) ? totalCanalDays * (profile.vlsfo.canal || 0) : 0;
-    const lsmgoCanal = canalFuel === "lsmgo" ? totalCanalDays * (profile.lsmgo.canal || 0) : 0;
+    const miscHsfoCanal = canalFuel === "hsfo" && hasScrubber ? extraCanalDays * (profile.hsfo.canal || 0) : 0;
+    const miscVlsfoCanal = canalFuel === "vlsfo" || (canalFuel === "hsfo" && !hasScrubber) ? extraCanalDays * (profile.vlsfo.canal || 0) : 0;
+    const miscLsmgoCanal = canalFuel === "lsmgo" ? extraCanalDays * (profile.lsmgo.canal || 0) : 0;
+    const hsfoCanal = miscHsfoCanal + (hasScrubber ? canalDays_hsfo * (profile.hsfo.canal || 0) : 0);
+    const vlsfoCanal = miscVlsfoCanal + (canalDays_vlsfo + (hasScrubber ? 0 : canalDays_hsfo)) * (profile.vlsfo.canal || 0);
+    const lsmgoCanal = miscLsmgoCanal + canalDays_lsmgo * (profile.lsmgo.canal || 0);
     
     // --- AE (Auxiliary Engine) Consumption ---
     // If scrubber fitted → use aeScrubber rates; otherwise → use ae rates
@@ -1156,6 +1170,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           } else if (legOperation === 'disch' || legOperation === 'discharging') {
             addFuel(legPortFuel, workingDaysLeg * (profile[legPortFuel]?.discharge || 0) + idleDaysLeg * (profile[legPortFuel]?.idle || 0));
             portLsmgo += workingDaysLeg * (aeRates.discharge || 0) + idleDaysLeg * (aeRates.idle || 0);
+          } else if (legOperation === 'pssg' || legOperation === 'passage') {
+            // Passing port: turn + extra time burn at the CANAL rate
+            addFuel(legPortFuel, (leg.portDays || 0) * (profile[legPortFuel]?.canal || 0));
+            portLsmgo += (leg.portDays || 0) * (aeRates.canal || 0);
           } else if (legOperation === 'bunkering') {
             addFuel(legPortFuel, (leg.portDays || 0) * (profile[legPortFuel]?.idle || 0));
             portLsmgo += (leg.portDays || 0) * (aeRates.idle || 0);
