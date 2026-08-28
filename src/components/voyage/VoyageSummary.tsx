@@ -371,21 +371,25 @@ export function VoyageSummary() {
               ${formatCurrency(results.totalBunkerCost)}
             </span>
           </div>
-          {/* Total fuel consumption + EU allocation */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-            <span className="text-muted-foreground">Total HSFO</span>
-            <span className="font-mono tabular-nums text-right">{results.hsfoConsumption.toFixed(2)} t</span>
-            <span className="text-muted-foreground text-[9px] pl-1">HSFO for EU ETS & Fuel EU</span>
-            <span className="font-mono tabular-nums text-right text-[9px]">{results.euCoveredFuel.hsfo.toFixed(2)} t</span>
-            <span className="text-muted-foreground">Total VLSFO</span>
-            <span className="font-mono tabular-nums text-right">{results.vlsfoConsumption.toFixed(2)} t</span>
-            <span className="text-muted-foreground text-[9px] pl-1">VLSFO for EU ETS & Fuel EU</span>
-            <span className="font-mono tabular-nums text-right text-[9px]">{results.euCoveredFuel.vlsfo.toFixed(2)} t</span>
-            <span className="text-muted-foreground">Total LSMGO</span>
-            <span className="font-mono tabular-nums text-right">{results.lsmgoConsumption.toFixed(2)} t</span>
-            <span className="text-muted-foreground text-[9px] pl-1">LSMGO for EU ETS & Fuel EU</span>
-            <span className="font-mono tabular-nums text-right text-[9px]">{results.euCoveredFuel.lsmgo.toFixed(2)} t</span>
+          {/* Total fuel consumption + EU allocation (one row per fuel) */}
+          <div className="space-y-0.5">
+            {([
+              { label: "HSFO", total: results.hsfoConsumption, eu: results.euCoveredFuel.hsfo },
+              { label: "VLSFO", total: results.vlsfoConsumption, eu: results.euCoveredFuel.vlsfo },
+              { label: "LSMGO", total: results.lsmgoConsumption, eu: results.euCoveredFuel.lsmgo },
+            ]).map((f) => (
+              <div key={f.label} className="flex items-baseline justify-between gap-2">
+                <span className="text-muted-foreground">Total {f.label}</span>
+                <span className="flex items-baseline gap-2">
+                  <span className="font-mono tabular-nums">{f.total.toFixed(2)} t</span>
+                  <span className="text-[9px] text-muted-foreground">
+                    EU ETS &amp; FuelEU: <span className="font-mono tabular-nums">{f.eu.toFixed(2)} t</span>
+                  </span>
+                </span>
+              </div>
+            ))}
           </div>
+
         </div>
 
         {/* Environmental Metrics */}
