@@ -603,12 +603,16 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     const vlsfoIdle = (idleDays_vlsfo + bunkeringDays_vlsfo + extraIdleDays_vlsfo) * (profile.vlsfo.idle || 0);
     const lsmgoIdle = (idleDays_lsmgo + bunkeringDays_lsmgo + extraIdleDays_lsmgo) * (profile.lsmgo.idle || 0);
     
-    // Canal consumption — uses scrubber default fuel, no per-leg override
+    // Canal consumption — misc canal time uses the selected canal fuel;
+    // passing (pssg) ports use their own P.Fuel at the canal rate.
     const totalCanalDays = canalDays + extraCanalDays;
     const canalFuel = extraTime?.canalFuel || (hasScrubber ? "hsfo" : "vlsfo");
-    const hsfoCanal = canalFuel === "hsfo" && hasScrubber ? totalCanalDays * (profile.hsfo.canal || 0) : 0;
-    const vlsfoCanal = canalFuel === "vlsfo" || (canalFuel === "hsfo" && !hasScrubber) ? totalCanalDays * (profile.vlsfo.canal || 0) : 0;
-    const lsmgoCanal = canalFuel === "lsmgo" ? totalCanalDays * (profile.lsmgo.canal || 0) : 0;
+    const miscHsfoCanal = canalFuel === "hsfo" && hasScrubber ? extraCanalDays * (profile.hsfo.canal || 0) : 0;
+    const miscVlsfoCanal = canalFuel === "vlsfo" || (canalFuel === "hsfo" && !hasScrubber) ? extraCanalDays * (profile.vlsfo.canal || 0) : 0;
+    const miscLsmgoCanal = canalFuel === "lsmgo" ? extraCanalDays * (profile.lsmgo.canal || 0) : 0;
+    const hsfoCanal = miscHsfoCanal + (hasScrubber ? canalDays_hsfo * (profile.hsfo.canal || 0) : 0);
+    const vlsfoCanal = miscVlsfoCanal + (canalDays_vlsfo + (hasScrubber ? 0 : canalDays_hsfo)) * (profile.vlsfo.canal || 0);
+    const lsmgoCanal = miscLsmgoCanal + canalDays_lsmgo * (profile.lsmgo.canal || 0);
     
     // --- AE (Auxiliary Engine) Consumption ---
     // If scrubber fitted → use aeScrubber rates; otherwise → use ae rates
