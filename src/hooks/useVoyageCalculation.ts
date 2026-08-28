@@ -358,6 +358,8 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let idleDays = 0;
     let bunkeringDays = 0;
     let canalDays = 0;
+    // Passing (pssg) ports burn at the CANAL rate — their turn + extra time only
+    let canalDays_hsfo = 0, canalDays_vlsfo = 0, canalDays_lsmgo = 0;
     const hasScrubber = vessel.hasScrubber === true;
     let cargoOnBoard = 0;
 
