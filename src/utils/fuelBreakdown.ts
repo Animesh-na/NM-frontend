@@ -184,7 +184,7 @@ export function computePortFuel(
       const workingDays = split.workingDays;
 
       const fuel: FuelKey = (r.portFuelType as FuelKey) || (hasScrubber ? "hsfo" : "vlsfo");
-      const meRateAt = (mode: "load" | "discharge" | "idle") => {
+      const meRateAt = (mode: "load" | "discharge" | "idle" | "canal") => {
         if (fuel === "hsfo") return profile.hsfo[mode] || 0;
         if (fuel === "vlsfo") return profile.vlsfo[mode] || 0;
         return profile.lsmgo[mode] || 0;
@@ -206,6 +206,12 @@ export function computePortFuel(
         idleDays = split.idleDays;
         meTotal = workingDays * meRateAt("discharge") + idleDays * meRateAt("idle");
         aeLsmgo = workingDays * (aeProfile.discharge || 0) + idleDays * (aeProfile.idle || 0);
+      } else if ((op === "pssg" || op === "passage") && totalPortDays > 0) {
+        // Passing port: turn + extra time burn at the CANAL rate (ME + AE)
+        workingMode = "idle";
+        idleDays = totalPortDays;
+        meTotal = totalPortDays * meRateAt("canal");
+        aeLsmgo = totalPortDays * (aeProfile.canal || 0);
       } else if (totalPortDays > 0) {
         workingMode = "idle";
         idleDays = totalPortDays;
