@@ -246,7 +246,7 @@ export function VoyageSummary() {
             </div>
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
-            {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 ? (
+{cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 ? (
               results.perCargoBreakdown.map((c) => (
                 <div key={c.cargoId} className="space-y-0.5">
                   <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
@@ -260,6 +260,22 @@ export function VoyageSummary() {
                       ${formatCurrency(c.grossRate)} /mt
                     </span>
                   </div>
+                  {(Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
+                    <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1 ml-2">
+                      <span className="text-muted-foreground flex items-center font-semibold">
+                        Cargo {c.cargoLabel} Extra time
+                        <InfoTooltip
+                          formula="Σ CP cargo port days − Σ operational cargo port days for this cargo. Positive = despatch, negative = demurrage."
+                          description="Per-cargo laytime outcome. Demurrage adds to / Despatch deducts from this cargo's Gross Rate."
+                        />
+                      </span>
+                      <span className="font-mono tabular-nums font-bold">
+                        <span className={c.extraDays >= 0 ? "text-success" : "text-destructive"}>{formatDays(c.extraDays)} d</span>
+                        {(c.despatch || 0) > 0 && <span className="text-success"> / Despatch : $ {formatCurrency(c.despatch || 0)}</span>}
+                        {(c.demurrage || 0) > 0 && <span className="text-destructive"> / Demurrage : $ {formatCurrency(c.demurrage || 0)}</span>}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
