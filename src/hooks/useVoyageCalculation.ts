@@ -296,7 +296,12 @@ export interface PerCargoBreakdown {
   cargoLabel: string; // "#1", "#2", ...
   loadedQty: number;
   grossFreight: number;
+  /** Voyage commission $ on this cargo's own gross freight. */
+  voyageCommissionAmount: number;
+  /** gross freight − own voyage commission (never blended with other cargoes). */
+  netFreight: number;
   share: number; // 0..1 share of total grossFreight (or qty if all lumpsum)
+
   allocatedBunker: number;
   allocatedPortCosts: number;
   allocatedVoyageCosts: number; // bunker + port (route-bounded)
@@ -736,24 +741,63 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     Total Bunker Cost = $${totalBunkerCost}`);
 
     // 6. Calculate freight and revenue
-    let baseGrossFreight = 0;
-    if (cargo.rateType === "lumpsum") {
-      baseGrossFreight = cargo.rate;
+    // Each cargo is treated INDIVIDUALLY (no blended rate / averaged commission):
+    //   gross_x = rate_x × qty_x  (+ demurrage_x − despatch_x)
+    //   net_x   = gross_x × (1 − voyageCommission_x%)
+    // Totals are the plain sums of the per-cargo values.
+    const cargoEntriesForFreight = inputs.cargos || [];
+
+    // Loaded quantity per cargo, resolved from the sequence load rows.
+    const loadRowIdxs: number[] = [];
+    sequence.forEach((leg, idx) => {
+      if ((leg.operation || "").toLowerCase().startsWith("load")) loadRowIdxs.push(idx);
+    });
+    const explicitMapping = sequence.some((leg) => (leg.assignedCargoIds || []).length > 0);
+    const qtyForCargo = (cargoId: number, ci: number): number => {
+      if (cargoEntriesForFreight.length === 1)
+        return loadRowIdxs.reduce((s, i) => s + (sequence[i]?.quantity || 0), 0);
+      if (explicitMapping)
+        return loadRowIdxs
+          .filter((i) => (sequence[i].assignedCargoIds || []).includes(cargoId))
+          .reduce((s, i) => s + (sequence[i]?.quantity || 0), 0);
+      return ci < loadRowIdxs.length ? sequence[loadRowIdxs[ci]]?.quantity || 0 : 0;
+    };
+
+    const perCargoFreight = cargoEntriesForFreight.map((c, ci) => {
+      const qty = qtyForCargo(c.id, ci);
+      const base = c.rateType === "lumpsum" ? c.rate || 0 : (c.rate || 0) * qty;
+      const gross = base + (c.demurrage || 0) - (c.despatch || 0);
+      const commission = gross * ((c.voyageCommission || 0) / 100);
+      return { id: c.id, qty, base, gross, commission, net: gross - commission };
+    });
+
+    let grossFreight: number;
+    let voyageCommission: number;
+    let netFreight: number;
+
+    if (perCargoFreight.length > 0) {
+      grossFreight = perCargoFreight.reduce((s, p) => s + p.gross, 0);
+      voyageCommission = perCargoFreight.reduce((s, p) => s + p.commission, 0);
+      netFreight = perCargoFreight.reduce((s, p) => s + p.net, 0);
     } else {
-      baseGrossFreight = cargo.rate * cargo.quantity;
+      const baseGrossFreight =
+        cargo.rateType === "lumpsum" ? cargo.rate : cargo.rate * cargo.quantity;
+      grossFreight = baseGrossFreight + (cargo.demurrage || 0) - (cargo.despatch || 0);
+      voyageCommission = grossFreight * (cargo.voyageCommission / 100);
+      netFreight = grossFreight - voyageCommission;
     }
-    // Demurrage / Despatch now adjust Gross Freight directly (removed from P&L):
-    // demurrage is added to gross freight (charterer pays extra), despatch is
-    // subtracted (charterer earns back). They no longer appear in P&L formula.
-    const grossFreight = baseGrossFreight + (cargo.demurrage || 0) - (cargo.despatch || 0);
 
-    const voyageCommission = grossFreight * (cargo.voyageCommission / 100);
-    const netFreight = grossFreight - voyageCommission;
+    vlog(`\n[Step 6] FREIGHT & REVENUE (per-cargo, unmixed):
+${perCargoFreight
+  .map(
+    (p, i) =>
+      `    Cargo #${i + 1}: base $${p.base} + dem/desp = gross $${p.gross}, comm $${p.commission}, net $${p.net}`,
+  )
+  .join("\n")}
+    Total Gross Freight = $${grossFreight}
+    Total Voyage Commission = $${voyageCommission}
+    Total Net Freight = $${netFreight}`);
 
-    vlog(`\n[Step 6] FREIGHT & REVENUE:
-    Gross Freight: ${cargo.rateType === 'lumpsum' ? `lumpsum $${cargo.rate}` : `$${cargo.rate}/mt × ${cargo.quantity} mt`} = $${grossFreight}
-    Voyage Commission: $${grossFreight} × ${cargo.voyageCommission}% = $${voyageCommission}
-    Net Freight: $${grossFreight} - $${voyageCommission} = $${netFreight}`);
 
     // 7. Calculate misc costs
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
@@ -1771,13 +1815,20 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           allocatedMisc +
           allocatedCanal;
 
-        const grossFreight =
+        const voyCommPct = (c.voyageCommission || 0) / 100;
+        // Individual cargo freight — demurrage adds, despatch deducts, then
+        // this cargo's own voyage commission is applied to its own gross.
+        const cargoBaseFreight =
           c.rateType === "lumpsum"
             ? c.rate || 0
             : (c.rate || 0) * loadedQty;
+        const cargoGrossFreight =
+          cargoBaseFreight + (c.demurrage || 0) - (c.despatch || 0);
+        const cargoVoyCommissionAmount = cargoGrossFreight * voyCommPct;
+        const cargoNetFreight = cargoGrossFreight - cargoVoyCommissionAmount;
 
-        const voyCommPct = (c.voyageCommission || 0) / 100;
         const netRate = loadedQty > 0 ? allocatedTotalCost / loadedQty : 0;
+
         // Per-cargo laytime outcome (demurrage is income, despatch is a cost
         // to the owner) folded into this cargo's own freight rate per mt.
         const cargoDemurrage = c.demurrage || 0;
@@ -1802,8 +1853,11 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           cargoId: c.id,
           cargoLabel: label,
           loadedQty,
-          grossFreight,
+          grossFreight: cargoGrossFreight,
+          voyageCommissionAmount: cargoVoyCommissionAmount,
+          netFreight: cargoNetFreight,
           share,
+
           extraDays: c.extraDays || 0,
           demurrage: cargoDemurrage,
           despatch: cargoDespatch,

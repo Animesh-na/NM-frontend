@@ -260,7 +260,28 @@ export function VoyageSummary() {
                       ${formatCurrency(c.grossRate)} /mt
                     </span>
                   </div>
+                  <div className="flex justify-between px-1 -mx-1 ml-2">
+                    <span className="text-muted-foreground flex items-center">
+                      Cargo {c.cargoLabel} Gross Freight
+                      <InfoTooltip
+                        formula="Rate × own quantity + Demurrage − Despatch"
+                        description="Each cargo is calculated individually — rates and quantities are never blended."
+                      />
+                    </span>
+                    <span className="font-mono tabular-nums">$ {formatCurrency(c.grossFreight)}</span>
+                  </div>
+                  <div className="flex justify-between px-1 -mx-1 ml-2">
+                    <span className="text-muted-foreground flex items-center">
+                      Cargo {c.cargoLabel} Net Freight
+                      <InfoTooltip
+                        formula="Gross Freight × (1 − own Voyage Commission %)"
+                        description={`Voyage commission ${c.voyageCommissionPct}% = $ ${formatCurrency(c.voyageCommissionAmount)}`}
+                      />
+                    </span>
+                    <span className="font-mono tabular-nums">$ {formatCurrency(c.netFreight)}</span>
+                  </div>
                   {(Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
+
                     <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1 ml-2">
                       <span className="text-muted-foreground flex items-center font-semibold">
                         Cargo {c.cargoLabel} Extra time
