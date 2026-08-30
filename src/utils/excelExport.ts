@@ -771,10 +771,11 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // ── Effective port inputs ────────────────────────────────────────────────
   // The calculation engine applies the Cargo-section operational overrides
-  // (quantity / productivity / terms / turn / extra) whenever demurrage or
-  // despatch is active. The raw sequence rows stay at the CP baseline, so the
-  // export MUST resolve the same effective values or port days — and therefore
-  // port fuel — will not match the software.
+  // (productivity / terms / turn / extra) whenever demurrage or despatch is
+  // active. Quantity overrides are settlement-only (dem/des already captures
+  // them) and never change the main calculation. The raw sequence rows stay at
+  // the CP baseline, so the export MUST resolve the same effective values or
+  // port days — and therefore port fuel — will not match the software.
   function effectiveLeg(leg: SequenceRowUI) {
     let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
     for (const c of cargos) {
@@ -788,7 +789,7 @@ export function exportVoyageToExcel(data: ExportData) {
     const portDays = opOv
       ? calculatePortDays({
           ...leg,
-          quantity: opOv.quantity ?? leg.quantity,
+          quantity: leg.quantity,
           productivity: opOv.productivity ?? leg.productivity,
           turnTime,
           extraTime,
