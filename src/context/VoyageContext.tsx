@@ -1779,16 +1779,19 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         if (o && Object.keys(o).length > 0) { opOv = o; break; }
       }
       const hasOp = !!opOv;
-      // Quantity overrides in the dem/des panel are settlement-only — the
-      // demurrage/despatch amount already captures the quantity difference, so
-      // the main calculation (freight, port days, fuel) must always use the
-      // original Sequence quantity to avoid double-counting.
+      // Quantity overrides in the dem/des panel are settlement-only for
+      // FREIGHT — the demurrage/despatch amount already captures the quantity
+      // difference, so freight must always use the original Sequence quantity
+      // to avoid double-counting. However, the changed quantity still drives
+      // PORT DAYS, and therefore port bunkering/fuel consumption, because more
+      // (or less) cargo genuinely takes more (or less) time alongside.
       const effQty = row.quantity;
       const effTurnTime = hasOp && opOv!.turnTime !== undefined ? opOv!.turnTime : row.turnTime;
       const effExtraTime = hasOp && opOv!.extraTime !== undefined ? opOv!.extraTime : row.extraTime;
       const portDays = hasOp
         ? calculatePortDays({
             ...row,
+            quantity: opOv!.quantity ?? row.quantity,
             productivity: opOv!.productivity ?? row.productivity,
             turnTime: effTurnTime,
             extraTime: effExtraTime,
