@@ -326,9 +326,9 @@ export function VoyageSummary() {
                   />
                 </span>
                 <span className="font-mono tabular-nums font-bold">
-                  <span className={totalExtraDays >= 0 ? "text-success" : "text-destructive"}>{formatDays(totalExtraDays)} d</span>
-                  {totalDespatch > 0 && <span className="text-success"> / Despatch : $ {formatCurrency(totalDespatch)}</span>}
-                  {totalDemurrage > 0 && <span className="text-destructive"> / Demurrage : $ {formatCurrency(totalDemurrage)}</span>}
+                  <span className={totalExtraDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(totalExtraDays)} d</span>
+                  {totalDespatch > 0 && <span className="text-destructive"> / Despatch : $ {formatCurrency(totalDespatch)}</span>}
+                  {totalDemurrage > 0 && <span className="text-success"> / Demurrage : $ {formatCurrency(totalDemurrage)}</span>}
                 </span>
               </div>
             )}
