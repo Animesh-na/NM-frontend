@@ -1815,13 +1815,20 @@ ${perCargoFreight
           allocatedMisc +
           allocatedCanal;
 
-        const grossFreight =
+        const voyCommPct = (c.voyageCommission || 0) / 100;
+        // Individual cargo freight — demurrage adds, despatch deducts, then
+        // this cargo's own voyage commission is applied to its own gross.
+        const cargoBaseFreight =
           c.rateType === "lumpsum"
             ? c.rate || 0
             : (c.rate || 0) * loadedQty;
+        const cargoGrossFreight =
+          cargoBaseFreight + (c.demurrage || 0) - (c.despatch || 0);
+        const cargoVoyCommissionAmount = cargoGrossFreight * voyCommPct;
+        const cargoNetFreight = cargoGrossFreight - cargoVoyCommissionAmount;
 
-        const voyCommPct = (c.voyageCommission || 0) / 100;
         const netRate = loadedQty > 0 ? allocatedTotalCost / loadedQty : 0;
+
         // Per-cargo laytime outcome (demurrage is income, despatch is a cost
         // to the owner) folded into this cargo's own freight rate per mt.
         const cargoDemurrage = c.demurrage || 0;
