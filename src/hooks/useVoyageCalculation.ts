@@ -1827,10 +1827,12 @@ ${perCargoFreight
           c.rateType === "lumpsum"
             ? c.rate || 0
             : (c.rate || 0) * loadedQty;
+        // Commission on base freight only; dem/desp settled after commission.
         const cargoGrossFreight =
           cargoBaseFreight + (c.demurrage || 0) - (c.despatch || 0);
-        const cargoVoyCommissionAmount = cargoGrossFreight * voyCommPct;
-        const cargoNetFreight = cargoGrossFreight - cargoVoyCommissionAmount;
+        const cargoVoyCommissionAmount = cargoBaseFreight * voyCommPct;
+        const cargoNetFreight =
+          cargoBaseFreight - cargoVoyCommissionAmount + (c.demurrage || 0) - (c.despatch || 0);
 
         const netRate = loadedQty > 0 ? allocatedTotalCost / loadedQty : 0;
 
