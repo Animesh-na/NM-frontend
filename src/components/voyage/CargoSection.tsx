@@ -507,7 +507,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           <label className="form-label flex items-center gap-1">
             Laytime
             <InfoTooltip
-              formula="Average = ports offset each other · Non-reversible = each port settles on its own"
+              formula="Average = ports offset each other · Non-reversible = each port settles on its own · Cancel = no dem/desp"
               description="Laytime settlement mode for this cargo"
             />
           </label>
@@ -518,6 +518,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           >
             <option value="average">Average</option>
             <option value="non_reversible">Non-reversible</option>
+            <option value="cancelled">Cancel dem/desp</option>
           </select>
         </div>
 
@@ -562,10 +563,6 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                 <div className="form-field w-20">
                   <label className="form-label">Despatch</label>
                   <input type="number" className={edit} value={despVal} onChange={(e) => onCpOverride(r.id, "despatch", parseFloat(e.target.value) || 0)} />
-                </div>
-                <div className="form-field w-10">
-                  <label className="form-label">C</label>
-                  <input type="number" className={edit} value={opCranes} onChange={(e) => onOpUpdate(r.id, "cranes", parseFloat(e.target.value) || 0)} />
                 </div>
                 <div className="form-field w-20">
                   <label className="form-label">Quantity</label>
