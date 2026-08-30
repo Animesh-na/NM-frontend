@@ -1848,13 +1848,19 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       };
     }),
     cargo: aggregatedCargo,
-    cargos: cargos.map(c => ({
-      id: c.id,
-      rate: effectiveCargoRate(c),
-      rateType: c.rateType,
-      voyageCommission: c.voyageCommission,
-      tcCommission: c.tcCommission,
-    })),
+    cargos: cargos.map(c => {
+      const dd = calculateCargoDemurrageDespatch(c, cargos, sequence);
+      return {
+        id: c.id,
+        rate: effectiveCargoRate(c),
+        rateType: c.rateType,
+        voyageCommission: c.voyageCommission,
+        tcCommission: c.tcCommission,
+        demurrage: dd.demurrageAmount,
+        despatch: dd.despatchAmount,
+        extraDays: dd.totalExtraDays,
+      };
+    }),
     bunker: {
       hsfo: { price: bunker.hsfo.price, robStart: bunker.hsfo.robStart },
       vlsfo: { price: bunker.vlsfo.price, robStart: bunker.vlsfo.robStart },
