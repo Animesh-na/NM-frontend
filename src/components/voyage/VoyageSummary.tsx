@@ -103,7 +103,9 @@ export function VoyageSummary() {
   const totalDemurrage = demurrageDespatch.demurrageAmount;
   const totalDespatch = demurrageDespatch.despatchAmount;
   const totalExtraDays = demurrageDespatch.totalExtraDays;
-  const showLaytimeImpact = cargos.length <= 1 && (cargos.some((c) => (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) || Math.abs(totalExtraDays) > 0.005);
+  const showLaytimeImpact = cargos.length <= 1
+    && (cargos[0]?.laytimeMode ?? "average") !== "cancelled"
+    && (cargos.some((c) => (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) || Math.abs(totalExtraDays) > 0.005);
 
 
   const formatCurrency = (value: number) => {
