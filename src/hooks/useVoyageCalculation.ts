@@ -141,6 +141,10 @@ export interface VoyageInputs {
     rateType: "mt" | "lumpsum";
     voyageCommission: number;
     tcCommission: number;
+    /** Per-cargo laytime results (from Cargo section operational overrides). */
+    demurrage?: number;
+    despatch?: number;
+    extraDays?: number;
   }>;
 }
 
@@ -301,6 +305,10 @@ export interface PerCargoBreakdown {
   routeStartIdx: number;
   routeEndIdx: number;
   // ── Ton-mile allocation (spec: Multi-Cargo Gross Rate) ──
+  /** Per-cargo laytime outcome */
+  extraDays: number;
+  demurrage: number;
+  despatch: number;
   cargoDistanceNm: number;
   cargoTonMiles: number;
   tonMileShare: number; // 0..1 share of total ton miles
@@ -1770,13 +1778,20 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
 
         const voyCommPct = (c.voyageCommission || 0) / 100;
         const netRate = loadedQty > 0 ? allocatedTotalCost / loadedQty : 0;
+        // Per-cargo laytime outcome (demurrage is income, despatch is a cost
+        // to the owner) folded into this cargo's own freight rate per mt.
+        const cargoDemurrage = c.demurrage || 0;
+        const cargoDespatch = c.despatch || 0;
+        const laytimeRatePerMt =
+          loadedQty > 0 ? (cargoDemurrage - cargoDespatch) / loadedQty : 0;
         // Gross Rate (spec): Net Rate / (1 − Voy Commission %) where Net Rate = own freight rate × (1 − voy comm) − TOTAL voyage P&L / own qty
         const cargoFreightRate =
           c.rateType === "lumpsum"
             ? (loadedQty > 0 ? (c.rate || 0) / loadedQty : 0)
             : (c.rate || 0);
         const netRateAfterPnl =
-          cargoFreightRate * (1 - voyCommPct) - adjustedPAndL / loadedQty;
+          (cargoFreightRate + laytimeRatePerMt) * (1 - voyCommPct) -
+          adjustedPAndL / loadedQty;
         const grossRate =
           loadedQty > 0 && voyCommPct < 1
             ? Math.max(0, netRateAfterPnl / (1 - voyCommPct))
@@ -1789,6 +1804,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
           loadedQty,
           grossFreight,
           share,
+          extraDays: c.extraDays || 0,
+          demurrage: cargoDemurrage,
+          despatch: cargoDespatch,
           allocatedBunker,
           allocatedPortCosts,
           allocatedVoyageCosts: allocatedBunker + allocatedPortCosts,
