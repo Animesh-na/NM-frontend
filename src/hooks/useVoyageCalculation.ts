@@ -763,15 +763,18 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       return ci < loadRowIdxs.length ? sequence[loadRowIdxs[ci]]?.quantity || 0 : 0;
     };
 
-    // Commission applies to the BASE freight only (rate × qty / lumpsum).
-    // Demurrage / despatch are settled AFTER commission adjustment.
+    // Demurrage is ADDED to the base freight BEFORE commission (commission
+    // applies to base + demurrage). Despatch is deducted AFTER commission —
+    // opposite treatment to demurrage.
     const perCargoFreight = cargoEntriesForFreight.map((c, ci) => {
       const qty = qtyForCargo(c.id, ci);
       const base = c.rateType === "lumpsum" ? c.rate || 0 : (c.rate || 0) * qty;
-      const commission = base * ((c.voyageCommission || 0) / 100);
-      const laytime = (c.demurrage || 0) - (c.despatch || 0);
-      const gross = base + laytime;
-      const net = base - commission + laytime;
+      const dem = c.demurrage || 0;
+      const des = c.despatch || 0;
+      const commissionable = base + dem;
+      const commission = commissionable * ((c.voyageCommission || 0) / 100);
+      const gross = commissionable - des;
+      const net = commissionable - commission - des;
       return { id: c.id, qty, base, gross, commission, net };
     });
 
@@ -786,10 +789,12 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     } else {
       const baseGrossFreight =
         cargo.rateType === "lumpsum" ? cargo.rate : cargo.rate * cargo.quantity;
-      const laytime = (cargo.demurrage || 0) - (cargo.despatch || 0);
-      grossFreight = baseGrossFreight + laytime;
-      voyageCommission = baseGrossFreight * (cargo.voyageCommission / 100);
-      netFreight = baseGrossFreight - voyageCommission + laytime;
+      const dem = cargo.demurrage || 0;
+      const des = cargo.despatch || 0;
+      const commissionable = baseGrossFreight + dem;
+      grossFreight = commissionable - des;
+      voyageCommission = commissionable * (cargo.voyageCommission / 100);
+      netFreight = commissionable - voyageCommission - des;
     }
 
     vlog(`\n[Step 6] FREIGHT & REVENUE (per-cargo, unmixed):
@@ -1827,12 +1832,13 @@ ${perCargoFreight
           c.rateType === "lumpsum"
             ? c.rate || 0
             : (c.rate || 0) * loadedQty;
-        // Commission on base freight only; dem/desp settled after commission.
-        const cargoGrossFreight =
-          cargoBaseFreight + (c.demurrage || 0) - (c.despatch || 0);
-        const cargoVoyCommissionAmount = cargoBaseFreight * voyCommPct;
+        // Demurrage is added BEFORE commission (commissionable = base + dem);
+        // despatch is deducted AFTER commission.
+        const cargoCommissionable = cargoBaseFreight + (c.demurrage || 0);
+        const cargoGrossFreight = cargoCommissionable - (c.despatch || 0);
+        const cargoVoyCommissionAmount = cargoCommissionable * voyCommPct;
         const cargoNetFreight =
-          cargoBaseFreight - cargoVoyCommissionAmount + (c.demurrage || 0) - (c.despatch || 0);
+          cargoCommissionable - cargoVoyCommissionAmount - (c.despatch || 0);
 
         const netRate = loadedQty > 0 ? allocatedTotalCost / loadedQty : 0;
 
