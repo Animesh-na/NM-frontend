@@ -286,6 +286,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
     () => calculateCargoDemurrageDespatchFromRows(cargo, cpRows),
     [cargo, cpRows],
   );
+  const laytimeMode = cargo.laytimeMode ?? "average";
   const perRowCalc = demurrageResult.rows;
   const totalExtraDays = demurrageResult.totalExtraDays;
   const totalDem = demurrageResult.demurrageAmount;
@@ -502,6 +503,25 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
+        <div className="form-field min-w-0">
+          <label className="form-label flex items-center gap-1">
+            Laytime
+            <InfoTooltip
+              formula="Average = ports offset each other · Non-reversible = each port settles on its own · Cancel = no dem/desp"
+              description="Laytime settlement mode for this cargo"
+            />
+          </label>
+          <select
+            className="form-input-sm w-full"
+            value={cargo.laytimeMode ?? "average"}
+            onChange={(e) => onUpdate("laytimeMode", e.target.value)}
+          >
+            <option value="average">Average</option>
+            <option value="non_reversible">Non-reversible</option>
+            <option value="cancelled">Cancel dem/desp</option>
+          </select>
+        </div>
+
       </div>
 
       {/* Cargo operational rows: only load/discharge rows shown here are used for demurrage/despatch. */}
@@ -610,6 +630,16 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <label className="form-label">Δ Days</label>
                   <input readOnly className={`${ro} w-full ${diffDays > 0 ? "text-green-600" : diffDays < 0 ? "text-red-600" : ""}`} value={diffDays.toFixed(2)} />
                 </div>
+                {laytimeMode === "non_reversible" && (
+                  <div className="form-field w-24">
+                    <label className="form-label">{diffDays > 0 ? "Despatch $" : "Demurrage $"}</label>
+                    <input
+                      readOnly
+                      className={`${ro} w-full ${diffDays > 0 ? "text-red-600" : diffDays < 0 ? "text-green-600" : ""}`}
+                      value={(diffDays > 0 ? diffDays * despVal : Math.abs(diffDays) * demVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

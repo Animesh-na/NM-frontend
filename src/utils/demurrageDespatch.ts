@@ -96,6 +96,35 @@ export function calculateCargoDemurrageDespatchFromRows(
   });
 
   const totalExtraDays = rowBreakdown.reduce((sum, row) => sum + row.diffDays, 0);
+  const mode = cargo.laytimeMode ?? "average";
+
+  if (mode === "cancelled") {
+    return {
+      cargoId: cargo.id,
+      rows: rowBreakdown.map((r) => ({ ...r, demurrageRate: 0, despatchRate: 0 })),
+      totalExtraDays,
+      demurrageAmount: 0,
+      despatchAmount: 0,
+    };
+  }
+
+  if (mode === "non_reversible") {
+    // Each port settles individually — a fast port never offsets a slow one.
+    return {
+      cargoId: cargo.id,
+      rows: rowBreakdown,
+      totalExtraDays,
+      demurrageAmount: rowBreakdown.reduce(
+        (sum, r) => sum + (r.diffDays < 0 ? Math.abs(r.diffDays) * r.demurrageRate : 0),
+        0,
+      ),
+      despatchAmount: rowBreakdown.reduce(
+        (sum, r) => sum + (r.diffDays > 0 ? r.diffDays * r.despatchRate : 0),
+        0,
+      ),
+    };
+  }
+
   const averageDemurrageRate = rowBreakdown.length > 0
     ? rowBreakdown.reduce((sum, row) => sum + row.demurrageRate, 0) / rowBreakdown.length
     : cargo.demurrageRate || 0;

@@ -155,6 +155,13 @@ export interface CargoEntry {
   demurrageAmount: number; // Total $ (can be calculated or manual)
   despatchAmount: number; // Total $ (can be calculated or manual)
   averageMode: "average" | "per_port" | "per_voyage";
+  /**
+   * Laytime settlement mode:
+   *  - average         → ports offset each other, one net demurrage OR despatch
+   *  - non_reversible  → every port settles on its own (no offsetting)
+   *  - cancelled       → all demurrage/despatch cancelled for this cargo
+   */
+  laytimeMode?: "average" | "non_reversible" | "cancelled";
   ntcBase: number; // Benchmark NTC $/day
   gtcTarget: number; // Target GTC $/day
   netBBOverride?: number; // Manual override for Net BB
