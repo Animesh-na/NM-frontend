@@ -1837,18 +1837,18 @@ ${perCargoFreight
         const netRate = loadedQty > 0 ? allocatedTotalCost / loadedQty : 0;
 
         // Per-cargo laytime outcome (demurrage is income, despatch is a cost
-        // to the owner) folded into this cargo's own freight rate per mt.
+        // to the owner). It is NOT folded into the gross-rate calc because the
+        // voyage P&L below already includes demurrage/despatch via net freight —
+        // adding it here too would double-count it.
         const cargoDemurrage = c.demurrage || 0;
         const cargoDespatch = c.despatch || 0;
-        const laytimeRatePerMt =
-          loadedQty > 0 ? (cargoDemurrage - cargoDespatch) / loadedQty : 0;
         // Gross Rate (spec): Net Rate / (1 − Voy Commission %) where Net Rate = own freight rate × (1 − voy comm) − TOTAL voyage P&L / own qty
         const cargoFreightRate =
           c.rateType === "lumpsum"
             ? (loadedQty > 0 ? (c.rate || 0) / loadedQty : 0)
             : (c.rate || 0);
         const netRateAfterPnl =
-          (cargoFreightRate + laytimeRatePerMt) * (1 - voyCommPct) -
+          cargoFreightRate * (1 - voyCommPct) -
           adjustedPAndL / loadedQty;
         const grossRate =
           loadedQty > 0 && voyCommPct < 1
