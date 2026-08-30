@@ -763,12 +763,16 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
       return ci < loadRowIdxs.length ? sequence[loadRowIdxs[ci]]?.quantity || 0 : 0;
     };
 
+    // Commission applies to the BASE freight only (rate × qty / lumpsum).
+    // Demurrage / despatch are settled AFTER commission adjustment.
     const perCargoFreight = cargoEntriesForFreight.map((c, ci) => {
       const qty = qtyForCargo(c.id, ci);
       const base = c.rateType === "lumpsum" ? c.rate || 0 : (c.rate || 0) * qty;
-      const gross = base + (c.demurrage || 0) - (c.despatch || 0);
-      const commission = gross * ((c.voyageCommission || 0) / 100);
-      return { id: c.id, qty, base, gross, commission, net: gross - commission };
+      const commission = base * ((c.voyageCommission || 0) / 100);
+      const laytime = (c.demurrage || 0) - (c.despatch || 0);
+      const gross = base + laytime;
+      const net = base - commission + laytime;
+      return { id: c.id, qty, base, gross, commission, net };
     });
 
     let grossFreight: number;
@@ -782,16 +786,17 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     } else {
       const baseGrossFreight =
         cargo.rateType === "lumpsum" ? cargo.rate : cargo.rate * cargo.quantity;
-      grossFreight = baseGrossFreight + (cargo.demurrage || 0) - (cargo.despatch || 0);
-      voyageCommission = grossFreight * (cargo.voyageCommission / 100);
-      netFreight = grossFreight - voyageCommission;
+      const laytime = (cargo.demurrage || 0) - (cargo.despatch || 0);
+      grossFreight = baseGrossFreight + laytime;
+      voyageCommission = baseGrossFreight * (cargo.voyageCommission / 100);
+      netFreight = baseGrossFreight - voyageCommission + laytime;
     }
 
     vlog(`\n[Step 6] FREIGHT & REVENUE (per-cargo, unmixed):
 ${perCargoFreight
   .map(
     (p, i) =>
-      `    Cargo #${i + 1}: base $${p.base} + dem/desp = gross $${p.gross}, comm $${p.commission}, net $${p.net}`,
+      `    Cargo #${i + 1}: base $${p.base}, comm $${p.commission}, + dem/desp => gross $${p.gross}, net $${p.net}`,
   )
   .join("\n")}
     Total Gross Freight = $${grossFreight}
