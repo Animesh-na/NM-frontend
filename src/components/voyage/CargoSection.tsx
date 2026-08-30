@@ -536,7 +536,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             const opFactor = op.coefficientFactor ?? r.coefficientFactor ?? 0;
             const opTurn = op.turnTime ?? r.turnTime ?? 0;
             const opExtra = op.extraTime ?? r.extraTime ?? 0;
-            const opCranes = op.cranes ?? r.cranes ?? 0;
+            
             const opExpDa = op.expDa ?? r.expDa ?? 0;
             const calc = perRowCalc.find((x) => x.rowId === r.id);
             const diffDays = calc?.diffDays || 0;
