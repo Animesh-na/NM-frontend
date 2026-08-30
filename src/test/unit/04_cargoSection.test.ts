@@ -37,20 +37,25 @@ describe("Cargo Section", () => {
   });
 
   describe("Commissions", () => {
-    it("voyageCommission equals custom grossFreight × custom commission percentage", () => {
+    it("voyageCommission applies to base freight only — demurrage/despatch are settled after commission", () => {
       const cargo = customCargo({ rate: 28, quantity: 52_000, voyageCommission: 4.25, demurrage: 10_000 });
 
       const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ cargo }))).result.current;
-      const expected = r.grossFreight * 0.0425;
+      const base = 28 * 52_000;
+      const expected = base * 0.0425;
 
       expect(r.voyageCommission).toBeCloseTo(expected, 2);
+      expect(r.grossFreight).toBeCloseTo(base + 10_000, 2);
+      expect(r.netFreight).toBeCloseTo(base - expected + 10_000, 2);
     });
 
-    it("netFreight equals custom grossFreight minus voyageCommission", () => {
-      const cargo = customCargo({ rate: 35, quantity: 40_000, voyageCommission: 3.5 });
+    it("netFreight equals base freight minus voyageCommission plus demurrage minus despatch", () => {
+      const cargo = customCargo({ rate: 35, quantity: 40_000, voyageCommission: 3.5, demurrage: 5_000, despatch: 2_000 });
 
       const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ cargo }))).result.current;
+      const base = 35 * 40_000;
 
+      expect(r.netFreight).toBeCloseTo(base - r.voyageCommission + 5_000 - 2_000, 2);
       expect(r.netFreight).toBeCloseTo(r.grossFreight - r.voyageCommission, 2);
     });
   });
