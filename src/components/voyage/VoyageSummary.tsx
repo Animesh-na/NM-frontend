@@ -280,6 +280,7 @@ export function VoyageSummary() {
                     </span>
                     <span className="font-mono tabular-nums">$ {formatCurrency(c.netFreight)}</span>
                   </div>
+                  {(Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
 
                     <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1 ml-2">
                       <span className="text-muted-foreground flex items-center font-semibold">
