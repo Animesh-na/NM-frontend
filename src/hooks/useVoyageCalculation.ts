@@ -305,6 +305,10 @@ export interface PerCargoBreakdown {
   routeStartIdx: number;
   routeEndIdx: number;
   // ── Ton-mile allocation (spec: Multi-Cargo Gross Rate) ──
+  /** Per-cargo laytime outcome */
+  extraDays: number;
+  demurrage: number;
+  despatch: number;
   cargoDistanceNm: number;
   cargoTonMiles: number;
   tonMileShare: number; // 0..1 share of total ton miles
