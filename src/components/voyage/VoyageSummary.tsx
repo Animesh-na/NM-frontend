@@ -260,40 +260,19 @@ export function VoyageSummary() {
                       ${formatCurrency(c.grossRate)} /mt
                     </span>
                   </div>
-                  <div className="flex justify-between px-1 -mx-1 ml-2">
-                    <span className="text-muted-foreground flex items-center">
-                      Cargo {c.cargoLabel} Gross Freight
-                      <InfoTooltip
-                        formula="Rate × own quantity + Demurrage − Despatch"
-                        description="Each cargo is calculated individually — rates and quantities are never blended."
-                      />
-                    </span>
-                    <span className="font-mono tabular-nums">$ {formatCurrency(c.grossFreight)}</span>
-                  </div>
-                  <div className="flex justify-between px-1 -mx-1 ml-2">
-                    <span className="text-muted-foreground flex items-center">
-                      Cargo {c.cargoLabel} Net Freight
-                      <InfoTooltip
-                        formula="Gross Freight × (1 − own Voyage Commission %)"
-                        description={`Voyage commission ${c.voyageCommissionPct}% = $ ${formatCurrency(c.voyageCommissionAmount)}`}
-                      />
-                    </span>
-                    <span className="font-mono tabular-nums">$ {formatCurrency(c.netFreight)}</span>
-                  </div>
                   {(Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
-
                     <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1 ml-2">
                       <span className="text-muted-foreground flex items-center font-semibold">
                         Cargo {c.cargoLabel} Extra time
                         <InfoTooltip
                           formula="Σ CP cargo port days − Σ operational cargo port days for this cargo. Positive = despatch, negative = demurrage."
-                          description="Per-cargo laytime outcome. Demurrage adds to / Despatch deducts from this cargo's Gross Rate."
+                          description="Per-cargo laytime outcome. Demurrage adds to / Despatch deducts from freight earnings."
                         />
                       </span>
                       <span className="font-mono tabular-nums font-bold">
-                        <span className={c.extraDays >= 0 ? "text-success" : "text-destructive"}>{formatDays(c.extraDays)} d</span>
-                        {(c.despatch || 0) > 0 && <span className="text-success"> / Despatch : $ {formatCurrency(c.despatch || 0)}</span>}
-                        {(c.demurrage || 0) > 0 && <span className="text-destructive"> / Demurrage : $ {formatCurrency(c.demurrage || 0)}</span>}
+                        <span className={c.extraDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(c.extraDays)} d</span>
+                        {(c.despatch || 0) > 0 && <span className="text-destructive"> / Despatch : $ {formatCurrency(c.despatch || 0)}</span>}
+                        {(c.demurrage || 0) > 0 && <span className="text-success"> / Demurrage : $ {formatCurrency(c.demurrage || 0)}</span>}
                       </span>
                     </div>
                   )}
