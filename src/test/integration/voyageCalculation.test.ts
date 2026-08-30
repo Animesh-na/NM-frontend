@@ -149,7 +149,8 @@ describe("Integration: Full Voyage Calculation", () => {
         cargo: { ...mockCargo, rate: 500000, rateType: "lumpsum", quantity: 0 },
       };
       const { result } = renderHook(() => useVoyageCalculation(lumpsum));
-      expect(result.current.grossFreight).toBe(500000);
+      // Gross freight = lumpsum base + demurrage (15,000) − despatch (0)
+      expect(result.current.grossFreight).toBe(515000);
     });
 
     it("should handle empty sequence", () => {
