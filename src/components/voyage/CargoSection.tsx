@@ -286,6 +286,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
     () => calculateCargoDemurrageDespatchFromRows(cargo, cpRows),
     [cargo, cpRows],
   );
+  const laytimeMode = cargo.laytimeMode ?? "average";
   const perRowCalc = demurrageResult.rows;
   const totalExtraDays = demurrageResult.totalExtraDays;
   const totalDem = demurrageResult.demurrageAmount;
