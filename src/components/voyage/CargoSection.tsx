@@ -502,6 +502,25 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
+        <div className="form-field min-w-0">
+          <label className="form-label flex items-center gap-1">
+            Laytime
+            <InfoTooltip
+              formula="Average = ports offset each other · Non-reversible = each port settles on its own · Cancel = no dem/desp"
+              description="Laytime settlement mode for this cargo"
+            />
+          </label>
+          <select
+            className="form-input-sm w-full"
+            value={cargo.laytimeMode ?? "average"}
+            onChange={(e) => onUpdate("laytimeMode", e.target.value)}
+          >
+            <option value="average">Average</option>
+            <option value="non_reversible">Non-reversible</option>
+            <option value="cancelled">Cancel dem/desp</option>
+          </select>
+        </div>
+
       </div>
 
       {/* Cargo operational rows: only load/discharge rows shown here are used for demurrage/despatch. */}
