@@ -73,9 +73,10 @@ export function calculateCargoDemurrageDespatchFromRows(
   const rowBreakdown = rows.filter((row) => isCargoOperation(row.operation)).map((row) => {
     const cpOverride = cargo.cpOverrides?.[row.id];
     const opOverride = isActive ? cargo.opOverrides?.[row.id] : undefined;
-    // CP baseline = snapshotted CP values (set when an operational override is
-    // first applied) falling back to the live sequence row when no snapshot exists.
-    const cpDays = calculatePortDaysForDemurrage(row, cpOverride);
+    // CP baseline = live Sequence row (rates only come from cpOverrides), so any
+    // sequence edit immediately updates CP days and delta days.
+    const cpDays = calculatePortDaysForDemurrage(row);
+
     // Operational = Cargo-section operational overrides only. The Sequence row
     // remains the CP baseline and must not be mutated by these edits.
     const opDays = calculatePortDaysForDemurrage(row, opOverride);
