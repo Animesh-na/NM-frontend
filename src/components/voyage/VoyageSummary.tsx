@@ -103,7 +103,9 @@ export function VoyageSummary() {
   const totalDemurrage = demurrageDespatch.demurrageAmount;
   const totalDespatch = demurrageDespatch.despatchAmount;
   const totalExtraDays = demurrageDespatch.totalExtraDays;
-  const showLaytimeImpact = cargos.length <= 1 && (cargos.some((c) => (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) || Math.abs(totalExtraDays) > 0.005);
+  const showLaytimeImpact = cargos.length <= 1
+    && (cargos[0]?.laytimeMode ?? "average") !== "cancelled"
+    && (cargos.some((c) => (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) || Math.abs(totalExtraDays) > 0.005);
 
 
   const formatCurrency = (value: number) => {
@@ -247,7 +249,12 @@ export function VoyageSummary() {
           </div>
           <div className="border-t border-border pt-1 mt-2 space-y-0.5">
 {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 ? (
-              results.perCargoBreakdown.map((c) => (
+              results.perCargoBreakdown.map((c) => {
+                const cargoEntry = cargos.find((ce) => ce.id === c.cargoId);
+                const laytimeMode = cargoEntry?.laytimeMode ?? "average";
+                const cargoLaytime = demurrageDespatch.cargoBreakdowns.find((cb) => cb.cargoId === c.cargoId);
+                const affectedRows = (cargoLaytime?.rows || []).filter((r) => Math.abs(r.diffDays) > 0.005);
+                return (
                 <div key={c.cargoId} className="space-y-0.5">
                   <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
                     <span className="text-muted-foreground flex items-center font-semibold">
@@ -260,7 +267,7 @@ export function VoyageSummary() {
                       ${formatCurrency(c.grossRate)} /mt
                     </span>
                   </div>
-                  {(Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
+                  {laytimeMode !== "cancelled" && (Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
                     <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1 ml-2">
                       <span className="text-muted-foreground flex items-center font-semibold">
                         Cargo {c.cargoLabel} Extra time
@@ -276,8 +283,26 @@ export function VoyageSummary() {
                       </span>
                     </div>
                   )}
+                  {laytimeMode === "non_reversible" && affectedRows.map((r) => (
+                    <div key={r.rowId} className="flex justify-between bg-accent/5 rounded-sm px-1 py-0.5 -mx-1 ml-4">
+                      <span className="text-muted-foreground">
+                        {r.port}
+                        {r.operation ? ` (${r.operation})` : ""}
+                      </span>
+                      <span className="font-mono tabular-nums">
+                        <span className={r.diffDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(r.diffDays)} d</span>
+                        {r.diffDays > 0.005 && r.despatchRate > 0 && (
+                          <span className="text-destructive"> / Despatch : $ {formatCurrency(r.diffDays * r.despatchRate)}</span>
+                        )}
+                        {r.diffDays < -0.005 && r.demurrageRate > 0 && (
+                          <span className="text-success"> / Demurrage : $ {formatCurrency(Math.abs(r.diffDays) * r.demurrageRate)}</span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))
+                );
+              })
             ) : (
               <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
                 <span className="text-muted-foreground flex items-center font-semibold">
