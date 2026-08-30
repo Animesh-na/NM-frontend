@@ -629,6 +629,16 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <label className="form-label">Δ Days</label>
                   <input readOnly className={`${ro} w-full ${diffDays > 0 ? "text-green-600" : diffDays < 0 ? "text-red-600" : ""}`} value={diffDays.toFixed(2)} />
                 </div>
+                {laytimeMode === "non_reversible" && (
+                  <div className="form-field w-24">
+                    <label className="form-label">{diffDays > 0 ? "Despatch $" : "Demurrage $"}</label>
+                    <input
+                      readOnly
+                      className={`${ro} w-full ${diffDays > 0 ? "text-red-600" : diffDays < 0 ? "text-green-600" : ""}`}
+                      value={(diffDays > 0 ? diffDays * despVal : Math.abs(diffDays) * demVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
