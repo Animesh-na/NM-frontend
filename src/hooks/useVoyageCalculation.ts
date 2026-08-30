@@ -296,7 +296,12 @@ export interface PerCargoBreakdown {
   cargoLabel: string; // "#1", "#2", ...
   loadedQty: number;
   grossFreight: number;
+  /** Voyage commission $ on this cargo's own gross freight. */
+  voyageCommissionAmount: number;
+  /** gross freight − own voyage commission (never blended with other cargoes). */
+  netFreight: number;
   share: number; // 0..1 share of total grossFreight (or qty if all lumpsum)
+
   allocatedBunker: number;
   allocatedPortCosts: number;
   allocatedVoyageCosts: number; // bunker + port (route-bounded)
