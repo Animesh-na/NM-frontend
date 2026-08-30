@@ -103,7 +103,7 @@ export function VoyageSummary() {
   const totalDemurrage = demurrageDespatch.demurrageAmount;
   const totalDespatch = demurrageDespatch.despatchAmount;
   const totalExtraDays = demurrageDespatch.totalExtraDays;
-  const showLaytimeImpact = cargos.some((c) => (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) || Math.abs(totalExtraDays) > 0.005;
+  const showLaytimeImpact = cargos.length <= 1 && (cargos.some((c) => (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0) || Math.abs(totalExtraDays) > 0.005);
 
 
   const formatCurrency = (value: number) => {
@@ -260,22 +260,6 @@ export function VoyageSummary() {
                       ${formatCurrency(c.grossRate)} /mt
                     </span>
                   </div>
-                  {(Math.abs(c.extraDays) > 0.005 || c.demurrage > 0 || c.despatch > 0) && (
-                    <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1">
-                      <span className="text-muted-foreground flex items-center">
-                        Cargo {c.cargoLabel} Extra time
-                        <InfoTooltip
-                          formula="Σ CP cargo port days − Σ operational cargo port days for this cargo. Positive = despatch, negative = demurrage."
-                          description="Per-cargo laytime result; feeds this cargo's gross rate."
-                        />
-                      </span>
-                      <span className="font-mono tabular-nums font-bold">
-                        <span className={c.extraDays >= 0 ? "text-success" : "text-destructive"}>{formatDays(c.extraDays)} d</span>
-                        {c.despatch > 0 && <span className="text-success"> / Despatch : $ {formatCurrency(c.despatch)}</span>}
-                        {c.demurrage > 0 && <span className="text-destructive"> / Demurrage : $ {formatCurrency(c.demurrage)}</span>}
-                      </span>
-                    </div>
-                  )}
                 </div>
               ))
             ) : (
