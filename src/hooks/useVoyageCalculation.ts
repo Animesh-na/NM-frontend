@@ -141,6 +141,10 @@ export interface VoyageInputs {
     rateType: "mt" | "lumpsum";
     voyageCommission: number;
     tcCommission: number;
+    /** Per-cargo laytime results (from Cargo section operational overrides). */
+    demurrage?: number;
+    despatch?: number;
+    extraDays?: number;
   }>;
 }
 
