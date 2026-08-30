@@ -507,7 +507,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           <label className="form-label flex items-center gap-1">
             Laytime
             <InfoTooltip
-              formula="Average = ports offset each other · Non-reversible = each port settles on its own · Cancel = no dem/desp"
+              formula="Average = ports offset each other · Non-reversible = each port settles on its own"
               description="Laytime settlement mode for this cargo"
             />
           </label>
@@ -518,7 +518,6 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           >
             <option value="average">Average</option>
             <option value="non_reversible">Non-reversible</option>
-            <option value="cancelled">Cancel dem/desp</option>
           </select>
         </div>
 
@@ -588,7 +587,21 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                 </div>
                 <div className="form-field w-14">
                   <label className="form-label">Terms</label>
-                  <input className={`${edit} uppercase`} value={opTerms} onChange={(e) => onOpUpdate(r.id, "terms", e.target.value)} />
+                  <select
+                    className={edit}
+                    value={opTerms || "shinc"}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      onOpUpdate(r.id, "terms", val);
+                      const dc = val === "sshex" ? 1.5555 : val === "fhex" ? 1.25 : val === "satpn" ? 1.33 : 1.0;
+                      onOpUpdate(r.id, "coefficientFactor", dc);
+                    }}
+                  >
+                    <option value="shinc">shinc</option>
+                    <option value="sshex">sshex</option>
+                    <option value="fhex">fhex</option>
+                    <option value="satpn">satpn</option>
+                  </select>
                 </div>
                 <div className="form-field w-14">
                   <label className="form-label">Factor</label>
