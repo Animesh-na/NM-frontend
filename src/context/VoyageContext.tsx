@@ -1570,34 +1570,13 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
       value: number | string,
     ) => {
-      // Fields whose CP baseline must be snapshotted before operational values are entered
-      // so demurrage/despatch comparison keeps using the original Sequence/CP values.
-      const cpSnapshotFields = new Set([
-        "quantity",
-        "productivity",
-        "turnTime",
-        "extraTime",
-        "terms",
-        "coefficientFactor",
-      ]);
-
-      // Snapshot the current sequence-row value into cpOverrides (if not already set)
-      // and store the operational value separately. Do NOT mutate sequence rows here;
-      // the Sequence section remains the CP baseline, while calculations can consume
-      // active operational overrides from cargo.opOverrides.
-      setCargos((prev) => {
-        const targetRow = sequenceRef.current.find((r) => r.id === rowId);
-        return prev.map((c) => {
+      // CP baseline always comes live from the Sequence row, so sequence edits keep
+      // flowing into CP days / delta days. Only the operational values are stored here.
+      setCargos((prev) =>
+        prev.map((c) => {
           if (c.id !== cargoId) return c;
-          const existingCp = c.cpOverrides?.[rowId] || {};
-          const newCp = { ...existingCp } as Record<string, number | string>;
-          if (cpSnapshotFields.has(field) && existingCp[field as keyof typeof existingCp] === undefined && targetRow) {
-            const rowVal = (targetRow as unknown as Record<string, number | string>)[field];
-            if (rowVal !== undefined) newCp[field] = rowVal;
-          }
           return {
             ...c,
-            cpOverrides: { ...(c.cpOverrides || {}), [rowId]: newCp },
             opOverrides: {
               ...(c.opOverrides || {}),
               [rowId]: {
@@ -1606,8 +1585,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
               },
             },
           };
-        });
-      });
+        }),
+      );
+
     },
     [],
   );
