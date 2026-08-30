@@ -1853,8 +1853,11 @@ ${perCargoFreight
           cargoId: c.id,
           cargoLabel: label,
           loadedQty,
-          grossFreight,
+          grossFreight: cargoGrossFreight,
+          voyageCommissionAmount: cargoVoyCommissionAmount,
+          netFreight: cargoNetFreight,
           share,
+
           extraDays: c.extraDays || 0,
           demurrage: cargoDemurrage,
           despatch: cargoDespatch,
