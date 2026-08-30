@@ -280,7 +280,7 @@ export function VoyageSummary() {
               <span className="text-muted-foreground flex items-center font-semibold">
                 P&L
                 <InfoTooltip 
-                  formula="Net Freight − Voyage Cost Incl Hire − Demurrage + Despatch"
+                  formula="Net Freight − Voyage Cost Incl Hire (Demurrage already added to / Despatch deducted from Gross Freight)"
                   description="Profit & Loss for the voyage"
                 />
               </span>
