@@ -469,7 +469,12 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
               type="number"
               className={`form-input-sm w-full font-mono text-right ${errCls(errDem)}`}
               value={cargo.demurrageRate}
-              onChange={(e) => onUpdate("demurrageRate", parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const dem = parseFloat(e.target.value) || 0;
+                onUpdate("demurrageRate", dem);
+                // Despatch conventionally defaults to half demurrage.
+                onUpdate("despatchRate", parseFloat((dem / 2).toFixed(2)));
+              }}
             />
             <span className="unit">$/d</span>
           </div>
