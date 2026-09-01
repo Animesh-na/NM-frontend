@@ -316,7 +316,7 @@ export function BunkerSection() {
           {/* BOB - single row layout */}
           <div className="border border-border rounded overflow-hidden">
             <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border flex items-center justify-between">
-              <span>BOB</span>
+              <span>BOB{bobIgnored && <span className="ml-1 text-[9px] font-normal text-muted-foreground">(ignored — price &amp; tonnes excluded)</span>}</span>
               <span className="flex items-center gap-2">
                 {bobPortName && <span className="text-[9px] font-normal text-muted-foreground">Prices: {bobPortName}</span>}
                 <Button
@@ -332,19 +332,20 @@ export function BunkerSection() {
                 </Button>
               </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+            <div className={`grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border ${bobIgnored ? "opacity-50" : ""}`}>
               {fuels.map(fuel => (
                 <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-1">
                   <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
-                  <input type="number" className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
+                  <input type="number" disabled={bobIgnored} className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
                   <span className="text-[9px] text-muted-foreground shrink-0">$/t</span>
-                  <input type="number" className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
+                  <input type="number" disabled={bobIgnored} className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
                   <span className="text-[9px] text-muted-foreground shrink-0">t</span>
                 </div>
               ))}
             </div>
+
             {shortfalls.length > 0 && (
               <div className="px-2 py-1 text-[9px] text-destructive border-t border-border">
                 Insufficient fuel: {shortfalls.map(s => `${s.label} short ${s.short.toFixed(1)} t (available ${s.available.toFixed(1)} t vs consumption ${s.consumed.toFixed(1)} t)`).join(" · ")}
