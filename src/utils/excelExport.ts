@@ -317,13 +317,16 @@ export function exportVoyageToExcel(data: ExportData) {
     dem: { col: number; row: number };
     desp: { col: number; row: number };
     gf: { col: number; row: number };
+    comm: { col: number; row: number };
+    net: { col: number; row: number };
   };
   const cargoInputRows: CargoInputRows[] = [];
 
   setSectionHeader(r, `CARGO (${cargos.length} entr${cargos.length === 1 ? "y" : "ies"}${isTanker ? " — Tanker / Worldscale" : ""})`); r++;
   const mcHeaders = [
     "Cargo", "Flat Rate", "WS %", "Eff. Rate ($/mt)", "Type", "Loaded Qty (MT)",
-    "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $", "Gross Freight $",
+    "Voy Comm %", "TC Comm %", "Demurrage $", "Despatch $", "Base Freight $",
+    "Voy Commission $", "Net Freight $",
   ];
   mcHeaders.forEach((h, i) => setText(i, r, h, S.seqHeader)); r++;
   cargos.forEach((c, i) => {
@@ -347,10 +350,23 @@ export function exportVoyageToExcel(data: ExportData) {
     setNum(7, r, c.tcCommission, dStyle);
     setNum(8, r, cargoDemDesp.demurrageAmount, dStyle);
     setNum(9, r, cargoDemDesp.despatchAmount, dStyle);
+    const base = c.rateType === "lumpsum" ? (c.rate || 0) : er * loadedQty;
+    const dem = cargoDemDesp.demurrageAmount || 0;
+    const desp = cargoDemDesp.despatchAmount || 0;
+    // Engine rule: commission applies to (base + demurrage); despatch is
+    // deducted AFTER commission (asymmetric laytime settlement).
+    const commission = (base + dem) * ((c.voyageCommission || 0) / 100);
     setFormula(
       10, r,
       `IF(${cellRef(4, r)}="lumpsum",${cellRef(1, r)},${cellRef(3, r)}*${cellRef(5, r)})`,
-      c.rateType === "lumpsum" ? (c.rate || 0) : er * loadedQty,
+      base,
+      fStyle,
+    );
+    setFormula(11, r, `(${cellRef(10, r)}+${cellRef(8, r)})*${cellRef(6, r)}/100`, commission, fStyle);
+    setFormula(
+      12, r,
+      `${cellRef(10, r)}+${cellRef(8, r)}-${cellRef(11, r)}-${cellRef(9, r)}`,
+      base + dem - commission - desp,
       fStyle,
     );
     cargoInputRows.push({
@@ -364,6 +380,8 @@ export function exportVoyageToExcel(data: ExportData) {
       dem: { col: 8, row: r },
       desp: { col: 9, row: r },
       gf: { col: 10, row: r },
+      comm: { col: 11, row: r },
+      net: { col: 12, row: r },
     });
     r++;
   });
@@ -373,10 +391,13 @@ export function exportVoyageToExcel(data: ExportData) {
   const totalDemurrage = demurrageDespatchTotals.demurrageAmount;
   const totalDespatch = demurrageDespatchTotals.despatchAmount;
   const gfRefs = cargoInputRows.map(ir => cellRef(ir.gf.col, ir.gf.row));
+  const commRefs = cargoInputRows.map(ir => cellRef(ir.comm.col, ir.comm.row));
+  const netRefs = cargoInputRows.map(ir => cellRef(ir.net.col, ir.net.row));
   const demRefs = cargoInputRows.map(ir => cellRef(ir.dem.col, ir.dem.row));
   const despRefs = cargoInputRows.map(ir => cellRef(ir.desp.col, ir.desp.row));
   const vcRefsAll = cargoInputRows.map(ir => cellRef(ir.voyComm.col, ir.voyComm.row));
   const tcRefsAll = cargoInputRows.map(ir => cellRef(ir.tcComm.col, ir.tcComm.row));
+
 
   const svBaseGrossFreight = cargos.reduce((s, c) => {
     const pc = results.perCargoBreakdown?.find(p => p.cargoId === c.id);
