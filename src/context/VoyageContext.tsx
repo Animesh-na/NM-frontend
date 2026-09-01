@@ -794,7 +794,7 @@ const initialCargos: CargoEntry[] = [
 
 const initialBunker: BunkerState = {
   hsfo: { price: 0, robStart: 0 },
-  vlsfo: { price: 450, robStart: 1234 },
+  vlsfo: { price: 450, robStart: 0 },
   lsmgo: { price: 750, robStart: 0 },
   co2Price: 0,
   euEtsPrice: 0,

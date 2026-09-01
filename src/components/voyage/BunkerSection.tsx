@@ -153,6 +153,15 @@ export function BunkerSection() {
     lsmgo: results.lsmgoConsumption,
   } as const;
 
+  // BOB + bunkered tonnes must cover the voyage consumption, fuel by fuel.
+  const shortfalls = ([
+    { label: "HSFO", available: bunker.hsfo.robStart + totalBunkeredHsfo, consumed: results.hsfoConsumption },
+    { label: "VLSFO", available: bunker.vlsfo.robStart + totalBunkeredVlsfo, consumed: results.vlsfoConsumption },
+    { label: "LSMGO", available: bunker.lsmgo.robStart + totalBunkeredLsmgo, consumed: results.lsmgoConsumption },
+  ] as const)
+    .filter(f => f.consumed > 0.05 && f.available + 1e-6 < f.consumed)
+    .map(f => ({ ...f, short: f.consumed - f.available }));
+
   // Same consumption-weighted FIFO coverage the engine uses — lots first
   // aligned to the order their bunkering calls occur in the voyage.
   const orderedLots = orderBunkerLots(sequence, bunker.portBunkering);
@@ -171,19 +180,31 @@ export function BunkerSection() {
   // Per-lot price/coverage breakdown for the tooltip
   const getPriceBreakdown = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
     const lots = [
-      { label: "BOB", price: bunker[fuelType].price || 0, skipped: !!bunker.ignoreBOB },
+      { label: "BOB", price: bunker[fuelType].price || 0, skipped: !!bunker.ignoreBOB, tonnes: bunker[fuelType].robStart || 0 },
       ...orderedLots.map((p) => ({
         label: p.portName,
         price: p[fuelType]?.price || 0,
         skipped: false,
+        tonnes: p[fuelType]?.quantity || 0,
       })),
     ];
     const cov = fifoCoverage[fuelType] || [];
     const isFifo = bunker.fuelMode === "fifo";
-    const rows = lots.map((l, i) => ({
-      ...l,
-      coverage: Math.max(0, cov[i] || 0),
-    }));
+    const hasTonnes = lots.some((l) => !l.skipped && l.tonnes > 0);
+    const consumption = consumptionOf[fuelType];
+
+    // FIFO with entered tonnages: draw BOB tonnes first, then each lot in order.
+    let remaining = consumption;
+    const rows = lots.map((l, i) => {
+      let coverage = Math.max(0, cov[i] || 0);
+      if (isFifo && hasTonnes) {
+        const isLast = i === lots.length - 1;
+        const take = l.skipped ? 0 : isLast ? remaining : Math.min(remaining, l.tonnes);
+        coverage = Math.max(0, take);
+        remaining = Math.max(0, remaining - coverage);
+      }
+      return { ...l, coverage };
+    });
     const used = rows.filter((r) => !r.skipped && r.price > 0);
     const effective = getAveragePrice(fuelType);
 
@@ -195,12 +216,15 @@ export function BunkerSection() {
           ? `[${num}] / (${den}) = $${effective.toFixed(2)}/t`
           : `No priced fuel lots → $${effective.toFixed(2)}/t`,
         description:
-          "FIFO: consumption-weighted price. " +
+          (hasTonnes
+            ? "FIFO: BOB tonnes burnt first at BOB price, then each bunkering lot in order. "
+            : "FIFO: consumption-weighted price. ") +
           rows
             .map((r) => `${r.label}: $${r.price.toFixed(0)}/t over ${r.coverage.toFixed(1)} t${r.skipped ? " (BOB ignored)" : ""}`)
             .join(" · "),
       };
     }
+
 
     return {
       formula: used.length
@@ -306,12 +330,20 @@ export function BunkerSection() {
               {fuels.map(fuel => (
                 <div key={fuel} className="flex-1 flex items-center gap-1 px-2 py-1">
                   <span className="text-[10px] font-medium w-12">{fuel.toUpperCase()}</span>
-                  <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
+                  <input type="number" className="form-input-sm w-14 font-mono text-right text-xs"
                     value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
                   <span className="text-[9px] text-muted-foreground">$/t</span>
+                  <input type="number" className="form-input-sm w-14 font-mono text-right text-xs"
+                    value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
+                  <span className="text-[9px] text-muted-foreground">t</span>
                 </div>
               ))}
             </div>
+            {shortfalls.length > 0 && (
+              <div className="px-2 py-1 text-[9px] text-destructive border-t border-border">
+                Insufficient fuel: {shortfalls.map(s => `${s.label} short ${s.short.toFixed(1)} t (available ${s.available.toFixed(1)} t vs consumption ${s.consumed.toFixed(1)} t)`).join(" · ")}
+              </div>
+            )}
           </div>
 
           {/* Live market feed — what the last refresh returned */}
@@ -373,16 +405,19 @@ export function BunkerSection() {
                 <thead>
                   <tr className="subsection-header">
                     <th className="text-left px-2 py-1 text-[10px] font-medium">Port</th>
-                    <th className="text-center px-1 py-1 text-[10px] font-medium">HSFO</th>
-                    <th className="text-center px-1 py-1 text-[10px] font-medium">VLSFO</th>
-                    <th className="text-center px-1 py-1 text-[10px] font-medium">LSMGO</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">HSFO</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">VLSFO</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">LSMGO</th>
                     <th className="w-6"></th>
                   </tr>
                   <tr className="subsection-header border-t border-border">
                     <th></th>
-                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
-                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
-                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
+                    {fuels.map(fuel => (
+                      <React.Fragment key={fuel}>
+                        <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
+                        <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">t</th>
+                      </React.Fragment>
+                    ))}
                     <th></th>
                   </tr>
                 </thead>
@@ -395,6 +430,10 @@ export function BunkerSection() {
                           <td className="px-0.5 py-0.5">
                             <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
                               value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          </td>
+                          <td className="px-0.5 py-0.5">
+                            <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
+                              value={port[fuel].quantity || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
                           </td>
                         </React.Fragment>
                       ))}

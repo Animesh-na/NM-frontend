@@ -39,6 +39,12 @@ function activeLots({ bob, portLots, ignoreBOB }: BunkerPricingInput): FuelLot[]
   return lots;
 }
 
+/** True when the user entered explicit tonnages on BOB or any bunkering lot. */
+function hasEnteredQuantities(input: BunkerPricingInput): boolean {
+  if (!input.ignoreBOB && (input.bob?.quantity || 0) > 0) return true;
+  return (input.portLots || []).some((l) => (l?.quantity || 0) > 0);
+}
+
 /** Weighted-average price across BOB + all bunkering lots. */
 export function averagePrice(input: BunkerPricingInput): number {
   const lots = activeLots(input);
@@ -66,12 +72,17 @@ export function averagePrice(input: BunkerPricingInput): number {
 export function fifoCost(input: BunkerPricingInput, consumption: number): number {
   if (consumption <= 0) return 0;
 
-  // Preferred path: consumption actually covered by each price lot.
-  const weighted = coverageWeightedPrice(input);
-  if (weighted !== null) return consumption * weighted;
-
   const lots = activeLots(input);
   if (lots.length === 0) return 0;
+
+  // Preferred path: consumption actually covered by each price lot — used only
+  // when the user has not entered explicit lot tonnages. With tonnages known,
+  // FIFO burns BOB tonnes at BOB price first, then each bunkering lot in order.
+  if (!hasEnteredQuantities(input)) {
+    const weighted = coverageWeightedPrice(input);
+    if (weighted !== null) return consumption * weighted;
+  }
+
 
   let remaining = consumption;
   let cost = 0;
@@ -149,8 +160,10 @@ export function coverageWeightedPrice(input: BunkerPricingInput): number | null 
 /** Effective $/t applied to the whole consumption for the selected mode. */
 export function effectivePrice(input: BunkerPricingInput, consumption: number): number {
   if (input.fuelMode === "fifo") {
-    const weighted = coverageWeightedPrice(input);
-    if (weighted !== null) return weighted;
+    if (!hasEnteredQuantities(input)) {
+      const weighted = coverageWeightedPrice(input);
+      if (weighted !== null) return weighted;
+    }
     if (consumption <= 0) return averagePrice(input);
     return fifoCost(input, consumption) / consumption;
   }
