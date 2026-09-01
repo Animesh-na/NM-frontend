@@ -180,19 +180,31 @@ export function BunkerSection() {
   // Per-lot price/coverage breakdown for the tooltip
   const getPriceBreakdown = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
     const lots = [
-      { label: "BOB", price: bunker[fuelType].price || 0, skipped: !!bunker.ignoreBOB },
+      { label: "BOB", price: bunker[fuelType].price || 0, skipped: !!bunker.ignoreBOB, tonnes: bunker[fuelType].robStart || 0 },
       ...orderedLots.map((p) => ({
         label: p.portName,
         price: p[fuelType]?.price || 0,
         skipped: false,
+        tonnes: p[fuelType]?.quantity || 0,
       })),
     ];
     const cov = fifoCoverage[fuelType] || [];
     const isFifo = bunker.fuelMode === "fifo";
-    const rows = lots.map((l, i) => ({
-      ...l,
-      coverage: Math.max(0, cov[i] || 0),
-    }));
+    const hasTonnes = lots.some((l) => !l.skipped && l.tonnes > 0);
+    const consumption = consumptionOf[fuelType];
+
+    // FIFO with entered tonnages: draw BOB tonnes first, then each lot in order.
+    let remaining = consumption;
+    const rows = lots.map((l, i) => {
+      let coverage = Math.max(0, cov[i] || 0);
+      if (isFifo && hasTonnes) {
+        const isLast = i === lots.length - 1;
+        const take = l.skipped ? 0 : isLast ? remaining : Math.min(remaining, l.tonnes);
+        coverage = Math.max(0, take);
+        remaining = Math.max(0, remaining - coverage);
+      }
+      return { ...l, coverage };
+    });
     const used = rows.filter((r) => !r.skipped && r.price > 0);
     const effective = getAveragePrice(fuelType);
 
@@ -204,12 +216,15 @@ export function BunkerSection() {
           ? `[${num}] / (${den}) = $${effective.toFixed(2)}/t`
           : `No priced fuel lots → $${effective.toFixed(2)}/t`,
         description:
-          "FIFO: consumption-weighted price. " +
+          (hasTonnes
+            ? "FIFO: BOB tonnes burnt first at BOB price, then each bunkering lot in order. "
+            : "FIFO: consumption-weighted price. ") +
           rows
             .map((r) => `${r.label}: $${r.price.toFixed(0)}/t over ${r.coverage.toFixed(1)} t${r.skipped ? " (BOB ignored)" : ""}`)
             .join(" · "),
       };
     }
+
 
     return {
       formula: used.length
