@@ -1383,7 +1383,7 @@ export function exportVoyageToExcel(data: ExportData) {
 
   setCalcLabel(r, "P&L ($)", false, true);
   setCalcFormula(r, `${B(R_GP)}-${B(R_HIRECOST)}`, results.pAndL, false, true);
-  r++;
+  const R_PNL = r; r++;
 
   setCalcLabel(r, "NTCE ($/day)", false, true);
   setCalcFormula(r, `IF(${B(R_TVOY)}>0,(${B(R_NF)}-${B(R_VCEXH)})/${B(R_TVOY)},0)`, results.ntce, false, true);
@@ -1395,7 +1395,8 @@ export function exportVoyageToExcel(data: ExportData) {
 
   setCalcLabel(r, "TCE ($/day)", false, true);
   setCalcFormula(r, `${B(R_GTCE)}`, results.tce, false, true);
-  r++;
+  const R_TCE = r; r++;
+
 
   setCalcLabel(r, "Gross Rate ($/mt)");
   setCalcFormula(r,
