@@ -1304,12 +1304,13 @@ export function exportVoyageToExcel(data: ExportData) {
   setCalcFormula(r, `${B(R_BASEGF)}+${B(R_DEM)}-${B(R_DESP)}`, results.grossFreight);
   const R_GF = r; r++;
 
-  setCalcLabel(r, "Voyage Commission ($)");
-  setCalcFormula(r, `${B(R_GF)}*${B(R_VCOMM)}/100`, results.voyageCommission);
+  setCalcLabel(r, "Voyage Commission ($) — per cargo, on (base + demurrage)");
+  setCalcFormula(r, `${B(R_COMMSUM)}`, results.voyageCommission);
   const R_VCAMT = r; r++;
 
-  setCalcLabel(r, "Net Freight ($)");
-  setCalcFormula(r, `${B(R_GF)}-${B(R_VCAMT)}`, results.netFreight);
+  setCalcLabel(r, "Net Freight ($) — Σ (base + dem − comm − despatch)");
+  setCalcFormula(r, `${B(R_NETSUM)}`, results.netFreight);
+
   const R_NF = r; r++;
 
   setCalcLabel(r, "Misc Costs ($)");
