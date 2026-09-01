@@ -431,7 +431,18 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "Despatch ($)", S.inputLabel);
   setFormula(1, r, despRefs.length ? despRefs.join("+") : "0", totalDespatch, S.formula);
   const R_DESP = r; r++;
+  // Per-cargo commission / net freight sums — the engine never blends cargoes:
+  // commission_x = (base_x + dem_x) × voyComm_x%, net_x = base_x + dem_x − comm_x − desp_x
+  const svVoyCommission = results.voyageCommission;
+  const svNetFreight = results.netFreight;
+  setText(0, r, "Voyage Commission ($) = Σ per-cargo commission", S.inputLabel);
+  setFormula(1, r, commRefs.length ? commRefs.join("+") : "0", svVoyCommission, S.formula);
+  const R_COMMSUM = r; r++;
+  setText(0, r, "Net Freight ($) = Σ per-cargo net", S.inputLabel);
+  setFormula(1, r, netRefs.length ? netRefs.join("+") : "0", svNetFreight, S.formula);
+  const R_NETSUM = r; r++;
   r++;
+
 
   // --- BUNKER PRICES (BOB + every bunkering port lot) ---
   // Align stems to the order their bunkering calls occur in the voyage so
