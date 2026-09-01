@@ -153,6 +153,15 @@ export function BunkerSection() {
     lsmgo: results.lsmgoConsumption,
   } as const;
 
+  // BOB + bunkered tonnes must cover the voyage consumption, fuel by fuel.
+  const shortfalls = ([
+    { label: "HSFO", available: bunker.hsfo.robStart + totalBunkeredHsfo, consumed: results.hsfoConsumption },
+    { label: "VLSFO", available: bunker.vlsfo.robStart + totalBunkeredVlsfo, consumed: results.vlsfoConsumption },
+    { label: "LSMGO", available: bunker.lsmgo.robStart + totalBunkeredLsmgo, consumed: results.lsmgoConsumption },
+  ] as const)
+    .filter(f => f.consumed > 0.05 && f.available + 1e-6 < f.consumed)
+    .map(f => ({ ...f, short: f.consumed - f.available }));
+
   // Same consumption-weighted FIFO coverage the engine uses — lots first
   // aligned to the order their bunkering calls occur in the voyage.
   const orderedLots = orderBunkerLots(sequence, bunker.portBunkering);
