@@ -326,16 +326,16 @@ export function BunkerSection() {
                 </Button>
               </span>
             </div>
-            <div className="flex divide-x divide-border">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
               {fuels.map(fuel => (
-                <div key={fuel} className="flex-1 flex items-center gap-1 px-2 py-1">
-                  <span className="text-[10px] font-medium w-12">{fuel.toUpperCase()}</span>
-                  <input type="number" className="form-input-sm w-14 font-mono text-right text-xs"
+                <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-1">
+                  <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
+                  <input type="number" className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
-                  <span className="text-[9px] text-muted-foreground">$/t</span>
-                  <input type="number" className="form-input-sm w-14 font-mono text-right text-xs"
+                  <span className="text-[9px] text-muted-foreground shrink-0">$/t</span>
+                  <input type="number" className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
-                  <span className="text-[9px] text-muted-foreground">t</span>
+                  <span className="text-[9px] text-muted-foreground shrink-0">t</span>
                 </div>
               ))}
             </div>
@@ -401,7 +401,8 @@ export function BunkerSection() {
             {bunker.portBunkering.length === 0 ? (
               <p className="text-[10px] text-muted-foreground text-center py-2">No bunkering ports in sequence.</p>
             ) : (
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-xs">
                 <thead>
                   <tr className="subsection-header">
                     <th className="text-left px-2 py-1 text-[10px] font-medium">Port</th>
@@ -446,6 +447,7 @@ export function BunkerSection() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
           )}
