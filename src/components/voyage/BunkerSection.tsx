@@ -447,6 +447,7 @@ export function BunkerSection() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
           )}
