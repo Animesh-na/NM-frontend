@@ -390,16 +390,19 @@ export function BunkerSection() {
                 <thead>
                   <tr className="subsection-header">
                     <th className="text-left px-2 py-1 text-[10px] font-medium">Port</th>
-                    <th className="text-center px-1 py-1 text-[10px] font-medium">HSFO</th>
-                    <th className="text-center px-1 py-1 text-[10px] font-medium">VLSFO</th>
-                    <th className="text-center px-1 py-1 text-[10px] font-medium">LSMGO</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">HSFO</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">VLSFO</th>
+                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">LSMGO</th>
                     <th className="w-6"></th>
                   </tr>
                   <tr className="subsection-header border-t border-border">
                     <th></th>
-                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
-                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
-                    <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
+                    {fuels.map(fuel => (
+                      <React.Fragment key={fuel}>
+                        <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
+                        <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">t</th>
+                      </React.Fragment>
+                    ))}
                     <th></th>
                   </tr>
                 </thead>
@@ -412,6 +415,10 @@ export function BunkerSection() {
                           <td className="px-0.5 py-0.5">
                             <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
                               value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          </td>
+                          <td className="px-0.5 py-0.5">
+                            <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
+                              value={port[fuel].quantity || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
                           </td>
                         </React.Fragment>
                       ))}
