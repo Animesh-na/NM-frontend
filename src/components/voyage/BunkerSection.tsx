@@ -143,9 +143,13 @@ export function BunkerSection() {
   const totalBunkeredVlsfo = bunker.portBunkering.reduce((sum, p) => sum + p.vlsfo.quantity, 0);
   const totalBunkeredLsmgo = bunker.portBunkering.reduce((sum, p) => sum + p.lsmgo.quantity, 0);
 
-  const robEndHsfo = bunker.hsfo.robStart + totalBunkeredHsfo - results.hsfoConsumption;
-  const robEndVlsfo = bunker.vlsfo.robStart + totalBunkeredVlsfo - results.vlsfoConsumption;
-  const robEndLsmgo = bunker.lsmgo.robStart + totalBunkeredLsmgo - results.lsmgoConsumption;
+  // When BOB is ignored, its price AND its tonnes are excluded everywhere.
+  const bobIgnored = !!bunker.ignoreBOB;
+  const bobTonnes = (fuel: 'hsfo' | 'vlsfo' | 'lsmgo') => (bobIgnored ? 0 : bunker[fuel].robStart || 0);
+
+  const robEndHsfo = bobTonnes("hsfo") + totalBunkeredHsfo - results.hsfoConsumption;
+  const robEndVlsfo = bobTonnes("vlsfo") + totalBunkeredVlsfo - results.vlsfoConsumption;
+  const robEndLsmgo = bobTonnes("lsmgo") + totalBunkeredLsmgo - results.lsmgoConsumption;
 
   const consumptionOf = {
     hsfo: results.hsfoConsumption,
@@ -153,14 +157,16 @@ export function BunkerSection() {
     lsmgo: results.lsmgoConsumption,
   } as const;
 
-  // BOB + bunkered tonnes must cover the voyage consumption, fuel by fuel.
+  // Available tonnes (BOB, unless ignored, + all bunkering lots) must cover
+  // the voyage consumption, fuel by fuel.
   const shortfalls = ([
-    { label: "HSFO", available: bunker.hsfo.robStart + totalBunkeredHsfo, consumed: results.hsfoConsumption },
-    { label: "VLSFO", available: bunker.vlsfo.robStart + totalBunkeredVlsfo, consumed: results.vlsfoConsumption },
-    { label: "LSMGO", available: bunker.lsmgo.robStart + totalBunkeredLsmgo, consumed: results.lsmgoConsumption },
+    { label: "HSFO", available: bobTonnes("hsfo") + totalBunkeredHsfo, consumed: results.hsfoConsumption },
+    { label: "VLSFO", available: bobTonnes("vlsfo") + totalBunkeredVlsfo, consumed: results.vlsfoConsumption },
+    { label: "LSMGO", available: bobTonnes("lsmgo") + totalBunkeredLsmgo, consumed: results.lsmgoConsumption },
   ] as const)
     .filter(f => f.consumed > 0.05 && f.available + 1e-6 < f.consumed)
     .map(f => ({ ...f, short: f.consumed - f.available }));
+
 
   // Same consumption-weighted FIFO coverage the engine uses — lots first
   // aligned to the order their bunkering calls occur in the voyage.
