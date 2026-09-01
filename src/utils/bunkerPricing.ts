@@ -39,6 +39,12 @@ function activeLots({ bob, portLots, ignoreBOB }: BunkerPricingInput): FuelLot[]
   return lots;
 }
 
+/** True when the user entered explicit tonnages on BOB or any bunkering lot. */
+function hasEnteredQuantities(input: BunkerPricingInput): boolean {
+  if (!input.ignoreBOB && (input.bob?.quantity || 0) > 0) return true;
+  return (input.portLots || []).some((l) => (l?.quantity || 0) > 0);
+}
+
 /** Weighted-average price across BOB + all bunkering lots. */
 export function averagePrice(input: BunkerPricingInput): number {
   const lots = activeLots(input);
