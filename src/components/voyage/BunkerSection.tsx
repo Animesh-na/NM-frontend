@@ -143,9 +143,13 @@ export function BunkerSection() {
   const totalBunkeredVlsfo = bunker.portBunkering.reduce((sum, p) => sum + p.vlsfo.quantity, 0);
   const totalBunkeredLsmgo = bunker.portBunkering.reduce((sum, p) => sum + p.lsmgo.quantity, 0);
 
-  const robEndHsfo = bunker.hsfo.robStart + totalBunkeredHsfo - results.hsfoConsumption;
-  const robEndVlsfo = bunker.vlsfo.robStart + totalBunkeredVlsfo - results.vlsfoConsumption;
-  const robEndLsmgo = bunker.lsmgo.robStart + totalBunkeredLsmgo - results.lsmgoConsumption;
+  // When BOB is ignored, its price AND its tonnes are excluded everywhere.
+  const bobIgnored = !!bunker.ignoreBOB;
+  const bobTonnes = (fuel: 'hsfo' | 'vlsfo' | 'lsmgo') => (bobIgnored ? 0 : bunker[fuel].robStart || 0);
+
+  const robEndHsfo = bobTonnes("hsfo") + totalBunkeredHsfo - results.hsfoConsumption;
+  const robEndVlsfo = bobTonnes("vlsfo") + totalBunkeredVlsfo - results.vlsfoConsumption;
+  const robEndLsmgo = bobTonnes("lsmgo") + totalBunkeredLsmgo - results.lsmgoConsumption;
 
   const consumptionOf = {
     hsfo: results.hsfoConsumption,
@@ -153,14 +157,16 @@ export function BunkerSection() {
     lsmgo: results.lsmgoConsumption,
   } as const;
 
-  // BOB + bunkered tonnes must cover the voyage consumption, fuel by fuel.
+  // Available tonnes (BOB, unless ignored, + all bunkering lots) must cover
+  // the voyage consumption, fuel by fuel.
   const shortfalls = ([
-    { label: "HSFO", available: bunker.hsfo.robStart + totalBunkeredHsfo, consumed: results.hsfoConsumption },
-    { label: "VLSFO", available: bunker.vlsfo.robStart + totalBunkeredVlsfo, consumed: results.vlsfoConsumption },
-    { label: "LSMGO", available: bunker.lsmgo.robStart + totalBunkeredLsmgo, consumed: results.lsmgoConsumption },
+    { label: "HSFO", available: bobTonnes("hsfo") + totalBunkeredHsfo, consumed: results.hsfoConsumption },
+    { label: "VLSFO", available: bobTonnes("vlsfo") + totalBunkeredVlsfo, consumed: results.vlsfoConsumption },
+    { label: "LSMGO", available: bobTonnes("lsmgo") + totalBunkeredLsmgo, consumed: results.lsmgoConsumption },
   ] as const)
     .filter(f => f.consumed > 0.05 && f.available + 1e-6 < f.consumed)
     .map(f => ({ ...f, short: f.consumed - f.available }));
+
 
   // Same consumption-weighted FIFO coverage the engine uses — lots first
   // aligned to the order their bunkering calls occur in the voyage.
@@ -180,7 +186,7 @@ export function BunkerSection() {
   // Per-lot price/coverage breakdown for the tooltip
   const getPriceBreakdown = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
     const lots = [
-      { label: "BOB", price: bunker[fuelType].price || 0, skipped: !!bunker.ignoreBOB, tonnes: bunker[fuelType].robStart || 0 },
+      { label: "BOB", price: bobIgnored ? 0 : bunker[fuelType].price || 0, skipped: bobIgnored, tonnes: bobTonnes(fuelType) },
       ...orderedLots.map((p) => ({
         label: p.portName,
         price: p[fuelType]?.price || 0,
@@ -310,7 +316,7 @@ export function BunkerSection() {
           {/* BOB - single row layout */}
           <div className="border border-border rounded overflow-hidden">
             <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border flex items-center justify-between">
-              <span>BOB</span>
+              <span>BOB{bobIgnored && <span className="ml-1 text-[9px] font-normal text-muted-foreground">(ignored — price &amp; tonnes excluded)</span>}</span>
               <span className="flex items-center gap-2">
                 {bobPortName && <span className="text-[9px] font-normal text-muted-foreground">Prices: {bobPortName}</span>}
                 <Button
@@ -326,19 +332,20 @@ export function BunkerSection() {
                 </Button>
               </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+            <div className={`grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border ${bobIgnored ? "opacity-50" : ""}`}>
               {fuels.map(fuel => (
                 <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-1">
                   <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
-                  <input type="number" className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
+                  <input type="number" disabled={bobIgnored} className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
                   <span className="text-[9px] text-muted-foreground shrink-0">$/t</span>
-                  <input type="number" className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
+                  <input type="number" disabled={bobIgnored} className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
                   <span className="text-[9px] text-muted-foreground shrink-0">t</span>
                 </div>
               ))}
             </div>
+
             {shortfalls.length > 0 && (
               <div className="px-2 py-1 text-[9px] text-destructive border-t border-border">
                 Insufficient fuel: {shortfalls.map(s => `${s.label} short ${s.short.toFixed(1)} t (available ${s.available.toFixed(1)} t vs consumption ${s.consumed.toFixed(1)} t)`).join(" · ")}
