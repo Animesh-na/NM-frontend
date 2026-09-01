@@ -2175,6 +2175,146 @@ export function exportVoyageToExcel(data: ExportData) {
 
   XLSX.utils.book_append_sheet(wb, ws, "Voyage Calculation");
 
+  // ═══════════════════════════════════════════════════════
+  // SHEET 2: VERIFICATION — workbook formula vs software value
+  // ═══════════════════════════════════════════════════════
+  const CALC = "'Voyage Calculation'";
+  const checks: { label: string; row: number; value: number; tol: number }[] = [
+    { label: "Total Distance (nm)", row: R_TOTDIST, value: results.totalDistance, tol: 0.01 },
+    { label: "Total Sea Days (d)", row: R_TSEA, value: results.totalSeaDays, tol: 0.01 },
+    { label: "Total Port Days (d)", row: R_TPORT, value: results.totalPortDays, tol: 0.01 },
+    { label: "Total Voyage Days (d)", row: R_TVOY, value: results.totalVoyageDays, tol: 0.01 },
+    { label: "HSFO Consumption (mt)", row: R_HSFOT, value: results.hsfoConsumption, tol: 0.05 },
+    { label: "VLSFO Consumption (mt)", row: R_VLSFOT, value: results.vlsfoConsumption, tol: 0.05 },
+    { label: "LSMGO Consumption (mt)", row: R_LSMGOT, value: results.lsmgoConsumption, tol: 0.05 },
+    { label: "Total Bunker Cost ($)", row: R_BUNKC, value: results.totalBunkerCost, tol: 1 },
+    { label: "Port Costs ($)", row: R_PCOST, value: results.portCosts, tol: 1 },
+    { label: "Misc Costs ($)", row: R_MISCT, value: results.miscCosts, tol: 1 },
+    { label: "Canal Costs ($)", row: R_CANALT, value: results.canalCosts, tol: 1 },
+    { label: "Gross Freight ($)", row: R_GF, value: results.grossFreight, tol: 1 },
+    { label: "Voyage Commission ($)", row: R_VCAMT, value: results.voyageCommission, tol: 1 },
+    { label: "Net Freight ($)", row: R_NF, value: results.netFreight, tol: 1 },
+    { label: "Regulatory Costs applied ($)", row: R_REGT, value: svRegulatory, tol: 1 },
+    { label: "Voyage Costs excl Hire ($)", row: R_VCEXH, value: results.voyageCostExclHire, tol: 1 },
+    { label: "Hire Cost ($)", row: R_HIRECOST, value: results.hireCost, tol: 1 },
+    { label: "Voyage Cost incl Hire ($)", row: R_VCINH, value: results.voyageCostInclHire, tol: 1 },
+    { label: "Gross Profit ($)", row: R_GP, value: results.grossProfit, tol: 1 },
+    { label: "P&L ($)", row: R_PNL, value: results.pAndL, tol: 1 },
+    { label: "NTCE ($/day)", row: R_NTCE, value: results.ntce, tol: 1 },
+    { label: "GTCE ($/day)", row: R_GTCE, value: results.gtce, tol: 1 },
+    { label: "TCE ($/day)", row: R_TCE, value: results.tce, tol: 1 },
+    { label: "Total CO₂ (mt)", row: R_TCO2, value: results.totalCo2, tol: 0.1 },
+    { label: "EU ETS Cost ($)", row: R_EUACOST, value: svEuaCost, tol: 1 },
+    { label: "UK ETS Cost ($)", row: R_UKCOST, value: svUkCost, tol: 1 },
+    { label: "FuelEU Penalty ($)", row: R_FE_TOTAL, value: svFuelEuCost, tol: 1 },
+  ];
+
+  const vs: XLSX.WorkSheet = {};
+  const put = (c: number, rw: number, cell: any) => { vs[cellRef(c, rw)] = cell; };
+  let vr = 1;
+  ["VERIFICATION — EXCEL FORMULA vs SOFTWARE VALUE", "", "", "", ""].forEach((t, i) =>
+    put(i, vr, { t: "s", v: t, s: S.title }));
+  vr++;
+  put(0, vr, { t: "s", v: "Every row recomputes from the live formula chain on the 'Voyage Calculation' sheet.", s: S.subtitle });
+  ["", "", "", ""].forEach((_, i) => put(i + 1, vr, { t: "s", v: "", s: S.subtitle }));
+  vr += 2;
+  ["Metric", "Excel Formula Result", "Software Value", "Delta", "Status"].forEach((h, i) =>
+    put(i, vr, { t: "s", v: h, s: S.seqHeader }));
+  vr++;
+  checks.forEach((chk, i) => {
+    const alt = i % 2 === 1;
+    put(0, vr, { t: "s", v: chk.label, s: alt ? S.seqTextAlt : S.seqText });
+    put(1, vr, { t: "n", f: `${CALC}!B${chk.row}`, v: chk.value, s: S.formula });
+    put(2, vr, { t: "n", v: chk.value, s: S.software });
+    put(3, vr, { t: "n", f: `${cellRef(1, vr)}-${cellRef(2, vr)}`, v: 0, s: alt ? S.seqDataAlt : S.seqData });
+    put(4, vr, {
+      t: "s",
+      f: `IF(ABS(${cellRef(3, vr)})<=${chk.tol},"MATCH","CHECK")`,
+      v: "MATCH",
+      s: alt ? S.seqTextAlt : S.seqText,
+    });
+    vr++;
+  });
+  vs["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: 4, r: vr } });
+  vs["!cols"] = [{ wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, vs, "Verification");
+
+  // ═══════════════════════════════════════════════════════
+  // SHEET 3: LOGIC & FLOW — how the software actually calculates
+  // ═══════════════════════════════════════════════════════
+  const flow: [string, string][] = [
+    ["1. SEQUENCE — TIME & DISTANCE", ""],
+    ["Distance split", "Each leg carries V (outside ECA) and L (inside ECA) distance. Total Distance = Σ V + Σ L."],
+    ["Sea time", "Base sea time = distance / speed / 24. Speed comes from the leg speed context (Eco EV/EL, Full FV/FL). Sea Margin % adds buffer time and the same buffer of sea consumption."],
+    ["Laden / ballast", "A sea leg is laden when cargo is on board after the previous port, otherwise ballast."],
+    ["Port time", "Working time = quantity / rate (mt/day) × terms factor (SHINC 1.00, SSHEX/FHEX/SATPN >1). Turn time and extra time are added as idle time."],
+    ["Overrides", "Manual overrides on time, distance and ECA values replace the derived values. CP quantity/productivity overrides only feed demurrage/despatch, never the freight base."],
+    ["Total voyage days", "Sea days + port days + extra port days + extra canal days."],
+    ["", ""],
+    ["2. FUEL CONSUMPTION", ""],
+    ["Sea (non-ECA)", "ME burns VLSFO, or HSFO when the vessel has a scrubber; AE burns its own rate per day."],
+    ["Sea (ECA)", "ME and AE burn LSMGO for the ECA portion of the leg."],
+    ["Port", "Working days use load/discharge rates; turn and extra time use the idle rate. Passing (pssg) ports and canal time use the canal rate, including AE."],
+    ["Bunkering ports", "Consumption stays on the previous lot until the actual bunkering call occurs."],
+    ["", ""],
+    ["3. BUNKER PRICING", ""],
+    ["Average", "Quantity-weighted average of BOB and every bunkering stem; simple mean of prices when no tonnages are entered."],
+    ["FIFO", "BOB tonnes are burnt first at the BOB price, then each stem in voyage order. Without tonnages the price is the consumption-weighted blend Σ(price × covered mt) / Σ(covered mt)."],
+    ["Ignore BOB", "BOB price AND BOB tonnes are excluded everywhere — pricing, coverage and the sufficiency check use bunkering stems only."],
+    ["Validation", "Available tonnes (BOB unless ignored + all stems) must cover the voyage consumption fuel by fuel."],
+    ["Bunker cost", "Σ (consumption per fuel × effective $/mt for that fuel)."],
+    ["", ""],
+    ["4. FREIGHT — EACH CARGO INDIVIDUALLY", ""],
+    ["Base freight", "Lumpsum: the rate itself. Per-mt: effective rate × loaded quantity (tanker applies Worldscale: rate × WS/100)."],
+    ["Demurrage", "Added to the base BEFORE commission (commission applies to base + demurrage). Shown in green — it increases earnings."],
+    ["Despatch", "Deducted AFTER commission. Shown in red — it reduces earnings."],
+    ["Per cargo", "commission_x = (base_x + dem_x) × voyComm_x% ; net_x = base_x + dem_x − commission_x − desp_x."],
+    ["Totals", "Gross Freight = Σ (base + dem − desp). Voyage Commission = Σ commission_x. Net Freight = Σ net_x. Cargoes are never blended."],
+    ["Laytime modes", "Average (single settlement), Non-reversible (settled port by port), Cancelled (all demurrage/despatch set to zero)."],
+    ["", ""],
+    ["5. COSTS & PROFITABILITY", ""],
+    ["Voyage costs excl hire", "Bunker cost + port DA + misc (incl. extra fees and insurance) + canal costs + applied regulatory costs."],
+    ["Hire cost", "Hire rate × total voyage days + ballast bonus."],
+    ["P&L", "Net Freight − Voyage Costs excl Hire − Hire Cost."],
+    ["NTCE", "(Net Freight − Voyage Costs excl Hire) / Total Voyage Days."],
+    ["GTCE / TCE", "GTCE = NTCE / (1 − TC commission%). TCE mirrors GTCE."],
+    ["Gross Rate", "(Voyage Cost incl Hire / quantity) / (1 − voyage commission%) — the breakeven $/mt."],
+    ["", ""],
+    ["6. EMISSIONS & REGULATION", ""],
+    ["CO₂ factors", "VLSFO 3.151, HSFO 3.114, LSMGO 3.206 t CO₂ per t fuel."],
+    ["EU ETS", "Leg-by-leg chargeable CO₂: 100% intra-EU, 50% EU↔non-EU, EU port calls 100%; non-EU commercial calls 0%; waypoints inherit the leg coverage. Cost = chargeable CO₂ × EUA price × phase-in%."],
+    ["UK ETS", "Same bottom-up structure with UK coverage rules and the UK allowance price; cost per tonne is divided by cargo quantity for the freight impact."],
+    ["FuelEU", "Fuel-specific penalty per tonne of fuel, scaled by the wind reward factor (GHGadjusted = GHGcalculated × f)."],
+    ["Applied impacts", "Each regulatory cost enters voyage costs only when its toggle is on; the final P&L bridge on the main sheet shows the effect of each toggle."],
+    ["", ""],
+    ["HOW TO VERIFY", ""],
+    ["Green cells", "Live Excel formulas — change any grey input and they recalculate."],
+    ["Blue cells", "The value the software produced for the same item."],
+    ["Verification sheet", "Formula result vs software value with delta and MATCH/CHECK status for every headline metric."],
+  ];
+
+  const ls: XLSX.WorkSheet = {};
+  let lr = 1;
+  ls[cellRef(0, lr)] = { t: "s", v: "CALCULATION LOGIC & FLOW — AS IMPLEMENTED", s: S.title };
+  ls[cellRef(1, lr)] = { t: "s", v: "", s: S.title };
+  lr += 2;
+  flow.forEach(([k, v]) => {
+    if (v === "" && k !== "") {
+      ls[cellRef(0, lr)] = { t: "s", v: k, s: S.section };
+      ls[cellRef(1, lr)] = { t: "s", v: "", s: S.section };
+    } else if (k === "") {
+      // spacer
+    } else {
+      ls[cellRef(0, lr)] = { t: "s", v: k, s: S.calcLabel };
+      ls[cellRef(1, lr)] = { t: "s", v, s: S.inputText };
+    }
+    lr++;
+  });
+  ls["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: 1, r: lr } });
+  ls["!cols"] = [{ wch: 34 }, { wch: 130 }];
+  XLSX.utils.book_append_sheet(wb, ls, "Logic & Flow");
+
+
   const vesselName = vessel.name || "Voyage";
   const fileName = `${vesselName}_Estimate_${new Date().toISOString().slice(0, 10)}.xlsx`;
   XLSX.writeFile(wb, fileName);
