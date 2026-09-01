@@ -160,8 +160,10 @@ export function coverageWeightedPrice(input: BunkerPricingInput): number | null 
 /** Effective $/t applied to the whole consumption for the selected mode. */
 export function effectivePrice(input: BunkerPricingInput, consumption: number): number {
   if (input.fuelMode === "fifo") {
-    const weighted = coverageWeightedPrice(input);
-    if (weighted !== null) return weighted;
+    if (!hasEnteredQuantities(input)) {
+      const weighted = coverageWeightedPrice(input);
+      if (weighted !== null) return weighted;
+    }
     if (consumption <= 0) return averagePrice(input);
     return fifoCost(input, consumption) / consumption;
   }
