@@ -186,7 +186,7 @@ export function BunkerSection() {
   // Per-lot price/coverage breakdown for the tooltip
   const getPriceBreakdown = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
     const lots = [
-      { label: "BOB", price: bunker[fuelType].price || 0, skipped: !!bunker.ignoreBOB, tonnes: bunker[fuelType].robStart || 0 },
+      { label: "BOB", price: bobIgnored ? 0 : bunker[fuelType].price || 0, skipped: bobIgnored, tonnes: bobTonnes(fuelType) },
       ...orderedLots.map((p) => ({
         label: p.portName,
         price: p[fuelType]?.price || 0,
