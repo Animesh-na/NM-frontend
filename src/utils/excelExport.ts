@@ -542,7 +542,9 @@ export function exportVoyageToExcel(data: ExportData) {
   /** Build the Excel formula that reproduces the effective price for one fuel. */
   function priceFormula(fuel: FuelKey): string {
     const prices = [bunker[fuel].price || 0, ...portLots.map((p) => p[fuel]?.price || 0)];
-    const qtys = [bunker[fuel].robStart || 0, ...portLots.map((p) => p[fuel]?.quantity || 0)];
+    // BOB tonnes are excluded entirely when "Ignore BOB" is on.
+    const qtys = [ignoreBOB ? 0 : bunker[fuel].robStart || 0, ...portLots.map((p) => p[fuel]?.quantity || 0)];
+
     const priceRefs = [bobPriceRef[fuel], ...lotPriceRefs[fuel]];
     const qtyRefs = [bobQtyRef[fuel], ...lotQtyRefs[fuel]];
     const skip = (i: number) => (i === 0 && ignoreBOB) || prices[i] <= 0;
