@@ -401,7 +401,8 @@ export function BunkerSection() {
             {bunker.portBunkering.length === 0 ? (
               <p className="text-[10px] text-muted-foreground text-center py-2">No bunkering ports in sequence.</p>
             ) : (
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-xs">
                 <thead>
                   <tr className="subsection-header">
                     <th className="text-left px-2 py-1 text-[10px] font-medium">Port</th>
