@@ -66,12 +66,17 @@ export function averagePrice(input: BunkerPricingInput): number {
 export function fifoCost(input: BunkerPricingInput, consumption: number): number {
   if (consumption <= 0) return 0;
 
-  // Preferred path: consumption actually covered by each price lot.
-  const weighted = coverageWeightedPrice(input);
-  if (weighted !== null) return consumption * weighted;
-
   const lots = activeLots(input);
   if (lots.length === 0) return 0;
+
+  // Preferred path: consumption actually covered by each price lot — used only
+  // when the user has not entered explicit lot tonnages. With tonnages known,
+  // FIFO burns BOB tonnes at BOB price first, then each bunkering lot in order.
+  if (!hasEnteredQuantities(input)) {
+    const weighted = coverageWeightedPrice(input);
+    if (weighted !== null) return consumption * weighted;
+  }
+
 
   let remaining = consumption;
   let cost = 0;
