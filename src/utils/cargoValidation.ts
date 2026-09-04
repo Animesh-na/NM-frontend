@@ -22,10 +22,10 @@ function sumQty(
   rows: SequenceRowUI[],
   op: "loading" | "discharging",
   cargoId: number,
-  rowMap: Map<number, number>,
+  rowMap: Map<number, number[]>,
 ): number {
   return rows
-    .filter((r) => r.operation === op && rowMap.get(r.id) === cargoId)
+    .filter((r) => r.operation === op && (rowMap.get(r.id) || []).includes(cargoId))
     .reduce((s, r) => s + (r.quantity || 0), 0);
 }
 

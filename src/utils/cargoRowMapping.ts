@@ -24,12 +24,12 @@ export interface SeqRowLike {
   assignedCargoIds?: number[];
 }
 
-/** Returns Map<sequenceRowId, cargoId> for load + discharge rows. */
+/** Returns Map<sequenceRowId, cargoId[]> for load + discharge rows. */
 export function getCargoRowMap(
   cargos: CargoLike[],
   sequence: SeqRowLike[],
-): Map<number, number> {
-  const map = new Map<number, number>();
+): Map<number, number[]> {
+  const map = new Map<number, number[]>();
 
   // Single cargo: every load/discharge row belongs to that cargo by default,
   // regardless of explicit chip assignment.
@@ -37,7 +37,7 @@ export function getCargoRowMap(
     const only = cargos[0].id;
     sequence.forEach((r) => {
       const op = (r.operation || "").toLowerCase();
-      if (op.startsWith("load") || op.startsWith("disch")) map.set(r.id, only);
+      if (op.startsWith("load") || op.startsWith("disch")) map.set(r.id, [only]);
     });
     return map;
   }
@@ -49,7 +49,7 @@ export function getCargoRowMap(
   if (usesExplicit) {
     sequence.forEach((r) => {
       const ids = r.assignedCargoIds || [];
-      if (ids.length > 0) map.set(r.id, ids[0]);
+      if (ids.length > 0) map.set(r.id, ids);
     });
     return map;
   }
@@ -64,8 +64,8 @@ export function getCargoRowMap(
   });
 
   cargos.forEach((c, ci) => {
-    if (loadRows[ci]) map.set(loadRows[ci].id, c.id);
-    if (dischRows[ci]) map.set(dischRows[ci].id, c.id);
+    if (loadRows[ci]) map.set(loadRows[ci].id, [c.id]);
+    if (dischRows[ci]) map.set(dischRows[ci].id, [c.id]);
   });
   return map;
 }
@@ -77,5 +77,17 @@ export function getRowsForCargo<T extends SeqRowLike>(
   sequence: T[],
 ): T[] {
   const map = getCargoRowMap(cargos, sequence);
-  return sequence.filter((r) => map.get(r.id) === cargoId);
+  return sequence.filter((r) => (map.get(r.id) || []).includes(cargoId));
+}
+
+/** Returns true if the row is assigned to the given cargo. */
+export function rowHasCargo(
+  row: SeqRowLike,
+  cargoId: number,
+  cargos: CargoLike[],
+): boolean {
+  const ids = row.assignedCargoIds || [];
+  if (cargos.length === 1) return true;
+  if (ids.length > 0) return ids.includes(cargoId);
+  return false;
 }
