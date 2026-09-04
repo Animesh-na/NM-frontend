@@ -113,7 +113,6 @@ export function VoyageMap() {
 
       if (stops.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
-        features.forEach((f) => f.geometry.coordinates.forEach((c) => bounds.extend(c as [number, number])));
         stops.forEach((s) => bounds.extend(s.coord));
         map.fitBounds(bounds, { padding: 40, maxZoom: 6, duration: 600 });
       }
