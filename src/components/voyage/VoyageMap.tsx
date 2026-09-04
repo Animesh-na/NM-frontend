@@ -5,45 +5,6 @@ import { useVoyageContext } from "@/context/VoyageContext";
 
 const TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
 
-// Great-circle interpolation between two [lon, lat] points
-function greatCirclePoints(
-  [lon1, lat1]: [number, number],
-  [lon2, lat2]: [number, number],
-  steps = 64,
-): [number, number][] {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const toDeg = (r: number) => (r * 180) / Math.PI;
-  const φ1 = toRad(lat1), λ1 = toRad(lon1);
-  const φ2 = toRad(lat2), λ2 = toRad(lon2);
-  const d =
-    2 *
-    Math.asin(
-      Math.sqrt(
-        Math.sin((φ2 - φ1) / 2) ** 2 +
-          Math.cos(φ1) * Math.cos(φ2) * Math.sin((λ2 - λ1) / 2) ** 2,
-      ),
-    );
-  if (!Number.isFinite(d) || d === 0) return [[lon1, lat1], [lon2, lat2]];
-  const pts: [number, number][] = [];
-  let prevLon = lon1;
-  for (let i = 0; i <= steps; i++) {
-    const f = i / steps;
-    const A = Math.sin((1 - f) * d) / Math.sin(d);
-    const B = Math.sin(f * d) / Math.sin(d);
-    const x = A * Math.cos(φ1) * Math.cos(λ1) + B * Math.cos(φ2) * Math.cos(λ2);
-    const y = A * Math.cos(φ1) * Math.sin(λ1) + B * Math.cos(φ2) * Math.sin(λ2);
-    const z = A * Math.sin(φ1) + B * Math.sin(φ2);
-    const lat = toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)));
-    let lon = toDeg(Math.atan2(y, x));
-    // keep the line continuous across the antimeridian
-    while (lon - prevLon > 180) lon -= 360;
-    while (prevLon - lon > 180) lon += 360;
-    prevLon = lon;
-    pts.push([lon, lat]);
-  }
-  return pts;
-}
-
 export function VoyageMap() {
   const { sequence } = useVoyageContext();
   const containerRef = useRef<HTMLDivElement>(null);
