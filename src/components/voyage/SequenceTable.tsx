@@ -162,19 +162,21 @@ export function SequenceTable() {
     for (let i = 0; i < next.length; i++) {
       const row = next[i];
       if ((row.operation || "").toLowerCase().startsWith("disch")) {
-        const cargoId = map.get(row.id);
-        if (cargoId == null) continue;
-        const hasPriorLoad = next.slice(0, i).some(
-          (r) => (r.operation || "").toLowerCase().startsWith("load") && map.get(r.id) === cargoId,
-        );
-        if (!hasPriorLoad) {
-          const cIdx = cargos.findIndex((c) => c.id === cargoId);
-          toast({
-            title: "Invalid move",
-            description: `Discharge port for Cargo #${cIdx + 1} cannot be placed before its load port.`,
-            variant: "destructive",
-          });
-          return;
+        const cargoIds = map.get(row.id) || [];
+        if (cargoIds.length === 0) continue;
+        for (const cargoId of cargoIds) {
+          const hasPriorLoad = next.slice(0, i).some(
+            (r) => (r.operation || "").toLowerCase().startsWith("load") && (map.get(r.id) || []).includes(cargoId),
+          );
+          if (!hasPriorLoad) {
+            const cIdx = cargos.findIndex((c) => c.id === cargoId);
+            toast({
+              title: "Invalid move",
+              description: `Discharge port for Cargo #${cIdx + 1} cannot be placed before its load port.`,
+              variant: "destructive",
+            });
+            return;
+          }
         }
       }
     }
