@@ -85,32 +85,12 @@ export function VoyageMap() {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
 
-      const features = stops.slice(1).map((stop, i) => ({
-        type: "Feature" as const,
-        properties: {},
-        geometry: {
-          type: "LineString" as const,
-          coordinates: greatCirclePoints(stops[i].coord, stop.coord),
-        },
-      }));
-
-      const data = { type: "FeatureCollection" as const, features };
-      const src = map.getSource("voyage-route") as mapboxgl.GeoJSONSource | undefined;
-      if (src) {
-        src.setData(data);
-      } else {
-        map.addSource("voyage-route", { type: "geojson", data });
-        map.addLayer({
-          id: "voyage-route-line",
-          type: "line",
-          source: "voyage-route",
-          layout: { "line-cap": "round", "line-join": "round" },
-          paint: {
-            "line-color": "#0f8b8d",
-            "line-width": 2,
-            "line-dasharray": [2, 1.5],
-          },
-        });
+      // remove route line/source if it exists from a previous render
+      if (map.getLayer("voyage-route-line")) {
+        map.removeLayer("voyage-route-line");
+      }
+      if (map.getSource("voyage-route")) {
+        map.removeSource("voyage-route");
       }
 
       stops.forEach((stop, i) => {
