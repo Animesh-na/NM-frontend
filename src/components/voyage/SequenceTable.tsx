@@ -351,62 +351,32 @@ export function SequenceTable() {
                              />
                            </div>
                            {hasQty && cargos.length > 0 && (
-                             <Popover>
-                               <PopoverTrigger asChild>
-                                 <button
-                                   type="button"
-                                   className="shrink-0 text-[9px] px-1 py-0.5 rounded border border-border bg-muted/40 hover:bg-muted leading-tight font-mono"
-                                   title="Assign cargos to this port"
-                                 >
-                                    {cargos.length === 1
-                                      ? "#1"
-                                      : (row.assignedCargoIds && row.assignedCargoIds.length > 0)
-                                     ? row.assignedCargoIds.map((id) => {
-                                         const idx = cargos.findIndex((c) => c.id === id);
-                                         return idx >= 0 ? `#${idx + 1}` : "";
-                                       }).filter(Boolean).join(",")
-                                     : "Cgo ▾"}
-                                 </button>
-                               </PopoverTrigger>
-                               <PopoverContent align="start" className="w-40 p-1 space-y-0.5">
-                                 <div className="text-[9px] text-muted-foreground px-1 pb-1 border-b border-border">
-                                   Assign cargo
-                                 </div>
-                                 {cargos.map((c, i) => {
-                                    const assigned =
-                                      cargos.length === 1 ||
-                                      (row.assignedCargoIds || []).includes(c.id);
-                                   return (
-                                     <label
-                                       key={c.id}
-                                       className="flex items-center gap-1.5 px-1 py-0.5 hover:bg-accent rounded cursor-pointer text-[10px]"
-                                     >
-                                       <input
-                                         type="checkbox"
-                                         checked={assigned}
-                                          disabled={cargos.length === 1}
-                                         onChange={() => {
-                                           const current = row.assignedCargoIds || [];
-                                           const next = assigned
-                                             ? current.filter((x) => x !== c.id)
-                                             : [...current, c.id];
-                                           setSequence((prev) =>
-                                             prev.map((r) =>
-                                               r.id === row.id ? { ...r, assignedCargoIds: next } : r,
-                                             ),
-                                           );
-                                         }}
-                                         className="h-3 w-3"
-                                       />
-                                       <span>Cargo #{i + 1}</span>
-                                       <span className="text-muted-foreground ml-auto">
-                                         {c.rateType === "lumpsum" ? "LS" : `$${c.rate}`}
-                                       </span>
-                                     </label>
-                                   );
-                                 })}
-                               </PopoverContent>
-                             </Popover>
+                             <select
+                               className="shrink-0 text-[9px] px-0.5 py-0.5 rounded border border-border bg-muted/40 hover:bg-muted leading-tight font-mono cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+                               title="Assign one cargo to this port"
+                               value={
+                                 cargos.length === 1
+                                   ? String(cargos[0].id)
+                                   : String((row.assignedCargoIds || [])[0] ?? "")
+                               }
+                               disabled={cargos.length === 1}
+                               onChange={(e) => {
+                                 const v = e.target.value;
+                                 const next = v ? [Number(v)] : [];
+                                 setSequence((prev) =>
+                                   prev.map((r) =>
+                                     r.id === row.id ? { ...r, assignedCargoIds: next } : r,
+                                   ),
+                                 );
+                               }}
+                             >
+                               {cargos.length > 1 && <option value="">Cgo</option>}
+                               {cargos.map((c, i) => (
+                                 <option key={c.id} value={c.id}>
+                                   #{i + 1} {c.rateType === "lumpsum" ? "LS" : `$${c.rate}`}
+                                 </option>
+                               ))}
+                             </select>
                            )}
                          </div>
                          );})()}
