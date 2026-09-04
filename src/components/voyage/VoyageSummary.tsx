@@ -358,44 +358,24 @@ export function VoyageSummary() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-x-2">
-              <div className="flex justify-between items-center gap-1 min-w-0">
-                <span className="text-muted-foreground flex items-center shrink-0 whitespace-nowrap">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-muted-foreground flex items-center text-[9px]">
                   Net Frt
                   <InfoTooltip formula="Gross Freight × (1 - Commission%)" description="Freight after deducting commissions" />
                 </span>
-                <span className="font-mono tabular-nums whitespace-nowrap truncate">${formatCurrency(results.netFreight)}</span>
+                <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 text-right leading-tight">
+                  ${formatCurrency(results.netFreight)}
+                </span>
               </div>
-              <div className="flex justify-between items-center gap-1 min-w-0">
-                <span className="text-muted-foreground flex items-center shrink-0 whitespace-nowrap">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-muted-foreground flex items-center text-[9px]">
                   Gross Frt
                   <InfoTooltip formula="Rate × Quantity (or Lumpsum)" description="Total freight before commissions" />
                 </span>
-                <span className="font-mono tabular-nums whitespace-nowrap truncate">${formatCurrency(results.grossFreight)}</span>
+                <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 text-right leading-tight">
+                  ${formatCurrency(results.grossFreight)}
+                </span>
               </div>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                Port Costs
-                <InfoTooltip 
-                  formula="Σ Expected DA (all ports)" 
-                  description="Sum of Disbursement Account costs at each port"
-                />
-              </span>
-              <span className="font-mono tabular-nums">
-                ${formatCurrency(results.portCosts)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                Hire ({hireRate}/day)
-                <InfoTooltip 
-                  formula="Daily Hire Rate × Total Days" 
-                  description="Total vessel hire cost for the voyage"
-                />
-              </span>
-              <span className="font-mono tabular-nums">
-                ${formatCurrency(results.hireCost)}
-              </span>
             </div>
           </div>
         </div>
