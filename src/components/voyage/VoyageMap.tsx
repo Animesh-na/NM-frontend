@@ -5,45 +5,6 @@ import { useVoyageContext } from "@/context/VoyageContext";
 
 const TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
 
-// Great-circle interpolation between two [lon, lat] points
-function greatCirclePoints(
-  [lon1, lat1]: [number, number],
-  [lon2, lat2]: [number, number],
-  steps = 64,
-): [number, number][] {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const toDeg = (r: number) => (r * 180) / Math.PI;
-  const φ1 = toRad(lat1), λ1 = toRad(lon1);
-  const φ2 = toRad(lat2), λ2 = toRad(lon2);
-  const d =
-    2 *
-    Math.asin(
-      Math.sqrt(
-        Math.sin((φ2 - φ1) / 2) ** 2 +
-          Math.cos(φ1) * Math.cos(φ2) * Math.sin((λ2 - λ1) / 2) ** 2,
-      ),
-    );
-  if (!Number.isFinite(d) || d === 0) return [[lon1, lat1], [lon2, lat2]];
-  const pts: [number, number][] = [];
-  let prevLon = lon1;
-  for (let i = 0; i <= steps; i++) {
-    const f = i / steps;
-    const A = Math.sin((1 - f) * d) / Math.sin(d);
-    const B = Math.sin(f * d) / Math.sin(d);
-    const x = A * Math.cos(φ1) * Math.cos(λ1) + B * Math.cos(φ2) * Math.cos(λ2);
-    const y = A * Math.cos(φ1) * Math.sin(λ1) + B * Math.cos(φ2) * Math.sin(λ2);
-    const z = A * Math.sin(φ1) + B * Math.sin(φ2);
-    const lat = toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)));
-    let lon = toDeg(Math.atan2(y, x));
-    // keep the line continuous across the antimeridian
-    while (lon - prevLon > 180) lon -= 360;
-    while (prevLon - lon > 180) lon += 360;
-    prevLon = lon;
-    pts.push([lon, lat]);
-  }
-  return pts;
-}
-
 export function VoyageMap() {
   const { sequence } = useVoyageContext();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,32 +46,12 @@ export function VoyageMap() {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
 
-      const features = stops.slice(1).map((stop, i) => ({
-        type: "Feature" as const,
-        properties: {},
-        geometry: {
-          type: "LineString" as const,
-          coordinates: greatCirclePoints(stops[i].coord, stop.coord),
-        },
-      }));
-
-      const data = { type: "FeatureCollection" as const, features };
-      const src = map.getSource("voyage-route") as mapboxgl.GeoJSONSource | undefined;
-      if (src) {
-        src.setData(data);
-      } else {
-        map.addSource("voyage-route", { type: "geojson", data });
-        map.addLayer({
-          id: "voyage-route-line",
-          type: "line",
-          source: "voyage-route",
-          layout: { "line-cap": "round", "line-join": "round" },
-          paint: {
-            "line-color": "#0f8b8d",
-            "line-width": 2,
-            "line-dasharray": [2, 1.5],
-          },
-        });
+      // remove route line/source if it exists from a previous render
+      if (map.getLayer("voyage-route-line")) {
+        map.removeLayer("voyage-route-line");
+      }
+      if (map.getSource("voyage-route")) {
+        map.removeSource("voyage-route");
       }
 
       stops.forEach((stop, i) => {
@@ -133,7 +74,6 @@ export function VoyageMap() {
 
       if (stops.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
-        features.forEach((f) => f.geometry.coordinates.forEach((c) => bounds.extend(c as [number, number])));
         stops.forEach((s) => bounds.extend(s.coord));
         map.fitBounds(bounds, { padding: 40, maxZoom: 6, duration: 600 });
       }
