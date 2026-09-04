@@ -370,12 +370,12 @@ export function SequenceTable() {
                                  );
                                }}
                              >
-                               {cargos.length > 1 && <option value="">Cgo</option>}
-                               {cargos.map((c, i) => (
-                                 <option key={c.id} value={c.id}>
-                                   #{i + 1} {c.rateType === "lumpsum" ? "LS" : `$${c.rate}`}
-                                 </option>
-                               ))}
+                                {cargos.length > 1 && <option value="">Cgo</option>}
+                                {cargos.map((c, i) => (
+                                  <option key={c.id} value={c.id}>
+                                    #{i + 1}
+                                  </option>
+                                ))}
                              </select>
                            )}
                          </div>
