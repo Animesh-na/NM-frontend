@@ -357,22 +357,22 @@ export function VoyageSummary() {
                 </span>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-x-2">
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-muted-foreground flex items-center text-[9px]">
+            <div className="grid grid-cols-2 gap-x-2 items-stretch">
+              <div className="flex flex-col gap-0.5 min-w-0 h-full">
+                <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">
                   Net Frt
                   <InfoTooltip formula="Gross Freight × (1 - Commission%)" description="Freight after deducting commissions" />
                 </span>
-                <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 text-right leading-tight">
+                <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 text-right leading-tight h-full flex items-center justify-end">
                   ${formatCurrency(results.netFreight)}
                 </span>
               </div>
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-muted-foreground flex items-center text-[9px]">
+              <div className="flex flex-col gap-0.5 min-w-0 h-full">
+                <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">
                   Gross Frt
                   <InfoTooltip formula="Rate × Quantity (or Lumpsum)" description="Total freight before commissions" />
                 </span>
-                <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 text-right leading-tight">
+                <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 text-right leading-tight h-full flex items-center justify-end">
                   ${formatCurrency(results.grossFreight)}
                 </span>
               </div>
