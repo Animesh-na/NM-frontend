@@ -338,11 +338,11 @@ export async function listUserSheets(userId: string | number, page: number = 1, 
 }
 
 // 6. Save (create) a new sheet
-export async function saveSheet(name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
+export async function saveSheet(name: string, sheetData: Record<string, unknown>, workbookId?: string | null): Promise<SheetDetail | null> {
   try {
     const data = await apiRequest<{ sheet: SheetDetail }>(modePath("/sheets"), undefined, {
       method: 'POST',
-      body: { name, data: sheetData },
+      body: { id: null, name, workbook_id: workbookId ?? null, data: sheetData },
       authenticated: true,
     });
     return data.sheet || null;
@@ -353,11 +353,11 @@ export async function saveSheet(name: string, sheetData: Record<string, unknown>
 }
 
 // 7. Update an existing sheet
-export async function updateSheet(id: string, name: string, sheetData: Record<string, unknown>): Promise<SheetDetail | null> {
+export async function updateSheet(id: string, name: string, sheetData: Record<string, unknown>, workbookId?: string | null): Promise<SheetDetail | null> {
   try {
     const data = await apiRequest<{ sheet: SheetDetail }>(modePath("/sheets"), undefined, {
       method: 'POST',
-      body: { id, name, data: sheetData },
+      body: { id, name, workbook_id: workbookId ?? null, data: sheetData },
       authenticated: true,
     });
     return data.sheet || null;
