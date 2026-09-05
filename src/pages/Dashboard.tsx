@@ -57,7 +57,7 @@ export default function Dashboard() {
     section === "users" ? "users" : section === "org" ? "org" : "mine";
 
   const fetchSheets = useCallback(async () => {
-    if (tab === "users" || isMarketSection) return;
+    if (tab === "users" || section === "workbooks" || isMarketSection) return;
     setLoading(true);
     try {
       const res = tab === "mine"
