@@ -80,11 +80,11 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     if (!sheets.length) { toast.error("This workbook has no sheets"); return; }
     const readOnly = !isOwn(wb.owner_email);
     trackEvent("workbook.open_all", { component: "WorkbooksPanel", workbook_id: wb.id, sheet_count: sheets.length, read_only: readOnly });
-    openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly })));
+    openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly, workbookId: wb.id })));
   };
 
   const openOne = (s: WorkbookSheetItem, wb: WorkbookItem) => {
-    openSheets([{ id: s.id, name: s.name, data: s.data, readOnly: !isOwn(wb.owner_email) }]);
+    openSheets([{ id: s.id, name: s.name, data: s.data, readOnly: !isOwn(wb.owner_email), workbookId: wb.id }]);
   };
 
   const q = query.trim().toLowerCase();

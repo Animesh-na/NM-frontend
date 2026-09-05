@@ -48,6 +48,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       isDirty: true,
       isLoading: false,
       readOnly: false,
+      workbookId: current.workbookId ?? null,
     };
     setTabs(prev => [...prev, copiedTab]);
     setActiveTabIndex(tabs.length);
@@ -134,7 +135,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const openSheets = useCallback((incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean }[]) => {
+  const openSheets = useCallback((incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null }[]) => {
 
     if (!incoming.length) return;
     trackEvent("workbook.open", { component: "SheetContext", sheet_count: incoming.length });
@@ -150,6 +151,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
           isDirty: false,
           isLoading: !s.data,
           readOnly: !!s.readOnly,
+          workbookId: s.workbookId ?? null,
         });
       }
       setActiveTabIndex(Math.max(0, next.length - incoming.length));
@@ -194,7 +196,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     return true;
   }, [tabs]);
 
-  const saveCurrentSheet = useCallback(async (name: string, data: Record<string, unknown>) => {
+  const saveCurrentSheet = useCallback(async (name: string, data: Record<string, unknown>, workbookId?: string | null) => {
     const tab = tabs[activeTabIndex];
     if (!tab) return;
     if (tab.readOnly) {
@@ -202,14 +204,16 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const wbId = workbookId !== undefined ? workbookId : (tab.workbookId ?? null);
+
     try {
       let result: SheetDetail | null;
       if (tab.id && !tab.id.startsWith("org:")) {
         // Update existing
-        result = await updateSheet(tab.id, name, data);
+        result = await updateSheet(tab.id, name, data, wbId);
       } else {
         // Create new
-        result = await saveSheet(name, data);
+        result = await saveSheet(name, data, wbId);
       }
 
       if (result) {
@@ -218,6 +222,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
           id: result!.id,
           name: result!.name,
           data: result!.data || data,
+          workbookId: wbId,
           isDirty: false,
         } : t));
         logger.info(tab.id ? "Sheet updated" : "Sheet saved", { component: "SheetContext", sheet_id: result.id, sheet_name: result.name });

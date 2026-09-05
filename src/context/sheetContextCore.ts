@@ -7,6 +7,7 @@ export interface SheetTab {
   isDirty: boolean;
   isLoading: boolean;
   readOnly?: boolean; // true for organization sheets owned by other users
+  workbookId?: string | null; // workbook this sheet belongs to
 }
 
 export interface SheetContextValue {
@@ -30,10 +31,10 @@ export interface SheetContextValue {
   openSheet: (id: string, name: string) => void;
   openOrganizationSheet: (id: string, name: string) => void;
   /** Open several already-loaded sheets (e.g. a whole workbook) as tabs at once. */
-  openSheets: (sheets: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean }[]) => void;
+  openSheets: (sheets: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null }[]) => void;
 
   closeTab: (index: number) => boolean; // returns false if user cancels
-  saveCurrentSheet: (name: string, data: Record<string, unknown>) => Promise<void>;
+  saveCurrentSheet: (name: string, data: Record<string, unknown>, workbookId?: string | null) => Promise<void>;
   markDirty: () => void;
   goToDashboard: () => void;
   renameTab: (index: number, name: string) => void;
