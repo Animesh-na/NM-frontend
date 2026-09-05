@@ -23,6 +23,7 @@ const VesselMap = lazy(() => import("@/components/dashboard/VesselMap"));
 const AlertsActivityPanel = lazy(() => import("@/components/dashboard/AlertsActivityPanel"));
 const FleetPerformanceTable = lazy(() => import("@/components/dashboard/FleetPerformanceTable"));
 const MarketDataTable = lazy(() => import("@/components/dashboard/MarketDataTable"));
+const WorkbooksPanel = lazy(() => import("@/components/dashboard/WorkbooksPanel"));
 
 const ITEMS_PER_PAGE = 10;
 
@@ -56,7 +57,7 @@ export default function Dashboard() {
     section === "users" ? "users" : section === "org" ? "org" : "mine";
 
   const fetchSheets = useCallback(async () => {
-    if (tab === "users" || isMarketSection) return;
+    if (tab === "users" || section === "workbooks" || isMarketSection) return;
     setLoading(true);
     try {
       const res = tab === "mine"
@@ -188,6 +189,7 @@ export default function Dashboard() {
   const sectionTitle: Record<DashSection, string> = {
     overview: "Fleet Overview",
     mine: "My Sheets",
+    workbooks: "Workbooks",
     fixtures: "Market Fixtures",
     received_fixtures: "Received Fixtures",
     cargoes: "Cargo List",
@@ -476,13 +478,13 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            {(section === "mine" || section === "org") && (
+            {(section === "mine" || section === "org" || section === "workbooks") && (
               <div className="relative hidden md:block">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 dash-muted" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search sheets..."
+                  placeholder={section === "workbooks" ? "Search workbooks..." : "Search sheets..."}
                   className="h-9 w-56 rounded-lg border pl-8 pr-3 text-[13px] outline-none transition-colors focus:ring-2"
                   style={{ borderColor: "hsl(var(--dash-border))", background: "hsl(var(--dash-bg))" }}
                 />
@@ -531,6 +533,7 @@ export default function Dashboard() {
               {([
                 ["overview", "Overview", Ship],
                 ["mine", "My Sheets", FileText],
+                ["workbooks", "Workbooks", FileText],
                 ["fixtures", "Fixtures", ClipboardList],
                 ["received_fixtures", "Received Fixtures", ClipboardList],
                 ["cargoes", "Cargo List", Package],
@@ -604,6 +607,10 @@ export default function Dashboard() {
             ) : isMarketSection ? (
               <Suspense fallback={<ChartSkeleton />}>
                 <MarketDataTable key={section} kind={section as MarketKind} />
+              </Suspense>
+            ) : section === "workbooks" ? (
+              <Suspense fallback={<ChartSkeleton />}>
+                <WorkbooksPanel query={query} />
               </Suspense>
             ) : section === "users" ? (
               renderUsers()

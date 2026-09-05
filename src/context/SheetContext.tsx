@@ -134,6 +134,42 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const openSheets = useCallback((incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean }[]) => {
+
+    if (!incoming.length) return;
+    trackEvent("workbook.open", { component: "SheetContext", sheet_count: incoming.length });
+    setTabs(prev => {
+      const next = [...prev];
+      for (const s of incoming) {
+        const tabKey = s.readOnly ? `org:${s.id}` : s.id;
+        if (next.some(t => t.id === tabKey)) continue;
+        next.push({
+          id: tabKey,
+          name: s.readOnly ? `${s.name} (Read-only)` : s.name,
+          data: s.data || {},
+          isDirty: false,
+          isLoading: !s.data,
+          readOnly: !!s.readOnly,
+        });
+      }
+      setActiveTabIndex(Math.max(0, next.length - incoming.length));
+      return next;
+    });
+    setCurrentView("editor");
+
+    // Fetch any sheets that arrived without an embedded payload
+    incoming.filter(s => !s.data).forEach(async (s) => {
+      const tabKey = s.readOnly ? `org:${s.id}` : s.id;
+      try {
+        const detail = await getSheet(s.id);
+        setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, data: detail?.data || {}, isLoading: false } : t));
+      } catch {
+        setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, isLoading: false } : t));
+      }
+    });
+  }, []);
+
+
   const closeTab = useCallback((index: number): boolean => {
     const tab = tabs[index];
     if (tab) logger.info("Sheet closed", { component: "SheetContext", sheet_id: tab.id, sheet_name: tab.name });
@@ -218,7 +254,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     <SheetContext.Provider value={{
       currentView, setCurrentView,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
-      createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
+      createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
       compareSheetIds, openCompare,
     }}>
       {children}
