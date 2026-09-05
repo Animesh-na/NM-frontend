@@ -29,6 +29,9 @@ export interface SheetContextValue {
   copyCurrentSheet: () => void;
   openSheet: (id: string, name: string) => void;
   openOrganizationSheet: (id: string, name: string) => void;
+  /** Open several already-loaded sheets (e.g. a whole workbook) as tabs at once. */
+  openSheets: (sheets: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean }[]) => void;
+
   closeTab: (index: number) => boolean; // returns false if user cancels
   saveCurrentSheet: (name: string, data: Record<string, unknown>) => Promise<void>;
   markDirty: () => void;
