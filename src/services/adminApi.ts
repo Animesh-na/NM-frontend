@@ -235,3 +235,18 @@ export async function adminAddUserToOrganization(orgId: string, userId: string):
     return false;
   }
 }
+
+// ── Admin Cache APIs ──
+
+export async function adminClearCache(): Promise<{ success: boolean; message?: string }> {
+  try {
+    const data = await apiRequest<{ message?: string }>("/admin/cache/clear", undefined, {
+      method: "POST",
+      authenticated: true,
+    });
+    return { success: true, message: data.message || "Cache cleared" };
+  } catch (error) {
+    console.error("Failed to clear cache:", error);
+    return { success: false, message: "Failed to clear cache" };
+  }
+}

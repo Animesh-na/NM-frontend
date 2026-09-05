@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Users, FileText, ChevronLeft, ChevronRight, Loader2,
   Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck, Menu, KeyRound,
+  Eraser,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import UserPermissionsDialog from "@/components/admin/UserPermissionsDialog";
@@ -9,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
 import {
   adminListUsers, adminCreateUser, adminDeactivateUser, adminUpdateUser,
-  adminResetUserMfa, adminListSheets,
+  adminResetUserMfa, adminListSheets, adminClearCache,
   type AdminUser, type AdminSheetItem, type AdminUserPermissionsPayload,
 } from "@/services/adminApi";
 import { toast } from "@/components/ui/sonner";
