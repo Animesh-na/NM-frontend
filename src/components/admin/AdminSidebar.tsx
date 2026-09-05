@@ -1,7 +1,7 @@
 import { memo } from "react";
-import { Users, Activity, Shield, LogOut, Ship, ArrowLeft } from "lucide-react";
+import { Users, Activity, Shield, LogOut, Ship, ArrowLeft, Building2 } from "lucide-react";
 
-export type AdminSection = "users" | "logs";
+export type AdminSection = "users" | "organizations" | "logs";
 
 interface Props {
   section: AdminSection;
@@ -14,6 +14,7 @@ interface Props {
 
 const NAV: { key: AdminSection; label: string; icon: typeof Users }[] = [
   { key: "users", label: "User Management", icon: Users },
+  { key: "organizations", label: "Organizations", icon: Building2 },
   { key: "logs", label: "Activity & Logs", icon: Activity },
 ];
 

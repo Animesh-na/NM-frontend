@@ -16,8 +16,9 @@ import { toast } from "@/components/ui/sonner";
 import { trackEvent } from "@/services/logger";
 
 import AdminLogsPage from "@/pages/AdminLogsPage";
+import OrganizationsPanel from "@/components/admin/OrganizationsPanel";
 
-type AdminView = "users" | "user-sheets" | "logs";
+type AdminView = "users" | "user-sheets" | "organizations" | "logs";
 
 const MFA_LABEL: Record<string, string> = {
   totp: "Authenticator app",
@@ -196,7 +197,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex h-screen" style={{ background: "hsl(var(--dash-bg))" }}>
       <AdminSidebar
-        section={view === "logs" ? "logs" : "users"}
+        section={view === "logs" ? "logs" : view === "organizations" ? "organizations" : "users"}
         onSelect={(s) => { setView(s); setSelectedUser(null); }}
         onBack={onBack}
         onLogout={logout}
@@ -212,10 +213,10 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
           </button>
           <div className="min-w-0">
             <h1 className="truncate text-[15px] font-bold tracking-tight text-foreground">
-              {view === "logs" ? "Activity & Error Logs" : view === "user-sheets" ? `Sheets — ${selectedUser?.email ?? ""}` : "User Management"}
+              {view === "logs" ? "Activity & Error Logs" : view === "organizations" ? "Organizations" : view === "user-sheets" ? `Sheets — ${selectedUser?.email ?? ""}` : "User Management"}
             </h1>
             <p className="text-[11px] text-muted-foreground">
-              {view === "logs" ? "Audit trail across the organization" : "Administer accounts, access and sheets"}
+              {view === "logs" ? "Audit trail across the organization" : view === "organizations" ? "Create organizations and manage their members" : "Administer accounts, access and sheets"}
             </p>
           </div>
           <span className="ml-auto dash-badge-info">Admin</span>
@@ -228,6 +229,9 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
           {view === "logs" && (
             <AdminLogsPage onBack={() => setView("users")} />
           )}
+
+          {/* ═══ ORGANIZATIONS VIEW ═══ */}
+          {view === "organizations" && <OrganizationsPanel />}
 
           {/* ═══ USERS VIEW ═══ */}
           {view === "users" && (
