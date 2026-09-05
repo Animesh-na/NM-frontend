@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Users, FileText, ChevronLeft, ChevronRight, Loader2,
   Plus, UserX, UserCheck, ArrowLeft, Eye, ShieldOff, ShieldCheck, Menu, KeyRound,
+  Eraser,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import UserPermissionsDialog from "@/components/admin/UserPermissionsDialog";
@@ -9,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
 import {
   adminListUsers, adminCreateUser, adminDeactivateUser, adminUpdateUser,
-  adminResetUserMfa, adminListSheets,
+  adminResetUserMfa, adminListSheets, adminClearCache,
   type AdminUser, type AdminSheetItem, type AdminUserPermissionsPayload,
 } from "@/services/adminApi";
 import { toast } from "@/components/ui/sonner";
@@ -57,6 +58,9 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [sheetsPage, setSheetsPage] = useState(1);
   const [sheetsTotal, setSheetsTotal] = useState(0);
   const sheetsTotalPages = Math.max(1, Math.ceil(sheetsTotal / 10));
+
+  // ── Cache clear state ──
+  const [clearingCache, setClearingCache] = useState(false);
 
   // ── Fetch users ──
   const fetchUsers = useCallback(async () => {
@@ -193,6 +197,21 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     openSheet(sheet.id, sheet.name);
   };
 
+  const handleClearCache = async () => {
+    const confirmed = window.confirm("Clear server cache? This will invalidate cached data until it rebuilds.");
+    if (!confirmed) return;
+    setClearingCache(true);
+    const result = await adminClearCache();
+    if (result.success) {
+      trackEvent("admin.cache.clear", { component: "AdminPanel" });
+      toast.success(result.message || "Cache cleared");
+    } else {
+      trackEvent("admin.cache.clear.failed", { component: "AdminPanel" }, "error");
+      toast.error(result.message || "Failed to clear cache");
+    }
+    setClearingCache(false);
+  };
+
   // ── Render ──
   return (
     <div className="flex h-screen" style={{ background: "hsl(var(--dash-bg))" }}>
@@ -219,7 +238,18 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
               {view === "logs" ? "Audit trail across the organization" : view === "organizations" ? "Create organizations and manage their members" : "Administer accounts, access and sheets"}
             </p>
           </div>
-          <span className="ml-auto dash-badge-info">Admin</span>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={handleClearCache}
+              disabled={clearingCache}
+              className="dash-btn-ghost flex items-center gap-1.5 h-8 px-3 text-xs"
+              title="Clear server cache"
+            >
+              {clearingCache ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eraser className="h-3 w-3" />}
+              Clear Cache
+            </button>
+            <span className="dash-badge-info">Admin</span>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6">
