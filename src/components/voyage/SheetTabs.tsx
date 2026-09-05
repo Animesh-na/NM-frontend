@@ -1,15 +1,25 @@
 import { X, ArrowLeft, Save, Plus, Copy, Calculator } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { trackEvent } from "@/services/logger";
+import { listWorkbooks, type WorkbookItem } from "@/services/marineApi";
 
 export function SheetTabs() {
   const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, createNewSheet, copyCurrentSheet } = useSheets();
   const [savingName, setSavingName] = useState(false);
   const [editName, setEditName] = useState("");
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [workbooks, setWorkbooks] = useState<WorkbookItem[]>([]);
+  const [workbookId, setWorkbookId] = useState<string>("");
+
+  useEffect(() => {
+    if (!savingName) return;
+    let cancelled = false;
+    listWorkbooks(1, 100).then(res => { if (!cancelled) setWorkbooks(res.workbooks || []); });
+    return () => { cancelled = true; };
+  }, [savingName]);
   const { sequence, vessel, cargos = [], updateSequenceRow } = useVoyageContext();
 
   const handleSave = () => {
@@ -17,6 +27,7 @@ export function SheetTabs() {
     trackEvent("sheet.save.open", { component: "SheetTabs", sheet_id: activeTab.id, sheet_name: activeTab.name });
     setSavingName(true);
     setEditName(activeTab.name);
+    setWorkbookId(activeTab.workbookId || "");
   };
 
   const confirmSave = () => {
@@ -24,7 +35,7 @@ export function SheetTabs() {
     setSavingName(false);
     trackEvent("sheet.save.confirm", { component: "SheetTabs", sheet_id: activeTab?.id, sheet_name: editName });
     // Dispatch custom event so Index page can handle the save with full context data
-    window.dispatchEvent(new CustomEvent("sheet-save", { detail: { name: editName } }));
+    window.dispatchEvent(new CustomEvent("sheet-save", { detail: { name: editName, workbookId: workbookId || null } }));
   };
 
   return (
@@ -105,6 +116,17 @@ export function SheetTabs() {
                 onKeyDown={e => e.key === "Enter" && confirmSave()}
                 autoFocus
               />
+              <select
+                className="form-input-sm w-36"
+                value={workbookId}
+                onChange={e => setWorkbookId(e.target.value)}
+                title="Workbook"
+              >
+                <option value="">No workbook</option>
+                {workbooks.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
               <button onClick={confirmSave} className="btn-primary h-5 px-2.5 text-[10px]">OK</button>
               <button onClick={() => setSavingName(false)} className="btn-secondary h-5 px-2.5 text-[10px]">Cancel</button>
             </div>
