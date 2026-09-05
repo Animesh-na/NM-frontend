@@ -132,8 +132,10 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       toast.error("Failed to load organization sheet");
       setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, isLoading: false } : t));
     }
+  }, []);
 
   const openSheets = useCallback((incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean }[]) => {
+
     if (!incoming.length) return;
     trackEvent("workbook.open", { component: "SheetContext", sheet_count: incoming.length });
     setTabs(prev => {
