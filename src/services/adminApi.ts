@@ -151,3 +151,87 @@ export async function adminListSheets(
     return { sheets: [], pagination: { total: 0, page, limit, total_pages: 1 } };
   }
 }
+
+// ── Admin Organization APIs ──
+
+export interface AdminOrganization {
+  id: string;
+  name: string;
+  description?: string | null;
+  user_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AdminOrganizationMember {
+  id: string;
+  email: string;
+  role?: string;
+  is_active?: boolean;
+  joined_at?: string;
+}
+
+export interface AdminOrganizationListResponse {
+  organizations: AdminOrganization[];
+  pagination: { total: number; page: number; limit: number; total_pages: number };
+}
+
+export interface AdminOrganizationDetail extends AdminOrganization {
+  users?: AdminOrganizationMember[];
+  members?: AdminOrganizationMember[];
+}
+
+export async function adminListOrganizations(page: number = 1, limit: number = 20): Promise<AdminOrganizationListResponse> {
+  try {
+    const res = await apiRequest<AdminOrganizationListResponse>("/admin/organizations", { page, limit }, { authenticated: true });
+    return {
+      organizations: res.organizations || [],
+      pagination: res.pagination || { total: 0, page, limit, total_pages: 1 },
+    };
+  } catch (error) {
+    console.error("Failed to list organizations:", error);
+    return { organizations: [], pagination: { total: 0, page, limit, total_pages: 1 } };
+  }
+}
+
+export async function adminCreateOrganization(name: string, description?: string): Promise<AdminOrganization | null> {
+  try {
+    const data = await apiRequest<{ organization?: AdminOrganization } & AdminOrganization>(
+      "/admin/organizations",
+      undefined,
+      { method: "POST", body: { name, description: description || "" }, authenticated: true },
+    );
+    return data.organization || (data.id ? data : null);
+  } catch (error) {
+    console.error("Failed to create organization:", error);
+    return null;
+  }
+}
+
+export async function adminGetOrganization(orgId: string): Promise<AdminOrganizationDetail | null> {
+  try {
+    const data = await apiRequest<{ organization?: AdminOrganizationDetail } & AdminOrganizationDetail>(
+      `/admin/organizations/${orgId}`,
+      undefined,
+      { authenticated: true },
+    );
+    return data.organization || data || null;
+  } catch (error) {
+    console.error("Failed to load organization:", error);
+    return null;
+  }
+}
+
+export async function adminAddUserToOrganization(orgId: string, userId: string): Promise<boolean> {
+  try {
+    await apiRequest<{ message?: string }>(`/admin/organizations/${orgId}/users`, undefined, {
+      method: "POST",
+      body: { user_id: userId },
+      authenticated: true,
+    });
+    return true;
+  } catch (error) {
+    console.error("Failed to add user to organization:", error);
+    return false;
+  }
+}
