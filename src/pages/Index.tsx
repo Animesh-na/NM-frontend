@@ -114,14 +114,14 @@ const Index = () => {
   // Listen for save events from SheetTabs
   useEffect(() => {
     const handler = (e: Event) => {
-      const { name } = (e as CustomEvent).detail;
+      const { name, workbookId } = (e as CustomEvent).detail as { name: string; workbookId?: string | null };
       if (voyage.hasErrors) {
         toast.warning(`Saved with ${voyage.validationIssues.length} validation issue(s)`, {
           description: "Sheet saved. Review flagged fields when ready.",
         });
       }
       const data = gatherData();
-      saveCurrentSheet(name, data);
+      saveCurrentSheet(name, data, workbookId);
     };
     window.addEventListener("sheet-save", handler);
     return () => window.removeEventListener("sheet-save", handler);
