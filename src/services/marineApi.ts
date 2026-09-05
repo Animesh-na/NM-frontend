@@ -402,6 +402,61 @@ export async function searchSheets(query: string, page: number = 1, limit: numbe
   }
 }
 
+// ============= Workbooks (collection of sheets) =============
+
+export interface WorkbookItem {
+  id: string;
+  user_id?: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  owner_email?: string;
+  sheet_count?: number;
+  segment?: string;
+}
+
+export interface WorkbookListResponse {
+  workbooks: WorkbookItem[];
+  pagination: { total: number; page: number; limit: number; total_pages: number };
+}
+
+export interface WorkbookSheetItem extends SheetListItem {
+  workbook_id?: string;
+  user_id?: string;
+  data?: Record<string, unknown>;
+}
+
+export interface WorkbookSheetsResponse {
+  sheets: WorkbookSheetItem[];
+  pagination: { total: number; page: number; limit: number; total_pages: number };
+}
+
+// List workbooks (mode-scoped, e.g. /dry-bulk/workbooks)
+export async function listWorkbooks(page: number = 1, limit: number = 10): Promise<WorkbookListResponse> {
+  try {
+    return await apiRequest<WorkbookListResponse>(modePath("/workbooks"), { page, limit }, { authenticated: true });
+  } catch (error) {
+    console.error("Failed to list workbooks:", error);
+    return { workbooks: [], pagination: { total: 0, page, limit, total_pages: 1 } };
+  }
+}
+
+// List sheets inside a workbook (full sheet payload incl. data)
+export async function listWorkbookSheets(workbookId: string, page: number = 1, limit: number = 50): Promise<WorkbookSheetsResponse> {
+  try {
+    return await apiRequest<WorkbookSheetsResponse>(
+      modePath(`/workbooks/${workbookId}/sheets`),
+      { page, limit },
+      { authenticated: true }
+    );
+  } catch (error) {
+    console.error("Failed to list workbook sheets:", error);
+    return { sheets: [], pagination: { total: 0, page, limit, total_pages: 1 } };
+  }
+}
+
+
 // ============= Fixtures / Cargoes (Authenticated) =============
 
 export type CargoFixture = Record<string, unknown> & { id?: string | number };
