@@ -67,7 +67,10 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     if (!name) { toast.error("Workbook name is required"); return; }
     setCreating(true);
     try {
-      const wb = await createWorkbook(name, newDescription.trim());
+      const created = await createWorkbook(name, newDescription.trim());
+      // The API may not return owner_email on create — stamp it so the
+      // panel immediately recognizes it as yours (editable, not read-only).
+      const wb = created ? { ...created, owner_email: created.owner_email || user?.email } : null;
       if (wb) {
         trackEvent("workbook.create", { component: "WorkbooksPanel", workbook_id: wb.id, workbook_name: wb.name });
         toast.success("Workbook created");
