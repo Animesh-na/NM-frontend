@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 
 export type DashSection =
-  | "overview" | "mine" | "workbooks" | "fixtures" | "received_fixtures" | "cargoes" | "users" | "org"
+  | "overview" | "workbooks" | "fixtures" | "received_fixtures" | "cargoes" | "users" | "org"
   | "fleet_in_service" | "scheduled_deliveries" | "demolitions" | "valuations" | "flows";
 
 interface Props {
@@ -22,7 +22,6 @@ interface Props {
 
 const NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
-  { key: "mine", label: "My Sheets", icon: FileText },
   { key: "workbooks", label: "Workbooks", icon: BookOpen },
   { key: "fixtures", label: "Fixtures", icon: ClipboardList },
   { key: "received_fixtures", label: "Received Fixtures", icon: ClipboardList },

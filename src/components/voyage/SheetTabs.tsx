@@ -1,4 +1,4 @@
-import { X, ArrowLeft, Save, Copy, Calculator } from "lucide-react";
+import { X, ArrowLeft, Save, Copy, Calculator, Plus, BookOpen } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
 import { useEffect, useRef, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
@@ -7,7 +7,7 @@ import { trackEvent } from "@/services/logger";
 import { listWorkbooks, type WorkbookItem } from "@/services/marineApi";
 
 export function SheetTabs() {
-  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, copyCurrentSheet } = useSheets();
+  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, copyCurrentSheet, createNewSheet } = useSheets();
   const [savingName, setSavingName] = useState(false);
   const [editName, setEditName] = useState("");
   const [intakeOpen, setIntakeOpen] = useState(false);
@@ -81,6 +81,17 @@ export function SheetTabs() {
       ))}
       </div>
 
+      {/* Workbook name */}
+      {activeTab?.workbookName && (
+        <span
+          className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--dash-bg))] border border-[hsl(var(--dash-border))] text-[10px] font-semibold text-foreground flex-shrink-0 ml-1 max-w-[180px]"
+          title={`Workbook: ${activeTab.workbookName}`}
+        >
+          <BookOpen className="h-3 w-3 text-[hsl(var(--ocean))]" />
+          <span className="truncate">{activeTab.workbookName}</span>
+        </span>
+      )}
+
       {/* Copy Sheet Button */}
       {activeTab && (
         <button
@@ -93,6 +104,18 @@ export function SheetTabs() {
         </button>
       )}
 
+
+      {/* New Sheet in current workbook */}
+      {activeTab?.workbookId && (
+        <button
+          onClick={() => createNewSheet(activeTab.workbookId, activeTab.workbookName)}
+          className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--ocean))] text-primary-foreground hover:bg-[hsl(var(--ocean-600))] transition-colors ml-1 text-[10px] font-semibold flex-shrink-0"
+          title={`New sheet in ${activeTab.workbookName || "this workbook"}`}
+        >
+          <Plus className="h-3 w-3" />
+          <span>New Sheet</span>
+        </button>
+      )}
 
       {/* Intake Calculator + Save */}
       <div className="ml-auto flex items-center gap-1.5">

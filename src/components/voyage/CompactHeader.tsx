@@ -1,11 +1,13 @@
-import { Ship, FileText, LogOut } from "lucide-react";
+import { Ship, FileText, LogOut, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
+import { useSheets } from "@/context/sheetContextCore";
 
 export function CompactHeader() {
   const { logout, user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const { activeTab } = useSheets();
 
   return (
     <header className="sheet-topbar h-10 flex items-center justify-between px-4 text-xs flex-shrink-0">
@@ -22,6 +24,15 @@ export function CompactHeader() {
 
       {/* Quick Actions */}
       <div className="flex items-center gap-1.5">
+        {activeTab?.workbookName && (
+          <span
+            className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-white/15 font-semibold max-w-[220px]"
+            title={`Workbook: ${activeTab.workbookName}`}
+          >
+            <BookOpen className="h-3 w-3" />
+            <span className="truncate">{activeTab.workbookName}</span>
+          </span>
+        )}
         {isAdmin && (
           <Link 
             to="/calculation-breakdown"

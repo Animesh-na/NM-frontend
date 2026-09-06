@@ -87,12 +87,12 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
       if (!sheets.length) {
         trackEvent("workbook.open_empty", { component: "WorkbooksPanel", workbook_id: wb.id });
         toast.info("This workbook is empty — a new sheet was created");
-        createNewSheet(wb.id);
+        createNewSheet(wb.id, wb.name);
         return;
       }
       const readOnly = !isOwn(wb.owner_email);
       trackEvent("workbook.open_all", { component: "WorkbooksPanel", workbook_id: wb.id, sheet_count: sheets.length, read_only: readOnly });
-      openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly, workbookId: wb.id })));
+      openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly, workbookId: wb.id, workbookName: wb.name })));
     } catch {
       toast.error("Failed to load workbook sheets");
     } finally {

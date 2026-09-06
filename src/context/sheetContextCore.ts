@@ -8,6 +8,7 @@ export interface SheetTab {
   isLoading: boolean;
   readOnly?: boolean; // true for organization sheets owned by other users
   workbookId?: string | null; // workbook this sheet belongs to
+  workbookName?: string | null;
 }
 
 export interface SheetContextValue {
@@ -26,12 +27,12 @@ export interface SheetContextValue {
   activeTab: SheetTab | null;
 
   // Actions
-  createNewSheet: (workbookId?: string | null) => void;
+  createNewSheet: (workbookId?: string | null, workbookName?: string | null) => void;
   copyCurrentSheet: () => void;
   openSheet: (id: string, name: string) => void;
   openOrganizationSheet: (id: string, name: string) => void;
   /** Open several already-loaded sheets (e.g. a whole workbook) as tabs at once. */
-  openSheets: (sheets: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null }[]) => void;
+  openSheets: (sheets: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null; workbookName?: string | null }[]) => void;
 
   closeTab: (index: number) => boolean; // returns false if user cancels
   saveCurrentSheet: (name: string, data: Record<string, unknown>, workbookId?: string | null) => Promise<void>;
