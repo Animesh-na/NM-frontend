@@ -5,6 +5,7 @@ import {
   deleteWorkbook,
   listWorkbooks,
   listWorkbookSheets,
+  searchWorkbooks,
   type WorkbookItem,
 } from "@/services/marineApi";
 import { useSheets } from "@/context/sheetContextCore";
@@ -31,15 +32,18 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   const openRequestRef = useRef(0);
 
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const trimmedQuery = query.trim();
 
-  useEffect(() => { setPage(1); }, [mode]);
+  useEffect(() => { setPage(1); }, [mode, trimmedQuery]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const res = await listWorkbooks(page, PER_PAGE);
+        const res = trimmedQuery
+          ? await searchWorkbooks(trimmedQuery, page, PER_PAGE)
+          : await listWorkbooks(page, PER_PAGE);
         if (cancelled) return;
         setWorkbooks(res.workbooks || []);
         setTotal(res.pagination?.total || 0);
@@ -50,7 +54,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [page, mode]);
+  }, [page, mode, trimmedQuery]);
 
   const isOwn = useCallback(
     (email?: string) => !!email && !!user?.email && email.toLowerCase() === user.email.toLowerCase(),
@@ -124,11 +128,6 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   };
 
 
-  const q = query.trim().toLowerCase();
-  const visible = q
-    ? workbooks.filter(w => w.name?.toLowerCase().includes(q) || w.owner_email?.toLowerCase().includes(q))
-    : workbooks;
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -138,11 +137,11 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     );
   }
 
-  if (visible.length === 0) {
+  if (workbooks.length === 0) {
     return (
       <div className="dash-card border-dashed py-20 text-center">
         <BookOpen className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
-        <p className="text-[13px] dash-muted">{q ? "No workbooks match your search" : "No workbooks yet"}</p>
+        <p className="text-[13px] dash-muted">{trimmedQuery ? "No workbooks match your search" : "No workbooks yet"}</p>
       </div>
     );
   }
@@ -210,7 +209,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
               </tr>
             </thead>
             <tbody>
-              {visible.map((wb) => {
+              {workbooks.map((wb) => {
                 const own = isOwn(wb.owner_email);
                 return (
                   <tr
