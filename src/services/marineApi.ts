@@ -510,6 +510,20 @@ export async function createWorkbook(name: string, description?: string): Promis
   }
 }
 
+// Archive (delete) a workbook — owner only
+export async function deleteWorkbook(id: string): Promise<boolean> {
+  try {
+    await apiRequest<{ message: string }>(modePath(`/workbooks/${id}/archive`), undefined, {
+      method: "POST",
+      authenticated: true,
+    });
+    return true;
+  } catch (error) {
+    console.error("Failed to archive workbook:", error);
+    return false;
+  }
+}
+
 // List sheets inside a workbook (full sheet payload incl. data)
 export async function listWorkbookSheets(workbookId: string, page: number = 1, limit: number = 50): Promise<WorkbookSheetsResponse> {
   try {
