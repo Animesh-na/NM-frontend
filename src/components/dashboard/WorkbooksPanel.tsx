@@ -128,11 +128,6 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   };
 
 
-  const q = query.trim().toLowerCase();
-  const visible = q
-    ? workbooks.filter(w => w.name?.toLowerCase().includes(q) || w.owner_email?.toLowerCase().includes(q))
-    : workbooks;
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -142,11 +137,11 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     );
   }
 
-  if (visible.length === 0) {
+  if (workbooks.length === 0) {
     return (
       <div className="dash-card border-dashed py-20 text-center">
         <BookOpen className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
-        <p className="text-[13px] dash-muted">{q ? "No workbooks match your search" : "No workbooks yet"}</p>
+        <p className="text-[13px] dash-muted">{trimmedQuery ? "No workbooks match your search" : "No workbooks yet"}</p>
       </div>
     );
   }
