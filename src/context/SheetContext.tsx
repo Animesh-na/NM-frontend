@@ -3,9 +3,11 @@ import { SheetContext, type SheetTab } from "@/context/sheetContextCore";
 import { getSheet, saveSheet, updateSheet, deleteSheet, type SheetDetail } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 import { logger, trackEvent, trackView } from "@/services/logger";
+import type { DashSection } from "@/components/dashboard/DashboardSidebar";
 
 export function SheetProvider({ children }: { children: ReactNode }) {
   const [currentView, setCurrentView] = useState<"dashboard" | "editor" | "admin" | "compare">("dashboard");
+  const [returnSection, setReturnSection] = useState<DashSection | null>(null);
   const [tabs, setTabs] = useState<SheetTab[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [compareSheetIds, setCompareSheetIds] = useState<string[]>([]);
@@ -279,8 +281,12 @@ export function SheetProvider({ children }: { children: ReactNode }) {
 
   const goToDashboard = useCallback(() => {
     trackView("dashboard", { component: "SheetContext" });
+    // Return to the Workbooks section when the active sheet belongs to a workbook,
+    // otherwise fall back to the Overview section.
+    const section: DashSection = activeTab?.workbookId ? "workbooks" : "overview";
+    setReturnSection(section);
     setCurrentView("dashboard");
-  }, []);
+  }, [activeTab?.workbookId]);
 
   const renameTab = useCallback((index: number, name: string) => {
     trackEvent("sheet.rename", { component: "SheetContext", sheet_index: index, sheet_name: name });
@@ -294,6 +300,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   return (
     <SheetContext.Provider value={{
       currentView, setCurrentView,
+      returnSection, setReturnSection,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
       createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
       compareSheetIds, openCompare,

@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { DashSection } from "@/components/dashboard/DashboardSidebar";
 
 export interface SheetTab {
   id: string | null; // null = unsaved new sheet
@@ -15,6 +16,10 @@ export interface SheetContextValue {
   // Navigation
   currentView: "dashboard" | "editor" | "admin" | "compare";
   setCurrentView: (view: "dashboard" | "editor" | "admin" | "compare") => void;
+
+  // Dashboard section to restore when returning from the editor
+  returnSection: DashSection | null;
+  setReturnSection: (section: DashSection | null) => void;
 
   // Compare Sheets
   compareSheetIds: string[];
