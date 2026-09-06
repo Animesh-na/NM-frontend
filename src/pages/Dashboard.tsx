@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
 import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
+import { CopySheetsLauncher } from "@/components/compare/CopySheetsLauncher";
 import { MODE_LABELS } from "@/services/apiMode";
 import { DashboardSidebar, type DashSection } from "@/components/dashboard/DashboardSidebar";
 import type { MarketKind } from "@/components/dashboard/MarketDataTable";
@@ -511,6 +512,7 @@ export default function Dashboard() {
                 );
               })}
             </div>
+            <CopySheetsLauncher variant="dashboard" />
             <CompareSheetsLauncher variant="dashboard" />
           </div>
         </header>
