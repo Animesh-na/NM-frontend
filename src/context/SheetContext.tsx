@@ -281,8 +281,12 @@ export function SheetProvider({ children }: { children: ReactNode }) {
 
   const goToDashboard = useCallback(() => {
     trackView("dashboard", { component: "SheetContext" });
+    // Return to the Workbooks section when the active sheet belongs to a workbook,
+    // otherwise fall back to the Overview section.
+    const section: DashSection = activeTab?.workbookId ? "workbooks" : "overview";
+    setReturnSection(section);
     setCurrentView("dashboard");
-  }, []);
+  }, [activeTab?.workbookId]);
 
   const renameTab = useCallback((index: number, name: string) => {
     trackEvent("sheet.rename", { component: "SheetContext", sheet_index: index, sheet_name: name });
@@ -296,6 +300,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   return (
     <SheetContext.Provider value={{
       currentView, setCurrentView,
+      returnSection, setReturnSection,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
       createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
       compareSheetIds, openCompare,
