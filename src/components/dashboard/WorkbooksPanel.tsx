@@ -142,6 +142,54 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
 
   return (
     <>
+      <div className="mb-3 flex items-center justify-between">
+        {!showCreate ? (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="dash-btn-primary h-8 px-3 text-[12px]"
+            title="Create a new workbook"
+          >
+            <Plus className="h-3.5 w-3.5" /> New Workbook
+          </button>
+        ) : (
+          <form onSubmit={handleCreate} className="flex w-full items-start gap-2">
+            <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Workbook name"
+                className="dash-input h-8 flex-1 text-[12px]"
+                disabled={creating}
+                required
+              />
+              <input
+                type="text"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Description (optional)"
+                className="dash-input h-8 flex-1 text-[12px]"
+                disabled={creating}
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button type="submit" disabled={creating} className="dash-btn-primary h-8 px-3 text-[12px]">
+                {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Create
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowCreate(false); setNewName(""); setNewDescription(""); }}
+                disabled={creating}
+                className="dash-btn-ghost h-8 px-2"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
       <div className="dash-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-[13px]">
