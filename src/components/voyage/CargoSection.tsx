@@ -111,7 +111,7 @@ export function CargoSection() {
     cargos = [], addCargo, removeCargo, updateCargoEntry,
     hireRate, setHireRate, sequence, vesselCost, setVesselCost,
     netBB, setNetBB, cargoValidation, updateCargoCpOverride, updateCargoOpOverride,
-    getFieldError,
+    getFieldError, charterer, setCharterer,
   } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
   const errCls = (msg?: string) =>
@@ -308,11 +308,7 @@ export function CargoSection() {
           <div className="flex items-center gap-2 pt-1 border-t border-border">
             <div className="flex items-center gap-2 flex-1">
               <label className="text-xs text-muted-foreground whitespace-nowrap">Link to Charterer</label>
-              <select className="form-select-sm flex-1 max-w-xs">
-                <option value="">Select...</option>
-                <option>ABC Shipping Co.</option>
-                <option>Global Maritime Ltd</option>
-              </select>
+              <ChartererSearch value={charterer} onChange={setCharterer} />
             </div>
             <div className="flex items-center gap-2">
               <button
