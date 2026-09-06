@@ -60,6 +60,54 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     setCurrentView("editor");
   }, [tabs, activeTabIndex]);
 
+  const copySheets = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const existing = new Set(tabs.map(t => t.id));
+    const copies: SheetTab[] = [];
+    for (const id of ids) {
+      if (existing.has(id)) {
+        // Already open — copy from in-memory data instead of refetching
+        const open = tabs.find(t => t.id === id);
+        if (open) {
+          copies.push({
+            id: null,
+            name: `${open.name} (Copy)`,
+            data: JSON.parse(JSON.stringify(open.data)),
+            isDirty: true,
+            isLoading: false,
+            readOnly: false,
+            workbookId: open.workbookId ?? null,
+            workbookName: open.workbookName ?? null,
+          });
+          continue;
+        }
+      }
+      const detail = await getSheet(id);
+      if (!detail) {
+        toast.error("Failed to copy a sheet.");
+        continue;
+      }
+      copies.push({
+        id: null,
+        name: `${detail.name} (Copy)`,
+        data: detail.data || {},
+        isDirty: true,
+        isLoading: false,
+        readOnly: false,
+        workbookId: detail.workbook_id ?? null,
+        workbookName: detail.workbook_name ?? null,
+      });
+    }
+    if (copies.length === 0) return;
+    trackEvent("sheet.copy_multi", { component: "SheetContext", count: copies.length });
+    setTabs(prev => {
+      setActiveTabIndex(prev.length); // first copied tab
+      return [...prev, ...copies];
+    });
+    setCurrentView("editor");
+    toast.success(`${copies.length} sheet${copies.length > 1 ? "s" : ""} copied.`);
+  }, [tabs]);
+
   const openSheet = useCallback(async (id: string, name: string) => {
     logger.info("Sheet opened", { component: "SheetContext", sheet_id: id, sheet_name: name });
     // Check if already open
