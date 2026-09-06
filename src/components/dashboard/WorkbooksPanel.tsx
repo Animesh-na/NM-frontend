@@ -16,7 +16,7 @@ const PER_PAGE = 10;
 const SHEETS_PER_PAGE = 50;
 
 export default function WorkbooksPanel({ query = "" }: { query?: string }) {
-  const { openSheets, createNewSheet } = useSheets();
+  const { openSheets } = useSheets();
   const { user, mode } = useAuth();
   const [workbooks, setWorkbooks] = useState<WorkbookItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +89,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
       if (!sheets.length) {
         trackEvent("workbook.open_empty", { component: "WorkbooksPanel", workbook_id: wb.id });
         toast.info("This workbook is empty — a new sheet was created");
-        createNewSheet(wb.id, wb.name);
+        openSheets([], { id: wb.id, name: wb.name });
         return;
       }
       const readOnly = !isOwn(wb.owner_email);

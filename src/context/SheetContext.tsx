@@ -138,34 +138,44 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const openSheets = useCallback((incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null; workbookName?: string | null }[]) => {
+  const openSheets = useCallback((
+    incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null; workbookName?: string | null }[],
+    emptyWorkbook?: { id: string; name: string }
+  ) => {
+    if (!incoming.length && !emptyWorkbook) return;
+    if (tabs.some(t => t.isDirty) && !window.confirm("Some open sheets have unsaved changes. Opening this workbook will close them. Continue?")) {
+      return;
+    }
 
-    if (!incoming.length) return;
     trackEvent("workbook.open", { component: "SheetContext", sheet_count: incoming.length });
-    setTabs(prev => {
-      // Opening a workbook shows only that workbook's sheets
-      const hasDirty = prev.some(t => t.isDirty);
-      if (hasDirty && !window.confirm("Some open sheets have unsaved changes. Opening this workbook will close them. Continue?")) {
-        return prev;
-      }
-      const next: typeof prev = [];
-      for (const s of incoming) {
-        const tabKey = s.readOnly ? `org:${s.id}` : s.id;
-        if (next.some(t => t.id === tabKey)) continue;
-        next.push({
-          id: tabKey,
-          name: s.readOnly ? `${s.name} (Read-only)` : s.name,
-          data: s.data || {},
-          isDirty: false,
-          isLoading: !s.data,
-          readOnly: !!s.readOnly,
-          workbookId: s.workbookId ?? null,
-          workbookName: s.workbookName ?? null,
-        });
-      }
-      setActiveTabIndex(0);
-      return next;
-    });
+    const next: SheetTab[] = [];
+    for (const s of incoming) {
+      const tabKey = s.readOnly ? `org:${s.id}` : s.id;
+      if (next.some(t => t.id === tabKey)) continue;
+      next.push({
+        id: tabKey,
+        name: s.readOnly ? `${s.name} (Read-only)` : s.name,
+        data: s.data || {},
+        isDirty: false,
+        isLoading: !s.data,
+        readOnly: !!s.readOnly,
+        workbookId: s.workbookId ?? null,
+        workbookName: s.workbookName ?? null,
+      });
+    }
+    if (!next.length && emptyWorkbook) {
+      next.push({
+        id: null,
+        name: "New Sheet 1",
+        data: {},
+        isDirty: false,
+        isLoading: false,
+        workbookId: emptyWorkbook.id,
+        workbookName: emptyWorkbook.name,
+      });
+    }
+    setTabs(next);
+    setActiveTabIndex(0);
 
     setCurrentView("editor");
 
@@ -179,7 +189,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
         setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, isLoading: false } : t));
       }
     });
-  }, []);
+  }, [tabs]);
 
 
   const closeTab = useCallback((index: number): boolean => {
