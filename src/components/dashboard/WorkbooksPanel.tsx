@@ -30,6 +30,10 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   const [total, setTotal] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sheetsMap, setSheetsMap] = useState<Record<string, SheetsEntry>>({});
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
