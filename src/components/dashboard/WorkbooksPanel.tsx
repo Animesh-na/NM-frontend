@@ -102,6 +102,25 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     }
   };
 
+  const handleDelete = async (wb: WorkbookItem) => {
+    if (!window.confirm(`Delete workbook "${wb.name}"? This cannot be undone.`)) return;
+    setDeletingId(wb.id);
+    try {
+      const ok = await deleteWorkbook(wb.id);
+      if (ok) {
+        trackEvent("workbook.delete", { component: "WorkbooksPanel", workbook_id: wb.id });
+        toast.success("Workbook deleted");
+        setWorkbooks(prev => prev.filter(w => w.id !== wb.id));
+        setTotal(prev => Math.max(0, prev - 1));
+      } else {
+        toast.error("Failed to delete workbook");
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+
   const q = query.trim().toLowerCase();
   const visible = q
     ? workbooks.filter(w => w.name?.toLowerCase().includes(q) || w.owner_email?.toLowerCase().includes(q))
