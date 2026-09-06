@@ -17,6 +17,10 @@ export interface SheetContextValue {
   currentView: "dashboard" | "editor" | "admin" | "compare";
   setCurrentView: (view: "dashboard" | "editor" | "admin" | "compare") => void;
 
+  // Dashboard section to restore when returning from the editor
+  returnSection: DashSection | null;
+  setReturnSection: (section: DashSection | null) => void;
+
   // Compare Sheets
   compareSheetIds: string[];
   openCompare: (ids: string[]) => void;
