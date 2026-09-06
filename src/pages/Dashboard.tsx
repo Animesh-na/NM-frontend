@@ -33,12 +33,20 @@ const ChartSkeleton = () => (
 
 export default function Dashboard() {
   const { logout, user, mode, setMode, availableModes } = useAuth();
-  const { openSheet, openOrganizationSheet, setCurrentView } = useSheets();
+  const { openSheet, openOrganizationSheet, setCurrentView, returnSection, setReturnSection } = useSheets();
   const isAdmin = user?.role === "admin";
   const mfaEnabled = !!user?.mfa_method;
   const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
-  const [section, setSection] = useState<DashSection>("overview");
+  const [section, setSection] = useState<DashSection>(returnSection ?? "overview");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // When returning from the editor, restore the requested dashboard section
+  useEffect(() => {
+    if (returnSection) {
+      setSection(returnSection);
+      setReturnSection(null);
+    }
+  }, [returnSection, setReturnSection]);
   const [sheets, setSheets] = useState<SheetListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
