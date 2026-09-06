@@ -5,6 +5,7 @@ import {
   deleteWorkbook,
   listWorkbooks,
   listWorkbookSheets,
+  searchWorkbooks,
   type WorkbookItem,
 } from "@/services/marineApi";
 import { useSheets } from "@/context/sheetContextCore";
@@ -31,15 +32,18 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   const openRequestRef = useRef(0);
 
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const trimmedQuery = query.trim();
 
-  useEffect(() => { setPage(1); }, [mode]);
+  useEffect(() => { setPage(1); }, [mode, trimmedQuery]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const res = await listWorkbooks(page, PER_PAGE);
+        const res = trimmedQuery
+          ? await searchWorkbooks(trimmedQuery, page, PER_PAGE)
+          : await listWorkbooks(page, PER_PAGE);
         if (cancelled) return;
         setWorkbooks(res.workbooks || []);
         setTotal(res.pagination?.total || 0);
@@ -50,7 +54,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [page, mode]);
+  }, [page, mode, trimmedQuery]);
 
   const isOwn = useCallback(
     (email?: string) => !!email && !!user?.email && email.toLowerCase() === user.email.toLowerCase(),
