@@ -3,9 +3,11 @@ import { SheetContext, type SheetTab } from "@/context/sheetContextCore";
 import { getSheet, saveSheet, updateSheet, deleteSheet, type SheetDetail } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 import { logger, trackEvent, trackView } from "@/services/logger";
+import type { DashSection } from "@/components/dashboard/DashboardSidebar";
 
 export function SheetProvider({ children }: { children: ReactNode }) {
   const [currentView, setCurrentView] = useState<"dashboard" | "editor" | "admin" | "compare">("dashboard");
+  const [returnSection, setReturnSection] = useState<DashSection | null>(null);
   const [tabs, setTabs] = useState<SheetTab[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [compareSheetIds, setCompareSheetIds] = useState<string[]>([]);
