@@ -209,7 +209,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
               </tr>
             </thead>
             <tbody>
-              {visible.map((wb) => {
+              {workbooks.map((wb) => {
                 const own = isOwn(wb.owner_email);
                 return (
                   <tr
