@@ -427,16 +427,16 @@ export async function getSheet(id: string): Promise<SheetDetail | null> {
   }
 }
 
-// 9. Delete a sheet by ID
+// 9. Archive a sheet by ID
 export async function deleteSheet(id: string): Promise<boolean> {
   try {
-    await apiRequest<{ message: string }>(modePath(`/sheets/${id}`), undefined, {
-      method: 'DELETE',
+    await apiRequest<{ message: string }>(modePath(`/sheets/${id}/archive`), undefined, {
+      method: 'POST',
       authenticated: true,
     });
     return true;
   } catch (error) {
-    console.error("Failed to delete sheet:", error);
+    console.error("Failed to archive sheet:", error);
     return false;
   }
 }
