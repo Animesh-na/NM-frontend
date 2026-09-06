@@ -23,6 +23,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
