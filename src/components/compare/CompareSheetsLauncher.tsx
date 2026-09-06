@@ -347,15 +347,6 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
             <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
               <button onClick={reset} className="h-7 px-3 text-xs rounded border border-border hover:bg-muted">Cancel</button>
               <button
-                onClick={handleCopy}
-                disabled={!canCopy}
-                title="Copy selected sheets as editable sheets"
-                className="h-7 px-3 text-xs rounded border border-border font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-              >
-                {copying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
-                Copy Sheets ({selected.length})
-              </button>
-              <button
                 onClick={handleCompare}
                 disabled={!canCompare}
                 className="h-7 px-4 text-xs rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
