@@ -196,6 +196,25 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     return true;
   }, [tabs]);
 
+  const deleteCurrentSheet = useCallback(async () => {
+    const tab = tabs[activeTabIndex];
+    if (!tab) return;
+    const confirmed = window.confirm(`Delete "${tab.name}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    if (tab.id && !tab.id.startsWith("org:") && !tab.readOnly) {
+      const ok = await deleteSheet(tab.id);
+      if (!ok) {
+        toast.error("Failed to delete sheet");
+        return;
+      }
+    }
+
+    logger.info("Sheet deleted", { component: "SheetContext", sheet_id: tab.id, sheet_name: tab.name });
+    toast.success("Sheet deleted");
+    closeTab(activeTabIndex);
+  }, [tabs, activeTabIndex, closeTab]);
+
   const saveCurrentSheet = useCallback(async (name: string, data: Record<string, unknown>, workbookId?: string | null) => {
     const tab = tabs[activeTabIndex];
     if (!tab) return;
