@@ -94,8 +94,8 @@ export function SheetProvider({ children }: { children: ReactNode }) {
         isDirty: true,
         isLoading: false,
         readOnly: false,
-        workbookId: detail.workbook_id ?? null,
-        workbookName: detail.workbook_name ?? null,
+        workbookId: (detail as { workbook_id?: string | null }).workbook_id ?? null,
+        workbookName: null,
       });
     }
     if (copies.length === 0) return;
