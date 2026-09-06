@@ -7,6 +7,7 @@ import {
   listWorkbookSheets,
   searchWorkbooks,
   type WorkbookItem,
+  type WorkbookSheetItem,
 } from "@/services/marineApi";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
