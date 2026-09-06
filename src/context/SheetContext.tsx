@@ -18,7 +18,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
 
   const activeTab = tabs.length > 0 ? tabs[activeTabIndex] || null : null;
 
-  const createNewSheet = useCallback(() => {
+  const createNewSheet = useCallback((workbookId?: string | null) => {
     logger.info("Sheet created (blank)", { component: "SheetContext" });
     const newTab: SheetTab = {
       id: null,
@@ -26,6 +26,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       data: {},
       isDirty: false,
       isLoading: false,
+      workbookId: workbookId ?? null,
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabIndex(tabs.length); // will be the new last index
