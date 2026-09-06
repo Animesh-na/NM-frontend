@@ -1,6 +1,6 @@
 import { X, ArrowLeft, Save, Plus, Copy, Calculator } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { trackEvent } from "@/services/logger";
@@ -13,6 +13,13 @@ export function SheetTabs() {
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [workbooks, setWorkbooks] = useState<WorkbookItem[]>([]);
   const [workbookId, setWorkbookId] = useState<string>("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeTabRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Keep the active tab visible in the horizontal scroll strip
+    activeTabRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeTabIndex, tabs.length]);
 
   useEffect(() => {
     if (!savingName) return;
