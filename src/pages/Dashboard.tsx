@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, Fragment, Suspense, lazy, useMemo } from "react";
+import { useState, useEffect, Fragment, Suspense, lazy } from "react";
 import {
-  Ship, FileText, ChevronLeft, ChevronRight, Loader2, Trash2, Users, ChevronDown,
+  Ship, FileText, ChevronLeft, ChevronRight, Loader2, ChevronDown,
   UserCircle2, Search, LogOut, Shield, ShieldCheck, Anchor, Fuel, Leaf, DollarSign, ScrollText, Menu, Package, ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -57,8 +57,6 @@ export default function Dashboard() {
     "fixtures", "received_fixtures", "cargoes", "flows", "fleet_in_service", "scheduled_deliveries", "demolitions", "valuations",
   ];
   const isMarketSection = MARKET_SECTIONS.includes(section);
-  const tab: "users" = "users";
-
   // Fetch organization users when switching to the Users tab
   useEffect(() => {
     if (section !== "users") return;
