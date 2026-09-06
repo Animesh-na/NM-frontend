@@ -26,7 +26,7 @@ export interface SheetContextValue {
   activeTab: SheetTab | null;
 
   // Actions
-  createNewSheet: () => void;
+  createNewSheet: (workbookId?: string | null) => void;
   copyCurrentSheet: () => void;
   openSheet: (id: string, name: string) => void;
   openOrganizationSheet: (id: string, name: string) => void;
