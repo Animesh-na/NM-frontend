@@ -153,12 +153,15 @@ export interface MarineCompany {
 
 export async function searchCompanies(query: string, limit: number = 5, type?: string): Promise<MarineCompany[]> {
   try {
-    const data = await apiRequest<{ companies: MarineCompany[] }>(
+    const params: Record<string, string | number> = { q: query, limit };
+    if (type) params.type = type;
+    const data = await apiRequest<{ companies?: MarineCompany[]; results?: MarineCompany[] } | MarineCompany[]>(
       "/companies",
-      { q: query, limit, type: type ?? "" },
+      params,
       { authenticated: true }
     );
-    return data.companies || [];
+    if (Array.isArray(data)) return data;
+    return data.companies || data.results || [];
   } catch (error) {
     console.error("Failed to search companies:", error);
     return [];

@@ -35,7 +35,7 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        setResults(await searchCompanies(query, 5));
+        setResults(await searchCompanies(query, 10, "charterer"));
       } finally {
         setLoading(false);
       }
