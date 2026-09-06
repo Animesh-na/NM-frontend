@@ -1,84 +1,168 @@
-import { useEffect, useMemo, useState } from "react";
-import { GitCompare, Loader2, Search, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, GitCompare, Loader2, Search, X, BookOpen, FileText } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
-import { listSheets, listOrganizationSheets, type SheetListItem } from "@/services/marineApi";
+import {
+  listWorkbooks,
+  searchWorkbooks,
+  listWorkbookSheets,
+  type WorkbookItem,
+  type WorkbookSheetItem,
+} from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 
 const MAX = 5;
 const MIN = 2;
+const WB_LIMIT = 8;
+const SHEET_LIMIT = 10;
 
 interface Props {
   variant?: "dashboard" | "compact";
 }
 
-export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
-  const { openCompare } = useSheets();
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [sheets, setSheets] = useState<SheetListItem[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState("");
+interface SelectedSheet {
+  id: string;
+  name: string;
+  workbookName?: string;
+}
 
+export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
+  const { openCompare, activeTab } = useSheets();
+  const [open, setOpen] = useState(false);
+
+  // View: "workbooks" list or a workbook's "sheets"
+  const [workbook, setWorkbook] = useState<{ id: string; name: string } | null>(null);
+
+  // Workbook list state
+  const [wbLoading, setWbLoading] = useState(false);
+  const [workbooks, setWorkbooks] = useState<WorkbookItem[]>([]);
+  const [wbPage, setWbPage] = useState(1);
+  const [wbPages, setWbPages] = useState(1);
+  const [wbSearch, setWbSearch] = useState("");
+
+  // Sheets state
+  const [shLoading, setShLoading] = useState(false);
+  const [sheets, setSheets] = useState<WorkbookSheetItem[]>([]);
+  const [shPage, setShPage] = useState(1);
+  const [shPages, setShPages] = useState(1);
+  const [shSearch, setShSearch] = useState("");
+
+  const [selected, setSelected] = useState<SelectedSheet[]>([]);
+
+  const reset = useCallback(() => {
+    setOpen(false);
+    setSelected([]);
+    setWbSearch("");
+    setShSearch("");
+    setWbPage(1);
+    setShPage(1);
+  }, []);
+
+  // On open: default to the current workbook when the active sheet has one
   useEffect(() => {
     if (!open) return;
+    if (activeTab?.workbookId) {
+      setWorkbook({ id: activeTab.workbookId, name: activeTab.workbookName || "Current Workbook" });
+    } else {
+      setWorkbook(null);
+    }
+  }, [open, activeTab?.workbookId, activeTab?.workbookName]);
+
+  // Load workbooks (list or search)
+  useEffect(() => {
+    if (!open || workbook) return;
+    let cancelled = false;
+    const run = async () => {
+      setWbLoading(true);
+      try {
+        const q = wbSearch.trim();
+        const res = q.length >= 2
+          ? await searchWorkbooks(q, wbPage, WB_LIMIT)
+          : await listWorkbooks(wbPage, WB_LIMIT);
+        if (cancelled) return;
+        setWorkbooks(res.workbooks || []);
+        setWbPages(res.pagination?.total_pages || 1);
+      } catch {
+        if (!cancelled) toast.error("Failed to load workbooks");
+      } finally {
+        if (!cancelled) setWbLoading(false);
+      }
+    };
+    const t = setTimeout(run, wbSearch.trim() ? 300 : 0);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [open, workbook, wbPage, wbSearch]);
+
+  // Load workbook sheets
+  useEffect(() => {
+    if (!open || !workbook) return;
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      setShLoading(true);
       try {
-        // Pull a generous batch from both endpoints
-        const [mine, org] = await Promise.all([
-          listSheets(1, 200),
-          listOrganizationSheets(1, 200).catch(() => ({ sheets: [], pagination: { total: 0, page: 1, limit: 0, total_pages: 1 } })),
-        ]);
+        const res = await listWorkbookSheets(workbook.id, shPage, SHEET_LIMIT);
         if (cancelled) return;
-        const map = new Map<string, SheetListItem>();
-        for (const s of mine.sheets || []) map.set(s.id, s);
-        for (const s of org.sheets || []) if (!map.has(s.id)) map.set(s.id, s);
-        setSheets(Array.from(map.values()));
+        setSheets(res.sheets || []);
+        setShPages(res.pagination?.total_pages || 1);
       } catch {
         if (!cancelled) toast.error("Failed to load sheets");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setShLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [open]);
+  }, [open, workbook, shPage]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+  const filteredSheets = useMemo(() => {
+    const q = shSearch.trim().toLowerCase();
     if (!q) return sheets;
     return sheets.filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      (s.owner_email || "").toLowerCase().includes(q)
+      s.name.toLowerCase().includes(q) || (s.owner_email || "").toLowerCase().includes(q)
     );
-  }, [sheets, search]);
+  }, [sheets, shSearch]);
 
-  const toggle = (id: string) => {
+  const toggle = (s: WorkbookSheetItem) => {
     setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); return next; }
-      if (next.size >= MAX) {
+      if (prev.some(p => p.id === s.id)) return prev.filter(p => p.id !== s.id);
+      if (prev.length >= MAX) {
         toast.error(`Maximum ${MAX} sheets can be compared at once.`);
         return prev;
       }
-      next.add(id);
-      return next;
+      return [...prev, { id: s.id, name: s.name, workbookName: workbook?.name }];
     });
   };
 
-  const canCompare = selected.size >= MIN;
+  const canCompare = selected.length >= MIN;
 
   const handleCompare = () => {
     if (!canCompare) return;
-    openCompare(Array.from(selected));
-    setOpen(false);
-    setSelected(new Set());
-    setSearch("");
+    openCompare(selected.map(s => s.id));
+    reset();
   };
 
   const btnCls = variant === "compact"
     ? "flex items-center gap-1 hover:text-white/80 transition-colors"
     : "flex items-center gap-1 h-7 px-2.5 rounded-md hover:bg-section-header-foreground/10 transition-colors text-section-header-foreground/70";
+
+  const Pager = ({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) => (
+    pages > 1 ? (
+      <div className="flex items-center justify-between px-3 py-2 border-t border-border text-[11px]">
+        <button
+          onClick={() => onPage(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          className="flex items-center gap-1 h-6 px-2 rounded border border-border disabled:opacity-40 hover:bg-muted"
+        >
+          <ChevronLeft className="h-3 w-3" /> Prev
+        </button>
+        <span className="text-muted-foreground">Page {page} of {pages}</span>
+        <button
+          onClick={() => onPage(Math.min(pages, page + 1))}
+          disabled={page >= pages}
+          className="flex items-center gap-1 h-6 px-2 rounded border border-border disabled:opacity-40 hover:bg-muted"
+        >
+          Next <ChevronRight className="h-3 w-3" />
+        </button>
+      </div>
+    ) : null
+  );
 
   return (
     <>
@@ -88,87 +172,186 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setOpen(false)}>
-          <div className="bg-card text-foreground rounded-lg shadow-2xl border border-border w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={reset}>
+          <div
+            className="bg-card text-foreground rounded-lg shadow-2xl border border-border w-full max-w-4xl h-[80vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <div>
                 <h2 className="text-sm font-semibold">Select Voyage Sheets to Compare</h2>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Selected: <span className={`font-semibold ${selected.size >= MIN ? "text-success" : "text-foreground"}`}>{selected.size}</span> / {MAX} · Min {MIN}
+                  Selected: <span className={`font-semibold ${canCompare ? "text-success" : "text-foreground"}`}>{selected.length}</span> / {MAX} · Min {MIN}
                 </p>
               </div>
-              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-muted">
+              <button onClick={reset} className="p-1 rounded hover:bg-muted">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-3 border-b border-border">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search by sheet name, vessel, or owner..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="form-input-sm w-full pl-8 h-8 text-xs"
-                  autoFocus
-                />
+            <div className="flex-1 min-h-0 grid grid-cols-[1fr_260px]">
+              {/* Browser */}
+              <div className="flex flex-col min-h-0 border-r border-border">
+                {!workbook ? (
+                  <>
+                    <div className="p-3 border-b border-border">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="Search workbooks..."
+                          value={wbSearch}
+                          onChange={e => { setWbSearch(e.target.value); setWbPage(1); }}
+                          className="form-input-sm w-full pl-8 h-8 text-xs"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-2 py-2">
+                      {wbLoading ? (
+                        <div className="flex items-center justify-center py-12 text-muted-foreground text-xs">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading workbooks...
+                        </div>
+                      ) : workbooks.length === 0 ? (
+                        <div className="text-center py-10 text-xs text-muted-foreground">No workbooks found.</div>
+                      ) : (
+                        <ul className="space-y-1">
+                          {workbooks.map(wb => (
+                            <li
+                              key={wb.id}
+                              onClick={() => { setWorkbook({ id: wb.id, name: wb.name }); setShPage(1); setShSearch(""); }}
+                              className="flex items-center gap-2 px-2.5 py-2 rounded border border-border text-xs cursor-pointer hover:bg-muted/50"
+                            >
+                              <BookOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{wb.name}</div>
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-2">
+                                  {wb.owner_email && <span className="truncate">{wb.owner_email}</span>}
+                                  <span>{wb.sheet_count ?? 0} sheets</span>
+                                </div>
+                              </div>
+                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <Pager page={wbPage} pages={wbPages} onPage={setWbPage} />
+                  </>
+                ) : (
+                  <>
+                    <div className="p-3 border-b border-border space-y-2">
+                      <button
+                        onClick={() => { setWorkbook(null); setWbPage(1); }}
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      >
+                        <ChevronLeft className="h-3 w-3" /> All workbooks
+                      </button>
+                      <div className="text-xs font-semibold truncate flex items-center gap-1.5">
+                        <BookOpen className="h-3.5 w-3.5" /> {workbook.name}
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="Search sheets in this workbook..."
+                          value={shSearch}
+                          onChange={e => setShSearch(e.target.value)}
+                          className="form-input-sm w-full pl-8 h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-2 py-2">
+                      {shLoading ? (
+                        <div className="flex items-center justify-center py-12 text-muted-foreground text-xs">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading sheets...
+                        </div>
+                      ) : filteredSheets.length === 0 ? (
+                        <div className="text-center py-10 text-xs text-muted-foreground">No sheets found.</div>
+                      ) : (
+                        <ul className="space-y-1">
+                          {filteredSheets.map(s => {
+                            const checked = selected.some(p => p.id === s.id);
+                            const disabled = !checked && selected.length >= MAX;
+                            return (
+                              <li
+                                key={s.id}
+                                onClick={() => !disabled && toggle(s)}
+                                className={`flex items-center gap-2 px-2.5 py-2 rounded border text-xs transition-colors ${
+                                  checked
+                                    ? "border-primary bg-primary/5 cursor-pointer"
+                                    : disabled
+                                      ? "border-border opacity-50 cursor-not-allowed"
+                                      : "border-border hover:bg-muted/50 cursor-pointer"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={disabled}
+                                  readOnly
+                                  className="h-3.5 w-3.5 accent-primary pointer-events-none"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium truncate">{s.name}</div>
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-2">
+                                    {s.owner_email && <span className="truncate">{s.owner_email}</span>}
+                                    <span>Updated {new Date(s.updated_at || s.created_at).toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                    <Pager page={shPage} pages={shPages} onPage={setShPage} />
+                  </>
+                )}
+              </div>
+
+              {/* Selected panel */}
+              <div className="flex flex-col min-h-0">
+                <div className="px-3 py-2 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Selected sheets
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  {selected.length === 0 ? (
+                    <div className="text-[11px] text-muted-foreground text-center py-8">
+                      Pick 2–{MAX} sheets from any workbook.
+                    </div>
+                  ) : (
+                    <ul className="space-y-1">
+                      {selected.map(s => (
+                        <li key={s.id} className="flex items-start gap-1.5 px-2 py-1.5 rounded border border-border text-[11px]">
+                          <FileText className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{s.name}</div>
+                            {s.workbookName && <div className="text-[10px] text-muted-foreground truncate">{s.workbookName}</div>}
+                          </div>
+                          <button
+                            onClick={() => setSelected(prev => prev.filter(p => p.id !== s.id))}
+                            className="p-0.5 rounded hover:bg-muted"
+                            title="Remove"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-2 py-2">
-              {loading ? (
-                <div className="flex items-center justify-center py-12 text-muted-foreground text-xs">
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading sheets...
-                </div>
-              ) : filtered.length === 0 ? (
-                <div className="text-center py-10 text-xs text-muted-foreground">No sheets found.</div>
-              ) : (
-                <ul className="space-y-1">
-                  {filtered.map(s => {
-                    const checked = selected.has(s.id);
-                    const disabled = !checked && selected.size >= MAX;
-                    return (
-                      <li
-                        key={s.id}
-                        onClick={() => !disabled && toggle(s.id)}
-                        className={`flex items-center gap-2 px-2.5 py-2 rounded border text-xs cursor-pointer transition-colors ${
-                          checked
-                            ? "border-primary bg-primary/5"
-                            : disabled
-                              ? "border-border opacity-50 cursor-not-allowed"
-                              : "border-border hover:bg-muted/50"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={disabled}
-                          readOnly
-                          className="h-3.5 w-3.5 accent-primary pointer-events-none"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{s.name}</div>
-                          <div className="text-[10px] text-muted-foreground flex items-center gap-2">
-                            {s.owner_email && <span>{s.owner_email}</span>}
-                            <span>Updated {new Date(s.updated_at || s.created_at).toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
             <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
-              <button onClick={() => setOpen(false)} className="h-7 px-3 text-xs rounded border border-border hover:bg-muted">Cancel</button>
+              <button onClick={reset} className="h-7 px-3 text-xs rounded border border-border hover:bg-muted">Cancel</button>
               <button
                 onClick={handleCompare}
                 disabled={!canCompare}
                 className="h-7 px-4 text-xs rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Compare ({selected.size})
+                Compare ({selected.length})
               </button>
             </div>
           </div>
