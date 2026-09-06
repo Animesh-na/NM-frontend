@@ -34,6 +34,8 @@ export interface SheetContextValue {
   // Actions
   createNewSheet: (workbookId?: string | null, workbookName?: string | null) => void;
   copyCurrentSheet: () => void;
+  /** Copy sheets by id (any workbook, incl. read-only) into editable new tabs. */
+  copySheets: (ids: string[]) => Promise<void>;
   openSheet: (id: string, name: string) => void;
   openOrganizationSheet: (id: string, name: string) => void;
   /** Replace all tabs with one workbook's sheets, or a blank linked sheet when empty. */
