@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, FolderOpen, Loader2, Plus, X } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, FolderOpen, Loader2, Plus, Trash2, X } from "lucide-react";
 import {
   createWorkbook,
+  deleteWorkbook,
   listWorkbooks,
   listWorkbookSheets,
   type WorkbookItem,
