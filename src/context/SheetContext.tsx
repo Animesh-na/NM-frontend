@@ -350,7 +350,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       currentView, setCurrentView,
       returnSection, setReturnSection,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
-      createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
+      createNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
       compareSheetIds, openCompare,
     }}>
       {children}
