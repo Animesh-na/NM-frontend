@@ -143,7 +143,12 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     if (!incoming.length) return;
     trackEvent("workbook.open", { component: "SheetContext", sheet_count: incoming.length });
     setTabs(prev => {
-      const next = [...prev];
+      // Opening a workbook shows only that workbook's sheets
+      const hasDirty = prev.some(t => t.isDirty);
+      if (hasDirty && !window.confirm("Some open sheets have unsaved changes. Opening this workbook will close them. Continue?")) {
+        return prev;
+      }
+      const next: typeof prev = [];
       for (const s of incoming) {
         const tabKey = s.readOnly ? `org:${s.id}` : s.id;
         if (next.some(t => t.id === tabKey)) continue;
@@ -158,9 +163,10 @@ export function SheetProvider({ children }: { children: ReactNode }) {
           workbookName: s.workbookName ?? null,
         });
       }
-      setActiveTabIndex(Math.max(0, next.length - incoming.length));
+      setActiveTabIndex(0);
       return next;
     });
+
     setCurrentView("editor");
 
     // Fetch any sheets that arrived without an embedded payload
