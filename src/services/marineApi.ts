@@ -151,10 +151,9 @@ export interface MarineCompany {
   type: string[];
 }
 
-export async function searchCompanies(query: string, limit: number = 5, type?: string): Promise<MarineCompany[]> {
+export async function searchCompanies(query: string, limit: number = 5): Promise<MarineCompany[]> {
   try {
     const params: Record<string, string | number> = { q: query, limit };
-    if (type) params.type = type;
     const data = await apiRequest<{ companies?: MarineCompany[]; results?: MarineCompany[] } | MarineCompany[]>(
       "/companies",
       params,
