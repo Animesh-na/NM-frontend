@@ -154,13 +154,40 @@ export interface MarineCompany {
 export async function searchCompanies(query: string, limit: number = 5): Promise<MarineCompany[]> {
   try {
     const params: Record<string, string | number> = { q: query, limit };
-    const data = await apiRequest<{ companies?: MarineCompany[]; results?: MarineCompany[] } | MarineCompany[]>(
+    const data = await apiRequest<unknown>(
       "/companies",
       params,
       { authenticated: true }
     );
-    if (Array.isArray(data)) return data;
-    return data.companies || data.results || [];
+
+    const payload = data as {
+      companies?: unknown[];
+      results?: unknown[];
+      data?: unknown[] | { companies?: unknown[]; results?: unknown[] };
+    };
+    const rows = Array.isArray(data)
+      ? data
+      : payload.companies ||
+        payload.results ||
+        (Array.isArray(payload.data) ? payload.data : payload.data?.companies || payload.data?.results) ||
+        [];
+
+    return rows.flatMap((row) => {
+      if (typeof row === "string") return [{ company: row, type: [] }];
+      if (!row || typeof row !== "object") return [];
+      const item = row as { company?: unknown; company_name?: unknown; name?: unknown; type?: unknown; types?: unknown };
+      const company = [item.company, item.company_name, item.name].find(
+        (candidate): candidate is string => typeof candidate === "string" && candidate.trim().length > 0
+      );
+      if (!company) return [];
+      const rawType = item.type ?? item.types;
+      const type = Array.isArray(rawType)
+        ? rawType.filter((entry): entry is string => typeof entry === "string")
+        : typeof rawType === "string" && rawType.length > 0
+          ? [rawType]
+          : [];
+      return [{ company, type }];
+    });
   } catch (error) {
     console.error("Failed to search companies:", error);
     return [];
