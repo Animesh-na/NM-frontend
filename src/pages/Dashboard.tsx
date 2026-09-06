@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
-import { listSheets, listOrganizationSheets, listOrganizationUsers, listUserSheets, deleteSheet, type SheetListItem, type OrganizationUser } from "@/services/marineApi";
+import { listOrganizationSheets, listOrganizationUsers, listUserSheets, deleteSheet, type SheetListItem, type OrganizationUser } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
@@ -33,7 +33,7 @@ const ChartSkeleton = () => (
 
 export default function Dashboard() {
   const { logout, user, mode, setMode, availableModes } = useAuth();
-  const { openSheet, openOrganizationSheet, createNewSheet, setCurrentView } = useSheets();
+  const { openSheet, openOrganizationSheet, setCurrentView } = useSheets();
   const isAdmin = user?.role === "admin";
   const mfaEnabled = !!user?.mfa_method;
   const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
@@ -53,16 +53,13 @@ export default function Dashboard() {
     "fixtures", "received_fixtures", "cargoes", "flows", "fleet_in_service", "scheduled_deliveries", "demolitions", "valuations",
   ];
   const isMarketSection = MARKET_SECTIONS.includes(section);
-  const tab: "mine" | "users" | "org" =
-    section === "users" ? "users" : section === "org" ? "org" : "mine";
+  const tab: "users" | "org" = section === "users" ? "users" : "org";
 
   const fetchSheets = useCallback(async () => {
-    if (tab === "users" || section === "workbooks" || isMarketSection) return;
+    if (section !== "org") return;
     setLoading(true);
     try {
-      const res = tab === "mine"
-        ? await listSheets(page, ITEMS_PER_PAGE)
-        : await listOrganizationSheets(page, ITEMS_PER_PAGE);
+      const res = await listOrganizationSheets(page, ITEMS_PER_PAGE);
       setSheets(res.sheets || []);
       setTotal(res.pagination?.total || 0);
     } catch {
@@ -97,11 +94,6 @@ export default function Dashboard() {
 
   // Reset to page 1 when switching tabs or sector mode
   useEffect(() => { setPage(1); }, [tab, mode]);
-
-  const handleCreate = () => {
-    trackEvent("sheet.create.click", { component: "Dashboard", mode });
-    createNewSheet();
-  };
 
   const handleOpen = (sheet: SheetListItem) => {
     const isOwn = !!sheet.owner_email && !!user?.email && sheet.owner_email.toLowerCase() === user.email.toLowerCase();
@@ -188,7 +180,6 @@ export default function Dashboard() {
 
   const sectionTitle: Record<DashSection, string> = {
     overview: "Fleet Overview",
-    mine: "My Sheets",
     workbooks: "Workbooks",
     fixtures: "Market Fixtures",
     received_fixtures: "Received Fixtures",
@@ -218,12 +209,6 @@ export default function Dashboard() {
       <div className="dash-card border-dashed py-20 text-center">
         <FileText className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
         <p className="mb-1 text-[13px] dash-muted">{query ? "No sheets match your search" : "No sheets yet"}</p>
-        {!query && (
-          <>
-            <p className="mb-4 text-[12px] dash-muted opacity-80">Create your first voyage estimation sheet</p>
-            <button onClick={handleCreate} className="dash-btn-primary">Create Sheet</button>
-          </>
-        )}
       </div>
     ) : (
       <>
@@ -268,7 +253,7 @@ export default function Dashboard() {
                           <button onClick={() => handleOpen(sheet)} className="dash-btn-primary h-7 px-3 text-[12px]">
                             {tab === "org" && !isOwn ? "View" : "Open"}
                           </button>
-                          {(tab === "mine" || isOwn) && (
+                          {isOwn && (
                             <button
                               onClick={() => handleDelete(sheet)}
                               className="flex h-7 w-7 items-center justify-center rounded-lg text-destructive/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
