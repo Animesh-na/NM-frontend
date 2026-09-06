@@ -43,8 +43,9 @@ export function CompactHeader() {
             <span>Details</span>
           </Link>
         )}
-        <div className="flex items-center h-7 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors font-medium">
+        <div className="flex items-center gap-2 h-7 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors font-medium">
           <CopySheetsLauncher variant="compact" />
+          <span className="h-4 w-px bg-white/20" />
           <CompareSheetsLauncher variant="compact" />
         </div>
         <button
