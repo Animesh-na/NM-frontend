@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, ChevronLeft, ChevronRight, FolderOpen, Loader2, Plus, Trash2, X } from "lucide-react";
 import {
   createWorkbook,
@@ -28,6 +28,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
+  const openRequestRef = useRef(0);
 
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
@@ -82,10 +83,12 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   };
 
   const openWorkbook = async (wb: WorkbookItem) => {
+    const requestId = ++openRequestRef.current;
     setOpeningId(wb.id);
     try {
       const res = await listWorkbookSheets(wb.id, 1, SHEETS_PER_PAGE);
-      const sheets = res.sheets || [];
+      if (requestId !== openRequestRef.current) return;
+      const sheets = (res.sheets || []).filter(sheet => !sheet.workbook_id || sheet.workbook_id === wb.id);
       if (!sheets.length) {
         trackEvent("workbook.open_empty", { component: "WorkbooksPanel", workbook_id: wb.id });
         toast.info("This workbook is empty — a new sheet was created");
@@ -96,9 +99,9 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
       trackEvent("workbook.open_all", { component: "WorkbooksPanel", workbook_id: wb.id, sheet_count: sheets.length, read_only: readOnly });
       openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly, workbookId: wb.id, workbookName: wb.name })));
     } catch {
-      toast.error("Failed to load workbook sheets");
+      if (requestId === openRequestRef.current) toast.error("Failed to load workbook sheets");
     } finally {
-      setOpeningId(null);
+      if (requestId === openRequestRef.current) setOpeningId(null);
     }
   };
 
