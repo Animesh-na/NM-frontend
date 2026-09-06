@@ -1,5 +1,6 @@
 import { ChevronDown, Package, Plus, Trash2, Search, Building2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
 import { searchCompanies, type MarineCompany } from "@/services/marineApi";
 import { useVoyageContext, type CargoEntry, type SequenceRowUI } from "@/context/VoyageContext";
@@ -13,8 +14,9 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
   const [query, setQuery] = useState(value);
   const [results, setResults] = useState<MarineCompany[]>([]);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setQuery(value);
@@ -22,7 +24,13 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -30,18 +38,80 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + 2,
+      left: rect.left,
+      width: Math.max(rect.width, 280),
+    });
+  }, []);
+
   useEffect(() => {
     if (!open) return;
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    if (!open || query.trim().length < 2) {
+      setResults([]);
+      return;
+    }
     const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        setResults(await searchCompanies(query, 10, "charterer"));
-      } finally {
-        setLoading(false);
-      }
+      setResults(await searchCompanies(query.trim(), 10));
     }, 300);
     return () => clearTimeout(timer);
   }, [query, open]);
+
+  const dropdown = open ? (
+    <div
+      ref={dropdownRef}
+      className="max-h-64 overflow-auto rounded border border-border bg-popover text-popover-foreground shadow-2xl"
+      style={{
+        position: "fixed",
+        top: `${dropdownPosition.top}px`,
+        left: `${dropdownPosition.left}px`,
+        width: `${dropdownPosition.width}px`,
+        zIndex: 2147483647,
+      }}
+    >
+      {query.trim().length < 2 ? (
+        <div className="px-3 py-2 text-xs text-muted-foreground">Type at least 2 characters to search</div>
+      ) : results.length === 0 ? (
+        <div className="px-3 py-2 text-xs text-muted-foreground">No companies found</div>
+      ) : (
+        <div className="py-1">
+          {results.map((company, index) => (
+            <button
+              key={`${company.company}-${index}`}
+              type="button"
+              onClick={() => {
+                setQuery(company.company);
+                onChange(company.company);
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-xs cursor-pointer transition-colors"
+            >
+              <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{company.company}</div>
+                {company.type?.length > 0 && (
+                  <div className="text-[10px] text-muted-foreground truncate">{company.type.join(", ")}</div>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div ref={containerRef} className="relative flex-1 max-w-xs">
@@ -54,7 +124,10 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
           setOpen(true);
           if (e.target.value === "") onChange("");
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setOpen(true);
+          requestAnimationFrame(updatePosition);
+        }}
         placeholder="Search charterer..."
         className="form-input-sm w-full pl-6 pr-6"
         autoComplete="off"
@@ -72,36 +145,7 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
           ×
         </button>
       )}
-      {open && (query.length > 0 || results.length > 0) && (
-        <div className="absolute top-full left-0 right-0 mt-1 max-h-56 overflow-auto rounded border border-border bg-popover text-popover-foreground shadow-lg z-50">
-          {loading ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground">Searching...</div>
-          ) : results.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground">No companies found</div>
-          ) : (
-            <div className="py-1">
-              {results.map((c) => (
-                <button
-                  key={c.company}
-                  type="button"
-                  onClick={() => {
-                    setQuery(c.company);
-                    onChange(c.company);
-                    setOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-xs cursor-pointer transition-colors"
-                >
-                  <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{c.company}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">{c.type.join(", ")}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {typeof document !== "undefined" && createPortal(dropdown, document.body)}
     </div>
   );
 }
