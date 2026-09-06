@@ -100,6 +100,7 @@ const Index = () => {
       if (d.departureUtc !== undefined) voyage.setDepartureUtc(d.departureUtc as string);
       voyage.setAutoDistanceEnabled(d.autoDistanceEnabled === true);
       voyage.setNotes(typeof d.notes === "string" ? d.notes : "");
+      voyage.setCharterer(typeof d.charterer === "string" ? d.charterer : "");
     } else {
       // New empty sheet — reset all state
       resetState();
