@@ -7,6 +7,7 @@ import {
   listWorkbookSheets,
   searchWorkbooks,
   type WorkbookItem,
+  type WorkbookSheetItem,
 } from "@/services/marineApi";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
@@ -107,9 +108,18 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
         openSheets([], { id: wb.id, name: wb.name });
         return;
       }
-      const readOnly = !isOwn(wb);
-      trackEvent("workbook.open_all", { component: "WorkbooksPanel", workbook_id: wb.id, sheet_count: sheets.length, read_only: readOnly });
-      openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly, workbookId: wb.id, workbookName: wb.name })));
+      const wbReadOnly = !isOwn(wb);
+      const userId = user?.id ? String(user.id) : null;
+      const userEmail = user?.email?.trim().toLowerCase();
+      // Sheet-level ownership: a sheet created by the current user stays
+      // editable even inside someone else's workbook.
+      const isSheetOwn = (s: WorkbookSheetItem) => {
+        if (s.user_id && userId && String(s.user_id) === userId) return true;
+        const ownerEmail = s.owner_email?.trim().toLowerCase();
+        return !!ownerEmail && !!userEmail && ownerEmail === userEmail;
+      };
+      trackEvent("workbook.open_all", { component: "WorkbooksPanel", workbook_id: wb.id, sheet_count: sheets.length, read_only: wbReadOnly });
+      openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly: wbReadOnly && !isSheetOwn(s), workbookId: wb.id, workbookName: wb.name })));
     } catch {
       if (requestId === openRequestRef.current) toast.error("Failed to load workbook sheets");
     } finally {
