@@ -1,4 +1,4 @@
-import { X, ArrowLeft, Save, Plus, Copy, Calculator } from "lucide-react";
+import { X, ArrowLeft, Save, Copy, Calculator } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
 import { useEffect, useRef, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
@@ -7,7 +7,7 @@ import { trackEvent } from "@/services/logger";
 import { listWorkbooks, type WorkbookItem } from "@/services/marineApi";
 
 export function SheetTabs() {
-  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, createNewSheet, copyCurrentSheet } = useSheets();
+  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, copyCurrentSheet } = useSheets();
   const [savingName, setSavingName] = useState(false);
   const [editName, setEditName] = useState("");
   const [intakeOpen, setIntakeOpen] = useState(false);
