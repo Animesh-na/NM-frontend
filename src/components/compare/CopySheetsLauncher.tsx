@@ -145,7 +145,7 @@ export function CopySheetsLauncher({ variant = "dashboard" }: Props) {
   };
 
   const btnCls = variant === "compact"
-    ? "flex items-center gap-1 hover:text-white/80 transition-colors"
+    ? "flex items-center gap-1 h-7 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors font-medium"
     : "flex items-center gap-1 h-7 px-2.5 rounded-md hover:bg-section-header-foreground/10 transition-colors text-section-header-foreground/70";
 
   const Pager = ({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) => (
