@@ -122,32 +122,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleDelete = async (sheet: SheetListItem) => {
-    const confirmed = window.confirm(`Delete "${sheet.name}"? This cannot be undone.`);
-    if (!confirmed) {
-      trackEvent("sheet.delete.cancelled", { component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name });
-      return;
-    }
-
-    const success = await deleteSheet(sheet.id);
-    if (success) {
-      trackEvent("sheet.delete", { component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name, mode });
-      toast.success("Sheet deleted");
-      fetchSheets();
-    } else {
-      trackEvent("sheet.delete.failed", { component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name }, "error");
-      toast.error("Failed to delete sheet");
-    }
-  };
-
-  const visibleSheets = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return sheets;
-    return sheets.filter(s =>
-      s.name?.toLowerCase().includes(q) || s.owner_email?.toLowerCase().includes(q)
-    );
-  }, [sheets, query]);
-
   const sectionTitle: Record<DashSection, string> = {
     overview: "Fleet Overview",
     workbooks: "Workbooks",
@@ -167,96 +141,6 @@ export default function Dashboard() {
     trackView(`dashboard/${s}`, { mode });
     setMobileNavOpen(false);
   };
-
-  const renderSheetsTable = () => (
-    loading ? (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "hsl(var(--ocean))" }} />
-        <span className="ml-2 text-[13px] dash-muted">Loading sheets...</span>
-      </div>
-    ) : visibleSheets.length === 0 ? (
-      <div className="dash-card border-dashed py-20 text-center">
-        <FileText className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
-        <p className="mb-1 text-[13px] dash-muted">{query ? "No sheets match your search" : "No sheets yet"}</p>
-      </div>
-    ) : (
-      <>
-        <div className="dash-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-[13px]">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide dash-muted" style={{ background: "hsl(var(--dash-bg))" }}>
-                  <th className="w-12 px-5 py-2.5 font-semibold">#</th>
-                  <th className="px-5 py-2.5 font-semibold">Sheet Name</th>
-                  {(isAdmin || tab === "org") && <th className="px-5 py-2.5 font-semibold">Owner</th>}
-                  <th className="px-5 py-2.5 font-semibold">Last Updated</th>
-                  <th className="px-5 py-2.5 text-right font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleSheets.map((sheet, idx) => {
-                  const isOwn = !!sheet.owner_email && !!user?.email && sheet.owner_email.toLowerCase() === user.email.toLowerCase();
-                  return (
-                    <tr
-                      key={sheet.id}
-                      className="group cursor-pointer border-t transition-colors hover:bg-dash-bg"
-                      style={{ borderColor: "hsl(var(--dash-border))" }}
-                      onDoubleClick={() => handleOpen(sheet)}
-                    >
-                      <td className="px-5 py-3 text-[12px] tabular-nums dash-muted">
-                        {(page - 1) * ITEMS_PER_PAGE + idx + 1}
-                      </td>
-                      <td className="px-5 py-3 font-semibold transition-colors group-hover:text-ocean">
-                        {sheet.name}
-                        {tab === "org" && !isOwn && <span className="ml-2 dash-badge-warning">Read-only</span>}
-                        {tab === "org" && isOwn && <span className="ml-2 dash-badge-success">Yours</span>}
-                      </td>
-                      {(isAdmin || tab === "org") && (
-                        <td className="px-5 py-3 text-[12px] dash-muted">{sheet.owner_email || "—"}</td>
-                      )}
-                      <td className="px-5 py-3 text-[12px] dash-muted">
-                        {new Date(sheet.updated_at || sheet.created_at).toLocaleString()}
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button onClick={() => handleOpen(sheet)} className="dash-btn-primary h-7 px-3 text-[12px]">
-                            {tab === "org" && !isOwn ? "View" : "Open"}
-                          </button>
-                          {isOwn && (
-                            <button
-                              onClick={() => handleDelete(sheet)}
-                              className="flex h-7 w-7 items-center justify-center rounded-lg text-destructive/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
-                              title="Delete sheet"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="mt-4 flex items-center justify-between text-[12px] dash-muted">
-            <span>Page {page} of {totalPages} ({total} sheets)</span>
-            <div className="flex items-center gap-1.5">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="dash-btn-ghost h-8 px-2 disabled:opacity-40">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="dash-btn-ghost h-8 px-2 disabled:opacity-40">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </>
-    )
-  );
 
   const renderUsers = () => (
     usersLoading ? (
@@ -432,7 +316,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            {(section === "org" || section === "workbooks") && (
+            {section === "workbooks" && (
               <div className="relative hidden md:block">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 dash-muted" />
                 <input
@@ -489,7 +373,6 @@ export default function Dashboard() {
                 ["cargoes", "Cargo List", Package],
                 ["flows", "Flows", Package],
                 ["users", "Org Users", UserCircle2],
-                ["org", "Org Sheets", Users],
                 ["fleet_in_service", "Fleet in Service", Ship],
                 ["scheduled_deliveries", "Deliveries", ClipboardList],
                 ["demolitions", "Demolitions", Package],
@@ -562,10 +445,8 @@ export default function Dashboard() {
               <Suspense fallback={<ChartSkeleton />}>
                 <WorkbooksPanel query={query} />
               </Suspense>
-            ) : section === "users" ? (
-              renderUsers()
             ) : (
-              renderSheetsTable()
+              renderUsers()
             )}
           </div>
         </main>
