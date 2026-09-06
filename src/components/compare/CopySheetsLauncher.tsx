@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, GitCompare, Loader2, Search, X, BookOpen, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Loader2, Search, X, BookOpen, FileText } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
 import {
   listWorkbooks,
@@ -11,7 +11,7 @@ import {
 import { toast } from "@/components/ui/sonner";
 
 const MAX = 5;
-const MIN = 2;
+const MIN = 1;
 const WB_LIMIT = 8;
 const SHEET_LIMIT = 10;
 
@@ -25,9 +25,10 @@ interface SelectedSheet {
   workbookName?: string;
 }
 
-export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
-  const { openCompare, activeTab } = useSheets();
+export function CopySheetsLauncher({ variant = "dashboard" }: Props) {
+  const { copySheets, activeTab } = useSheets();
   const [open, setOpen] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   // View: "workbooks" list or a workbook's "sheets"
   const [workbook, setWorkbook] = useState<{ id: string; name: string } | null>(null);
@@ -123,19 +124,24 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
     setSelected(prev => {
       if (prev.some(p => p.id === s.id)) return prev.filter(p => p.id !== s.id);
       if (prev.length >= MAX) {
-        toast.error(`Maximum ${MAX} sheets can be compared at once.`);
+        toast.error(`Maximum ${MAX} sheets can be copied at once.`);
         return prev;
       }
       return [...prev, { id: s.id, name: s.name, workbookName: workbook?.name }];
     });
   };
 
-  const canCompare = selected.length >= MIN;
+  const canCopy = selected.length >= MIN && !copying;
 
-  const handleCompare = () => {
-    if (!canCompare) return;
-    openCompare(selected.map(s => s.id));
-    reset();
+  const handleCopy = async () => {
+    if (!canCopy) return;
+    setCopying(true);
+    try {
+      await copySheets(selected.map(s => s.id));
+      reset();
+    } finally {
+      setCopying(false);
+    }
   };
 
   const btnCls = variant === "compact"
@@ -166,9 +172,9 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className={btnCls} title="Compare voyage sheets">
-        <GitCompare className={variant === "compact" ? "h-3 w-3" : "h-3.5 w-3.5"} />
-        <span>Compare Sheets</span>
+      <button onClick={() => setOpen(true)} className={btnCls} title="Copy voyage sheets from any workbook">
+        <Copy className={variant === "compact" ? "h-3 w-3" : "h-3.5 w-3.5"} />
+        <span>Copy Sheets</span>
       </button>
 
       {open && (
@@ -179,9 +185,9 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <div>
-                <h2 className="text-sm font-semibold">Select Voyage Sheets to Compare</h2>
+                <h2 className="text-sm font-semibold">Select Voyage Sheets to Copy</h2>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Selected: <span className={`font-semibold ${canCompare ? "text-success" : "text-foreground"}`}>{selected.length}</span> / {MAX} · Min {MIN}
+                  Selected: <span className={`font-semibold ${canCopy ? "text-success" : "text-foreground"}`}>{selected.length}</span> / {MAX}
                 </p>
               </div>
               <button onClick={reset} className="p-1 rounded hover:bg-muted">
@@ -318,7 +324,7 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
                 <div className="flex-1 overflow-y-auto p-2">
                   {selected.length === 0 ? (
                     <div className="text-[11px] text-muted-foreground text-center py-8">
-                      Pick 2–{MAX} sheets from any workbook.
+                      Pick 1–{MAX} sheets from any workbook to copy as your own editable sheets.
                     </div>
                   ) : (
                     <ul className="space-y-1">
@@ -349,18 +355,10 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
               <button
                 onClick={handleCopy}
                 disabled={!canCopy}
-                title="Copy selected sheets as editable sheets"
-                className="h-7 px-3 text-xs rounded border border-border font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                className="h-7 px-4 text-xs rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
-                {copying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
-                Copy Sheets ({selected.length})
-              </button>
-              <button
-                onClick={handleCompare}
-                disabled={!canCompare}
-                className="h-7 px-4 text-xs rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Compare ({selected.length})
+                {copying && <Loader2 className="h-3 w-3 animate-spin" />}
+                Copy ({selected.length})
               </button>
             </div>
           </div>
