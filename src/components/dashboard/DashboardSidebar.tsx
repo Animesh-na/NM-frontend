@@ -1,11 +1,11 @@
 import { memo } from "react";
 import {
-  LayoutDashboard, FileText, Users, UserCircle2, Shield, ShieldCheck, LogOut, Ship, Package, ClipboardList,
+  LayoutDashboard, FileText, UserCircle2, Shield, ShieldCheck, LogOut, Ship, Package, ClipboardList,
   Anchor, CalendarClock, Recycle, BadgeDollarSign, Waypoints, BookOpen,
 } from "lucide-react";
 
 export type DashSection =
-  | "overview" | "workbooks" | "fixtures" | "received_fixtures" | "cargoes" | "users" | "org"
+  | "overview" | "workbooks" | "fixtures" | "received_fixtures" | "cargoes" | "users"
   | "fleet_in_service" | "scheduled_deliveries" | "demolitions" | "valuations" | "flows";
 
 interface Props {
@@ -28,7 +28,6 @@ const NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
   { key: "cargoes", label: "Cargo List", icon: Package },
   { key: "flows", label: "Dry Bulk Flows", icon: Waypoints },
   { key: "users", label: "Organization Users", icon: UserCircle2 },
-  { key: "org", label: "Organization Sheets", icon: Users },
 ];
 
 const SP_NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
