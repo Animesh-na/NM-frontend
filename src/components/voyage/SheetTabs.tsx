@@ -1,4 +1,4 @@
-import { X, ArrowLeft, Save, Plus, Copy, Calculator } from "lucide-react";
+import { X, ArrowLeft, Save, Copy, Calculator } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
 import { useEffect, useRef, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
@@ -7,7 +7,7 @@ import { trackEvent } from "@/services/logger";
 import { listWorkbooks, type WorkbookItem } from "@/services/marineApi";
 
 export function SheetTabs() {
-  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, createNewSheet, copyCurrentSheet } = useSheets();
+  const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, copyCurrentSheet } = useSheets();
   const [savingName, setSavingName] = useState(false);
   const [editName, setEditName] = useState("");
   const [intakeOpen, setIntakeOpen] = useState(false);
@@ -93,15 +93,6 @@ export function SheetTabs() {
         </button>
       )}
 
-      {/* New Sheet Button */}
-      <button
-        onClick={createNewSheet}
-        className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))] hover:opacity-90 transition-opacity ml-0.5 text-[10px] font-semibold flex-shrink-0"
-        title="New Sheet"
-      >
-        <Plus className="h-3 w-3" />
-        <span>New Sheet</span>
-      </button>
 
       {/* Intake Calculator + Save */}
       <div className="ml-auto flex items-center gap-1.5">
