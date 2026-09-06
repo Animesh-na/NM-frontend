@@ -1,6 +1,6 @@
 import { X, ArrowLeft, Save, Plus, Copy, Calculator } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { trackEvent } from "@/services/logger";
@@ -13,6 +13,13 @@ export function SheetTabs() {
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [workbooks, setWorkbooks] = useState<WorkbookItem[]>([]);
   const [workbookId, setWorkbookId] = useState<string>("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeTabRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Keep the active tab visible in the horizontal scroll strip
+    activeTabRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeTabIndex, tabs.length]);
 
   useEffect(() => {
     if (!savingName) return;
@@ -50,10 +57,11 @@ export function SheetTabs() {
       </button>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto sheet-scroll">
+      <div ref={scrollRef} className="flex items-center gap-1 overflow-x-auto sheet-scroll">
       {tabs.map((tab, idx) => (
         <div
           key={tab.id || `new-${idx}`}
+          ref={idx === activeTabIndex ? activeTabRef : undefined}
           className={`flex items-center gap-1.5 h-7 px-2.5 rounded-lg cursor-pointer border transition-all max-w-[170px] flex-shrink-0 ${
             idx === activeTabIndex
               ? "bg-[hsl(var(--ocean))] border-transparent text-primary-foreground font-semibold shadow-sm"
