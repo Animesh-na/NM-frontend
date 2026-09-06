@@ -143,9 +143,6 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     emptyWorkbook?: { id: string; name: string }
   ) => {
     if (!incoming.length && !emptyWorkbook) return;
-    if (tabs.some(t => t.isDirty) && !window.confirm("Some open sheets have unsaved changes. Opening this workbook will close them. Continue?")) {
-      return;
-    }
 
     trackEvent("workbook.open", { component: "SheetContext", sheet_count: incoming.length });
     const next: SheetTab[] = [];
@@ -189,7 +186,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
         setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, isLoading: false } : t));
       }
     });
-  }, [tabs]);
+  }, []);
 
 
   const closeTab = useCallback((index: number): boolean => {
