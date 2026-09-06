@@ -62,6 +62,31 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     [user?.email]
   );
 
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name) { toast.error("Workbook name is required"); return; }
+    setCreating(true);
+    try {
+      const wb = await createWorkbook(name, newDescription.trim());
+      if (wb) {
+        trackEvent("workbook.create", { component: "WorkbooksPanel", workbook_id: wb.id, workbook_name: wb.name });
+        toast.success("Workbook created");
+        setWorkbooks(prev => [wb, ...prev]);
+        setTotal(prev => prev + 1);
+        setNewName("");
+        setNewDescription("");
+        setShowCreate(false);
+      } else {
+        toast.error("Failed to create workbook");
+      }
+    } catch {
+      toast.error("Failed to create workbook");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const loadSheets = useCallback(async (wb: WorkbookItem) => {
     setSheetsMap(m => ({ ...m, [wb.id]: { loading: true, sheets: m[wb.id]?.sheets || [], total: m[wb.id]?.total || 0 } }));
     const res = await listWorkbookSheets(wb.id, 1, SHEETS_PER_PAGE);
