@@ -64,10 +64,15 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
       setResults([]);
       return;
     }
+    let cancelled = false;
     const timer = setTimeout(async () => {
-      setResults(await searchCompanies(query.trim(), 10));
+      const companies = await searchCompanies(query.trim(), 10);
+      if (!cancelled) setResults(companies);
     }, 300);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [query, open]);
 
   const dropdown = open ? (
@@ -120,9 +125,10 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
         type="text"
         value={query}
         onChange={(e) => {
-          setQuery(e.target.value);
+          const nextValue = e.target.value;
+          setQuery(nextValue);
+          onChange(nextValue);
           setOpen(true);
-          if (e.target.value === "") onChange("");
         }}
         onFocus={() => {
           setOpen(true);
