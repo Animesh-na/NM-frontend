@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, GitCompare, Loader2, Search, X, BookOpen, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, GitCompare, Loader2, Search, X, BookOpen, FileText } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
 import {
   listWorkbooks,
@@ -26,8 +26,9 @@ interface SelectedSheet {
 }
 
 export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
-  const { openCompare, activeTab } = useSheets();
+  const { openCompare, copySheets, activeTab } = useSheets();
   const [open, setOpen] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   // View: "workbooks" list or a workbook's "sheets"
   const [workbook, setWorkbook] = useState<{ id: string; name: string } | null>(null);
@@ -131,6 +132,18 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
   };
 
   const canCompare = selected.length >= MIN;
+  const canCopy = selected.length >= 1 && !copying;
+
+  const handleCopy = async () => {
+    if (!canCopy) return;
+    setCopying(true);
+    try {
+      await copySheets(selected.map(s => s.id));
+      reset();
+    } finally {
+      setCopying(false);
+    }
+  };
 
   const handleCompare = () => {
     if (!canCompare) return;
@@ -346,6 +359,15 @@ export function CompareSheetsLauncher({ variant = "dashboard" }: Props) {
 
             <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
               <button onClick={reset} className="h-7 px-3 text-xs rounded border border-border hover:bg-muted">Cancel</button>
+              <button
+                onClick={handleCopy}
+                disabled={!canCopy}
+                title="Copy selected sheets as editable sheets"
+                className="h-7 px-3 text-xs rounded border border-border font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                {copying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+                Copy Sheets ({selected.length})
+              </button>
               <button
                 onClick={handleCompare}
                 disabled={!canCompare}
