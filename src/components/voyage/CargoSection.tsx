@@ -1,12 +1,110 @@
-import { ChevronDown, Package, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, Package, Plus, Trash2, Search, Building2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
+import { searchCompanies, type MarineCompany } from "@/services/marineApi";
 import { useVoyageContext, type CargoEntry, type SequenceRowUI } from "@/context/VoyageContext";
 import { InfoTooltip } from "./InfoTooltip";
 import { AlertTriangle } from "lucide-react";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
 import { calculateCargoDemurrageDespatchFromRows } from "@/utils/demurrageDespatch";
 import { getFieldId, MAX_CARGOS } from "@/utils/validation";
+
+function ChartererSearch({ value, onChange }: { value: string; onChange: (name: string) => void }) {
+  const [query, setQuery] = useState(value);
+  const [results, setResults] = useState<MarineCompany[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        setResults(await searchCompanies(query, 5));
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, open]);
+
+  return (
+    <div ref={containerRef} className="relative flex-1 max-w-xs">
+      <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+          if (e.target.value === "") onChange("");
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder="Search charterer..."
+        className="form-input-sm w-full pl-6 pr-6"
+        autoComplete="off"
+      />
+      {query && (
+        <button
+          type="button"
+          onClick={() => {
+            setQuery("");
+            onChange("");
+            setResults([]);
+          }}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm font-medium"
+        >
+          ×
+        </button>
+      )}
+      {open && (query.length > 0 || results.length > 0) && (
+        <div className="absolute top-full left-0 right-0 mt-1 max-h-56 overflow-auto rounded border border-border bg-popover text-popover-foreground shadow-lg z-50">
+          {loading ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground">Searching...</div>
+          ) : results.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground">No companies found</div>
+          ) : (
+            <div className="py-1">
+              {results.map((c) => (
+                <button
+                  key={c.company}
+                  type="button"
+                  onClick={() => {
+                    setQuery(c.company);
+                    onChange(c.company);
+                    setOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-xs cursor-pointer transition-colors"
+                >
+                  <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{c.company}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{c.type.join(", ")}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function CargoSection() {
   const { 
