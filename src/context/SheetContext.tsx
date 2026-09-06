@@ -18,7 +18,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
 
   const activeTab = tabs.length > 0 ? tabs[activeTabIndex] || null : null;
 
-  const createNewSheet = useCallback((workbookId?: string | null) => {
+  const createNewSheet = useCallback((workbookId?: string | null, workbookName?: string | null) => {
     logger.info("Sheet created (blank)", { component: "SheetContext" });
     const newTab: SheetTab = {
       id: null,
@@ -27,6 +27,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       isDirty: false,
       isLoading: false,
       workbookId: workbookId ?? null,
+      workbookName: workbookName ?? null,
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabIndex(tabs.length); // will be the new last index
@@ -50,6 +51,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       isLoading: false,
       readOnly: false,
       workbookId: current.workbookId ?? null,
+      workbookName: current.workbookName ?? null,
     };
     setTabs(prev => [...prev, copiedTab]);
     setActiveTabIndex(tabs.length);
@@ -136,7 +138,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const openSheets = useCallback((incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null }[]) => {
+  const openSheets = useCallback((incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null; workbookName?: string | null }[]) => {
 
     if (!incoming.length) return;
     trackEvent("workbook.open", { component: "SheetContext", sheet_count: incoming.length });
@@ -153,6 +155,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
           isLoading: !s.data,
           readOnly: !!s.readOnly,
           workbookId: s.workbookId ?? null,
+          workbookName: s.workbookName ?? null,
         });
       }
       setActiveTabIndex(Math.max(0, next.length - incoming.length));
