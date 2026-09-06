@@ -442,6 +442,25 @@ export async function listWorkbooks(page: number = 1, limit: number = 10): Promi
   }
 }
 
+// Create a new workbook (mode-scoped, e.g. /dry-bulk/workbooks)
+export async function createWorkbook(name: string, description?: string): Promise<WorkbookItem | null> {
+  try {
+    const data = await apiRequest<{ workbook?: WorkbookItem } & WorkbookItem>(
+      modePath("/workbooks"),
+      undefined,
+      {
+        method: "POST",
+        body: { name, description: description || "" },
+        authenticated: true,
+      }
+    );
+    return data.workbook || (data.id ? data : null);
+  } catch (error) {
+    console.error("Failed to create workbook:", error);
+    return null;
+  }
+}
+
 // List sheets inside a workbook (full sheet payload incl. data)
 export async function listWorkbookSheets(workbookId: string, page: number = 1, limit: number = 50): Promise<WorkbookSheetsResponse> {
   try {
