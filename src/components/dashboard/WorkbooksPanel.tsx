@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, FolderOpen, Loader2, Plus, X } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, FolderOpen, Loader2, Plus, Trash2, X } from "lucide-react";
 import {
   createWorkbook,
+  deleteWorkbook,
   listWorkbooks,
   listWorkbookSheets,
   type WorkbookItem,
@@ -22,6 +23,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -99,6 +101,25 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
       setOpeningId(null);
     }
   };
+
+  const handleDelete = async (wb: WorkbookItem) => {
+    if (!window.confirm(`Delete workbook "${wb.name}"? This cannot be undone.`)) return;
+    setDeletingId(wb.id);
+    try {
+      const ok = await deleteWorkbook(wb.id);
+      if (ok) {
+        trackEvent("workbook.delete", { component: "WorkbooksPanel", workbook_id: wb.id });
+        toast.success("Workbook deleted");
+        setWorkbooks(prev => prev.filter(w => w.id !== wb.id));
+        setTotal(prev => Math.max(0, prev - 1));
+      } else {
+        toast.error("Failed to delete workbook");
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
 
   const q = query.trim().toLowerCase();
   const visible = q
@@ -206,18 +227,33 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
                       {new Date(wb.updated_at || wb.created_at).toLocaleString()}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => openWorkbook(wb)}
-                        disabled={openingId === wb.id}
-                        className="dash-btn-primary h-7 px-3 text-[12px] disabled:opacity-60"
-                        title="Open all sheets in this workbook"
-                      >
-                        {openingId === wb.id
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <FolderOpen className="h-3.5 w-3.5" />}
-                        Open
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openWorkbook(wb)}
+                          disabled={openingId === wb.id}
+                          className="dash-btn-primary h-7 px-3 text-[12px] disabled:opacity-60"
+                          title="Open all sheets in this workbook"
+                        >
+                          {openingId === wb.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <FolderOpen className="h-3.5 w-3.5" />}
+                          Open
+                        </button>
+                        {own && (
+                          <button
+                            onClick={() => handleDelete(wb)}
+                            disabled={deletingId === wb.id}
+                            className="dash-btn-ghost h-7 px-2 text-[12px] text-destructive disabled:opacity-60"
+                            title="Delete this workbook"
+                          >
+                            {deletingId === wb.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Trash2 className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
+                      </div>
                     </td>
+
                   </tr>
                 );
               })}
