@@ -57,8 +57,13 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   }, [page, mode, trimmedQuery]);
 
   const isOwn = useCallback(
-    (email?: string) => !!email && !!user?.email && email.toLowerCase() === user.email.toLowerCase(),
-    [user?.email]
+    (workbook: WorkbookItem) => {
+      if (workbook.user_id && user?.id && String(workbook.user_id) === String(user.id)) return true;
+      const ownerEmail = workbook.owner_email?.trim().toLowerCase();
+      const userEmail = user?.email?.trim().toLowerCase();
+      return !!ownerEmail && !!userEmail && ownerEmail === userEmail;
+    },
+    [user?.id, user?.email]
   );
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -68,9 +73,9 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     setCreating(true);
     try {
       const created = await createWorkbook(name, newDescription.trim());
-      // The API may not return owner_email on create — stamp it so the
-      // panel immediately recognizes it as yours (editable, not read-only).
-      const wb = created ? { ...created, owner_email: created.owner_email || user?.email } : null;
+      // Create responses can omit or return a stale owner field. The active
+      // authenticated user is always the owner of a workbook they just made.
+      const wb = created ? { ...created, user_id: user?.id, owner_email: user?.email } : null;
       if (wb) {
         trackEvent("workbook.create", { component: "WorkbooksPanel", workbook_id: wb.id, workbook_name: wb.name });
         toast.success("Workbook created");
@@ -102,7 +107,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
         openSheets([], { id: wb.id, name: wb.name });
         return;
       }
-      const readOnly = !isOwn(wb.owner_email);
+      const readOnly = !isOwn(wb);
       trackEvent("workbook.open_all", { component: "WorkbooksPanel", workbook_id: wb.id, sheet_count: sheets.length, read_only: readOnly });
       openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly, workbookId: wb.id, workbookName: wb.name })));
     } catch {
@@ -213,7 +218,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
             </thead>
             <tbody>
               {workbooks.map((wb) => {
-                const own = isOwn(wb.owner_email);
+                const own = isOwn(wb);
                 return (
                   <tr
                     key={wb.id}
