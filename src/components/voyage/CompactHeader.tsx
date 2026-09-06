@@ -2,6 +2,7 @@ import { Ship, FileText, LogOut, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { CompareSheetsLauncher } from "@/components/compare/CompareSheetsLauncher";
+import { CopySheetsLauncher } from "@/components/compare/CopySheetsLauncher";
 import { useSheets } from "@/context/sheetContextCore";
 
 export function CompactHeader() {
@@ -43,6 +44,7 @@ export function CompactHeader() {
           </Link>
         )}
         <div className="flex items-center h-7 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors font-medium">
+          <CopySheetsLauncher variant="compact" />
           <CompareSheetsLauncher variant="compact" />
         </div>
         <button
