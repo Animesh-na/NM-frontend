@@ -155,7 +155,6 @@ export default function Dashboard() {
     received_fixtures: "Received Fixtures",
     cargoes: "Cargo List",
     users: "Organization Users",
-    org: "Organization Sheets",
     fleet_in_service: "Fleet in Service",
     scheduled_deliveries: "Scheduled Deliveries",
     demolitions: "Orderbook Demolitions",
