@@ -88,7 +88,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     try {
       const res = await listWorkbookSheets(wb.id, 1, SHEETS_PER_PAGE);
       if (requestId !== openRequestRef.current) return;
-      const sheets = (res.sheets || []).filter(sheet => !sheet.workbook_id || sheet.workbook_id === wb.id);
+      const sheets = (res.sheets || []).filter(sheet => String(sheet.workbook_id || "") === String(wb.id));
       if (!sheets.length) {
         trackEvent("workbook.open_empty", { component: "WorkbooksPanel", workbook_id: wb.id });
         toast.info("This workbook is empty — a new sheet was created");
