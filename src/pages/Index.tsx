@@ -14,11 +14,11 @@ import { SectionFrame } from "@/components/voyage/SectionFrame";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { Loader2, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { Loader2, PanelRightClose, PanelRightOpen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
-  const { activeTab, activeTabIndex, saveCurrentSheet, markDirty, updateTabData } = useSheets();
+  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, updateTabData } = useSheets();
   const { user } = useAuth();
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
@@ -226,6 +226,16 @@ const Index = () => {
           <span>Session: {new Date().toLocaleTimeString()}</span>
         </div>
         <div className="flex items-center gap-1.5">
+          {activeTab && !activeTab.readOnly && (
+            <button
+              className="bg-destructive/80 hover:bg-destructive text-destructive-foreground px-3 py-1 rounded-lg text-[10px] font-semibold transition-colors flex items-center gap-1"
+              onClick={deleteCurrentSheet}
+              title="Delete Sheet"
+            >
+              <Trash2 className="h-3 w-3" />
+              <span>Delete Sheet</span>
+            </button>
+          )}
           {!activeTab?.readOnly && <button
             className="bg-white/15 hover:bg-white/25 text-primary-foreground px-3 py-1 rounded-lg text-[10px] font-semibold transition-colors flex items-center gap-1"
             onClick={() => {
