@@ -227,18 +227,33 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
                       {new Date(wb.updated_at || wb.created_at).toLocaleString()}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => openWorkbook(wb)}
-                        disabled={openingId === wb.id}
-                        className="dash-btn-primary h-7 px-3 text-[12px] disabled:opacity-60"
-                        title="Open all sheets in this workbook"
-                      >
-                        {openingId === wb.id
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <FolderOpen className="h-3.5 w-3.5" />}
-                        Open
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openWorkbook(wb)}
+                          disabled={openingId === wb.id}
+                          className="dash-btn-primary h-7 px-3 text-[12px] disabled:opacity-60"
+                          title="Open all sheets in this workbook"
+                        >
+                          {openingId === wb.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <FolderOpen className="h-3.5 w-3.5" />}
+                          Open
+                        </button>
+                        {own && (
+                          <button
+                            onClick={() => handleDelete(wb)}
+                            disabled={deletingId === wb.id}
+                            className="dash-btn-ghost h-7 px-2 text-[12px] text-destructive disabled:opacity-60"
+                            title="Delete this workbook"
+                          >
+                            {deletingId === wb.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Trash2 className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
+                      </div>
                     </td>
+
                   </tr>
                 );
               })}
