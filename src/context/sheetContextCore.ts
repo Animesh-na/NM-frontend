@@ -35,6 +35,7 @@ export interface SheetContextValue {
 
   closeTab: (index: number) => boolean; // returns false if user cancels
   saveCurrentSheet: (name: string, data: Record<string, unknown>, workbookId?: string | null) => Promise<void>;
+  deleteCurrentSheet: () => Promise<void>;
   markDirty: () => void;
   goToDashboard: () => void;
   renameTab: (index: number, name: string) => void;

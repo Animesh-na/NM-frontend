@@ -1,6 +1,6 @@
 import { useState, useCallback, type ReactNode } from "react";
 import { SheetContext, type SheetTab } from "@/context/sheetContextCore";
-import { getSheet, saveSheet, updateSheet, type SheetDetail } from "@/services/marineApi";
+import { getSheet, saveSheet, updateSheet, deleteSheet, type SheetDetail } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 import { logger, trackEvent, trackView } from "@/services/logger";
 
