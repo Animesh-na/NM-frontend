@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSheets } from "@/context/sheetContextCore";
-import { listOrganizationSheets, listOrganizationUsers, listUserSheets, deleteSheet, type SheetListItem, type OrganizationUser } from "@/services/marineApi";
+import { listOrganizationUsers, listUserSheets, type SheetListItem, type OrganizationUser } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
 import MfaManageDialog from "@/components/mfa/MfaManageDialog";
 import MfaSetupGate from "@/components/mfa/MfaSetupGate";
@@ -48,43 +48,20 @@ export default function Dashboard() {
       setReturnSection(null);
     }
   }, [returnSection, setReturnSection]);
-  const [sheets, setSheets] = useState<SheetListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [query, setQuery] = useState("");
   const [orgUsers, setOrgUsers] = useState<OrganizationUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | number | null>(null);
   const [userSheetsMap, setUserSheetsMap] = useState<Record<string, { loading: boolean; sheets: SheetListItem[]; page: number; total: number }>>({});
-  const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
   const MARKET_SECTIONS: DashSection[] = [
     "fixtures", "received_fixtures", "cargoes", "flows", "fleet_in_service", "scheduled_deliveries", "demolitions", "valuations",
   ];
   const isMarketSection = MARKET_SECTIONS.includes(section);
-  const tab: "users" | "org" = section === "users" ? "users" : "org";
-
-  const fetchSheets = useCallback(async () => {
-    if (section !== "org") return;
-    setLoading(true);
-    try {
-      const res = await listOrganizationSheets(page, ITEMS_PER_PAGE);
-      setSheets(res.sheets || []);
-      setTotal(res.pagination?.total || 0);
-    } catch {
-      toast.error("Failed to load sheets");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, tab, mode, section]);
-
-  useEffect(() => {
-    fetchSheets();
-  }, [fetchSheets]);
+  const tab: "users" = "users";
 
   // Fetch organization users when switching to the Users tab
   useEffect(() => {
-    if (tab !== "users") return;
+    if (section !== "users") return;
     void mode; // refetch when sector mode changes
     let cancelled = false;
     (async () => {
