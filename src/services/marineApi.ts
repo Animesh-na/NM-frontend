@@ -491,6 +491,20 @@ export async function listWorkbooks(page: number = 1, limit: number = 10): Promi
   }
 }
 
+// Search workbooks by name/owner (mode-scoped, e.g. /dry-bulk/workbooks/search?q=voyage)
+export async function searchWorkbooks(query: string, page: number = 1, limit: number = 10): Promise<WorkbookListResponse> {
+  try {
+    return await apiRequest<WorkbookListResponse>(
+      modePath("/workbooks/search"),
+      { q: query.trim(), page, limit },
+      { authenticated: true }
+    );
+  } catch (error) {
+    console.error("Failed to search workbooks:", error);
+    return { workbooks: [], pagination: { total: 0, page, limit, total_pages: 1 } };
+  }
+}
+
 // Create a new workbook (mode-scoped, e.g. /dry-bulk/workbooks)
 export async function createWorkbook(name: string, description?: string): Promise<WorkbookItem | null> {
   try {
