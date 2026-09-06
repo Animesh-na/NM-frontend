@@ -49,7 +49,8 @@ const Index = () => {
     departureUtc: voyage.departureUtc,
     autoDistanceEnabled: voyage.autoDistanceEnabled,
     notes: voyage.notes,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.autoDistanceEnabled, voyage.notes]);
+    charterer: voyage.charterer,
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.autoDistanceEnabled, voyage.notes, voyage.charterer]);
 
   // Snapshot current voyage data back to the previous tab when switching tabs
   useEffect(() => {
