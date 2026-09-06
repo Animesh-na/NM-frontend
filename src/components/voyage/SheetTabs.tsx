@@ -1,4 +1,4 @@
-import { X, ArrowLeft, Save, Copy, Calculator, Plus, BookOpen } from "lucide-react";
+import { X, ArrowLeft, Save, Copy, Calculator, Plus } from "lucide-react";
 import { useSheets } from "@/context/sheetContextCore";
 import { useEffect, useRef, useState } from "react";
 import { useVoyageContext } from "@/context/VoyageContext";
@@ -80,17 +80,6 @@ export function SheetTabs() {
         </div>
       ))}
       </div>
-
-      {/* Workbook name */}
-      {activeTab?.workbookName && (
-        <span
-          className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--dash-bg))] border border-[hsl(var(--dash-border))] text-[10px] font-semibold text-foreground flex-shrink-0 ml-1 max-w-[180px]"
-          title={`Workbook: ${activeTab.workbookName}`}
-        >
-          <BookOpen className="h-3 w-3 text-[hsl(var(--ocean))]" />
-          <span className="truncate">{activeTab.workbookName}</span>
-        </span>
-      )}
 
       {/* Copy Sheet Button */}
       {activeTab && (
