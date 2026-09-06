@@ -278,7 +278,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     <SheetContext.Provider value={{
       currentView, setCurrentView,
       tabs, activeTabIndex, setActiveTabIndex, activeTab,
-      createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
+      createNewSheet, copyCurrentSheet, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
       compareSheetIds, openCompare,
     }}>
       {children}
