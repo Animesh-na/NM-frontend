@@ -116,10 +116,12 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
       const isSheetOwn = (s: WorkbookSheetItem) => {
         if (s.user_id && userId && String(s.user_id) === userId) return true;
         const ownerEmail = s.owner_email?.trim().toLowerCase();
-        return !!ownerEmail && !!userEmail && ownerEmail === userEmail;
+        if (ownerEmail && userEmail) return ownerEmail === userEmail;
+        // No creator info on the sheet — fall back to workbook ownership.
+        return !wbReadOnly;
       };
       trackEvent("workbook.open_all", { component: "WorkbooksPanel", workbook_id: wb.id, sheet_count: sheets.length, read_only: wbReadOnly });
-      openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly: wbReadOnly && !isSheetOwn(s), workbookId: wb.id, workbookName: wb.name })));
+      openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly: !isSheetOwn(s), workbookId: wb.id, workbookName: wb.name })));
     } catch {
       if (requestId === openRequestRef.current) toast.error("Failed to load workbook sheets");
     } finally {
