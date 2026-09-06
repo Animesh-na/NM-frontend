@@ -76,23 +76,7 @@ export default function Dashboard() {
       }
     })();
     return () => { cancelled = true; };
-  }, [tab, mode]);
-
-  // Reset to page 1 when switching tabs or sector mode
-  useEffect(() => { setPage(1); }, [tab, mode]);
-
-  const handleOpen = (sheet: SheetListItem) => {
-    const isOwn = !!sheet.owner_email && !!user?.email && sheet.owner_email.toLowerCase() === user.email.toLowerCase();
-    trackEvent("sheet.open", {
-      component: "Dashboard", sheet_id: sheet.id, sheet_name: sheet.name,
-      source: tab, read_only: tab === "org" && !isOwn, mode,
-    });
-    if (tab === "org" && !isOwn) {
-      openOrganizationSheet(sheet.id, sheet.name);
-    } else {
-      openSheet(sheet.id, sheet.name);
-    }
-  };
+  }, [section, mode]);
 
   const handleOpenUserSheet = (sheet: SheetListItem, ownerEmail: string) => {
     const isOwn = !!user?.email && ownerEmail.toLowerCase() === user.email.toLowerCase();
