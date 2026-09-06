@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Loader2 } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Loader2, Plus, X } from "lucide-react";
 import {
+  createWorkbook,
   listWorkbooks,
   listWorkbookSheets,
   type WorkbookItem,
