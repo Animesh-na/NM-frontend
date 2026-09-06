@@ -49,7 +49,8 @@ const Index = () => {
     departureUtc: voyage.departureUtc,
     autoDistanceEnabled: voyage.autoDistanceEnabled,
     notes: voyage.notes,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.autoDistanceEnabled, voyage.notes]);
+    charterer: voyage.charterer,
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.autoDistanceEnabled, voyage.notes, voyage.charterer]);
 
   // Snapshot current voyage data back to the previous tab when switching tabs
   useEffect(() => {
@@ -99,6 +100,7 @@ const Index = () => {
       if (d.departureUtc !== undefined) voyage.setDepartureUtc(d.departureUtc as string);
       voyage.setAutoDistanceEnabled(d.autoDistanceEnabled === true);
       voyage.setNotes(typeof d.notes === "string" ? d.notes : "");
+      voyage.setCharterer(typeof d.charterer === "string" ? d.charterer : "");
     } else {
       // New empty sheet — reset all state
       resetState();
@@ -133,7 +135,7 @@ const Index = () => {
       markDirty();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.departureUtc, voyage.notes]);
+  }, [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.departureUtc, voyage.notes, voyage.charterer]);
 
   if (activeTab?.isLoading) {
     return (
