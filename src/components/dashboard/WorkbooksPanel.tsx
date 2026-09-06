@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Loader2 } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Loader2, Plus, X } from "lucide-react";
 import {
+  createWorkbook,
   listWorkbooks,
   listWorkbookSheets,
   type WorkbookItem,
@@ -29,6 +30,10 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
   const [total, setTotal] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sheetsMap, setSheetsMap] = useState<Record<string, SheetsEntry>>({});
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
@@ -56,6 +61,31 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     (email?: string) => !!email && !!user?.email && email.toLowerCase() === user.email.toLowerCase(),
     [user?.email]
   );
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name) { toast.error("Workbook name is required"); return; }
+    setCreating(true);
+    try {
+      const wb = await createWorkbook(name, newDescription.trim());
+      if (wb) {
+        trackEvent("workbook.create", { component: "WorkbooksPanel", workbook_id: wb.id, workbook_name: wb.name });
+        toast.success("Workbook created");
+        setWorkbooks(prev => [wb, ...prev]);
+        setTotal(prev => prev + 1);
+        setNewName("");
+        setNewDescription("");
+        setShowCreate(false);
+      } else {
+        toast.error("Failed to create workbook");
+      }
+    } catch {
+      toast.error("Failed to create workbook");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const loadSheets = useCallback(async (wb: WorkbookItem) => {
     setSheetsMap(m => ({ ...m, [wb.id]: { loading: true, sheets: m[wb.id]?.sheets || [], total: m[wb.id]?.total || 0 } }));
@@ -112,6 +142,54 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
 
   return (
     <>
+      <div className="mb-3 flex items-center justify-between">
+        {!showCreate ? (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="dash-btn-primary h-8 px-3 text-[12px]"
+            title="Create a new workbook"
+          >
+            <Plus className="h-3.5 w-3.5" /> New Workbook
+          </button>
+        ) : (
+          <form onSubmit={handleCreate} className="flex w-full items-start gap-2">
+            <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Workbook name"
+                className="dash-input h-8 flex-1 text-[12px]"
+                disabled={creating}
+                required
+              />
+              <input
+                type="text"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Description (optional)"
+                className="dash-input h-8 flex-1 text-[12px]"
+                disabled={creating}
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button type="submit" disabled={creating} className="dash-btn-primary h-8 px-3 text-[12px]">
+                {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Create
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowCreate(false); setNewName(""); setNewDescription(""); }}
+                disabled={creating}
+                className="dash-btn-ghost h-8 px-2"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
       <div className="dash-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-[13px]">
