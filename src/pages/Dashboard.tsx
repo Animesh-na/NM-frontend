@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, Fragment, Suspense, lazy, useMemo } from "react";
 import {
-  Ship, Plus, FileText, ChevronLeft, ChevronRight, Loader2, Trash2, Users, ChevronDown,
+  Ship, FileText, ChevronLeft, ChevronRight, Loader2, Trash2, Users, ChevronDown,
   UserCircle2, Search, LogOut, Shield, ShieldCheck, Anchor, Fuel, Leaf, DollarSign, ScrollText, Menu, Package, ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -463,7 +463,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            {(section === "mine" || section === "org" || section === "workbooks") && (
+            {(section === "org" || section === "workbooks") && (
               <div className="relative hidden md:block">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 dash-muted" />
                 <input
@@ -504,10 +504,6 @@ export default function Dashboard() {
               })}
             </div>
             <CompareSheetsLauncher variant="dashboard" />
-            <button onClick={handleCreate} className="dash-btn-primary">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Sheet</span>
-            </button>
           </div>
         </header>
 
@@ -517,7 +513,6 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-2">
               {([
                 ["overview", "Overview", Ship],
-                ["mine", "My Sheets", FileText],
                 ["workbooks", "Workbooks", FileText],
                 ["fixtures", "Fixtures", ClipboardList],
                 ["received_fixtures", "Received Fixtures", ClipboardList],
