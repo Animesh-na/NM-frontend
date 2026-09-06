@@ -253,6 +253,10 @@ interface VoyageContextValue {
   // Vessel cost (global)
   vesselCost: number;
   setVesselCost: (cost: number) => void;
+
+  // Linked charterer (company name from companies API)
+  charterer: string;
+  setCharterer: (name: string) => void;
   
   // Bunker state
   bunker: BunkerState;
@@ -867,6 +871,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   );
   const [vesselCost, setVesselCost] = useState(() =>
     initialData?.vesselCost != null ? Number(initialData.vesselCost) : 6500
+  );
+  const [charterer, setCharterer] = useState<string>(() =>
+    typeof initialData?.charterer === "string" ? initialData.charterer : ""
   );
   const [autoDistanceEnabled, setAutoDistanceEnabled] = useState(() =>
     initialData?.autoDistanceEnabled === true
@@ -2008,6 +2015,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         updateCargoOpOverride,
         vesselCost,
         setVesselCost,
+        charterer,
+        setCharterer,
         bunker,
         setBunker,
         updateBunker,
@@ -2083,6 +2092,8 @@ export function useVoyageContext() {
       updateCargoOpOverride: () => {},
       vesselCost: 0,
       setVesselCost: () => {},
+      charterer: "",
+      setCharterer: () => {},
       bunker: { 
         hsfo: { price: 0, robStart: 0 }, 
         vlsfo: { price: 0, robStart: 0 }, 

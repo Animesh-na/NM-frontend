@@ -145,6 +145,26 @@ export async function searchPorts(query: string, limit: number = 10): Promise<Ma
   }
 }
 
+// 3b. Search Companies (charterers/owners/operators)
+export interface MarineCompany {
+  company: string;
+  type: string[];
+}
+
+export async function searchCompanies(query: string, limit: number = 5, type?: string): Promise<MarineCompany[]> {
+  try {
+    const data = await apiRequest<{ companies: MarineCompany[] }>(
+      "/companies",
+      { q: query, limit, type: type ?? "" },
+      { authenticated: true }
+    );
+    return data.companies || [];
+  } catch (error) {
+    console.error("Failed to search companies:", error);
+    return [];
+  }
+}
+
 // 4. Sea Route Distance Calculation
 export interface SeaRouteResponse {
   total_distance_nm: number;
