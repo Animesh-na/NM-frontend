@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { DashSection } from "@/components/dashboard/DashboardSidebar";
 
 export interface SheetTab {
   id: string | null; // null = unsaved new sheet
