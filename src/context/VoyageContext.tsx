@@ -1956,14 +1956,16 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     }
     issues.push(...validateCargos(cargos, loaded, disch));
 
-    // Header-derived cargo numbers (GTC, Gross BB)
-    const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
-    const gtc = tc < 1 ? hireRate / (1 - tc) : 0;
-    const grossBB = tc < 1 ? netBB / (1 - tc) : 0;
-    issues.push(...validateCargoHeader(gtc, grossBB));
+    // Header-derived cargo numbers (GTC, Gross BB) — not applicable in tanker mode
+    if (sectorMode !== "tanker") {
+      const tc = (cargos[0]?.tcCommission ?? 3.75) / 100;
+      const gtc = tc < 1 ? hireRate / (1 - tc) : 0;
+      const grossBB = tc < 1 ? netBB / (1 - tc) : 0;
+      issues.push(...validateCargoHeader(gtc, grossBB));
+    }
 
     return issues;
-  }, [vessel, sequence, cargos, hireRate, netBB]);
+  }, [vessel, sequence, cargos, hireRate, netBB, sectorMode]);
 
   const hasErrors = validationIssues.length > 0;
 
