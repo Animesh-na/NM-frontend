@@ -854,9 +854,18 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   const [sequence, setSequence] = useState<SequenceRowUI[]>(() =>
     (initialData?.sequence as SequenceRowUI[]) || initialSequence
   );
-  const [cargos, setCargos] = useState<CargoEntry[]>(() =>
-    (initialData?.cargos as CargoEntry[]) || initialCargos
-  );
+  const [cargos, setCargosRaw] = useState<CargoEntry[]>(() => {
+    const fromData = initialData?.cargos as CargoEntry[] | undefined;
+    return Array.isArray(fromData) && fromData.length > 0 ? fromData : initialCargos;
+  });
+  // A sheet must always carry at least one cargo — saved sheets with an empty
+  // cargo list (possible on tanker sheets) fall back to the default cargo.
+  const setCargos = useCallback<React.Dispatch<React.SetStateAction<CargoEntry[]>>>((value) => {
+    setCargosRaw((prev) => {
+      const next = typeof value === "function" ? (value as (p: CargoEntry[]) => CargoEntry[])(prev) : value;
+      return Array.isArray(next) && next.length > 0 ? next : initialCargos;
+    });
+  }, []);
   const [bunker, setBunker] = useState<BunkerState>(() =>
     initialData?.bunker ? { ...initialBunker, ...(initialData.bunker as Partial<BunkerState>) } : initialBunker
   );
