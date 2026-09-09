@@ -186,6 +186,7 @@ export interface CargoEntry {
     extraTime?: number;
     terms?: string;
     coefficientFactor?: number;
+    layTime?: number;
   }>;
   /**
    * Cargo-level OPERATIONAL overrides for assigned sequence rows.
