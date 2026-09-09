@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle, ArrowUp, ArrowDown, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
@@ -17,6 +17,7 @@ import { estimateCubicFromDwt } from "@/utils/draftRestriction";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { CustomTermsDialog } from "./CustomTermsDialog";
 import { PortDaDialog } from "./PortDaDialog";
+import { DaSplitDialog } from "./DaSplitDialog";
 
 import { getCargoRowMap } from "@/utils/cargoRowMapping";
 import { toast } from "@/hooks/use-toast";
@@ -113,6 +114,7 @@ export function SequenceTable() {
   const [isExpanded, setIsExpanded] = useState(true);
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const [daPort, setDaPort] = useState<{ rowId: number; port: string } | null>(null);
+  const [daSplitRowId, setDaSplitRowId] = useState<number | null>(null);
 
   const [customTermsRowId, setCustomTermsRowId] = useState<number | null>(null);
   const [savedCustomTerms, setSavedCustomTerms] = useState<{ name: string; coefficient: number }[]>([]);
