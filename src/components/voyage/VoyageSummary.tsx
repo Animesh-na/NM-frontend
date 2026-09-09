@@ -200,17 +200,11 @@ export function VoyageSummary() {
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                NTCE
-                <InfoTooltip formula="(Net Freight - Voyage Cost Excl Hire) / Total Days" description="Net Time Charter Equivalent - daily earning after all costs" />
-              </span>
+              <span className="text-muted-foreground flex items-center">NTCE</span>
               <span className={`font-mono tabular-nums font-semibold ${signColor(results.ntce)}`}>${formatCurrency(results.ntce)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                GTCE
-                <InfoTooltip formula="NTCE / (1 - TC Commission%)" description="Gross Time Charter Equivalent - NTCE grossed up by TC commission" />
-              </span>
+              <span className="text-muted-foreground flex items-center">GTCE</span>
               <span className={`font-mono tabular-nums font-semibold ${signColor(results.gtce)}`}>${formatCurrency(results.gtce)}</span>
             </div>
           </div>
@@ -236,13 +230,7 @@ export function VoyageSummary() {
                   </div>
                   {laytimeMode !== "cancelled" && (Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
                     <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1 ml-2">
-                      <span className="text-muted-foreground flex items-center font-semibold">
-                        Cargo {c.cargoLabel} Extra time
-                        <InfoTooltip
-                          formula="Σ CP cargo port days − Σ operational cargo port days for this cargo. Positive = despatch, negative = demurrage."
-                          description="Per-cargo laytime outcome. Demurrage adds to / Despatch deducts from freight earnings."
-                        />
-                      </span>
+                      <span className="text-muted-foreground flex items-center font-semibold">Cargo {c.cargoLabel} Extra time</span>
                       <span className="font-mono tabular-nums font-bold">
                         <span className={c.extraDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(c.extraDays)} d</span>
                         {(c.despatch || 0) > 0 && <span className="text-destructive"> / Despatch : $ {formatCurrency(c.despatch || 0)}</span>}
@@ -272,51 +260,27 @@ export function VoyageSummary() {
               })
             ) : (
               <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
-                <span className="text-muted-foreground flex items-center font-semibold">
-                  Gross Rate
-                  <InfoTooltip 
-                    formula="(Voyage Cost Incl Hire / Load Qty) / (1 - Voyage Commission%)" 
-                    description="Breakeven freight rate per MT including hire and commission"
-                  />
-                </span>
+                <span className="text-muted-foreground flex items-center font-semibold">Gross Rate</span>
                 <span className={`font-mono tabular-nums font-bold ${signColor(results.grossRate)}`}>
                   ${formatCurrency(results.grossRate)} /mt
                 </span>
               </div>
             )}
             <div className="flex justify-between bg-success/10 rounded-sm px-1 py-0.5 -mx-1">
-              <span className="text-muted-foreground flex items-center font-semibold">
-                P&L
-                <InfoTooltip 
-                  formula="Net Freight − Voyage Cost Incl Hire (Demurrage already added to / Despatch deducted from Gross Freight)"
-                  description="Profit & Loss for the voyage"
-                />
-              </span>
+              <span className="text-muted-foreground flex items-center font-semibold">P&L</span>
               <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL)}`}>
                 ${formatCurrency(results.pAndL)}
               </span>
             </div>
             <div className="flex justify-between bg-success/5 rounded-sm px-1 py-0.5 -mx-1">
-              <span className="text-muted-foreground flex items-center font-semibold">
-                P&L/d
-                <InfoTooltip 
-                  formula="P&L / Total Voyage Days"
-                  description="Profit & Loss per day for the voyage"
-                />
-              </span>
+              <span className="text-muted-foreground flex items-center font-semibold">P&L/d</span>
               <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL / (results.totalVoyageDays || 1))}`}>
                 ${formatCurrency(results.totalVoyageDays > 0 ? results.pAndL / results.totalVoyageDays : 0)}
               </span>
             </div>
             {showLaytimeImpact && (
               <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1">
-                <span className="text-muted-foreground flex items-center font-semibold">
-                  Extra time
-                  <InfoTooltip
-                    formula="Σ CP cargo port days − Σ operational cargo port days. Positive = despatch, negative = demurrage."
-                    description="Only load/discharge rows shown in Cargo are included. Passing/bunker/other ports are excluded."
-                  />
-                </span>
+                <span className="text-muted-foreground flex items-center font-semibold">Extra time</span>
                 <span className="font-mono tabular-nums font-bold">
                   <span className={totalExtraDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(totalExtraDays)} d</span>
                   {totalDespatch > 0 && <span className="text-destructive"> / Despatch : $ {formatCurrency(totalDespatch)}</span>}
@@ -326,19 +290,13 @@ export function VoyageSummary() {
             )}
             <div className="flex justify-between gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">
-                  Net Frt
-                  <InfoTooltip formula="Gross Freight × (1 - Commission%)" description="Freight after deducting commissions" />
-                </span>
+                <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">Net Frt</span>
                 <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 leading-tight whitespace-nowrap">
                   ${formatCurrency(results.netFreight)}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">
-                  Gross Frt
-                  <InfoTooltip formula="Rate × Quantity (or Lumpsum)" description="Total freight before commissions" />
-                </span>
+                <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">Gross Frt</span>
                 <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 leading-tight whitespace-nowrap">
                   ${formatCurrency(results.grossFreight)}
                 </span>
@@ -350,13 +308,7 @@ export function VoyageSummary() {
         {/* Bunker Summary */}
         <div className="space-y-1">
           <div className="flex justify-between border-b border-border pb-1">
-            <span className="font-medium flex items-center">
-              Bunker cost
-              <InfoTooltip 
-                formula="(HSFO × Price) + (VLSFO × Price) + (LSMGO × Price)" 
-                description="Total fuel cost (excluding CO₂)"
-              />
-            </span>
+            <span className="font-medium flex items-center">Bunker cost</span>
             <span className="font-mono tabular-nums font-semibold">
               ${formatCurrency(results.totalBunkerCost)}
             </span>
