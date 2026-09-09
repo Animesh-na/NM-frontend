@@ -204,6 +204,7 @@ export interface CargoEntry {
     coefficientFactor?: number;
     cranes?: number;
     expDa?: number;
+    layTime?: number;
   }>;
 }
 
