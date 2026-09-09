@@ -341,35 +341,17 @@ export function VoyageSummary() {
             <span className="font-medium">Environmental</span>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-            <span className="text-muted-foreground flex items-center">
-              EEOI
-              <InfoTooltip 
-                formula="Total CO₂ / (Cargo Qty × Total Distance) × 1,000,000" 
-                description="Energy Efficiency Operational Indicator"
-              />
-            </span>
+            <span className="text-muted-foreground flex items-center">EEOI</span>
             <span className="font-mono tabular-nums text-right">
               {results.efoi.toFixed(2)} gCO₂/tnm
             </span>
-            <span className="text-muted-foreground flex items-center">
-              AER/CII
-              <InfoTooltip 
-                formula="Total CO₂ / (DWT × Total Distance) × 1,000,000" 
-                description="Annual Efficiency Ratio / Carbon Intensity Indicator"
-              />
-            </span>
+            <span className="text-muted-foreground flex items-center">AER/CII</span>
             <span className="font-mono tabular-nums text-right">
               {results.afrCii.toFixed(2)} gCO₂/dwt-nm
             </span>
           </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
-            <span className="font-medium flex items-center">
-              Estimated Voyage CII Rating
-              <InfoTooltip 
-                formula="Rating = Actual CII / Required CII. A (≤82%), B (82-93%), C (93-108%), D (108-120%), E (>120%)" 
-                description="IMO CII rating based on ratio of actual to required CII for the vessel type and year"
-              />
-            </span>
+            <span className="font-medium flex items-center">Estimated Voyage CII Rating</span>
             <span className={`px-2 py-0.5 rounded font-bold ${
               results.ciiRating === "A" || results.ciiRating === "B" 
                 ? "bg-success text-success-foreground"
@@ -410,13 +392,7 @@ export function VoyageSummary() {
           {/* CO2 totals */}
           <div className="mt-1 space-y-0.5">
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                Total CO₂
-                <InfoTooltip 
-                  formula="(HSFO × 3.114) + (VLSFO × 3.151) + (LSMGO × 3.206)" 
-                  description="CO₂ emissions using IMO emission factors"
-                />
-              </span>
+              <span className="text-muted-foreground flex items-center">Total CO₂</span>
               <span className="font-mono tabular-nums">
                 {results.totalCo2.toFixed(2)} t
               </span>
@@ -434,13 +410,7 @@ export function VoyageSummary() {
               <span className="font-mono">{(results.etsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.etsPhaseIn * 100).toFixed(0)}%)</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                EUA CO₂
-                <InfoTooltip 
-                  formula="Total CO₂ × Voyage Coverage × Phase-In %" 
-                  description="Chargeable CO₂ under EU ETS after coverage and phase-in"
-                />
-              </span>
+              <span className="text-muted-foreground flex items-center">EUA CO₂</span>
               <span className="font-mono tabular-nums">
                 {results.chargeableCo2.toFixed(2)} t
               </span>
@@ -459,13 +429,7 @@ export function VoyageSummary() {
               <span className="font-medium">EUA Freight Impact</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground flex items-center">
-                EUA Freight Impact
-                <InfoTooltip
-                  formula="EUA CO₂ Cost / Cargo Quantity"
-                  description="EU ETS cost per metric ton of cargo"
-                />
-              </span>
+              <span className="text-muted-foreground flex items-center">EUA Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.euaFreightImpact.toFixed(2)} /mt
               </span>
@@ -492,13 +456,7 @@ export function VoyageSummary() {
               <CoverageInfoButton mode="uk" results={results} />
             </div>
             <div className="flex justify-between text-[10px]">
-              <span className="text-muted-foreground flex items-center">
-                UK ETS Coverage
-                <InfoTooltip
-                  formula="GB↔GB=100%, NI↔NI=100%, GB↔NI=50%, else 0%. Port stay = 100% if uk_ets."
-                  description="UK ETS uses uk_zone (gb/ni) for sea legs and uk_ets flag for port stays."
-                />
-              </span>
+              <span className="text-muted-foreground flex items-center">UK ETS Coverage</span>
               <span className="font-mono">
                 {(results.ukEtsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.ukEtsPhaseIn * 100).toFixed(0)}%)
               </span>
@@ -516,13 +474,7 @@ export function VoyageSummary() {
               </span>
             </div>
             <div className="flex justify-between items-center pt-1">
-              <span className="text-muted-foreground flex items-center">
-                UK ETS Freight Impact
-                <InfoTooltip
-                  formula="UK ETS Cost / Cargo Quantity"
-                  description="UK ETS cost per metric ton of cargo"
-                />
-              </span>
+              <span className="text-muted-foreground flex items-center">UK ETS Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.ukEtsFreightImpact.toFixed(2)} /mt
               </span>
@@ -578,13 +530,7 @@ export function VoyageSummary() {
                     <span className="font-mono">${f.costPerTon.toFixed(2)} /t</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground flex items-center">
-                      {fuel.toUpperCase()} Cost
-                      <InfoTooltip 
-                        formula={`${f.euQuantity.toFixed(1)}t × $${f.costPerTon.toFixed(2)}/t`}
-                        description={`EU Qty: ${f.euQuantity.toFixed(1)}t × Cost/ton: $${f.costPerTon.toFixed(2)}`}
-                      />
-                    </span>
+                    <span className="text-muted-foreground flex items-center">{fuel.toUpperCase()} Cost</span>
                     <span className="font-mono tabular-nums">
                       ${formatCurrency(f.cost)}
                     </span>
@@ -605,13 +551,7 @@ export function VoyageSummary() {
           {/* FuelEU Freight Impact with checkbox */}
           <div className="mt-1 pt-1 border-t border-border space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground flex items-center">
-                FuelEU Freight Impact
-                <InfoTooltip 
-                  formula="Total FuelEU Penalty / Cargo Quantity" 
-                  description="FuelEU Maritime penalty cost per metric ton of cargo"
-                />
-              </span>
+              <span className="text-muted-foreground flex items-center">FuelEU Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.fuelEuFreightImpact.toFixed(2)} /mt
               </span>
