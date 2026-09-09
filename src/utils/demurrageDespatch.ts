@@ -1,5 +1,6 @@
 import type { CargoEntry, SequenceRowUI } from "@/context/VoyageContext";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
+import { getApiMode } from "@/services/apiMode";
 
 type CpOverride = {
   quantity?: number;
@@ -10,6 +11,7 @@ type CpOverride = {
   extraTime?: number;
   terms?: string;
   coefficientFactor?: number;
+  layTime?: number;
 };
 type OpOverride = {
   quantity?: number;
@@ -18,6 +20,7 @@ type OpOverride = {
   extraTime?: number;
   terms?: string;
   coefficientFactor?: number;
+  layTime?: number;
 };
 
 export interface DemurrageDespatchRow {
