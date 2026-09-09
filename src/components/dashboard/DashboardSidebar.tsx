@@ -21,13 +21,13 @@ interface Props {
   userRole?: string;
 }
 
-const NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
+const getNav = (mode: "dry-bulk" | "tanker"): { key: DashSection; label: string; icon: typeof FileText }[] => [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "workbooks", label: "Workbooks", icon: BookOpen },
   { key: "fixtures", label: "Fixtures", icon: ClipboardList },
   { key: "received_fixtures", label: "Received Fixtures", icon: ClipboardList },
   { key: "cargoes", label: "Cargo List", icon: Package },
-  { key: "flows", label: "Dry Bulk Flows", icon: Waypoints },
+  { key: "flows", label: mode === "tanker" ? "Oil Flows" : "Dry Bulk Flows", icon: Waypoints },
   { key: "users", label: "Organization Users", icon: UserCircle2 },
 ];
 
