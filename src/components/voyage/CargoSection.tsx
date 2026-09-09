@@ -378,7 +378,7 @@ interface CargoEntryCardProps {
   onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
   onOpUpdate: (
     rowId: number,
-    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa" | "layTime",
     value: number | string,
   ) => void;
 }

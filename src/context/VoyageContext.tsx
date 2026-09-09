@@ -253,7 +253,7 @@ interface VoyageContextValue {
   updateCargoOpOverride: (
     cargoId: number,
     rowId: number,
-    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa" | "layTime",
     value: number | string,
   ) => void;
   
@@ -1597,7 +1597,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     (
       cargoId: number,
       rowId: number,
-      field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+      field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa" | "layTime",
       value: number | string,
     ) => {
       // CP baseline always comes live from the Sequence row, so sequence edits keep
