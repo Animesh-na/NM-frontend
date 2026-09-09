@@ -659,20 +659,25 @@ export function SequenceTable() {
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                           (() => { const err = getFieldError("sequence","expDa",row.id); return (
                           <div className="flex items-center gap-0.5">
+                            {(() => {
+                              // Tanker: cell shows total DA (Charterer + Owner); only the
+                              // Owner's Acct. amount (expDa) feeds the calculation.
+                              const ownerAmt = row.daOwnerAcct ?? row.expDa ?? 0;
+                              const totalDa = ownerAmt + (row.daChartererAcct ?? 0);
+                              return (
                             <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err}
-                              title={err || (isTanker ? "Owner's Acct. amount — double-click for DA history, pencil to split" : "Double-click to view port DA history")}
+                              title={err || (isTanker ? `Total DA = Charterer's Acct. + Owner's Acct. — only Owner's Acct. ($${ownerAmt.toLocaleString()}) is used in calculations. Use the pencil to split; double-click for DA history.` : "Double-click to view port DA history")}
                               onDoubleClick={() => { if (row.port) setDaPort({ rowId: row.id, port: row.port }); }}
-                              type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
-                              value={row.expDa || ""}
+                              type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)} ${isTanker ? "bg-muted/40 cursor-default" : ""}`}
+                              value={isTanker ? (totalDa || "") : (row.expDa || "")}
+                              readOnly={isTanker}
                               onChange={(e) => {
-                                const v = parseFloat(e.target.value) || 0;
-                                updateSequenceRow(row.id, "expDa", v);
-                                if (isTanker) {
-                                  // Manual DA edit goes to the owner's account by default.
-                                  updateSequenceRow(row.id, "daOwnerAcct", v);
-                                }
+                                if (isTanker) return;
+                                updateSequenceRow(row.id, "expDa", parseFloat(e.target.value) || 0);
                               }}
                               placeholder="0" />
+                              );
+                            })()}
                             {isTanker && (
                               <button
                                 type="button"
