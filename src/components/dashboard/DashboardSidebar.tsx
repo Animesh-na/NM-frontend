@@ -3,6 +3,7 @@ import {
   LayoutDashboard, FileText, UserCircle2, Shield, ShieldCheck, LogOut, Ship, Package, ClipboardList,
   Anchor, CalendarClock, Recycle, BadgeDollarSign, Waypoints, BookOpen,
 } from "lucide-react";
+import { getApiMode } from "@/services/apiMode";
 
 export type DashSection =
   | "overview" | "workbooks" | "fixtures" | "received_fixtures" | "cargoes" | "users"
