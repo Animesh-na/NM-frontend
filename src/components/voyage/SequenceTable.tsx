@@ -658,11 +658,32 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                           (() => { const err = getFieldError("sequence","expDa",row.id); return (
-                          <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err}
-                            title={err || "Double-click to view port DA history"}
-                            onDoubleClick={() => { if (row.port) setDaPort({ rowId: row.id, port: row.port }); }}
-                            type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
-                            value={row.expDa || ""} onChange={(e) => updateSequenceRow(row.id, "expDa", parseFloat(e.target.value) || 0)} placeholder="0" />
+                          <div className="flex items-center gap-0.5">
+                            <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err}
+                              title={err || (isTanker ? "Owner's Acct. amount — double-click for DA history, pencil to split" : "Double-click to view port DA history")}
+                              onDoubleClick={() => { if (row.port) setDaPort({ rowId: row.id, port: row.port }); }}
+                              type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${errCls(err)}`}
+                              value={row.expDa || ""}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value) || 0;
+                                updateSequenceRow(row.id, "expDa", v);
+                                if (isTanker) {
+                                  // Manual DA edit goes to the owner's account by default.
+                                  updateSequenceRow(row.id, "daOwnerAcct", v);
+                                }
+                              }}
+                              placeholder="0" />
+                            {isTanker && (
+                              <button
+                                type="button"
+                                className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                title="Split DA into Charterer's Acct. and Owner's Acct."
+                                onClick={() => setDaSplitRowId(row.id)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
                           );})()
                         )}
                       </td>
@@ -778,8 +799,38 @@ export function SequenceTable() {
         open={daPort !== null}
         onOpenChange={(v) => { if (!v) setDaPort(null); }}
         port={daPort?.port || ""}
-        onSelect={(amount) => { if (daPort) updateSequenceRow(daPort.rowId, "expDa", amount); }}
+        onSelect={(amount) => {
+          if (!daPort) return;
+          updateSequenceRow(daPort.rowId, "expDa", amount);
+          if (isTanker) {
+            // DA from API defaults to the owner's account; user can split later.
+            updateSequenceRow(daPort.rowId, "daOwnerAcct", amount);
+            updateSequenceRow(daPort.rowId, "daChartererAcct", 0);
+          }
+        }}
       />
+
+      {/* Tanker DA split popup (Charterer's Acct. + Owner's Acct.) */}
+      {daSplitRowId !== null && (() => {
+        const row = sequence.find(r => r.id === daSplitRowId);
+        if (!row) return null;
+        return (
+          <DaSplitDialog
+            open={true}
+            onOpenChange={(v) => { if (!v) setDaSplitRowId(null); }}
+            port={row.port}
+            ownerAmount={row.daOwnerAcct ?? row.expDa ?? 0}
+            chartererAmount={row.daChartererAcct ?? 0}
+            onSave={(owner, charterer) => {
+              // Owner's account drives the calculation; charterer's is reference-only.
+              updateSequenceRow(daSplitRowId, "daOwnerAcct", owner);
+              updateSequenceRow(daSplitRowId, "daChartererAcct", charterer);
+              updateSequenceRow(daSplitRowId, "expDa", owner);
+              setDaSplitRowId(null);
+            }}
+          />
+        );
+      })()}
 
 
 
