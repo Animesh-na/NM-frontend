@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DollarSign, Clock, TrendingUp, Leaf, Download, ChevronDown, ChevronRight } from "lucide-react";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { AlertTriangle } from "lucide-react";
-import { InfoTooltip } from "./InfoTooltip";
+
 import { CoverageInfoButton } from "./CoverageInfoButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -140,17 +140,11 @@ export function VoyageSummary() {
         {/* Financial Summary */}
         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-b border-border pb-1">
           <div className="flex justify-between items-center">
-            <span className="font-medium flex items-center">
-              Incl Hire
-              <InfoTooltip formula="Voyage Cost Excl Hire + Hire Cost" description="Total voyage cost including vessel hire" />
-            </span>
+            <span className="font-medium flex items-center">Incl Hire</span>
             <span className="font-mono tabular-nums font-semibold text-primary">${formatCurrency(results.voyageCostInclHire)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground flex items-center">
-              Excl Hire
-              <InfoTooltip formula="Port Costs + Bunker Cost + CO₂ Cost" description="Total voyage cost excluding vessel hire" />
-            </span>
+            <span className="text-muted-foreground flex items-center">Excl Hire</span>
             <span className="font-mono tabular-nums">${formatCurrency(results.voyageCostExclHire)}</span>
           </div>
         </div>
@@ -163,38 +157,23 @@ export function VoyageSummary() {
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                Ballast
-                <InfoTooltip formula="Ballast Distance / (Speed × 24)" description="Days spent sailing in ballast condition" />
-              </span>
+              <span className="text-muted-foreground flex items-center">Ballast</span>
               <span className="font-mono tabular-nums">{formatDays(results.seaDaysBallast)}d</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                Laden
-                <InfoTooltip formula="Laden Distance / (Speed × 24)" description="Days spent sailing with cargo" />
-              </span>
+              <span className="text-muted-foreground flex items-center">Laden</span>
               <span className="font-mono tabular-nums">{formatDays(results.seaDaysLaden)}d</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                At Sea
-                <InfoTooltip formula="Time Ballast + Time Laden" description="Total sailing time" />
-              </span>
+              <span className="text-muted-foreground flex items-center">At Sea</span>
               <span className="font-mono tabular-nums">{formatDays(results.totalSeaDays)}d</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">
-                In Port
-                <InfoTooltip formula="Σ Port Days (all ports)" description="Sum of days in all ports" />
-              </span>
+              <span className="text-muted-foreground flex items-center">In Port</span>
               <span className="font-mono tabular-nums">{formatDays(results.totalPortDays)}d</span>
             </div>
             <div className="flex justify-between col-span-2 border-t border-border pt-0.5">
-              <span className="font-medium flex items-center">
-                Total Time
-                <InfoTooltip formula="Time at Sea + Time in Port" description="Total voyage duration" />
-              </span>
+              <span className="font-medium flex items-center">Total Time</span>
               <span className="font-mono tabular-nums font-semibold text-primary">{formatDays(results.totalVoyageDays)}d</span>
             </div>
           </div>
@@ -204,21 +183,9 @@ export function VoyageSummary() {
         <div className="bg-muted rounded-sm p-2">
           <div className="text-muted-foreground font-medium mb-1">Distance</div>
           <div className="grid grid-cols-2 gap-1 text-[10px]">
-            <span className="flex items-center">
-              Total distance
-              <InfoTooltip 
-                formula="Σ Leg Distances (port to port)" 
-                description="Sum of all leg distances via sea route"
-              />
-            </span>
+            <span className="flex items-center">Total distance</span>
             <span className="font-mono text-right">{(results.totalDistance + results.totalEcaDistance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
-            <span className="flex items-center">
-              ECA distance
-              <InfoTooltip 
-                formula="Σ ECA Leg Distances" 
-                description="Distance within Emission Control Areas"
-              />
-            </span>
+            <span className="flex items-center">ECA distance</span>
             <span className="font-mono text-right">{results.totalEcaDistance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
           </div>
         </div>
