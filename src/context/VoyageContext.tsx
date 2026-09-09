@@ -101,6 +101,11 @@ export interface SequenceRowUI {
   
   // Expected DA
   expDa: number;
+  // DA split (tanker mode): owner's account is used in calculations;
+  // charterer's account is reference-only. expDa always equals daOwnerAcct.
+  daOwnerAcct?: number;
+  daChartererAcct?: number;
+  
   
   // Port draft restriction
   portMaxDraft: number; // Port maximum allowed draft (m)
