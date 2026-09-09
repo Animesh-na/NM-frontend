@@ -1820,6 +1820,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
             extraTime: effExtraTime,
             terms: (opOv!.terms as SequenceRowUI["terms"]) ?? row.terms,
             coefficientFactor: opOv!.coefficientFactor ?? row.coefficientFactor,
+            layTime: opOv!.layTime ?? row.layTime,
           })
         : row.calculatedPortDays;
       const effExpDa = hasOp && opOv!.expDa !== undefined ? opOv!.expDa : row.expDa;
