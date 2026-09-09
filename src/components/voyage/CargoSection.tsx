@@ -480,7 +480,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       <div className="px-2 pb-2 pt-1 border-t border-border">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-2 items-end">
         <div className="form-field min-w-0">
-          <label className="form-label">Rate</label>
+          <label className="form-label">{isTanker ? "Flat rate" : "Rate"}</label>
           <div className="flex items-center gap-1">
             <input
               id={getFieldId("cargo","rate",cargo.id)}
@@ -505,13 +505,13 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
         {isTanker && (
           <div className="form-field min-w-0">
-            <label className="form-label flex items-center gap-1">
-              WS
-              <InfoTooltip
-                formula="Gross Freight = (Flat Rate × WS%) × Quantity"
-                description="Worldscale percentage of the flat rate. Can exceed 100."
-              />
-            </label>
+          <label className="form-label flex items-center gap-1">
+            {isTanker ? "Freight WS" : "WS"}
+            <InfoTooltip
+              formula="Gross Freight = (Flat Rate × WS%) × Quantity"
+              description="Worldscale percentage of the flat rate. Can exceed 100."
+            />
+          </label>
             <div className="input-with-unit">
               <input
                 type="number"
