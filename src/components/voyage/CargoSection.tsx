@@ -480,7 +480,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       <div className="px-2 pb-2 pt-1 border-t border-border">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-2 items-end">
         <div className="form-field min-w-0">
-          <label className="form-label">{isTanker ? "Flat rate" : "Rate"}</label>
+          <label className="form-label">{isTanker ? "Flat rate user input" : "Rate"}</label>
           <div className="flex items-center gap-1">
             <input
               id={getFieldId("cargo","rate",cargo.id)}
