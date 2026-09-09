@@ -3,6 +3,7 @@ import {
   LayoutDashboard, FileText, UserCircle2, Shield, ShieldCheck, LogOut, Ship, Package, ClipboardList,
   Anchor, CalendarClock, Recycle, BadgeDollarSign, Waypoints, BookOpen,
 } from "lucide-react";
+import { getApiMode } from "@/services/apiMode";
 
 export type DashSection =
   | "overview" | "workbooks" | "fixtures" | "received_fixtures" | "cargoes" | "users"
@@ -20,13 +21,13 @@ interface Props {
   userRole?: string;
 }
 
-const NAV: { key: DashSection; label: string; icon: typeof FileText }[] = [
+const getNav = (mode: "dry-bulk" | "tanker"): { key: DashSection; label: string; icon: typeof FileText }[] => [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "workbooks", label: "Workbooks", icon: BookOpen },
   { key: "fixtures", label: "Fixtures", icon: ClipboardList },
   { key: "received_fixtures", label: "Received Fixtures", icon: ClipboardList },
   { key: "cargoes", label: "Cargo List", icon: Package },
-  { key: "flows", label: "Dry Bulk Flows", icon: Waypoints },
+  { key: "flows", label: mode === "tanker" ? "Oil Flows" : "Dry Bulk Flows", icon: Waypoints },
   { key: "users", label: "Organization Users", icon: UserCircle2 },
 ];
 
@@ -74,7 +75,7 @@ function DashboardSidebarBase({
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3 dash-sidebar-scroll">
-        {NAV.map((item) => navButton(item))}
+        {getNav(getApiMode()).map((item) => navButton(item))}
 
         <div className="my-3 h-px" style={{ background: "hsl(0 0% 100% / 0.08)" }} />
         <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider opacity-50">S&amp;P / Orderbook</p>
