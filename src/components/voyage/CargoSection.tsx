@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
 import { searchCompanies, type MarineCompany } from "@/services/marineApi";
 import { useVoyageContext, type CargoEntry, type SequenceRowUI } from "@/context/VoyageContext";
-import { InfoTooltip } from "./InfoTooltip";
+
 import { AlertTriangle } from "lucide-react";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
 import { calculateCargoDemurrageDespatchFromRows } from "@/utils/demurrageDespatch";
@@ -207,13 +207,7 @@ export function CargoSection() {
           {/* Top summary fields */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2 items-end">
             <div className="form-field min-w-0">
-              <label className="form-label flex items-center gap-1">
-                GTC
-                <InfoTooltip
-                  formula="GTC = NTC / (1 - TC Comm%)"
-                  description="Gross Time Charter"
-                />
-              </label>
+              <label className="form-label">GTC</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","gtc","_header"); return (
                 <input
@@ -234,10 +228,7 @@ export function CargoSection() {
               </div>
             </div>
             <div className="form-field min-w-0">
-              <label className="form-label flex items-center gap-1">
-                TC Comm
-                <InfoTooltip formula="Deducted from Net Freight" description="Time Charter Commission %" />
-              </label>
+              <label className="form-label">TC Comm</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","tcCommission",cargos[0]?.id); return (
                 <input
@@ -258,13 +249,7 @@ export function CargoSection() {
               </div>
             </div>
             <div className="form-field min-w-0">
-              <label className="form-label flex items-center gap-1">
-                NTC
-                <InfoTooltip
-                  formula="NTC = GTC × (1 - TC Comm%) — also used as Vessel Cost"
-                  description="Net Time Charter (Vessel Cost)"
-                />
-              </label>
+              <label className="form-label">NTC</label>
               <div className="input-with-unit">
                 <input
                   type="number"
@@ -276,10 +261,7 @@ export function CargoSection() {
               </div>
             </div>
             <div className="form-field min-w-0">
-              <label className="form-label flex items-center gap-1">
-                Net BB
-                <InfoTooltip formula="Net Ballast Bonus (lumpsum added to hire cost)" description="Net Ballast Bonus" />
-              </label>
+              <label className="form-label">Net BB</label>
               <div className="input-with-unit">
                 <input
                   type="number"
@@ -294,10 +276,7 @@ export function CargoSection() {
               </div>
             </div>
             <div className="form-field min-w-0">
-              <label className="form-label flex items-center gap-1">
-                Gross BB
-                <InfoTooltip formula="Gross BB = Net BB / (1 - TC Comm%)" description="Gross Ballast Bonus" />
-              </label>
+              <label className="form-label">Gross BB</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","grossBB","_header"); return (
                 <input
@@ -505,13 +484,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
         {isTanker && (
           <div className="form-field min-w-0">
-          <label className="form-label flex items-center gap-1">
-            {isTanker ? "Freight WS" : "WS"}
-            <InfoTooltip
-              formula="Gross Freight = (Flat Rate × WS%) × Quantity"
-              description="Worldscale percentage of the flat rate. Can exceed 100."
-            />
-          </label>
+            <label className="form-label">{isTanker ? "Freight WS" : "WS"}</label>
             <div className="input-with-unit">
               <input
                 type="number"
@@ -529,10 +502,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
 
         {isTanker && (
           <div className="form-field min-w-0">
-            <label className="form-label flex items-center gap-1">
-              Eff. Rate
-              <InfoTooltip formula="Flat Rate × WS% / 100" description="Effective freight rate applied to quantity" />
-            </label>
+            <label className="form-label">Eff. Rate</label>
             <div className="input-with-unit">
               <input
                 type="text"
@@ -546,10 +516,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         )}
 
         <div className="form-field min-w-0">
-          <label className="form-label flex items-center gap-1">
-            Qty (Seq)
-            <InfoTooltip formula="Sum of loading quantities from Sequence" description="Auto-calculated" />
-          </label>
+          <label className="form-label">Qty (Seq)</label>
           <input
             id={getFieldId("cargo","quantityBalance",cargo.id)}
             aria-invalid={!!errBal}
@@ -562,10 +529,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         </div>
 
         <div className="form-field min-w-0">
-          <label className="form-label flex items-center gap-1">
-            Lumpsum
-            <InfoTooltip formula="Used when rate type is Lump" description="Lumpsum freight value" />
-          </label>
+          <label className="form-label">Lumpsum</label>
           <div className="input-with-unit">
             <input
               type="number"
@@ -579,10 +543,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         </div>
 
         <div className="form-field min-w-0">
-          <label className="form-label flex items-center gap-1">
-            Voy Comm
-            <InfoTooltip formula="Gross Freight × Voy Comm%" description="Commission" />
-          </label>
+          <label className="form-label">Voy Comm</label>
           <div className="input-with-unit">
             <input
               id={getFieldId("cargo","voyageCommission",cargo.id)}
@@ -599,13 +560,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         </div>
 
         <div className="form-field min-w-0">
-          <label className="form-label flex items-center gap-1">
-            Demurrage
-            <InfoTooltip
-              formula="Auto = Rate ($/day) × Excess Port Days (Op over CP). Cost to charterer."
-              description="Demurrage rate per day"
-            />
-          </label>
+          <label className="form-label">Demurrage</label>
           <div className="input-with-unit">
             <input
               id={getFieldId("cargo","demurrageRate",cargo.id)}
@@ -626,13 +581,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         </div>
 
         <div className="form-field min-w-0">
-          <label className="form-label flex items-center gap-1">
-            Despatch
-            <InfoTooltip
-              formula="Auto = Rate ($/day) × Saved Port Days (CP − Op). Earnings for charterer."
-              description="Despatch rate per day"
-            />
-          </label>
+          <label className="form-label">Despatch</label>
           <div className="input-with-unit">
             <input
               id={getFieldId("cargo","despatchRate",cargo.id)}
@@ -648,13 +597,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         </div>
 
         <div className="form-field min-w-0">
-          <label className="form-label flex items-center gap-1">
-            Laytime
-            <InfoTooltip
-              formula="Average = ports offset each other · Non-reversible = each port settles on its own · Cancel = no dem/desp"
-              description="Laytime settlement mode for this cargo"
-            />
-          </label>
+          <label className="form-label">Laytime</label>
           <select
             className="form-input-sm w-full"
             value={cargo.laytimeMode ?? "average"}
