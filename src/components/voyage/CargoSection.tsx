@@ -378,7 +378,7 @@ interface CargoEntryCardProps {
   onCpOverride: (rowId: number, field: "quantity" | "productivity" | "demurrage" | "despatch", value: number) => void;
   onOpUpdate: (
     rowId: number,
-    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa" | "layTime",
     value: number | string,
   ) => void;
 }
@@ -623,6 +623,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             const opFactor = op.coefficientFactor ?? r.coefficientFactor ?? 0;
             const opTurn = op.turnTime ?? r.turnTime ?? 0;
             const opExtra = op.extraTime ?? r.extraTime ?? 0;
+            const opLayTime = op.layTime ?? r.layTime ?? 0;
             
             const opExpDa = op.expDa ?? r.expDa ?? 0;
             const calc = perRowCalc.find((x) => x.rowId === r.id);
@@ -660,6 +661,18 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => onOpUpdate(r.id, "quantity", parseFloat(e.target.value) || 0)}
                   />
                 </div>
+                {isTanker ? (
+                  <div className="form-field w-16">
+                    <label className="form-label">Laytime h</label>
+                    <input
+                      type="number"
+                      className={edit}
+                      value={opLayTime}
+                      onChange={(e) => onOpUpdate(r.id, "layTime", parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                ) : (
+                <>
                 <div className="form-field w-16">
                   <label className="form-label">MT/d</label>
                   <input
@@ -691,6 +704,8 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <label className="form-label">Factor</label>
                   <input type="number" step="0.0001" className={edit} value={opFactor} onChange={(e) => onOpUpdate(r.id, "coefficientFactor", parseFloat(e.target.value) || 0)} />
                 </div>
+                </>
+                )}
                 <div className="form-field w-12">
                   <label className="form-label">Tt</label>
                   <input

@@ -186,6 +186,7 @@ export interface CargoEntry {
     extraTime?: number;
     terms?: string;
     coefficientFactor?: number;
+    layTime?: number;
   }>;
   /**
    * Cargo-level OPERATIONAL overrides for assigned sequence rows.
@@ -203,6 +204,7 @@ export interface CargoEntry {
     coefficientFactor?: number;
     cranes?: number;
     expDa?: number;
+    layTime?: number;
   }>;
 }
 
@@ -251,7 +253,7 @@ interface VoyageContextValue {
   updateCargoOpOverride: (
     cargoId: number,
     rowId: number,
-    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+    field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa" | "layTime",
     value: number | string,
   ) => void;
   
@@ -1595,7 +1597,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     (
       cargoId: number,
       rowId: number,
-      field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa",
+      field: "quantity" | "productivity" | "turnTime" | "extraTime" | "terms" | "coefficientFactor" | "cranes" | "expDa" | "layTime",
       value: number | string,
     ) => {
       // CP baseline always comes live from the Sequence row, so sequence edits keep
@@ -1818,6 +1820,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
             extraTime: effExtraTime,
             terms: (opOv!.terms as SequenceRowUI["terms"]) ?? row.terms,
             coefficientFactor: opOv!.coefficientFactor ?? row.coefficientFactor,
+            layTime: opOv!.layTime ?? row.layTime,
           })
         : row.calculatedPortDays;
       const effExpDa = hasOp && opOv!.expDa !== undefined ? opOv!.expDa : row.expDa;

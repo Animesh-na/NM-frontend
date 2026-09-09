@@ -1,5 +1,6 @@
 import type { CargoEntry, SequenceRowUI } from "@/context/VoyageContext";
 import { getRowsForCargo } from "@/utils/cargoRowMapping";
+import { getApiMode } from "@/services/apiMode";
 
 type CpOverride = {
   quantity?: number;
@@ -10,6 +11,7 @@ type CpOverride = {
   extraTime?: number;
   terms?: string;
   coefficientFactor?: number;
+  layTime?: number;
 };
 type OpOverride = {
   quantity?: number;
@@ -18,6 +20,7 @@ type OpOverride = {
   extraTime?: number;
   terms?: string;
   coefficientFactor?: number;
+  layTime?: number;
 };
 
 export interface DemurrageDespatchRow {
@@ -54,6 +57,13 @@ export function calculatePortDaysForDemurrage(
   const ov = (override || {}) as CpOverride & OpOverride;
   const turnTime = Number(ov.turnTime ?? row.turnTime) || 0;
   const extraTime = Number(ov.extraTime ?? row.extraTime) || 0;
+
+  // Tanker sheets have no mt/day productivity or terms — port time is driven by
+  // the agreed laytime (hours) plus turn/extra time.
+  if (getApiMode() === "tanker") {
+    const layTime = Number(ov.layTime ?? row.layTime) || 0;
+    return (layTime + turnTime + extraTime) / 24;
+  }
 
   const quantity = ov.quantity ?? row.quantity ?? 0;
   const productivity = ov.productivity ?? row.productivity ?? 0;
