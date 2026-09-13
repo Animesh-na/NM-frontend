@@ -65,7 +65,7 @@ export function PortTimeCalculationPanel({ sequence, misc, results }: PortTimeCa
             inputs={[
               { label: "Qty", value: "MT", source: "Sequence" },
               { label: "Productivity", value: "MT/day", source: "Sequence" },
-              { label: "Terms", value: "SHINC/SSHEX/FHEX", source: "Sequence" },
+              { label: "Terms", value: "SHINC/SSHEX/SHEX/SATPM", source: "Sequence" },
               { label: "Turn Time", value: "hours → days", source: "Sequence" },
               { label: "Extra Time", value: "hours → days", source: "Sequence" },
             ]}
