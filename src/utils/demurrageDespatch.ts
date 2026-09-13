@@ -71,7 +71,7 @@ export function calculatePortDaysForDemurrage(
 
   const terms = (ov.terms ?? row.terms) as string | undefined;
   const factor = ov.coefficientFactor ?? row.coefficientFactor;
-  const termsMultiplier = factor || (terms === "sshex" ? 1.5555 : terms === "fhex" ? 1.25 : terms === "satpn" ? 1.33 : 1.0);
+  const termsMultiplier = factor || (terms === "sshex" ? 1.5555 : terms === "shex" ? 1.2727 : terms === "satpm" ? 1.3333 : 1.0);
   return (quantity / productivity) * termsMultiplier + (turnTime + extraTime) / 24;
 }
 

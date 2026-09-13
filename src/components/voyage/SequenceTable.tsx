@@ -35,8 +35,8 @@ const seasonOptions: { value: Season; label: string }[] = [
 const termsOptions = [
   { value: "shinc", label: "shinc" },
   { value: "sshex", label: "sshex" },
-  { value: "fhex", label: "fhex" },
-  { value: "satpn", label: "satpn" },
+  { value: "shex", label: "shex" },
+  { value: "satpm", label: "satpm" },
   { value: "custom", label: "custom" },
 ];
 
@@ -575,7 +575,7 @@ export function SequenceTable() {
                                 updateSequenceRow(row.id, "coefficientFactor", found?.coefficient || 1.0);
                               } else {
                                 updateSequenceRow(row.id, "terms", val);
-                                const dc = val === "sshex" ? 1.5555 : val === "fhex" ? 1.25 : val === "satpn" ? 1.33 : 1.0;
+                                const dc = val === "sshex" ? 1.5555 : val === "shex" ? 1.2727 : val === "satpm" ? 1.3333 : 1.0;
                                 updateSequenceRow(row.id, "coefficientFactor", dc);
                                 updateSequenceRow(row.id, "customTermsName", "");
                               }

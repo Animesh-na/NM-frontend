@@ -2247,7 +2247,7 @@ export function exportVoyageToExcel(data: ExportData) {
     ["Distance split", "Each leg carries V (outside ECA) and L (inside ECA) distance. Total Distance = Σ V + Σ L."],
     ["Sea time", "Base sea time = distance / speed / 24. Speed comes from the leg speed context (Eco EV/EL, Full FV/FL). Sea Margin % adds buffer time and the same buffer of sea consumption."],
     ["Laden / ballast", "A sea leg is laden when cargo is on board after the previous port, otherwise ballast."],
-    ["Port time", "Working time = quantity / rate (mt/day) × terms factor (SHINC 1.00, SSHEX/FHEX/SATPN >1). Turn time and extra time are added as idle time."],
+    ["Port time", "Working time = quantity / rate (mt/day) × terms factor (SHINC 1.0000, SSHEX 1.5555, SHEX 1.2727, SATPM 1.3333). Turn time and extra time are added as idle time."],
     ["Overrides", "Manual overrides on time, distance and ECA values replace the derived values. CP quantity/productivity overrides only feed demurrage/despatch, never the freight base."],
     ["Total voyage days", "Sea days + port days + extra port days + extra canal days."],
     ["", ""],
