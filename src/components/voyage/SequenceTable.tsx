@@ -493,16 +493,29 @@ export function SequenceTable() {
                               <TooltipProvider delayDuration={300}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    {(() => { const err = getFieldError("sequence","quantity",row.id); return (
-                                    <input id={getFieldId("sequence","quantity",row.id)} aria-invalid={!!err} title={err || (qtyExceedsDraft ? "Draft exceeds limit" : undefined)}
-                                      type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
-                                      value={row.quantity || ""} onChange={(e) => updateSequenceRow(row.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="0"
-                                      onDoubleClick={() => setIntakeRowId(row.id)} />
-                                    );})()}
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="text-[10px]">
-                                    <p>Double-click to open Intake Calculator</p>
-                                  </TooltipContent>
+                                     {(() => { const err = getFieldError("sequence","quantity",row.id); return (
+                                     <input id={getFieldId("sequence","quantity",row.id)} aria-invalid={!!err} title={err || (qtyExceedsDraft ? "Draft exceeds limit" : undefined)}
+                                       type="number" className={`form-input-sm w-14 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
+                                       value={row.quantity || ""}
+                                       onChange={(e) => {
+                                         let val = parseFloat(e.target.value) || 0;
+                                         if (isTanker && row.operation === "loading" && vessel?.dwt > 0) {
+                                           const otherLoading = sequence
+                                             .filter((r) => r.id !== row.id && r.operation === "loading")
+                                             .reduce((s, r) => s + (r.quantity || 0), 0);
+                                           const allowed = Math.max(0, vessel.dwt - otherLoading);
+                                           if (val > allowed) val = allowed;
+                                         }
+                                         updateSequenceRow(row.id, "quantity", val);
+                                       }} placeholder="0"
+                                       onDoubleClick={() => { if (!isTanker) setIntakeRowId(row.id); }} />
+                                     );})()}
+                                   </TooltipTrigger>
+                                   {!isTanker && (
+                                     <TooltipContent side="top" className="text-[10px]">
+                                       <p>Double-click to open Intake Calculator</p>
+                                     </TooltipContent>
+                                   )}
                                 </Tooltip>
                               </TooltipProvider>
                               {qtyExceedsDraft && (
@@ -744,7 +757,7 @@ export function SequenceTable() {
       )}
 
       {/* Intake Calculator Popup */}
-      {intakeRowId !== null && (() => {
+      {intakeRowId !== null && !isTanker && (() => {
         const row = sequence.find(r => r.id === intakeRowId);
         if (!row) return null;
         const sf = row.stowageFactor > 0 ? row.stowageFactor * 35.3147 : globalStowageFactor * 35.3147;
