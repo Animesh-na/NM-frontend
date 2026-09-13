@@ -71,7 +71,7 @@ export interface SequenceRowUI {
   layTime?: number; // hours
   
   // Terms and time calculations
-  terms: "shinc" | "sshex" | "fhex" | "satpn" | "custom" | "";
+  terms: "shinc" | "sshex" | "shex" | "satpm" | "custom" | "";
   customTermsName: string; // user-defined name when terms === "custom"
   turnTime: number; // hours (stored as hours, displayed as days)
   extraTime: number; // hours
@@ -409,7 +409,7 @@ export function calculatePortDays(row: SequenceRowUI): number {
     const basePortDays = row.quantity / row.productivity;
     
     // Terms multiplier - use editable coefficientFactor
-    const termsMultiplier = row.coefficientFactor || (row.terms === "sshex" ? 1.5555 : row.terms === "fhex" ? 1.25 : row.terms === "satpn" ? 1.33 : 1.0);
+    const termsMultiplier = row.coefficientFactor || (row.terms === "sshex" ? 1.5555 : row.terms === "shex" ? 1.2727 : row.terms === "satpm" ? 1.3333 : 1.0);
     
     // Final port days with terms multiplier
     const portDaysWithTerms = basePortDays * termsMultiplier;
@@ -1849,7 +1849,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       termsFactor: (() => {
         const cf = hasOp ? (opOv!.coefficientFactor ?? row.coefficientFactor) : row.coefficientFactor;
         const t = (hasOp ? ((opOv!.terms as string) ?? row.terms) : row.terms) || "";
-        const fallback = t === "sshex" ? 1.5555 : t === "fhex" ? 1.25 : t === "satpn" ? 1.33 : 1.0;
+        const fallback = t === "sshex" ? 1.5555 : t === "shex" ? 1.2727 : t === "satpm" ? 1.3333 : 1.0;
         const f = Number(cf) > 0 ? Number(cf) : fallback;
         return f < 1 ? 1 : f;
       })(),

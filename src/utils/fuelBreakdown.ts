@@ -52,7 +52,7 @@ const isDischOp = (op: string) => op === "disch" || op === "discharging";
 export function termsFactorOf(row: { coefficientFactor?: number | null; terms?: string | null }): number {
   const explicit = Number(row?.coefficientFactor);
   const t = (row?.terms || "").toLowerCase();
-  const fallback = t === "sshex" ? 1.5555 : t === "fhex" ? 1.25 : t === "satpn" ? 1.33 : 1.0;
+  const fallback = t === "sshex" ? 1.5555 : t === "shex" ? 1.2727 : t === "satpm" ? 1.3333 : 1.0;
   const f = explicit > 0 ? explicit : fallback;
   return f < 1 ? 1 : f;
 }

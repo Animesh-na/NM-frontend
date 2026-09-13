@@ -690,14 +690,14 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => {
                       const val = e.target.value;
                       onOpUpdate(r.id, "terms", val);
-                      const dc = val === "sshex" ? 1.5555 : val === "fhex" ? 1.25 : val === "satpn" ? 1.33 : 1.0;
+                      const dc = val === "sshex" ? 1.5555 : val === "shex" ? 1.2727 : val === "satpm" ? 1.3333 : 1.0;
                       onOpUpdate(r.id, "coefficientFactor", dc);
                     }}
                   >
                     <option value="shinc">shinc</option>
                     <option value="sshex">sshex</option>
-                    <option value="fhex">fhex</option>
-                    <option value="satpn">satpn</option>
+                    <option value="shex">shex</option>
+                    <option value="satpm">satpm</option>
                   </select>
                 </div>
                 <div className="form-field w-14">
