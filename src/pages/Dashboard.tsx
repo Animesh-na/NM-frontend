@@ -131,7 +131,7 @@ export default function Dashboard() {
     scheduled_deliveries: "Scheduled Deliveries",
     demolitions: "Orderbook Demolitions",
     valuations: "Vessel Valuations",
-    flows: "Dry Bulk Flows",
+    flows: mode === "tanker" ? "Oil Flows" : "Dry Bulk Flows",
   };
 
   const navigate = (s: DashSection) => {
