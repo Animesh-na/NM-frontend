@@ -5,6 +5,7 @@ import { useVoyageContext } from "@/context/VoyageContext";
 import { IntakeCalculator } from "./IntakeCalculator";
 import { trackEvent } from "@/services/logger";
 import { listWorkbooks, type WorkbookItem } from "@/services/marineApi";
+import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
 
 export function SheetTabs() {
   const { tabs, activeTabIndex, setActiveTabIndex, closeTab, goToDashboard, saveCurrentSheet, activeTab, copyCurrentSheet, createNewSheet } = useSheets();
@@ -28,6 +29,13 @@ export function SheetTabs() {
     return () => { cancelled = true; };
   }, [savingName]);
   const { sequence, vessel, cargos = [], updateSequenceRow } = useVoyageContext();
+  const [sectorMode, setSectorMode] = useState(getApiMode());
+  useEffect(() => {
+    const onModeChange = () => setSectorMode(getApiMode());
+    window.addEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+    return () => window.removeEventListener(API_MODE_CHANGED_EVENT, onModeChange);
+  }, []);
+  const isTanker = sectorMode === "tanker";
 
   const handleSave = () => {
     if (!activeTab) return;
