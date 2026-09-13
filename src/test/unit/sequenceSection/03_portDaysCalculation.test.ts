@@ -13,10 +13,10 @@ import { createVoyageTestInputs, customLeg } from "../../helpers/scenarios";
  *   totalPortDays       = portDaysWithTerms + (turnTime + extraTime) / 24
  *
  * Default term coefficients:
- *   SHINC=1.0000, SSHEX=1.5555, FHEX=1.2500, SATPN=1.3300
+ *   SHINC=1.0000, SSHEX=1.5555, SHEX=1.2727, SATPM=1.3333
  */
 
-type Terms = "shinc" | "sshex" | "fhex" | "satpn";
+type Terms = "shinc" | "sshex" | "shex" | "satpm";
 
 interface PortDaysInput {
   quantity: number;
@@ -28,7 +28,7 @@ interface PortDaysInput {
 }
 
 function computePortDays(i: PortDaysInput): number {
-  const defaults: Record<Terms, number> = { shinc: 1, sshex: 1.5555, fhex: 1.25, satpn: 1.33 };
+  const defaults: Record<Terms, number> = { shinc: 1, sshex: 1.5555, shex: 1.2727, satpm: 1.3333 };
   const mult = i.coefficientFactor ?? defaults[i.terms];
   const base = i.productivity > 0 ? i.quantity / i.productivity : 0;
   return base * mult + ((i.turnTimeHours ?? 0) + (i.extraTimeHours ?? 0)) / 24;
@@ -45,8 +45,8 @@ describe("Port Days Calculation", () => {
     it.each<[Terms, number, number]>([
       ["shinc", 1.0, 2.5],
       ["sshex", 1.5555, 2.5 * 1.5555],
-      ["fhex", 1.25, 2.5 * 1.25],
-      ["satpn", 1.33, 2.5 * 1.33],
+      ["shex", 1.2727, 2.5 * 1.2727],
+      ["satpm", 1.3333, 2.5 * 1.3333],
     ])("term %s applies coefficient %f", (term, _coeff, expected) => {
       const days = computePortDays({ quantity: 50000, productivity: 20000, terms: term });
       expect(days).toBeCloseTo(expected, 4);
