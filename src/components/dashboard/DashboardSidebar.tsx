@@ -23,7 +23,7 @@ interface Props {
 
 const getNav = (mode: "dry-bulk" | "tanker"): { key: DashSection; label: string; icon: typeof FileText }[] => [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
-  { key: "workbooks", label: "Workbooks", icon: BookOpen },
+  { key: "workbooks", label: "Voyage Estimator", icon: BookOpen },
   { key: "fixtures", label: "Fixtures", icon: ClipboardList },
   { key: "received_fixtures", label: "Received Fixtures", icon: ClipboardList },
   { key: "cargoes", label: "Cargo List", icon: Package },
