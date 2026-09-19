@@ -230,8 +230,8 @@ export function SequenceTable() {
 
   const thClass = "min-w-0 overflow-hidden px-0.5 py-1 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
   const rowGridClass = isTanker
-    ? "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(126px,1.75fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]"
-    : "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(126px,1.75fr)_minmax(54px,.75fr)_minmax(48px,.65fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]";
+    ? "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(58px,.85fr)_minmax(58px,.85fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]"
+    : "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(58px,.85fr)_minmax(58px,.85fr)_minmax(54px,.75fr)_minmax(48px,.65fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]";
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
@@ -260,7 +260,8 @@ export function SequenceTable() {
                   <th className={thClass}>Distance / ECA</th>
                   <th className={thClass}>Time / WD</th>
                   <th className={thClass}>P. Fuel</th>
-                  <th className={thClass}>Quantity</th>
+                  <th className={thClass}>Qty mt</th>
+                  <th className={thClass}>{isTanker ? "Laytime h" : "mt/d"}</th>
                   {!isTanker && <th className={thClass}>Terms</th>}
                   {!isTanker && <th className={thClass}>Coeff</th>}
                   <th className={thClass}>Turn h</th>
@@ -441,14 +442,13 @@ export function SequenceTable() {
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
-                      {/* Quantity + productivity / laytime */}
+                      {/* Quantity */}
                       <td className={tdClass}>
                         {hasQty ? (() => {
                           // Simple draft check: does the vessel's draft at this port exceed the port max draft?
                           const qtyExceedsDraft = row.operation === 'discharging' && row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
-                             <div className={pairedCellClass}>
-                              <div className={pairedRowClass}><span className={pairedLabelClass}>Qty</span>
+                             <div className="flex h-7 w-full min-w-0 items-center overflow-hidden whitespace-nowrap">
                               <TooltipProvider delayDuration={300}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -476,7 +476,7 @@ export function SequenceTable() {
                                      </TooltipContent>
                                    )}
                                 </Tooltip>
-                              </TooltipProvider>
+                               </TooltipProvider>
                                {qtyExceedsDraft && (
                                 <TooltipProvider>
                                   <Tooltip>
@@ -489,13 +489,7 @@ export function SequenceTable() {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                               )}</div>
-                               <span className={separatorClass}>/</span>
-                               <div className={pairedRowClass}><span className={pairedLabelClass}>{isTanker ? "Lay" : "mt/d"}</span>
-                                 <input type="number" className="form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px]"
-                                  value={(isTanker ? row.layTime : row.productivity) || ""}
-                                  onChange={(e) => updateSequenceRow(row.id, isTanker ? "layTime" : "productivity", parseFloat(e.target.value) || 0)} placeholder="0" />
-                              </div>
+                                )}
                             </div>
                           );
                         })() : hasBunkering ? (
@@ -503,6 +497,15 @@ export function SequenceTable() {
                         ) : (
                           <span className="text-muted-foreground/40 px-1">—</span>
                         )}
+                      </td>
+
+                      {/* Productivity / laytime */}
+                      <td className={tdClass}>
+                        {hasQty ? (
+                          <input type="number" className="form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px]"
+                            value={(isTanker ? row.layTime : row.productivity) || ""}
+                            onChange={(e) => updateSequenceRow(row.id, isTanker ? "layTime" : "productivity", parseFloat(e.target.value) || 0)} placeholder="0" />
+                        ) : <span className="text-muted-foreground/40 px-1">—</span>}
                       </td>
 
                       {!isTanker && (
