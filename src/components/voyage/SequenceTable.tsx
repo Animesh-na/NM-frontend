@@ -65,7 +65,7 @@ function SpeedContextPicker({
         <button
           type="button"
           title={`${profile === "eco" ? "Eco" : "Full"} speed · ${FUEL_LABEL[fuel]}`}
-          className="form-select-sm w-[46px] text-[10px] font-mono text-center hover:bg-muted"
+          className="form-select-sm h-7 w-full min-w-0 px-0.5 pr-3 text-center font-mono text-[10px] hover:bg-muted"
         >
           {value}
         </button>
@@ -228,11 +228,15 @@ export function SequenceTable() {
     return days.toFixed(2);
   };
 
-  const thClass = "min-w-0 px-0.5 py-0.5 text-[8px] font-semibold leading-tight text-foreground whitespace-nowrap text-center bg-table-header";
-  const pairedCellClass = "grid min-w-0 grid-cols-1 gap-0.5";
-  const pairedRowClass = "grid min-w-0 grid-cols-[18px_minmax(0,1fr)] items-center gap-0.5";
-  const contextRowClass = "grid min-w-0 grid-cols-[minmax(30px,46px)_minmax(0,1fr)] items-center gap-0.5";
-  const pairedLabelClass = "truncate text-[7px] font-semibold uppercase text-muted-foreground";
+  const thClass = "min-w-0 overflow-hidden px-0.5 py-1 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
+  const rowGridClass = isTanker
+    ? "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(126px,1.75fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]"
+    : "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(126px,1.75fr)_minmax(54px,.75fr)_minmax(48px,.65fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]";
+  const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
+  const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
+  const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
+  const pairedLabelClass = "shrink-0 text-[8px] font-semibold uppercase text-muted-foreground";
+  const separatorClass = "shrink-0 text-[8px] text-muted-foreground/70";
 
   return (
     <div className="calc-card-row">
@@ -247,32 +251,16 @@ export function SequenceTable() {
       {isExpanded && (
         <div className="flex-1 min-w-0 p-1">
           <div className="w-full min-w-0 overflow-x-hidden pb-1">
-            <table className="w-full table-fixed text-[9px]">
-              <colgroup>
-                <col className="w-[6.5%]" />
-                <col className="w-[15%]" />
-                <col className="w-[4%]" />
-                <col className="w-[11%]" />
-                <col className="w-[7%]" />
-                <col className="w-[7%]" />
-                <col className="w-[10%]" />
-                {!isTanker && <col className="w-[7%]" />}
-                {!isTanker && <col className="w-[6%]" />}
-                <col className="w-[5.5%]" />
-                <col className="w-[5.5%]" />
-                <col className="w-[5.5%]" />
-                <col className="w-[7.5%]" />
-                <col className="w-[2%]" />
-              </colgroup>
-              <thead>
-                <tr>
+            <table className="block w-full min-w-0 text-[10px]">
+              <thead className="block w-full min-w-0">
+                <tr className={`grid w-full min-w-0 ${rowGridClass}`}>
                   <th className={thClass}>Type</th>
                   <th className={`${thClass} text-left`}>Port</th>
                   <th className={thClass}>Cargo</th>
-                  <th className={thClass}>Distance<br/><span className="font-normal text-muted-foreground">nm / ECA</span></th>
-                  <th className={thClass}>Time / WD<br/><span className="font-normal text-muted-foreground">d / {autoDistanceEnabled ? "h" : "%"}</span></th>
+                  <th className={thClass}>Distance / ECA</th>
+                  <th className={thClass}>Time / WD</th>
                   <th className={thClass}>P. Fuel</th>
-                  <th className={thClass}>Quantity<br/><span className="font-normal text-muted-foreground">mt / {isTanker ? "lay h" : "mt/d"}</span></th>
+                  <th className={thClass}>Quantity</th>
                   {!isTanker && <th className={thClass}>Terms</th>}
                   {!isTanker && <th className={thClass}>Coeff</th>}
                   <th className={thClass}>Turn h</th>
@@ -282,17 +270,17 @@ export function SequenceTable() {
                   <th className={thClass}></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="block w-full min-w-0">
                 {sequence.map((row, index) => {
                   const isOpen = row.type === "open";
                   const isPort = row.type === "port";
                   const hasQty = showQuantityFields(row);
                   const hasBunkering = showBunkeringFields(row);
                   const typeLabel = getTypeLabel(row);
-                  const tdClass = "min-w-0 overflow-hidden px-0.5 py-0.5 align-middle [&>input]:mx-auto [&>input]:block [&>select]:mx-auto [&>select]:block";
+                  const tdClass = "flex h-[30px] min-w-0 items-center overflow-hidden whitespace-nowrap px-0.5 align-middle [&>input]:block [&>select]:block";
 
                   return (
-                    <tr key={row.id} className="group">
+                    <tr key={row.id} className={`group grid w-full min-w-0 items-center ${rowGridClass}`}>
                       {/* Type */}
                       <td className={tdClass}>
                         {isOpen ? (
@@ -304,7 +292,7 @@ export function SequenceTable() {
                             <DropdownMenuTrigger asChild>
                               <button
                                 type="button"
-                                className="form-select-sm flex w-full min-w-0 items-center justify-between px-1 text-[9px] capitalize"
+                               className="form-select-sm flex h-7 w-full min-w-0 items-center justify-between px-1 text-[10px] capitalize"
                                 title="Type / reorder"
                               >
                                 <span>{typeLabel}</span>
@@ -353,7 +341,7 @@ export function SequenceTable() {
                          {(() => { const portErr = getFieldError("sequence","port",row.id); return (
                            <div
                            id={getFieldId("sequence","port",row.id)}
-                            className="flex min-w-0 items-center"
+                             className="flex min-w-0 flex-1 items-center overflow-hidden"
                            aria-invalid={!!portErr}
                            title={portErr || undefined}
                          >
@@ -366,23 +354,13 @@ export function SequenceTable() {
                            </div>
                          </div>
                          );})()}
-                        {(row.legDepartureUtc || row.legArrivalUtc) && (
-                          <div className="flex gap-1.5 px-1 text-[8px] text-muted-foreground font-mono leading-tight">
-                            {row.type === "open" && row.legDepartureUtc && (
-                              <span title="Departure">Dep: {row.legDepartureUtc.replace("T"," ")}</span>
-                            )}
-                            {row.type !== "open" && row.legArrivalUtc && (
-                              <span title="Arrival at port">Arr: {row.legArrivalUtc.replace("T"," ")}</span>
-                            )}
-                          </div>
-                        )}
                       </td>
 
                       {/* Cargo */}
                       <td className={tdClass}>
                         {hasQty && cargos.length > 0 ? (
                           <select
-                            className="form-select-sm w-full min-w-0 px-0.5 text-center text-[9px]"
+                             className="form-select-sm h-7 w-full min-w-0 px-0.5 text-center text-[10px]"
                             title="Assign one cargo to this port"
                             value={cargos.length === 1 ? String(cargos[0].id) : String((row.assignedCargoIds || [])[0] ?? "")}
                             disabled={cargos.length === 1}
@@ -403,17 +381,18 @@ export function SequenceTable() {
                           distanceLoading ? (
                             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground mx-auto" />
                           ) : (
-                            <div className={pairedCellClass}>
-                              <div className={contextRowClass}><SpeedContextPicker value={row.distanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "distanceSpeedContext", v)} />
+                             <div className={pairedCellClass}>
+                               <div className={contextRowClass}><SpeedContextPicker value={row.distanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "distanceSpeedContext", v)} />
                               {(() => { const err = getFieldError("sequence","distance",row.id); return (
                               <input id={getFieldId("sequence","distance",row.id)} aria-invalid={!!err} title={err}
-                                type="number" className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${errCls(err)}`}
+                                 type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
                                 value={row.distance || ""} onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)} placeholder="0" />
                               );})()}</div>
+                               <span className={separatorClass}>/</span>
                               <div className={contextRowClass}><SpeedContextPicker value={row.ecaDistanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", v)} />
                             {(() => { const err = getFieldError("sequence","ecaDistance",row.id); return (
                             <input id={getFieldId("sequence","ecaDistance",row.id)} aria-invalid={!!err} title={err}
-                                type="number" className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${errCls(err)}`}
+                                 type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
                               value={row.ecaDistance || ""} onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)} placeholder="0" />
                               );})()}</div>
                           </div>
@@ -423,23 +402,23 @@ export function SequenceTable() {
                       {/* Sea Time + Weather Delay / Sea Margin */}
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
-                          <div className={pairedCellClass}>
-                            <div className={pairedRowClass}><span className={pairedLabelClass}>Sea</span><span className="min-w-0 truncate px-1 text-right font-mono text-[9px] text-muted-foreground" title="Sea time is calculated from distance, speed and sea margin">
+                            <div className={pairedCellClass}>
+                             <div className={pairedRowClass}><span className={pairedLabelClass}>Sea</span><span className="min-w-0 flex-1 truncate text-right font-mono text-[10px] text-muted-foreground" title="Sea time is calculated from distance, speed and sea margin">
                             {row.timeOverride !== undefined
                               ? formatTime(row.timeOverride)
                               : row.totalLegTime > 0
                                 ? formatTime(row.totalLegTime)
                                 : "0.00"}
-                            </span></div>
+                             </span></div><span className={separatorClass}>/</span>
                             <div className={pairedRowClass}><span className={pairedLabelClass}>{autoDistanceEnabled ? "WD" : "SM"}</span>
                             {(autoDistanceEnabled && !row.weatherDelayFailed && row.weatherDelayHours !== undefined) ? (
-                          <span className="min-w-0 truncate px-1 text-right font-mono text-[9px] text-muted-foreground" title="Weather delay from distance API (h)">
+                           <span className="min-w-0 flex-1 truncate text-right font-mono text-[10px] text-muted-foreground" title="Weather delay from distance API (h)">
                             {Math.abs(row.weatherDelayHours).toFixed(1)}
                           </span>
                         ) : (
                           <input
                             type="number" min="0" max="100" step="0.5"
-                            className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${row.weatherDelayFailed ? "border-warning/60" : ""}`}
+                             className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${row.weatherDelayFailed ? "border-warning/60" : ""}`}
                             value={row.seaMargin || ""}
                             onChange={(e) => updateSequenceRow(row.id, "seaMargin", parseFloat(e.target.value) || 0)}
                             placeholder="0"
@@ -453,7 +432,7 @@ export function SequenceTable() {
                       {/* Port Fuel */}
                       <td className={tdClass}>
                         {!isOpen && isPort ? (
-                          <select className="form-select-sm w-full min-w-0 px-1 text-[9px]" value={row.portFuelType || "vlsfo"}
+                           <select className="form-select-sm h-7 w-full min-w-0 px-1 text-[10px]" value={row.portFuelType || "vlsfo"}
                             onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}>
                             {vessel.hasScrubber && <option value="hsfo">HSFO</option>}
                             <option value="vlsfo">VLSFO</option>
@@ -468,14 +447,14 @@ export function SequenceTable() {
                           // Simple draft check: does the vessel's draft at this port exceed the port max draft?
                           const qtyExceedsDraft = row.operation === 'discharging' && row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
-                            <div className={pairedCellClass}>
+                             <div className={pairedCellClass}>
                               <div className={pairedRowClass}><span className={pairedLabelClass}>Qty</span>
                               <TooltipProvider delayDuration={300}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                      {(() => { const err = getFieldError("sequence","quantity",row.id); return (
                                      <input id={getFieldId("sequence","quantity",row.id)} aria-invalid={!!err} title={err || (qtyExceedsDraft ? "Draft exceeds limit" : undefined)}
-                                       type="number" className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
+                                       type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
                                        value={row.quantity || ""}
                                        onChange={(e) => {
                                          let val = parseFloat(e.target.value) || 0;
@@ -511,8 +490,9 @@ export function SequenceTable() {
                                   </Tooltip>
                                 </TooltipProvider>
                                )}</div>
-                              <div className={pairedRowClass}><span className={pairedLabelClass}>{isTanker ? "Lay" : "mt/d"}</span>
-                                <input type="number" className="form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px]"
+                               </div><span className={separatorClass}>/</span>
+                               <div className={pairedRowClass}><span className={pairedLabelClass}>{isTanker ? "Lay" : "mt/d"}</span>
+                                 <input type="number" className="form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px]"
                                   value={(isTanker ? row.layTime : row.productivity) || ""}
                                   onChange={(e) => updateSequenceRow(row.id, isTanker ? "layTime" : "productivity", parseFloat(e.target.value) || 0)} placeholder="0" />
                               </div>
@@ -530,7 +510,7 @@ export function SequenceTable() {
                       {/* Terms */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <select className="form-select-sm w-full min-w-0 px-1 text-[9px]" 
+                           <select className="form-select-sm h-7 w-full min-w-0 px-1 text-[10px]" 
                             value={row.terms === "custom" ? `custom:${row.customTermsName}` : (row.terms || "shinc")}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -564,7 +544,7 @@ export function SequenceTable() {
                           <input
                             type="text"
                             inputMode="decimal"
-                            className="form-input-sm w-full min-w-0 px-1 font-mono text-center text-[9px]"
+                             className="form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px]"
                             value={
                               coeffDrafts[row.id] !== undefined
                                 ? coeffDrafts[row.id]
@@ -603,7 +583,7 @@ export function SequenceTable() {
                         {!isOpen && isPort ? (
                           (() => { const err = getFieldError("sequence","turnExtra",row.id); return (
                           <input id={getFieldId("sequence","turnTime",row.id)} aria-invalid={!!err} title={err}
-                            type="number" step="0.01" className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${errCls(err)}`}
+                             type="number" step="0.01" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
                             value={row.turnTime || ""} onChange={(e) => updateSequenceRow(row.id, "turnTime", parseFloat(e.target.value) || 0)} placeholder="0" />
                           );})()
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
@@ -614,7 +594,7 @@ export function SequenceTable() {
                         {!isOpen && isPort ? (
                           (() => { const err = getFieldError("sequence","turnExtra",row.id); return (
                           <input id={getFieldId("sequence","extraTime",row.id)} aria-invalid={!!err} title={err}
-                            type="number" className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${errCls(err)}`}
+                             type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
                             value={row.extraTime || ""} onChange={(e) => updateSequenceRow(row.id, "extraTime", parseFloat(e.target.value) || 0)} placeholder="0" />
                           );})()
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
@@ -626,7 +606,7 @@ export function SequenceTable() {
                           const showWarning = row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
                             <input type="number" step="0.01"
-                              className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${showWarning ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
+                               className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${showWarning ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
                               value={row.draft || ""} 
                               onChange={(e) => updateSequenceRow(row.id, "draft", parseFloat(e.target.value) || 0)} 
                               placeholder="0"
@@ -640,7 +620,7 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                           (() => { const err = getFieldError("sequence","expDa",row.id); return (
-                          <div className="flex items-center gap-0.5">
+                           <div className="flex w-full min-w-0 items-center gap-0.5">
                             {(() => {
                               // Tanker: cell shows total DA (Charterer + Owner); only the
                               // Owner's Acct. amount (expDa) feeds the calculation.
@@ -650,7 +630,7 @@ export function SequenceTable() {
                             <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err}
                               title={err || (isTanker ? `Total DA = Charterer's Acct. + Owner's Acct. — only Owner's Acct. ($${ownerAmt.toLocaleString()}) is used in calculations. Use the pencil to split; double-click for DA history.` : "Double-click to view port DA history")}
                               onDoubleClick={() => { if (row.port) setDaPort({ rowId: row.id, port: row.port }); }}
-                              type="number" className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${errCls(err)} ${isTanker ? "bg-muted/40 cursor-default" : ""}`}
+                               type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)} ${isTanker ? "bg-muted/40 cursor-default" : ""}`}
                               value={isTanker ? (totalDa || "") : (row.expDa || "")}
                               readOnly={isTanker}
                               onChange={(e) => {

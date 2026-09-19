@@ -231,7 +231,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
           onClick={handleInputFocus}
           placeholder={placeholder}
           title={search || placeholder}
-          className="form-input-sm w-full min-w-0 truncate pl-5 pr-5 text-[9px]"
+          className="form-input-sm h-7 w-full min-w-0 truncate pl-4 pr-4 text-[10px]"
           autoComplete="off"
         />
         {search && (
