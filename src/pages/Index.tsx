@@ -24,7 +24,16 @@ const Index = () => {
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
   const isAdmin = user?.role === "admin";
   const isReadOnly = activeTab?.readOnly === true;
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window === "undefined" ? true : window.innerWidth >= 1440,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1440px)");
+    const handleBreakpoint = (event: MediaQueryListEvent) => setSidebarOpen(event.matches);
+    media.addEventListener("change", handleBreakpoint);
+    return () => media.removeEventListener("change", handleBreakpoint);
+  }, []);
 
   // Track which tab id we last loaded to detect tab switches
   const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
