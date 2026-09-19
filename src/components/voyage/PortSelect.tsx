@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Search, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchPorts as searchMarinePorts, type MarinePort } from "@/services/marineApi";
 import { isPortEuEea } from "@/utils/euCountries";
@@ -218,7 +218,6 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
   return (
     <div className={cn("relative", className)} ref={containerRef}>
       <div className="relative">
-        <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
         <input
           ref={inputRef}
           type="text"
@@ -231,7 +230,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
           onClick={handleInputFocus}
           placeholder={placeholder}
           title={search || placeholder}
-          className="form-input-sm h-7 w-full min-w-0 truncate pl-4 pr-4 text-[10px]"
+          className="form-input-sm h-7 w-full min-w-0 truncate pl-2 pr-4 text-[10px]"
           autoComplete="off"
         />
         {search && (
