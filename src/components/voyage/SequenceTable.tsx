@@ -235,7 +235,6 @@ export function SequenceTable() {
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
-  const pairedLabelClass = "shrink-0 text-[8px] font-semibold uppercase text-muted-foreground";
   const separatorClass = "shrink-0 text-[8px] text-muted-foreground/70";
 
   return (
