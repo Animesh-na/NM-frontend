@@ -177,7 +177,7 @@ const Index = () => {
             isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
           }`}
         >
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,3fr)_minmax(260px,1fr)] gap-2.5 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,4fr)_minmax(240px,1fr)] gap-2.5 items-stretch">
             <SectionFrame title="Vessel" className="min-w-0"><VesselPanel /></SectionFrame>
             <SectionFrame title="Miscellaneous" className="min-w-0"><MiscSection /></SectionFrame>
           </div>
