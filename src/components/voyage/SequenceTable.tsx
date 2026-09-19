@@ -490,7 +490,7 @@ export function SequenceTable() {
                                   </Tooltip>
                                 </TooltipProvider>
                                )}</div>
-                               </div><span className={separatorClass}>/</span>
+                               <span className={separatorClass}>/</span>
                                <div className={pairedRowClass}><span className={pairedLabelClass}>{isTanker ? "Lay" : "mt/d"}</span>
                                  <input type="number" className="form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px]"
                                   value={(isTanker ? row.layTime : row.productivity) || ""}
