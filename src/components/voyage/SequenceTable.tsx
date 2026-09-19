@@ -389,7 +389,7 @@ export function SequenceTable() {
                                  type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
                                 value={row.distance || ""} onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)} placeholder="0" />
                               );})()}</div>
-                               <span className={separatorClass}>/</span>
+                                <span className={separatorClass}>&</span>
                               <div className={contextRowClass}><SpeedContextPicker value={row.ecaDistanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", v)} />
                             {(() => { const err = getFieldError("sequence","ecaDistance",row.id); return (
                             <input id={getFieldId("sequence","ecaDistance",row.id)} aria-invalid={!!err} title={err}
@@ -410,7 +410,7 @@ export function SequenceTable() {
                               : row.totalLegTime > 0
                                 ? formatTime(row.totalLegTime)
                                 : "0.00"}
-                             </span></div><span className={separatorClass}>/</span>
+                             </span></div><span className={separatorClass}>&</span>
                             <div className={pairedRowClass}><span className={pairedLabelClass}>{autoDistanceEnabled ? "WD" : "SM"}</span>
                             {(autoDistanceEnabled && !row.weatherDelayFailed && row.weatherDelayHours !== undefined) ? (
                            <span className="min-w-0 flex-1 truncate text-right font-mono text-[10px] text-muted-foreground" title="Weather delay from distance API (h)">
