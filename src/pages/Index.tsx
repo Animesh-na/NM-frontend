@@ -185,7 +185,7 @@ const Index = () => {
         <div className="relative flex-shrink-0 border-l border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] flex flex-col">
           {sidebarOpen ? (
             <div
-              className={`w-80 flex-1 overflow-y-auto sheet-scroll ${
+              className={`w-64 xl:w-72 2xl:w-80 flex-1 overflow-y-auto sheet-scroll ${
                 isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
               }`}
             >
