@@ -232,6 +232,7 @@ export function SequenceTable() {
   const rowGridClass = isTanker
     ? "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(58px,.85fr)_minmax(58px,.85fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]"
     : "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(58px,.85fr)_minmax(58px,.85fr)_minmax(54px,.75fr)_minmax(48px,.65fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]";
+  const tableMinWidthClass = isTanker ? "min-w-[780px]" : "min-w-[930px]";
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
@@ -249,8 +250,8 @@ export function SequenceTable() {
 
       {isExpanded && (
         <div className="flex-1 min-w-0 p-1">
-          <div className="w-full min-w-0 overflow-x-hidden pb-1">
-            <table className="block w-full min-w-0 text-[10px]">
+          <div className="w-full min-w-0 overflow-x-auto pb-2 [scrollbar-gutter:stable]">
+            <table className={`block w-full ${tableMinWidthClass} text-[10px]`}>
               <thead className="block w-full min-w-0">
                 <tr className={`grid w-full min-w-0 ${rowGridClass}`}>
                   <th className={thClass}>Type</th>
