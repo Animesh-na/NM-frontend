@@ -235,7 +235,6 @@ export function SequenceTable() {
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
-  const pairedLabelClass = "shrink-0 text-[8px] font-semibold uppercase text-muted-foreground";
   const separatorClass = "shrink-0 text-[8px] text-muted-foreground/70";
 
   return (
@@ -258,7 +257,7 @@ export function SequenceTable() {
                   <th className={`${thClass} text-left`}>Port</th>
                   <th className={thClass}>Cargo</th>
                   <th className={thClass}>Distance &amp; ECA</th>
-                  <th className={thClass}>Time &amp; WD</th>
+                  <th className={thClass}>Sea time &amp; WD</th>
                   <th className={thClass}>P. Fuel</th>
                   <th className={thClass}>Qty mt</th>
                   <th className={thClass}>{isTanker ? "Laytime h" : "mt/d"}</th>
@@ -404,14 +403,14 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {isOpen ? <span className="text-muted-foreground/40 px-1">—</span> : (
                             <div className={pairedCellClass}>
-                             <div className={pairedRowClass}><span className={pairedLabelClass}>Sea</span><span className="min-w-0 flex-1 truncate text-right font-mono text-[10px] text-muted-foreground" title="Sea time is calculated from distance, speed and sea margin">
+                             <div className={pairedRowClass}><span className="min-w-0 flex-1 truncate text-right font-mono text-[10px] text-muted-foreground" title="Sea time is calculated from distance, speed and sea margin">
                             {row.timeOverride !== undefined
                               ? formatTime(row.timeOverride)
                               : row.totalLegTime > 0
                                 ? formatTime(row.totalLegTime)
                                 : "0.00"}
                              </span></div><span className={separatorClass}>&</span>
-                            <div className={pairedRowClass}><span className={pairedLabelClass}>{autoDistanceEnabled ? "WD" : "SM"}</span>
+                            <div className={pairedRowClass}>
                             {(autoDistanceEnabled && !row.weatherDelayFailed && row.weatherDelayHours !== undefined) ? (
                            <span className="min-w-0 flex-1 truncate text-right font-mono text-[10px] text-muted-foreground" title="Weather delay from distance API (h)">
                             {Math.abs(row.weatherDelayHours).toFixed(1)}
