@@ -231,6 +231,7 @@ export function SequenceTable() {
   const thClass = "min-w-0 px-0.5 py-0.5 text-[8px] font-semibold leading-tight text-foreground whitespace-nowrap text-center bg-table-header";
   const pairedCellClass = "grid min-w-0 grid-cols-1 gap-0.5";
   const pairedRowClass = "grid min-w-0 grid-cols-[18px_minmax(0,1fr)] items-center gap-0.5";
+  const contextRowClass = "grid min-w-0 grid-cols-[minmax(30px,46px)_minmax(0,1fr)] items-center gap-0.5";
   const pairedLabelClass = "truncate text-[7px] font-semibold uppercase text-muted-foreground";
 
   return (
@@ -403,21 +404,20 @@ export function SequenceTable() {
                             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground mx-auto" />
                           ) : (
                             <div className={pairedCellClass}>
-                              <div className={pairedRowClass}><SpeedContextPicker value={row.distanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "distanceSpeedContext", v)} />
+                              <div className={contextRowClass}><SpeedContextPicker value={row.distanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "distanceSpeedContext", v)} />
                               {(() => { const err = getFieldError("sequence","distance",row.id); return (
                               <input id={getFieldId("sequence","distance",row.id)} aria-invalid={!!err} title={err}
                                 type="number" className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${errCls(err)}`}
                                 value={row.distance || ""} onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)} placeholder="0" />
                               );})()}</div>
-                              <div className={pairedRowClass}><span className={pairedLabelClass}>ECA</span>
-                              <div className="flex min-w-0 items-center gap-0.5"><SpeedContextPicker value={row.ecaDistanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", v)} />
+                              <div className={contextRowClass}><SpeedContextPicker value={row.ecaDistanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", v)} />
                             {(() => { const err = getFieldError("sequence","ecaDistance",row.id); return (
                             <input id={getFieldId("sequence","ecaDistance",row.id)} aria-invalid={!!err} title={err}
                                 type="number" className={`form-input-sm w-full min-w-0 px-1 font-mono text-right text-[9px] ${errCls(err)}`}
                               value={row.ecaDistance || ""} onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)} placeholder="0" />
-                              );})()}</div></div>
+                              );})()}</div>
                           </div>
-                        )}
+                        ))}
                       </td>
 
                       {/* Sea Time + Weather Delay / Sea Margin */}
