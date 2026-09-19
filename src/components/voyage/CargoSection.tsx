@@ -458,7 +458,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       {open && (
       <div className="px-2 pb-2 pt-1 border-t border-border">
       <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
-        <div className="form-field min-w-[120px] flex-[2]">
+        <div className="form-field flex-1 min-w-[110px]">
           <label className="form-label">{isTanker ? "Flat rate user input" : "Rate"}</label>
           <div className="flex items-center gap-1">
             <input
@@ -483,7 +483,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         </div>
 
         {isTanker && (
-          <div className="form-field w-16">
+          <div className="form-field flex-1 min-w-[64px]">
             <label className="form-label">{isTanker ? "Freight WS" : "WS"}</label>
             <div className="input-with-unit">
               <input
@@ -501,7 +501,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         )}
 
         {isTanker && (
-          <div className="form-field w-24">
+          <div className="form-field flex-1 min-w-[72px]">
             <label className="form-label">Eff. Rate</label>
             <div className="input-with-unit">
               <input
@@ -515,7 +515,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         )}
 
-        <div className="form-field w-24">
+        <div className="form-field flex-1 min-w-[72px]">
           <label className="form-label">Qty (Seq)</label>
           <input
             id={getFieldId("cargo","quantityBalance",cargo.id)}
@@ -528,7 +528,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           />
         </div>
 
-        <div className="form-field w-24">
+        <div className="form-field flex-1 min-w-[72px]">
           <label className="form-label">Lumpsum</label>
           <div className="input-with-unit">
             <input
@@ -542,7 +542,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-16">
+        <div className="form-field flex-1 min-w-[64px]">
           <label className="form-label">Voy Comm</label>
           <div className="input-with-unit">
             <input
@@ -559,7 +559,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-20">
+        <div className="form-field flex-1 min-w-[68px]">
           <label className="form-label">Demurrage</label>
           <div className="input-with-unit">
             <input
@@ -580,7 +580,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-20">
+        <div className="form-field flex-1 min-w-[68px]">
           <label className="form-label">Despatch</label>
           <div className="input-with-unit">
             <input
@@ -596,7 +596,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field w-32">
+        <div className="form-field flex-1 min-w-[104px]">
           <label className="form-label">Laytime</label>
           <select
             className="form-input-sm w-full"
