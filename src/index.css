@@ -237,8 +237,6 @@
   .sheet-scroll::-webkit-scrollbar-track { background: transparent; }
 
   .sequence-horizontal-scroll {
-    padding-bottom: 0.35rem;
-    scrollbar-gutter: stable;
     scrollbar-color: hsl(var(--ocean) / 0.75) hsl(var(--muted));
   }
 

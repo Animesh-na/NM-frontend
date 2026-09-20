@@ -230,9 +230,9 @@ export function SequenceTable() {
 
   const thClass = "min-w-0 overflow-hidden px-0.5 py-1 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
   const rowGridClass = isTanker
-    ? "grid-cols-[64px_minmax(220px,1fr)_52px_216px_116px_68px_88px_76px_58px_58px_64px_108px_40px]"
-    : "grid-cols-[64px_minmax(220px,1fr)_52px_216px_116px_68px_88px_76px_72px_76px_58px_58px_64px_108px_40px]";
-  const tableMinWidthClass = isTanker ? "min-w-[1228px]" : "min-w-[1376px]";
+    ? "grid-cols-[minmax(60px,.55fr)_minmax(180px,2fr)_minmax(44px,.4fr)_minmax(206px,1.85fr)_minmax(104px,.9fr)_minmax(62px,.55fr)_minmax(88px,.78fr)_minmax(70px,.62fr)_minmax(54px,.48fr)_minmax(54px,.48fr)_minmax(58px,.52fr)_minmax(142px,1.2fr)_32px]"
+    : "grid-cols-[minmax(60px,.55fr)_minmax(180px,2fr)_minmax(44px,.4fr)_minmax(206px,1.85fr)_minmax(104px,.9fr)_minmax(62px,.55fr)_minmax(88px,.78fr)_minmax(70px,.62fr)_minmax(66px,.58fr)_minmax(76px,.68fr)_minmax(54px,.48fr)_minmax(54px,.48fr)_minmax(58px,.52fr)_minmax(108px,.95fr)_32px]";
+  const tableMinWidthClass = isTanker ? "min-w-[1154px]" : "min-w-[1262px]";
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
@@ -255,8 +255,8 @@ export function SequenceTable() {
             <table className={`block w-full ${tableMinWidthClass} text-[10px]`}>
               <thead className="block w-full min-w-0">
                 <tr className={`grid w-full min-w-0 ${rowGridClass}`}>
-                   <th className={`${thClass} sticky left-0 z-30 border-r border-border`}>Type</th>
-                   <th className={`${thClass} sticky left-[64px] z-30 border-r border-border text-left`}>Port</th>
+                   <th className={`${thClass} border-r border-border`}>Type</th>
+                   <th className={`${thClass} border-r border-border text-left`}>Port</th>
                   <th className={thClass}>Cargo</th>
                   <th className={thClass}>Distance &amp; ECA</th>
                   <th className={thClass}>Sea time &amp; WD</th>
@@ -284,7 +284,7 @@ export function SequenceTable() {
                   return (
                     <tr key={row.id} className={`group grid w-full min-w-0 items-center ${rowGridClass}`}>
                       {/* Type */}
-                      <td className={`${tdClass} sticky left-0 z-20 border-r border-border bg-[hsl(var(--dash-surface))]`}>
+                      <td className={`${tdClass} border-r border-border`}>
                         {isOpen ? (
                           <span className="text-[10px] font-semibold text-primary px-1">Open</span>
                         ) : row.type === "repos" ? (
@@ -339,7 +339,7 @@ export function SequenceTable() {
                       </td>
 
                        {/* Port */}
-                       <td className={`${tdClass} sticky left-[64px] z-20 border-r border-border bg-[hsl(var(--dash-surface))]`}>
+                       <td className={`${tdClass} border-r border-border`}>
                          {(() => { const portErr = getFieldError("sequence","port",row.id); return (
                            <div
                            id={getFieldId("sequence","port",row.id)}
