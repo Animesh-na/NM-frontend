@@ -11,8 +11,6 @@ export function MiscSection() {
   const { misc, updateMisc, updateExtraTime, vessel } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const totalMiscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
-  const totalCanalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
 
   const canal = misc?.extraTime?.canal1 ?? { mode: "VL", value: 0, unit: "days" as const };
   const canalFuel = misc?.canalFuel || (vessel?.hasScrubber ? "hsfo" : "vlsfo");
