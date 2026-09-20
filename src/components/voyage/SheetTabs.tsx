@@ -54,23 +54,24 @@ export function SheetTabs() {
   };
 
   return (
-    <div className="bg-[hsl(var(--dash-surface))] border-b border-[hsl(var(--dash-border))] flex items-center h-10 text-[11px] px-2.5 gap-1.5 flex-shrink-0 shadow-sm">
+    <div className="bg-[hsl(var(--dash-surface))] border-b border-[hsl(var(--dash-border))] flex flex-wrap items-center min-h-10 text-[11px] px-1.5 sm:px-2.5 py-1 gap-1.5 flex-shrink-0 shadow-sm">
       {/* Back to Dashboard */}
       <button
         onClick={goToDashboard}
-        className="flex items-center justify-center h-7 w-7 rounded-lg border border-[hsl(var(--dash-border))] hover:bg-[hsl(var(--dash-bg))] text-muted-foreground transition-colors mr-0.5"
+        className="touch-icon flex items-center justify-center rounded-lg border border-[hsl(var(--dash-border))] hover:bg-[hsl(var(--dash-bg))] text-muted-foreground transition-colors mr-0.5"
         title="Back to Dashboard"
+        aria-label="Back to dashboard"
       >
         <ArrowLeft className="h-3 w-3" />
       </button>
 
       {/* Tabs */}
-      <div ref={scrollRef} className="flex items-center gap-1 overflow-x-auto sheet-scroll">
+      <div ref={scrollRef} className="order-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sheet-scroll">
       {tabs.map((tab, idx) => (
         <div
           key={tab.id || `new-${idx}`}
           ref={idx === activeTabIndex ? activeTabRef : undefined}
-          className={`flex items-center gap-1.5 h-7 px-2.5 rounded-lg cursor-pointer border transition-all max-w-[170px] flex-shrink-0 ${
+          className={`flex items-center gap-1.5 min-h-9 sm:min-h-7 px-2.5 rounded-lg cursor-pointer border transition-all max-w-[170px] flex-shrink-0 ${
             idx === activeTabIndex
               ? "bg-[hsl(var(--ocean))] border-transparent text-primary-foreground font-semibold shadow-sm"
               : "bg-[hsl(var(--dash-bg))] border-[hsl(var(--dash-border))] text-muted-foreground hover:text-foreground"
@@ -81,7 +82,8 @@ export function SheetTabs() {
           {tab.isDirty && <span className="text-warning">●</span>}
           <button
             onClick={(e) => { e.stopPropagation(); closeTab(idx); }}
-            className="hover:bg-destructive/25 rounded-md p-0.5 ml-0.5"
+            className="touch-icon-sm hover:bg-destructive/25 rounded-md ml-0.5"
+            aria-label={`Close ${tab.name}`}
           >
             <X className="h-2.5 w-2.5" />
           </button>
@@ -89,11 +91,12 @@ export function SheetTabs() {
       ))}
       </div>
 
+      <div className="order-3 basis-full sm:order-none sm:basis-auto flex items-center gap-1.5 overflow-x-auto sheet-scroll sm:ml-auto">
       {/* Copy Sheet Button */}
       {activeTab && (
         <button
           onClick={copyCurrentSheet}
-          className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] text-foreground hover:bg-[hsl(var(--dash-bg))] transition-colors ml-1 text-[10px] font-semibold flex-shrink-0"
+          className="sheet-action-button border border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] text-foreground hover:bg-[hsl(var(--dash-bg))]"
           title="Copy Sheet"
         >
           <Copy className="h-3 w-3" />
@@ -106,7 +109,7 @@ export function SheetTabs() {
       {activeTab?.workbookId && (
         <button
           onClick={() => createNewSheet(activeTab.workbookId, activeTab.workbookName)}
-          className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--ocean))] text-primary-foreground hover:bg-[hsl(var(--ocean-600))] transition-colors ml-1 text-[10px] font-semibold flex-shrink-0"
+          className="sheet-action-button bg-[hsl(var(--ocean))] text-primary-foreground hover:bg-[hsl(var(--ocean-600))]"
           title={`New sheet in ${activeTab.workbookName || "this workbook"}`}
         >
           <Plus className="h-3 w-3" />
@@ -115,11 +118,11 @@ export function SheetTabs() {
       )}
 
       {/* Intake Calculator + Save */}
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         {!isTanker && (
           <button
             onClick={() => { trackEvent("intake.open", { component: "SheetTabs", vessel: vessel?.name }); setIntakeOpen(true); }}
-            className="flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))] hover:opacity-90 transition-opacity text-[10px] font-semibold flex-shrink-0"
+            className="sheet-action-button bg-[hsl(var(--teal))] text-[hsl(var(--teal-foreground))] hover:opacity-90"
             title="Intake Calculator"
           >
             <Calculator className="h-3 w-3" />
@@ -154,7 +157,7 @@ export function SheetTabs() {
           ) : (
             <button
               onClick={handleSave}
-              className="flex items-center gap-1 h-7 px-3 rounded-lg bg-[hsl(var(--ocean))] text-primary-foreground hover:bg-[hsl(var(--ocean-600))] transition-colors text-[10px] font-semibold"
+              className="sheet-action-button bg-[hsl(var(--ocean))] text-primary-foreground hover:bg-[hsl(var(--ocean-600))]"
               title="Save Sheet"
             >
               <Save className="h-3 w-3" />
@@ -168,6 +171,7 @@ export function SheetTabs() {
             Read-only · Organization sheet
           </span>
         )}
+      </div>
       </div>
 
       {intakeOpen && !isTanker && (

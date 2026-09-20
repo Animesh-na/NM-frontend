@@ -293,7 +293,7 @@ export default function Dashboard() {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header */}
         <header
-          className="flex h-16 shrink-0 items-center justify-between gap-3 border-b px-4 sm:px-6"
+          className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-2 border-b px-3 py-2 sm:px-6"
           style={{ background: "hsl(var(--dash-surface))", borderColor: "hsl(var(--dash-border))" }}
         >
           <div className="flex min-w-0 items-center gap-3">
@@ -313,9 +313,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 max-w-full items-center justify-end gap-1.5 overflow-x-auto dash-horizontal-scroll sm:gap-2">
             {section === "workbooks" && (
-              <div className="relative hidden md:block">
+              <div className="relative hidden xl:block">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 dash-muted" />
                 <input
                   value={query}
@@ -342,7 +342,7 @@ export default function Dashboard() {
                       setMode(m);
                     }}
                     title={allowed ? undefined : `You do not have access to ${MODE_LABELS[m]}. Please contact your administrator to request access.`}
-                    className="h-9 px-3 text-[12px] font-semibold transition-colors"
+                    className="h-9 px-2 sm:px-3 text-[11px] sm:text-[12px] font-semibold transition-colors whitespace-nowrap"
                     style={
                       mode === m && allowed
                         ? { background: "hsl(var(--ocean))", color: "#fff" }
@@ -401,11 +401,11 @@ export default function Dashboard() {
         )}
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
           <div className="mx-auto max-w-[1400px] space-y-5">
             {section === "overview" ? (
               <>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
                   <KpiCard label="Active Voyages" value="24" delta={8} deltaLabel="vs last month" icon={Anchor} tone="ocean" />
                   <KpiCard label="Fleet Size" value="32" unit="vessels" delta={3} deltaLabel="2 newbuilds" icon={Ship} tone="teal" />
                   <KpiCard label="Fuel Consumption" value="2,278" unit="mt" delta={-4} deltaLabel="month to date" icon={Fuel} tone="warning" />

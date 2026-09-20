@@ -21,6 +21,7 @@ export function CoverageInfoButton({ mode, results }: Props) {
     <Popover>
       <PopoverTrigger asChild>
         <button
+          data-readonly-allowed="true"
           type="button"
           className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors ml-1"
           aria-label={title}

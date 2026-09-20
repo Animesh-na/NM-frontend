@@ -132,6 +132,7 @@ export function VesselPanel() {
   return (
     <div className="calc-card-row">
       <button
+        data-readonly-allowed="true"
         onClick={() => setIsExpanded(!isExpanded)}
         className="section-header-vertical"
         title="Vessel"

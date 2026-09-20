@@ -31,6 +31,7 @@ export function SectionFrame({ title, children, className = "" }: SectionFramePr
   const toggle = (
     <button
       type="button"
+      data-readonly-allowed="true"
       onClick={() => setFullscreen((v) => !v)}
       title={fullscreen ? `Exit fullscreen (Esc)` : `Expand ${title} to fullscreen`}
       aria-label={fullscreen ? "Exit fullscreen" : `Expand ${title} to fullscreen`}

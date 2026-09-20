@@ -195,6 +195,7 @@ export function CargoSection() {
   return (
     <div className="calc-card-row">
       <button
+        data-readonly-allowed="true"
         onClick={() => setIsExpanded(!isExpanded)}
         className="section-header-vertical"
         title="Cargo"
@@ -432,6 +433,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       {/* Collapsed summary row */}
       <button
         type="button"
+        data-readonly-allowed="true"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors"
       >
