@@ -11,8 +11,6 @@ export function MiscSection() {
   const { misc, updateMisc, updateExtraTime, vessel } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const totalMiscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
-  const totalCanalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
 
   const canal = misc?.extraTime?.canal1 ?? { mode: "VL", value: 0, unit: "days" as const };
   const canalFuel = misc?.canalFuel || (vessel?.hasScrubber ? "hsfo" : "vlsfo");
@@ -109,16 +107,6 @@ export function MiscSection() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <div className="flex-1 min-w-[130px] flex items-center justify-between rounded-md border border-border bg-muted/40 px-2 py-1">
-              <span className="text-[10px] font-medium text-muted-foreground">Total Misc</span>
-              <span className="font-mono text-xs font-semibold">${totalMiscCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className="flex-1 min-w-[130px] flex items-center justify-between rounded-md border border-border bg-muted/40 px-2 py-1">
-              <span className="text-[10px] font-medium text-muted-foreground">Total Canal</span>
-              <span className="font-mono text-xs font-semibold">${totalCanalCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-          </div>
         </div>
       )}
     </div>
