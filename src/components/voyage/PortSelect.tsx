@@ -74,7 +74,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
       setDropdownPosition({
         top: rect.bottom + 2,
         left: rect.left,
-        width: Math.max(rect.width, 250), // Minimum width of 250px
+        width: Math.min(window.innerWidth - 16, Math.max(rect.width, 320)),
       });
     }
   }, [isOpen]);
@@ -203,7 +203,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
             >
               <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{port.name} ({port.country})</div>
+                 <div className="font-medium break-words">{port.name} ({port.country})</div>
                 <div className="text-[10px] text-muted-foreground truncate">
                   {port.unloc}
                 </div>
@@ -229,7 +229,8 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
           onFocus={handleInputFocus}
           onClick={handleInputFocus}
           placeholder={placeholder}
-          title={search || placeholder}
+           title={search || placeholder}
+           aria-label={search ? `Port: ${search}. Focus to review or change the full name.` : placeholder}
           className="form-input-sm h-7 w-full min-w-0 truncate pl-2 pr-4 text-[10px]"
           autoComplete="off"
         />
@@ -241,7 +242,8 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
               e.stopPropagation();
               handleClear();
             }}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm font-medium"
+             className="touch-icon-sm absolute right-0 top-1/2 -translate-y-1/2 rounded text-muted-foreground hover:text-foreground text-sm font-medium"
+             aria-label="Clear port"
           >
             ×
           </button>

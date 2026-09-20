@@ -170,7 +170,7 @@ export function ConsumptionMatrix({
                         title={err}
                         type="text"
                         inputMode="decimal"
-                        className={`form-input-sm w-[62px] mx-auto block tabular-nums text-center h-6 text-[10px] px-1 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
+                        className={`form-input-sm w-[62px] mx-auto block field-numeric h-6 text-[10px] px-1 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
                         value={getDisplayValue(row.key, col.key, value)}
                         onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
                         onFocus={() => handleInputFocus(row.key, col.key, value)}

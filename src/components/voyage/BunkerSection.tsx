@@ -266,15 +266,19 @@ export function BunkerSection() {
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-muted-foreground">EU ETS</span>
-              <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
+              <div className="input-with-unit">
+              <input type="number" className="form-input-sm field-numeric w-20 text-xs"
                 value={bunker.euEtsPrice || ""} onChange={(e) => updateBunkerField("euEtsPrice", parseFloat(e.target.value) || 0)} placeholder="0" />
-              <span className="text-[10px] text-muted-foreground">$/t</span>
+              <span className="unit">$ / t</span>
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-muted-foreground">UK ETS</span>
-              <input type="number" className="form-input-sm w-16 font-mono text-right text-xs"
+              <div className="input-with-unit">
+              <input type="number" className="form-input-sm field-numeric w-20 text-xs"
                 value={bunker.ukEtsPrice || ""} onChange={(e) => updateBunkerField("ukEtsPrice", parseFloat(e.target.value) || 0)} placeholder="0" />
-              <span className="text-[10px] text-muted-foreground">$/t</span>
+              <span className="unit">$ / t</span>
+              </div>
             </div>
             {bunker.portBunkering.length > 0 && (
             <>
@@ -339,10 +343,10 @@ export function BunkerSection() {
                   <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
                   <input type="number" disabled={bobIgnored} className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
-                  <span className="text-[9px] text-muted-foreground shrink-0">$/t</span>
+                   <span className="unit text-[9px]">$ / t</span>
                   <input type="number" disabled={bobIgnored} className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
-                  <span className="text-[9px] text-muted-foreground shrink-0">t</span>
+                   <span className="unit text-[9px]">t</span>
                 </div>
               ))}
             </div>
@@ -423,7 +427,7 @@ export function BunkerSection() {
                     <th></th>
                     {fuels.map(fuel => (
                       <React.Fragment key={fuel}>
-                        <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$/t</th>
+                         <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$ / t</th>
                         <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">t</th>
                       </React.Fragment>
                     ))}
@@ -447,7 +451,7 @@ export function BunkerSection() {
                         </React.Fragment>
                       ))}
                       <td className="px-0.5 py-0.5">
-                        <Button variant="ghost" size="sm" onClick={() => removePortBunkering(port.id)} className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive">
+                         <Button variant="ghost" size="sm" onClick={() => removePortBunkering(port.id)} className="min-h-9 min-w-9 p-0 text-muted-foreground hover:text-destructive" aria-label={`Remove ${port.portName} bunkering`}>
                           <X className="h-3 w-3" />
                         </Button>
                       </td>

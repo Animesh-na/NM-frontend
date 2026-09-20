@@ -294,6 +294,56 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .field-numeric {
+    @apply font-mono tabular-nums text-right;
+  }
+
+  .field-text,
+  .field-select {
+    @apply text-center;
+  }
+
+  .field-min-distance { min-width: 4.75rem; }
+  .field-min-quantity { min-width: 5.5rem; }
+  .field-min-da { min-width: 6.75rem; }
+  .field-min-rate { min-width: 5.75rem; }
+  .field-min-demurrage { min-width: 6.25rem; }
+  .field-min-gtc { min-width: 6rem; }
+  .field-min-gross-bb { min-width: 7.5rem; }
+  .field-min-percent { min-width: 4.75rem; }
+  .field-min-coefficient { min-width: 4.75rem; }
+  .field-min-cubic { min-width: 6.25rem; }
+
+  .unit {
+    @apply shrink-0 whitespace-nowrap text-muted-foreground;
+  }
+
+  .unit-compact {
+    @apply inline-flex h-7 shrink-0 items-center whitespace-nowrap rounded-r-md border bg-muted px-1.5 text-[9px] font-medium text-muted-foreground;
+    border-color: hsl(var(--dash-border));
+  }
+
+  .touch-icon {
+    @apply h-9 w-9 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:h-7 sm:w-7;
+  }
+
+  .touch-icon-sm {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:h-6 sm:w-6;
+  }
+
+  .sheet-action-button {
+    @apply flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:h-7;
+  }
+
+  .mobile-view-toggle {
+    @apply flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-transparent text-[11px] font-semibold text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .mobile-view-toggle-active {
+    background-color: hsl(var(--ocean));
+    color: hsl(var(--primary-foreground));
+  }
+
   .form-select,
   .form-select-sm {
     @apply appearance-none cursor-pointer pr-6;
@@ -474,4 +524,32 @@
     color: hsl(var(--foreground));
   }
   .dash-btn-ghost:hover { background-color: hsl(var(--dash-bg)); }
+
+  .dash-horizontal-scroll {
+    scrollbar-width: none;
+  }
+  .dash-horizontal-scroll::-webkit-scrollbar { display: none; }
+}
+
+@media (pointer: coarse) {
+  .form-input-sm,
+  .form-select-sm {
+    min-height: 36px;
+  }
+
+  .btn-action {
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 767px) {
+  .section-header-vertical,
+  .section-header-compact {
+    min-height: 40px;
+  }
+
+  .calc-card-row,
+  .dash-card {
+    border-radius: 0.5rem;
+  }
 }
