@@ -230,14 +230,14 @@ export function SequenceTable() {
 
   const thClass = "min-w-0 overflow-hidden px-0.5 py-1 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
   const rowGridClass = isTanker
-    ? "grid-cols-[minmax(60px,.55fr)_minmax(180px,2fr)_minmax(44px,.4fr)_minmax(206px,1.85fr)_minmax(104px,.9fr)_minmax(62px,.55fr)_minmax(88px,.78fr)_minmax(70px,.62fr)_minmax(54px,.48fr)_minmax(54px,.48fr)_minmax(58px,.52fr)_minmax(142px,1.2fr)_32px]"
-    : "grid-cols-[minmax(60px,.55fr)_minmax(180px,2fr)_minmax(44px,.4fr)_minmax(206px,1.85fr)_minmax(104px,.9fr)_minmax(62px,.55fr)_minmax(88px,.78fr)_minmax(70px,.62fr)_minmax(66px,.58fr)_minmax(76px,.68fr)_minmax(54px,.48fr)_minmax(54px,.48fr)_minmax(58px,.52fr)_minmax(108px,.95fr)_32px]";
-  const tableMinWidthClass = isTanker ? "min-w-[1154px]" : "min-w-[1262px]";
+    ? "grid-cols-[minmax(50px,.5fr)_minmax(150px,2fr)_minmax(38px,.38fr)_minmax(174px,1.75fr)_minmax(88px,.85fr)_minmax(58px,.55fr)_minmax(58px,.6fr)_minmax(58px,.6fr)_minmax(48px,.48fr)_minmax(48px,.48fr)_minmax(50px,.5fr)_minmax(78px,.85fr)_28px]"
+    : "grid-cols-[minmax(50px,.5fr)_minmax(150px,2fr)_minmax(38px,.38fr)_minmax(174px,1.75fr)_minmax(88px,.85fr)_minmax(58px,.55fr)_minmax(58px,.6fr)_minmax(58px,.6fr)_minmax(58px,.58fr)_minmax(58px,.58fr)_minmax(48px,.48fr)_minmax(48px,.48fr)_minmax(50px,.5fr)_minmax(78px,.85fr)_28px]";
+  const tableMinWidthClass = isTanker ? "min-w-[978px]" : "min-w-[1094px]";
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
-  const contextRowClass = "grid min-w-0 flex-1 grid-cols-[28px_minmax(46px,1fr)] items-center gap-0.5 overflow-hidden";
+  const contextRowClass = "grid min-w-0 flex-1 grid-cols-[28px_minmax(42px,1fr)] items-center gap-0.5 overflow-hidden";
   const separatorClass = "shrink-0 text-[8px] text-muted-foreground/70";
-  const sequenceNumericInputClass = "form-input-sm h-7 w-full min-w-0 max-w-full box-border px-1 font-mono text-right text-[10px]";
+  const sequenceNumericInputClass = "form-input-sm h-7 w-full min-w-0 max-w-full box-border px-0.5 font-mono text-right text-[10px]";
 
   return (
     <div className="calc-card-row">
