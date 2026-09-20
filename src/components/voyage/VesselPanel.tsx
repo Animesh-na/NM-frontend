@@ -144,11 +144,11 @@ export function VesselPanel() {
       {isExpanded && (
         <div className="flex-1 min-w-0 px-3 py-3 space-y-3 overflow-hidden">
           {/* Row 1: Search + Particulars + Type/Sector/Speed */}
-          <div className="flex flex-wrap gap-x-2 gap-y-2 items-end">
-            <div className="form-field min-w-[120px] max-w-[200px] flex-1">
+          <div className="flex flex-wrap min-[1366px]:flex-nowrap gap-x-2 gap-y-2 items-end">
+            <div className="form-field min-w-[140px] max-w-[180px] flex-1">
               <VesselSelect value={vessel.name} onChange={handleVesselSelect} placeholder="Search vessel..." />
             </div>
-            <div className="form-field field-min-cubic">
+            <div className="form-field w-[78px] shrink-0">
               <label className="form-label">DWT (mt)</label>
               {(() => { const err = getFieldError("vessel","dwt"); return (
               <input id={getFieldId("vessel","dwt")} aria-invalid={!!err} title={err}
@@ -156,7 +156,7 @@ export function VesselPanel() {
                 value={vessel.dwt || ""} onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)} placeholder="0" />
               );})()}
             </div>
-            <div className="form-field field-min-cubic">
+            <div className="form-field w-[70px] shrink-0">
               <label className="form-label">{isTanker ? "GRT" : "GT"}</label>
               {(() => { const err = getFieldError("vessel","gt"); return (
               <input id={getFieldId("vessel","gt")} aria-invalid={!!err} title={err}
@@ -164,7 +164,7 @@ export function VesselPanel() {
                 value={vessel.gt || ""} onChange={(e) => handleFieldChange("gt", parseFloat(e.target.value) || 0)} placeholder="0" />
               );})()}
             </div>
-            <div className="form-field field-min-cubic">
+            <div className="form-field w-[88px] shrink-0">
               <label className="form-label">Cubic (m³)</label>
               {(() => { const err = getFieldError("vessel","cubic"); return (
               <input id={getFieldId("vessel","cubic")} aria-invalid={!!err} title={err}
@@ -172,7 +172,7 @@ export function VesselPanel() {
                 value={vessel.cubic || ""} onChange={(e) => handleFieldChange("cubic", parseFloat(e.target.value) || 0)} placeholder="0" />
               );})()}
             </div>
-            <div className="form-field w-16">
+            <div className="form-field w-[58px] shrink-0">
               <label className="form-label">Draft (m)</label>
               {(() => { const err = getFieldError("vessel","draft"); return (
               <input id={getFieldId("vessel","draft")} aria-invalid={!!err} title={err}
@@ -180,7 +180,7 @@ export function VesselPanel() {
                 value={vessel.draft || ""} onChange={(e) => handleFieldChange("draft", parseFloat(e.target.value) || 0)} placeholder="0" />
               );})()}
             </div>
-            <div className="form-field w-16">
+            <div className="form-field w-[62px] shrink-0">
               <label className="form-label">TPC (t/cm)</label>
               {(() => { const err = getFieldError("vessel","tpcTpi"); return (
               <input id={getFieldId("vessel","tpcTpi")} aria-invalid={!!err} title={err}
@@ -188,20 +188,20 @@ export function VesselPanel() {
                 value={vessel.tpcTpi || ""} onChange={(e) => handleFieldChange("tpcTpi", parseFloat(e.target.value) || 0)} placeholder="0" />
               );})()}
             </div>
-            <div className="form-field w-14">
+            <div className="form-field w-[50px] shrink-0">
               <label className="form-label">Scrub</label>
               <select className="form-select-sm w-full" value={vessel.hasScrubber ? "Y" : "N"} onChange={(e) => handleFieldChange("hasScrubber", e.target.value === "Y")}>
                 <option value="N">N</option><option value="Y">Y</option>
               </select>
             </div>
-            <div className="form-field w-28">
+            <div className="form-field w-[88px] shrink-0">
               <label className="form-label">Speed Profile</label>
               <select className="form-select-sm w-full" value={vessel.speedProfile} onChange={(e) => handleSpeedProfileChange(e.target.value as SpeedProfile)}>
                 <option value="eco">Eco</option>
                 <option value="full">Full</option>
               </select>
             </div>
-            <div className="flex items-center gap-1.5 pb-0.5">
+            <div className="flex shrink-0 items-center gap-1.5 pb-0.5">
               <Checkbox id="loadDischIdle" checked={vessel.loadDischIdleSame} onCheckedChange={(checked) => handleLoadDischIdleChange(checked === true)} className="h-3.5 w-3.5" />
               <label htmlFor="loadDischIdle" className="text-[10px] text-foreground font-bold cursor-pointer whitespace-nowrap">L=D=I</label>
             </div>
