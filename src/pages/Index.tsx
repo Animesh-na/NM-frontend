@@ -215,7 +215,7 @@ const Index = () => {
             <SectionFrame title="Vessel" className="min-w-0"><VesselPanel /></SectionFrame>
             <SectionFrame title="Miscellaneous" className="min-w-0"><MiscSection /></SectionFrame>
           </div>
-          <SectionFrame title="Sequence"><SequenceTable /></SectionFrame>
+          <SectionFrame title="Sequence" className="min-w-0"><SequenceTable /></SectionFrame>
           <SectionFrame title="Cargo"><CargoSection /></SectionFrame>
           <SectionFrame title="Bunker"><BunkerSection /></SectionFrame>
           <SectionFrame title="Notes"><SheetNotes /></SectionFrame>
