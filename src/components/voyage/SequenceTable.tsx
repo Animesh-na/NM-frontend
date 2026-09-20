@@ -235,8 +235,9 @@ export function SequenceTable() {
   const tableMinWidthClass = isTanker ? "min-w-[1154px]" : "min-w-[1262px]";
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
-  const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
+  const contextRowClass = "grid min-w-0 flex-1 grid-cols-[28px_minmax(46px,1fr)] items-center gap-0.5 overflow-hidden";
   const separatorClass = "shrink-0 text-[8px] text-muted-foreground/70";
+  const sequenceNumericInputClass = "form-input-sm h-7 w-full min-w-0 max-w-full box-border px-1 font-mono text-right text-[10px]";
 
   return (
     <div className="calc-card-row">
@@ -387,14 +388,14 @@ export function SequenceTable() {
                                <div className={contextRowClass}><SpeedContextPicker value={row.distanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "distanceSpeedContext", v)} />
                               {(() => { const err = getFieldError("sequence","distance",row.id); return (
                               <input id={getFieldId("sequence","distance",row.id)} aria-invalid={!!err} title={err}
-                                type="number" className={`form-input-sm field-numeric field-min-distance h-7 w-full px-1 text-[10px] ${errCls(err)}`}
+                                type="number" className={`${sequenceNumericInputClass} ${errCls(err)}`}
                                 value={row.distance || ""} onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)} placeholder="0" />
                               );})()}</div>
                                 <span className={separatorClass}>&</span>
                               <div className={contextRowClass}><SpeedContextPicker value={row.ecaDistanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", v)} />
                             {(() => { const err = getFieldError("sequence","ecaDistance",row.id); return (
                             <input id={getFieldId("sequence","ecaDistance",row.id)} aria-invalid={!!err} title={err}
-                                 type="number" className={`form-input-sm field-numeric field-min-distance h-7 w-full px-1 text-[10px] ${errCls(err)}`}
+                                 type="number" className={`${sequenceNumericInputClass} ${errCls(err)}`}
                               value={row.ecaDistance || ""} onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)} placeholder="0" />
                               );})()}</div>
                           </div>
@@ -420,7 +421,7 @@ export function SequenceTable() {
                         ) : (
                           <input
                             type="number" min="0" max="100" step="0.5"
-                             className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${row.weatherDelayFailed ? "border-warning/60" : ""}`}
+                             className={`${sequenceNumericInputClass} ${row.weatherDelayFailed ? "border-warning/60" : ""}`}
                             value={row.seaMargin || ""}
                             onChange={(e) => updateSequenceRow(row.id, "seaMargin", parseFloat(e.target.value) || 0)}
                             placeholder="0"
@@ -455,7 +456,7 @@ export function SequenceTable() {
                                   <TooltipTrigger asChild>
                                      {(() => { const err = getFieldError("sequence","quantity",row.id); return (
                                      <input id={getFieldId("sequence","quantity",row.id)} aria-invalid={!!err} title={err || (qtyExceedsDraft ? "Draft exceeds limit" : undefined)}
-                                       type="number" className={`form-input-sm field-numeric field-min-quantity h-7 w-full px-1 text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
+                                       type="number" className={`${sequenceNumericInputClass} ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
                                        value={row.quantity || ""}
                                        onChange={(e) => {
                                          let val = parseFloat(e.target.value) || 0;
@@ -503,7 +504,7 @@ export function SequenceTable() {
                       {/* Productivity / laytime */}
                       <td className={tdClass}>
                         {hasQty ? (
-                          <input type="number" className="form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px]"
+                          <input type="number" className={sequenceNumericInputClass}
                             value={(isTanker ? row.layTime : row.productivity) || ""}
                             onChange={(e) => updateSequenceRow(row.id, isTanker ? "layTime" : "productivity", parseFloat(e.target.value) || 0)} placeholder="0" />
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
@@ -548,7 +549,7 @@ export function SequenceTable() {
                           <input
                             type="text"
                             inputMode="decimal"
-                             className="form-input-sm field-numeric field-min-coefficient h-7 w-full px-1 text-[10px]"
+                             className={sequenceNumericInputClass}
                             value={
                               coeffDrafts[row.id] !== undefined
                                 ? coeffDrafts[row.id]
@@ -587,7 +588,7 @@ export function SequenceTable() {
                         {!isOpen && isPort ? (
                           (() => { const err = getFieldError("sequence","turnExtra",row.id); return (
                           <input id={getFieldId("sequence","turnTime",row.id)} aria-invalid={!!err} title={err}
-                             type="number" step="0.01" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
+                             type="number" step="0.01" className={`${sequenceNumericInputClass} ${errCls(err)}`}
                             value={row.turnTime || ""} onChange={(e) => updateSequenceRow(row.id, "turnTime", parseFloat(e.target.value) || 0)} placeholder="0" />
                           );})()
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
@@ -598,7 +599,7 @@ export function SequenceTable() {
                         {!isOpen && isPort ? (
                           (() => { const err = getFieldError("sequence","turnExtra",row.id); return (
                           <input id={getFieldId("sequence","extraTime",row.id)} aria-invalid={!!err} title={err}
-                             type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
+                             type="number" className={`${sequenceNumericInputClass} ${errCls(err)}`}
                             value={row.extraTime || ""} onChange={(e) => updateSequenceRow(row.id, "extraTime", parseFloat(e.target.value) || 0)} placeholder="0" />
                           );})()
                         ) : <span className="text-muted-foreground/40 px-1">—</span>}
@@ -610,7 +611,7 @@ export function SequenceTable() {
                           const showWarning = row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
                             <input type="number" step="0.01"
-                               className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${showWarning ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
+                               className={`${sequenceNumericInputClass} ${showWarning ? 'bg-destructive/20 text-destructive border-destructive' : ''}`}
                               value={row.draft || ""} 
                               onChange={(e) => updateSequenceRow(row.id, "draft", parseFloat(e.target.value) || 0)} 
                               placeholder="0"
@@ -634,7 +635,7 @@ export function SequenceTable() {
                             <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err}
                               title={err || (isTanker ? `Total DA = Charterer's Acct. + Owner's Acct. — only Owner's Acct. ($${ownerAmt.toLocaleString()}) is used in calculations. Use the pencil to split; double-click for DA history.` : "Double-click to view port DA history")}
                               onDoubleClick={() => { if (row.port) setDaPort({ rowId: row.id, port: row.port }); }}
-                               type="number" className={`form-input-sm field-numeric field-min-da h-7 w-full px-1 text-[10px] ${errCls(err)} ${isTanker ? "bg-muted/40 cursor-default" : ""}`}
+                               type="number" className={`${sequenceNumericInputClass} ${errCls(err)} ${isTanker ? "bg-muted/40 cursor-default" : ""}`}
                               value={isTanker ? (totalDa || "") : (row.expDa || "")}
                               readOnly={isTanker}
                               onChange={(e) => {
