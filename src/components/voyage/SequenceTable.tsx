@@ -230,9 +230,9 @@ export function SequenceTable() {
 
   const thClass = "min-w-0 overflow-hidden px-0.5 py-1 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
   const rowGridClass = isTanker
-    ? "grid-cols-[minmax(50px,.5fr)_minmax(150px,2fr)_minmax(38px,.38fr)_minmax(174px,1.75fr)_minmax(88px,.85fr)_minmax(58px,.55fr)_minmax(58px,.6fr)_minmax(58px,.6fr)_minmax(48px,.48fr)_minmax(48px,.48fr)_minmax(50px,.5fr)_minmax(78px,.85fr)_28px]"
-    : "grid-cols-[minmax(50px,.5fr)_minmax(150px,2fr)_minmax(38px,.38fr)_minmax(174px,1.75fr)_minmax(88px,.85fr)_minmax(58px,.55fr)_minmax(58px,.6fr)_minmax(58px,.6fr)_minmax(58px,.58fr)_minmax(58px,.58fr)_minmax(48px,.48fr)_minmax(48px,.48fr)_minmax(50px,.5fr)_minmax(78px,.85fr)_28px]";
-  const tableMinWidthClass = isTanker ? "min-w-[926px]" : "min-w-[1042px]";
+    ? "grid-cols-[minmax(50px,.5fr)_minmax(136px,2fr)_minmax(38px,.38fr)_minmax(174px,1.75fr)_minmax(88px,.85fr)_minmax(58px,.55fr)_minmax(58px,.6fr)_minmax(58px,.6fr)_minmax(48px,.48fr)_minmax(48px,.48fr)_minmax(50px,.5fr)_minmax(70px,.85fr)_28px]"
+    : "grid-cols-[minmax(50px,.5fr)_minmax(136px,2fr)_minmax(38px,.38fr)_minmax(174px,1.75fr)_minmax(88px,.85fr)_minmax(58px,.55fr)_minmax(58px,.6fr)_minmax(58px,.6fr)_minmax(58px,.58fr)_minmax(58px,.58fr)_minmax(48px,.48fr)_minmax(48px,.48fr)_minmax(50px,.5fr)_minmax(70px,.85fr)_28px]";
+  const tableMinWidthClass = isTanker ? "min-w-[904px]" : "min-w-[1020px]";
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[28px_minmax(42px,1fr)] items-center gap-0.5 overflow-hidden";

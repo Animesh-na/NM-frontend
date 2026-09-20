@@ -9,6 +9,7 @@
 - [x] Sequence column minima corrected so the scrollbar appears before maximum values clip
 - [x] Sequence scrollbar hidden when columns fit and recalculated naturally with Summary width changes
 - [x] Sequence columns compressed to validated maximum-value widths with overflow below the compact threshold
+- [x] Sequence Port and DA minima tightened to delay genuine overflow on 1366×768 laptops
 - [x] Vessel particulars stay on one compact row at 1366px and wrap below that breakpoint
 - [x] Port display developer/data rule sheet
 - [ ] Authenticated workflow QA at 400×879, 1366×768, 1440×900, and 1920×1080 — blocked until the requesting user has an app account/session
