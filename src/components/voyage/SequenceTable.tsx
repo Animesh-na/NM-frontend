@@ -230,9 +230,9 @@ export function SequenceTable() {
 
   const thClass = "min-w-0 overflow-hidden px-0.5 py-1 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
   const rowGridClass = isTanker
-    ? "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(58px,.85fr)_minmax(58px,.85fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]"
-    : "grid-cols-[minmax(42px,.55fr)_minmax(92px,1.55fr)_minmax(34px,.4fr)_minmax(138px,2fr)_minmax(94px,1.25fr)_minmax(52px,.75fr)_minmax(58px,.85fr)_minmax(58px,.85fr)_minmax(54px,.75fr)_minmax(48px,.65fr)_minmax(38px,.5fr)_minmax(38px,.5fr)_minmax(42px,.55fr)_minmax(58px,.8fr)_22px]";
-  const tableMinWidthClass = isTanker ? "min-w-[780px]" : "min-w-[930px]";
+    ? "grid-cols-[64px_220px_52px_170px_116px_68px_88px_76px_58px_58px_64px_108px_40px]"
+    : "grid-cols-[64px_220px_52px_170px_116px_68px_88px_76px_72px_76px_58px_58px_64px_108px_40px]";
+  const tableMinWidthClass = isTanker ? "min-w-[1332px]" : "min-w-[1486px]";
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
@@ -241,6 +241,7 @@ export function SequenceTable() {
   return (
     <div className="calc-card-row">
       <button
+        data-readonly-allowed="true"
         onClick={() => setIsExpanded(!isExpanded)}
         className="section-header-vertical"
         title="Sequence"
@@ -254,8 +255,8 @@ export function SequenceTable() {
             <table className={`block w-full ${tableMinWidthClass} text-[10px]`}>
               <thead className="block w-full min-w-0">
                 <tr className={`grid w-full min-w-0 ${rowGridClass}`}>
-                  <th className={thClass}>Type</th>
-                  <th className={`${thClass} text-left`}>Port</th>
+                   <th className={`${thClass} sticky left-0 z-30 border-r border-border`}>Type</th>
+                   <th className={`${thClass} sticky left-[64px] z-30 border-r border-border text-left`}>Port</th>
                   <th className={thClass}>Cargo</th>
                   <th className={thClass}>Distance &amp; ECA</th>
                   <th className={thClass}>Sea time &amp; WD</th>
@@ -283,7 +284,7 @@ export function SequenceTable() {
                   return (
                     <tr key={row.id} className={`group grid w-full min-w-0 items-center ${rowGridClass}`}>
                       {/* Type */}
-                      <td className={tdClass}>
+                      <td className={`${tdClass} sticky left-0 z-20 border-r border-border bg-[hsl(var(--dash-surface))]`}>
                         {isOpen ? (
                           <span className="text-[10px] font-semibold text-primary px-1">Open</span>
                         ) : row.type === "repos" ? (
@@ -338,7 +339,7 @@ export function SequenceTable() {
                       </td>
 
                        {/* Port */}
-                       <td className={tdClass}>
+                       <td className={`${tdClass} sticky left-[64px] z-20 border-r border-border bg-[hsl(var(--dash-surface))]`}>
                          {(() => { const portErr = getFieldError("sequence","port",row.id); return (
                            <div
                            id={getFieldId("sequence","port",row.id)}
@@ -386,14 +387,14 @@ export function SequenceTable() {
                                <div className={contextRowClass}><SpeedContextPicker value={row.distanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "distanceSpeedContext", v)} />
                               {(() => { const err = getFieldError("sequence","distance",row.id); return (
                               <input id={getFieldId("sequence","distance",row.id)} aria-invalid={!!err} title={err}
-                                 type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
+                                type="number" className={`form-input-sm field-numeric field-min-distance h-7 w-full px-1 text-[10px] ${errCls(err)}`}
                                 value={row.distance || ""} onChange={(e) => updateSequenceRow(row.id, "distance", parseFloat(e.target.value) || 0)} placeholder="0" />
                               );})()}</div>
                                 <span className={separatorClass}>&</span>
                               <div className={contextRowClass}><SpeedContextPicker value={row.ecaDistanceSpeedContext} hasScrubber={!!vessel.hasScrubber} onChange={(v) => updateSequenceRow(row.id, "ecaDistanceSpeedContext", v)} />
                             {(() => { const err = getFieldError("sequence","ecaDistance",row.id); return (
                             <input id={getFieldId("sequence","ecaDistance",row.id)} aria-invalid={!!err} title={err}
-                                 type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)}`}
+                                 type="number" className={`form-input-sm field-numeric field-min-distance h-7 w-full px-1 text-[10px] ${errCls(err)}`}
                               value={row.ecaDistance || ""} onChange={(e) => updateSequenceRow(row.id, "ecaDistance", parseFloat(e.target.value) || 0)} placeholder="0" />
                               );})()}</div>
                           </div>
@@ -454,7 +455,7 @@ export function SequenceTable() {
                                   <TooltipTrigger asChild>
                                      {(() => { const err = getFieldError("sequence","quantity",row.id); return (
                                      <input id={getFieldId("sequence","quantity",row.id)} aria-invalid={!!err} title={err || (qtyExceedsDraft ? "Draft exceeds limit" : undefined)}
-                                       type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
+                                       type="number" className={`form-input-sm field-numeric field-min-quantity h-7 w-full px-1 text-[10px] ${qtyExceedsDraft ? 'bg-destructive/20 text-destructive border-destructive' : ''} ${errCls(err)}`}
                                        value={row.quantity || ""}
                                        onChange={(e) => {
                                          let val = parseFloat(e.target.value) || 0;
@@ -547,7 +548,7 @@ export function SequenceTable() {
                           <input
                             type="text"
                             inputMode="decimal"
-                             className="form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px]"
+                             className="form-input-sm field-numeric field-min-coefficient h-7 w-full px-1 text-[10px]"
                             value={
                               coeffDrafts[row.id] !== undefined
                                 ? coeffDrafts[row.id]
@@ -633,7 +634,7 @@ export function SequenceTable() {
                             <input id={getFieldId("sequence","expDa",row.id)} aria-invalid={!!err}
                               title={err || (isTanker ? `Total DA = Charterer's Acct. + Owner's Acct. — only Owner's Acct. ($${ownerAmt.toLocaleString()}) is used in calculations. Use the pencil to split; double-click for DA history.` : "Double-click to view port DA history")}
                               onDoubleClick={() => { if (row.port) setDaPort({ rowId: row.id, port: row.port }); }}
-                               type="number" className={`form-input-sm h-7 w-full min-w-0 px-0.5 font-mono text-right text-[10px] ${errCls(err)} ${isTanker ? "bg-muted/40 cursor-default" : ""}`}
+                               type="number" className={`form-input-sm field-numeric field-min-da h-7 w-full px-1 text-[10px] ${errCls(err)} ${isTanker ? "bg-muted/40 cursor-default" : ""}`}
                               value={isTanker ? (totalDa || "") : (row.expDa || "")}
                               readOnly={isTanker}
                               onChange={(e) => {
@@ -646,7 +647,8 @@ export function SequenceTable() {
                             {isTanker && (
                               <button
                                 type="button"
-                                className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                className="touch-icon-sm rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label="Split DA accounts"
                                 title="Split DA into Charterer's Acct. and Owner's Acct."
                                 onClick={() => setDaSplitRowId(row.id)}
                               >
@@ -664,8 +666,9 @@ export function SequenceTable() {
                         {!isOpen && (
                           <button
                             type="button"
-                            className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-destructive transition-colors"
+                            className="touch-icon-sm rounded hover:bg-accent text-muted-foreground hover:text-destructive transition-colors"
                             title="Remove port"
+                            aria-label={`Remove ${row.port || "port"}`}
                             onClick={() => removeSequence(row.id)}
                           >
                             <Trash2 className="h-3 w-3" />

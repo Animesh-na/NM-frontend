@@ -145,7 +145,7 @@ export function CopySheetsLauncher({ variant = "dashboard" }: Props) {
   };
 
   const btnCls = variant === "compact"
-    ? "flex items-center gap-1 h-7 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors font-medium"
+    ? "touch-icon sm:w-auto sm:px-2.5 flex items-center justify-center gap-1 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors font-medium"
     : "flex items-center gap-1 h-7 px-2.5 rounded-md hover:bg-section-header-foreground/10 transition-colors text-section-header-foreground/70";
 
   const Pager = ({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) => (
@@ -172,15 +172,15 @@ export function CopySheetsLauncher({ variant = "dashboard" }: Props) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className={btnCls} title="Copy voyage sheets from any workbook">
+      <button onClick={() => setOpen(true)} className={btnCls} title="Copy voyage sheets from any workbook" aria-label="Copy voyage sheets">
         <Copy className={variant === "compact" ? "h-3 w-3" : "h-3.5 w-3.5"} />
-        <span>Copy Sheets</span>
+        <span className={variant === "compact" ? "hidden sm:inline" : ""}>Copy Sheets</span>
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={reset}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-2 sm:p-4" onClick={reset}>
           <div
-            className="bg-card text-foreground rounded-lg shadow-2xl border border-border w-full max-w-4xl h-[80vh] flex flex-col"
+            className="bg-card text-foreground rounded-lg shadow-2xl border border-border w-full max-w-4xl h-[calc(100dvh-1rem)] sm:h-[80vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -190,12 +190,12 @@ export function CopySheetsLauncher({ variant = "dashboard" }: Props) {
                   Selected: <span className={`font-semibold ${canCopy ? "text-success" : "text-foreground"}`}>{selected.length}</span> / {MAX}
                 </p>
               </div>
-              <button onClick={reset} className="p-1 rounded hover:bg-muted">
+              <button onClick={reset} className="touch-icon-sm rounded hover:bg-muted" aria-label="Close copy sheets">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="flex-1 min-h-0 grid grid-cols-[1fr_260px]">
+            <div className="flex-1 min-h-0 grid grid-cols-1 sm:grid-cols-[1fr_260px]">
               {/* Browser */}
               <div className="flex flex-col min-h-0 border-r border-border">
                 {!workbook ? (
@@ -317,7 +317,7 @@ export function CopySheetsLauncher({ variant = "dashboard" }: Props) {
               </div>
 
               {/* Selected panel */}
-              <div className="flex flex-col min-h-0">
+              <div className="hidden sm:flex flex-col min-h-0">
                 <div className="px-3 py-2 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Selected sheets
                 </div>

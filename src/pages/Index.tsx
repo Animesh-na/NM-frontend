@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from "react";
+import { useEffect, useCallback, useRef, useState, type SyntheticEvent } from "react";
 import { CompactHeader } from "@/components/voyage/CompactHeader";
 import { SheetTabs } from "@/components/voyage/SheetTabs";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
@@ -14,7 +14,7 @@ import { SectionFrame } from "@/components/voyage/SectionFrame";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { Loader2, PanelRightClose, PanelRightOpen, Trash2 } from "lucide-react";
+import { Calculator, Loader2, PanelRightClose, PanelRightOpen, Trash2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -27,6 +27,8 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(() =>
     typeof window === "undefined" ? true : window.innerWidth >= 1440,
   );
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1440px)");
@@ -34,6 +36,25 @@ const Index = () => {
     media.addEventListener("change", handleBreakpoint);
     return () => media.removeEventListener("change", handleBreakpoint);
   }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const handleMobile = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+      if (!event.matches) setMobileSummaryOpen(false);
+    };
+    media.addEventListener("change", handleMobile);
+    return () => media.removeEventListener("change", handleMobile);
+  }, []);
+
+  const guardReadOnlyEdit = useCallback((event: SyntheticEvent<HTMLElement>) => {
+    if (!isReadOnly) return;
+    const target = event.target as HTMLElement;
+    const interactive = target.closest("button, input, select, textarea, [role='button'], [contenteditable='true']") as HTMLElement | null;
+    if (!interactive || interactive.closest("[data-readonly-allowed='true']")) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, [isReadOnly]);
 
   // Track which tab id we last loaded to detect tab switches
   const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
@@ -169,13 +190,26 @@ const Index = () => {
         </div>
       )}
 
+      {isMobile && (
+        <div className="grid grid-cols-2 gap-1 border-b border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] p-1.5">
+          <button type="button" data-readonly-allowed="true" onClick={() => setMobileSummaryOpen(false)} className={`mobile-view-toggle ${!mobileSummaryOpen ? "mobile-view-toggle-active" : ""}`} aria-pressed={!mobileSummaryOpen}>
+            <Calculator className="h-4 w-4" /> Calculator
+          </button>
+          <button type="button" data-readonly-allowed="true" onClick={() => setMobileSummaryOpen(true)} className={`mobile-view-toggle ${mobileSummaryOpen ? "mobile-view-toggle-active" : ""}`} aria-pressed={mobileSummaryOpen}>
+            <TrendingUp className="h-4 w-4" /> Voyage Summary
+          </button>
+        </div>
+      )}
+
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Left Panel */}
         <div
-          className={`flex-1 overflow-y-auto sheet-scroll p-3 space-y-2.5 ${
-            isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
-          }`}
+          className={`${isMobile && mobileSummaryOpen ? "hidden" : "block"} flex-1 min-w-0 overflow-y-auto sheet-scroll p-2 sm:p-3 space-y-2.5 ${isReadOnly ? "read-only-surface" : ""}`}
+          onClickCapture={guardReadOnlyEdit}
+          onChangeCapture={guardReadOnlyEdit}
+          onInputCapture={guardReadOnlyEdit}
+          onKeyDownCapture={guardReadOnlyEdit}
         >
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,4fr)_minmax(240px,1fr)] gap-2.5 items-stretch">
             <SectionFrame title="Vessel" className="min-w-0"><VesselPanel /></SectionFrame>
@@ -189,19 +223,22 @@ const Index = () => {
         </div>
         
         {/* Right Panel - Summary (collapsible) */}
-        <div className="relative flex-shrink-0 border-l border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] flex flex-col">
-          {sidebarOpen ? (
+        <div className={`${isMobile ? (mobileSummaryOpen ? "flex w-full" : "hidden") : "flex"} relative flex-shrink-0 border-l border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-surface))] flex-col`}>
+          {(isMobile ? mobileSummaryOpen : sidebarOpen) ? (
             <div
-              className={`w-64 xl:w-72 2xl:w-80 flex-1 overflow-y-auto sheet-scroll ${
-                isReadOnly ? "select-none [&_button]:pointer-events-none [&_input]:pointer-events-none [&_select]:pointer-events-none [&_textarea]:pointer-events-none [&_[role=button]]:pointer-events-none" : ""
-              }`}
+              className={`${isMobile ? "w-full" : "w-64 xl:w-72 2xl:w-80"} flex-1 overflow-y-auto sheet-scroll ${isReadOnly ? "read-only-surface" : ""}`}
+              onClickCapture={guardReadOnlyEdit}
+              onChangeCapture={guardReadOnlyEdit}
+              onInputCapture={guardReadOnlyEdit}
+              onKeyDownCapture={guardReadOnlyEdit}
             >
               <div className="p-2 space-y-2">
                 <div className="flex items-center justify-between px-0.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Summary</span>
                   <button
                     type="button"
-                    onClick={() => setSidebarOpen(false)}
+                    data-readonly-allowed="true"
+                    onClick={() => isMobile ? setMobileSummaryOpen(false) : setSidebarOpen(false)}
                     title="Collapse summary"
                     aria-label="Collapse summary"
                     className="h-6 w-6 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
@@ -213,7 +250,7 @@ const Index = () => {
                 <VoyageTimeline />
               </div>
             </div>
-          ) : (
+          ) : !isMobile ? (
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
@@ -223,13 +260,13 @@ const Index = () => {
             >
               <PanelRightOpen className="h-4 w-4" />
             </button>
-          )}
+          ) : null}
         </div>
       </div>
       
       {/* Footer */}
-      <footer className="sheet-topbar border-t border-[hsl(var(--dash-border))] px-4 py-1.5 text-[10px] flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2 text-primary-foreground/80">
+      <footer className="sheet-topbar border-t border-[hsl(var(--dash-border))] px-2 sm:px-4 py-1 text-[10px] flex items-center justify-end sm:justify-between flex-shrink-0">
+        <div className="hidden sm:flex items-center gap-2 text-primary-foreground/80">
           <span>© 2026 VoyageCalc</span>
           <span className="opacity-40">|</span>
           <span>Session: {new Date().toLocaleTimeString()}</span>

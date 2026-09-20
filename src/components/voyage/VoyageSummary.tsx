@@ -124,6 +124,7 @@ export function VoyageSummary() {
     <div className="calc-card-compact">
       <button
         type="button"
+        data-readonly-allowed="true"
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
         className="section-header-compact w-full justify-between cursor-pointer"

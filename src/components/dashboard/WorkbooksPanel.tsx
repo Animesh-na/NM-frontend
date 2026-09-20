@@ -178,7 +178,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
             <Plus className="h-3.5 w-3.5" /> New Workbook
           </button>
         ) : (
-          <form onSubmit={handleCreate} className="flex w-full items-start gap-2">
+          <form onSubmit={handleCreate} className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-start">
             <div className="flex flex-1 flex-col gap-2 sm:flex-row">
               <input
                 type="text"
@@ -198,7 +198,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
                 disabled={creating}
               />
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-end gap-1.5">
               <button type="submit" disabled={creating} className="dash-btn-primary h-8 px-3 text-[12px]">
                 {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                 Create
@@ -208,6 +208,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
                 onClick={() => { setShowCreate(false); setNewName(""); setNewDescription(""); }}
                 disabled={creating}
                 className="dash-btn-ghost h-8 px-2"
+                aria-label="Cancel workbook creation"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -216,7 +217,39 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
         )}
       </div>
 
-      <div className="dash-card overflow-hidden">
+      <div className="space-y-2 sm:hidden">
+        {workbooks.map((wb) => {
+          const own = isOwn(wb);
+          return (
+            <article key={wb.id} className="dash-card p-3">
+              <div className="flex min-w-0 items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="break-words text-[13px] font-semibold">{wb.name}</h3>
+                  {wb.description && <p className="mt-1 line-clamp-2 text-[11px] dash-muted">{wb.description}</p>}
+                </div>
+                <span className={own ? "dash-badge-success shrink-0" : "dash-badge-warning shrink-0"}>{own ? "Yours" : "Read-only"}</span>
+              </div>
+              <dl className="mt-3 grid grid-cols-[72px_1fr] gap-x-2 gap-y-1 text-[11px]">
+                <dt className="dash-muted">Owner</dt><dd className="min-w-0 break-all">{wb.owner_email || "—"}</dd>
+                <dt className="dash-muted">Sheets</dt><dd className="tabular-nums">{wb.sheet_count ?? "—"}</dd>
+                <dt className="dash-muted">Updated</dt><dd>{new Date(wb.updated_at || wb.created_at).toLocaleString()}</dd>
+              </dl>
+              <div className="mt-3 flex items-center gap-2 border-t border-[hsl(var(--dash-border))] pt-3">
+                <button onClick={() => openWorkbook(wb)} disabled={openingId === wb.id} className="dash-btn-primary min-h-11 flex-1 justify-center text-[12px] disabled:opacity-60">
+                  {openingId === wb.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderOpen className="h-4 w-4" />} Open
+                </button>
+                {own && (
+                  <button onClick={() => handleDelete(wb)} disabled={deletingId === wb.id} className="dash-btn-ghost min-h-11 min-w-11 justify-center px-2 text-destructive disabled:opacity-60" aria-label={`Delete ${wb.name}`} title="Delete this workbook">
+                    {deletingId === wb.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </button>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="dash-card hidden overflow-hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-[13px]">
             <thead>
@@ -248,12 +281,12 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
                     <td className="px-5 py-3 text-[12px] dash-muted">
                       {new Date(wb.updated_at || wb.created_at).toLocaleString()}
                     </td>
-                    <td className="px-5 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="w-[138px] px-5 py-3 text-right">
+                      <div className="grid grid-cols-[78px_32px] items-center justify-end gap-1.5">
                         <button
                           onClick={() => openWorkbook(wb)}
                           disabled={openingId === wb.id}
-                          className="dash-btn-primary h-7 px-3 text-[12px] disabled:opacity-60"
+                          className="dash-btn-primary h-7 justify-center px-3 text-[12px] disabled:opacity-60"
                           title="Open all sheets in this workbook"
                         >
                           {openingId === wb.id
@@ -267,12 +300,14 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
                             disabled={deletingId === wb.id}
                             className="dash-btn-ghost h-7 px-2 text-[12px] text-destructive disabled:opacity-60"
                             title="Delete this workbook"
+                            aria-label={`Delete ${wb.name}`}
                           >
                             {deletingId === wb.id
                               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               : <Trash2 className="h-3.5 w-3.5" />}
                           </button>
                         )}
+                        {!own && <span aria-hidden="true" className="h-7 w-8" />}
                       </div>
                     </td>
 
@@ -285,17 +320,17 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
       </div>
 
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-[12px] dash-muted">
-          <span>Page {page} of {totalPages} ({total} workbooks)</span>
+        <nav aria-label="Workbook pagination" className="mt-4 flex items-center justify-between text-[12px] dash-muted">
+          <span aria-live="polite">Page {page} of {totalPages} ({total} workbooks)</span>
           <div className="flex items-center gap-1.5">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="dash-btn-ghost h-8 px-2 disabled:opacity-40">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="dash-btn-ghost min-h-11 min-w-11 justify-center px-2 sm:min-h-8 sm:min-w-0 disabled:opacity-40" aria-label="Previous workbook page">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="dash-btn-ghost h-8 px-2 disabled:opacity-40">
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="dash-btn-ghost min-h-11 min-w-11 justify-center px-2 sm:min-h-8 sm:min-w-0 disabled:opacity-40" aria-label="Next workbook page">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-        </div>
+        </nav>
       )}
     </>
   );

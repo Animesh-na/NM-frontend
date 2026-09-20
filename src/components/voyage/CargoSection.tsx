@@ -195,6 +195,7 @@ export function CargoSection() {
   return (
     <div className="calc-card-row">
       <button
+        data-readonly-allowed="true"
         onClick={() => setIsExpanded(!isExpanded)}
         className="section-header-vertical"
         title="Cargo"
@@ -206,7 +207,7 @@ export function CargoSection() {
         <div className="flex-1 min-w-0 px-2 py-1 space-y-1">
           {/* Top summary fields */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2 items-end">
-            <div className="form-field min-w-0">
+            <div className="form-field field-min-gtc">
               <label className="form-label">GTC</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","gtc","_header"); return (
@@ -227,7 +228,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field min-w-0">
+            <div className="form-field field-min-percent">
               <label className="form-label">TC Comm</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","tcCommission",cargos[0]?.id); return (
@@ -248,7 +249,7 @@ export function CargoSection() {
                 <span className="unit">%</span>
               </div>
             </div>
-            <div className="form-field min-w-0">
+            <div className="form-field field-min-gtc">
               <label className="form-label">NTC</label>
               <div className="input-with-unit">
                 <input
@@ -260,7 +261,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field min-w-0">
+            <div className="form-field field-min-gross-bb">
               <label className="form-label">Net BB</label>
               <div className="input-with-unit">
                 <input
@@ -275,7 +276,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field min-w-0">
+            <div className="form-field field-min-gross-bb">
               <label className="form-label">Gross BB</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","grossBB","_header"); return (
@@ -432,6 +433,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       {/* Collapsed summary row */}
       <button
         type="button"
+        data-readonly-allowed="true"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors"
       >
@@ -458,26 +460,26 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       {open && (
       <div className="px-2 pb-2 pt-1 border-t border-border">
       <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
-        <div className="form-field flex-1 min-w-[110px]">
+        <div className="form-field flex-1 min-w-[154px]">
           <label className="form-label">{isTanker ? "Flat rate user input" : "Rate"}</label>
-          <div className="flex items-center gap-1">
+           <div className="input-with-unit min-w-0">
             <input
               id={getFieldId("cargo","rate",cargo.id)}
               aria-invalid={!!errRate}
               title={errRate}
               type="number"
               step="0.1"
-              className={`form-input-sm min-w-0 flex-1 font-mono text-right ${errCls(errRate)}`}
+               className={`form-input-sm field-numeric field-min-rate min-w-0 flex-1 ${errCls(errRate)}`}
               value={cargo.rate}
               onChange={(e) => onUpdate("rate", parseFloat(e.target.value) || 0)}
             />
             <select
-              className="form-select-sm w-[72px] flex-shrink-0"
+               className="form-select-sm unit-compact w-[62px] rounded-l-none border-l-0 px-1 pr-4 text-center"
               value={cargo.rateType}
               onChange={(e) => onUpdate("rateType", e.target.value)}
             >
-              <option value="mt">$/mt</option>
-              <option value="lumpsum">Lump</option>
+               <option value="mt">$ / mt</option>
+               <option value="lumpsum">Lump ($)</option>
             </select>
           </div>
         </div>
@@ -515,7 +517,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         )}
 
-        <div className="form-field flex-1 min-w-[72px]">
+        <div className="form-field flex-1 field-min-quantity">
           <label className="form-label">Qty (Seq)</label>
           <input
             id={getFieldId("cargo","quantityBalance",cargo.id)}
@@ -542,7 +544,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field flex-1 min-w-[64px]">
+        <div className="form-field flex-1 field-min-percent">
           <label className="form-label">Voy Comm</label>
           <div className="input-with-unit">
             <input
@@ -559,7 +561,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field flex-1 min-w-[68px]">
+        <div className="form-field flex-1 field-min-demurrage">
           <label className="form-label">Demurrage</label>
           <div className="input-with-unit">
             <input
@@ -580,7 +582,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           </div>
         </div>
 
-        <div className="form-field flex-1 min-w-[68px]">
+        <div className="form-field flex-1 field-min-demurrage">
           <label className="form-label">Despatch</label>
           <div className="input-with-unit">
             <input
@@ -644,15 +646,15 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                   <label className="form-label">Port</label>
                   <input readOnly className={`${ro} text-left w-full`} value={r.port || "—"} title={r.port} />
                 </div>
-                <div className="form-field w-20">
+                <div className="form-field field-min-demurrage">
                   <label className="form-label">Demurrage</label>
                   <input type="number" className={edit} value={demVal} onChange={(e) => onCpOverride(r.id, "demurrage", parseFloat(e.target.value) || 0)} />
                 </div>
-                <div className="form-field w-20">
+                <div className="form-field field-min-demurrage">
                   <label className="form-label">Despatch</label>
                   <input type="number" className={edit} value={despVal} onChange={(e) => onCpOverride(r.id, "despatch", parseFloat(e.target.value) || 0)} />
                 </div>
-                <div className="form-field w-20">
+                <div className="form-field field-min-quantity">
                   <label className="form-label">Quantity</label>
                   <input
                     type="number"
@@ -682,7 +684,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => onOpUpdate(r.id, "productivity", parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                <div className="form-field w-14">
+                <div className="form-field field-min-coefficient">
                   <label className="form-label">Terms</label>
                   <select
                     className={edit}
@@ -724,7 +726,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
                     onChange={(e) => onOpUpdate(r.id, "extraTime", parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                <div className="form-field w-16">
+                <div className="form-field field-min-da">
                   <label className="form-label">Exp DA</label>
                   {(() => { const err = getFieldError("sequence","expDa", r.id); return (
                   <input

@@ -132,6 +132,7 @@ export function VesselPanel() {
   return (
     <div className="calc-card-row">
       <button
+        data-readonly-allowed="true"
         onClick={() => setIsExpanded(!isExpanded)}
         className="section-header-vertical"
         title="Vessel"
@@ -147,7 +148,7 @@ export function VesselPanel() {
             <div className="form-field min-w-[120px] max-w-[200px] flex-1">
               <VesselSelect value={vessel.name} onChange={handleVesselSelect} placeholder="Search vessel..." />
             </div>
-            <div className="form-field w-20">
+            <div className="form-field field-min-cubic">
               <label className="form-label">DWT (mt)</label>
               {(() => { const err = getFieldError("vessel","dwt"); return (
               <input id={getFieldId("vessel","dwt")} aria-invalid={!!err} title={err}
@@ -155,7 +156,7 @@ export function VesselPanel() {
                 value={vessel.dwt || ""} onChange={(e) => handleFieldChange("dwt", parseFloat(e.target.value) || 0)} placeholder="0" />
               );})()}
             </div>
-            <div className="form-field w-20">
+            <div className="form-field field-min-cubic">
               <label className="form-label">{isTanker ? "GRT" : "GT"}</label>
               {(() => { const err = getFieldError("vessel","gt"); return (
               <input id={getFieldId("vessel","gt")} aria-invalid={!!err} title={err}
@@ -163,7 +164,7 @@ export function VesselPanel() {
                 value={vessel.gt || ""} onChange={(e) => handleFieldChange("gt", parseFloat(e.target.value) || 0)} placeholder="0" />
               );})()}
             </div>
-            <div className="form-field w-20">
+            <div className="form-field field-min-cubic">
               <label className="form-label">Cubic (m³)</label>
               {(() => { const err = getFieldError("vessel","cubic"); return (
               <input id={getFieldId("vessel","cubic")} aria-invalid={!!err} title={err}
