@@ -230,9 +230,9 @@ export function SequenceTable() {
 
   const thClass = "min-w-0 overflow-hidden px-0.5 py-1 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
   const rowGridClass = isTanker
-    ? "grid-cols-[64px_220px_52px_170px_116px_68px_88px_76px_58px_58px_64px_108px_40px]"
-    : "grid-cols-[64px_220px_52px_170px_116px_68px_88px_76px_72px_76px_58px_58px_64px_108px_40px]";
-  const tableMinWidthClass = isTanker ? "min-w-[1332px]" : "min-w-[1486px]";
+    ? "grid-cols-[64px_minmax(220px,1fr)_52px_216px_116px_68px_88px_76px_58px_58px_64px_108px_40px]"
+    : "grid-cols-[64px_minmax(220px,1fr)_52px_216px_116px_68px_88px_76px_72px_76px_58px_58px_64px_108px_40px]";
+  const tableMinWidthClass = isTanker ? "min-w-[1228px]" : "min-w-[1376px]";
   const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[minmax(28px,.72fr)_minmax(0,1fr)] items-center gap-0.5 overflow-hidden";
@@ -251,7 +251,7 @@ export function SequenceTable() {
 
       {isExpanded && (
         <div className="flex-1 min-w-0 p-1">
-          <div className="w-full min-w-0 overflow-x-auto pb-2 [scrollbar-gutter:stable]">
+          <div className="sequence-horizontal-scroll sheet-scroll w-full min-w-0 overflow-x-auto">
             <table className={`block w-full ${tableMinWidthClass} text-[10px]`}>
               <thead className="block w-full min-w-0">
                 <tr className={`grid w-full min-w-0 ${rowGridClass}`}>
