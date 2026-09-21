@@ -1,5 +1,5 @@
 import { useVoyageContext } from "@/context/VoyageContext";
-import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { InfoTooltip } from "./InfoTooltip";
 import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { computeLegSeaFuel, computePortFuel } from "@/utils/fuelBreakdown";
@@ -16,6 +16,7 @@ const co2eOf = (hsfo: number, vlsfo: number, lsmgo: number) =>
  */
 export function SequenceSummary({ expanded }: { expanded: boolean }) {
   const { sequence, results, vessel, bunker } = useVoyageContext();
+  const [fuelView, setFuelView] = useState<"leg" | "port">("leg");
 
   // ---------- Per-Leg (sea) and Per-Port fuel usage — shared engine-parity logic ----------
   const legFuelRows = computeLegSeaFuel(sequence, vessel, 1).map((r) => ({
