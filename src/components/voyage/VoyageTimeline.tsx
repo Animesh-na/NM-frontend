@@ -15,7 +15,7 @@ export function VoyageTimeline() {
           <Ship className="h-3.5 w-3.5" />
           <span>Voyage Timeline</span>
         </div>
-        <div className="p-3 text-[10px] text-muted-foreground text-center">
+        <div className="p-2 text-[10px] text-muted-foreground text-center">
           Add ports to see the voyage timeline
         </div>
       </div>
@@ -41,8 +41,8 @@ export function VoyageTimeline() {
         <Ship className="h-3.5 w-3.5" />
         <span>Voyage Timeline</span>
       </div>
-      <div className="p-2">
-        <div className="mb-2">
+      <div className="p-1.5">
+        <div className="mb-1.5">
           <VoyageMap />
         </div>
         <div className="relative">
@@ -70,7 +70,7 @@ export function VoyageTimeline() {
                 </div>
 
                 {/* Content */}
-                <div className={`flex-1 pb-2 ${isLast ? "pb-0" : ""}`}>
+                <div className={`flex-1 pb-1.5 ${isLast ? "pb-0" : ""}`}>
                   <div className="text-[10px] font-semibold text-foreground leading-tight">
                     {row.port}
                     {row.type === "open" && (
@@ -116,7 +116,7 @@ export function VoyageTimeline() {
 
         {/* Final arrival summary */}
         {portsWithTime.length >= 2 && portsWithTime[portsWithTime.length - 1].legArrivalUtc && (
-          <div className="mt-2 pt-1.5 border-t border-border text-[10px]">
+          <div className="mt-1.5 pt-1 border-t border-border text-[10px]">
             <div className="flex justify-between items-center">
               <span className="font-medium text-foreground">Final Arrival</span>
               <span className="font-mono tabular-nums font-semibold text-primary">

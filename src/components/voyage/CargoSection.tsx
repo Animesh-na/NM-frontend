@@ -206,7 +206,7 @@ export function CargoSection() {
       {isExpanded && (
         <div className="flex-1 min-w-0 px-2 py-1 space-y-1">
           {/* Top summary fields */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2 items-end">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-1.5 items-end">
             <div className="form-field field-min-gtc">
               <label className="form-label">GTC</label>
               <div className="input-with-unit">

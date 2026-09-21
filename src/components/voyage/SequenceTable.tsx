@@ -65,7 +65,7 @@ function SpeedContextPicker({
         <button
           type="button"
           title={`${profile === "eco" ? "Eco" : "Full"} speed · ${FUEL_LABEL[fuel]}`}
-          className="form-select-sm h-7 w-full min-w-0 px-0.5 pr-3 text-center font-mono text-[10px] hover:bg-muted"
+          className="form-select-sm h-6 w-full min-w-0 px-0.5 pr-3 text-center font-mono text-[10px] hover:bg-muted"
         >
           {value}
         </button>
