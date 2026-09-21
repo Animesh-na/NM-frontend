@@ -141,14 +141,15 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
       {query && (
         <button
           type="button"
+          aria-label="Clear charterer"
           onClick={() => {
             setQuery("");
             onChange("");
             setResults([]);
           }}
-          className="absolute right-1 top-1/2 -translate-y-1/2 flex h-5 w-4 items-center justify-center leading-none text-muted-foreground hover:text-foreground text-sm font-medium"
+          className="absolute right-0.5 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center p-0 text-muted-foreground hover:text-foreground"
         >
-          ×
+          <X className="h-3 w-3" strokeWidth={2.5} />
         </button>
       )}
       {typeof document !== "undefined" && createPortal(dropdown, document.body)}
