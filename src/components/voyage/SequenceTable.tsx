@@ -112,6 +112,7 @@ export function SequenceTable() {
     msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   
   const [isExpanded, setIsExpanded] = useState(true);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const [daPort, setDaPort] = useState<{ rowId: number; port: string } | null>(null);
   const [daSplitRowId, setDaSplitRowId] = useState<number | null>(null);
