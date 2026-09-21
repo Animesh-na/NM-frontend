@@ -146,7 +146,7 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
             onChange("");
             setResults([]);
           }}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm font-medium"
+          className="absolute right-1 top-1/2 -translate-y-1/2 flex h-5 w-4 items-center justify-center leading-none text-muted-foreground hover:text-foreground text-sm font-medium"
         >
           ×
         </button>
