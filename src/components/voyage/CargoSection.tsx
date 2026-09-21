@@ -1,4 +1,4 @@
-import { ChevronDown, Package, Plus, Trash2, Search, Building2 } from "lucide-react";
+import { ChevronDown, Package, Plus, Trash2, Search, Building2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getApiMode, API_MODE_CHANGED_EVENT } from "@/services/apiMode";
