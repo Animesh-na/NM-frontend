@@ -703,7 +703,7 @@ export function SequenceTable() {
                 onChange={(e) => setDepartureUtc(e.target.value)}
               />
             </div>
-            <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled}>
+            <button onClick={() => recalculateDistances(true)} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled} title="Re-fetch distances for all legs from the API">
               <RefreshCw className="h-3 w-3" /> Distances
             </button>
             <div className="flex-1" />
