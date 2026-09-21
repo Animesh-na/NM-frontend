@@ -19,6 +19,16 @@ import {
 } from "@/utils/validation";
 import { toast } from "sonner";
 
+// Default voyage departure used for the distance/weather-routing API when the
+// user has not picked one: current UTC time, rounded down to the hour.
+// Format matches the datetime-local input ("YYYY-MM-DDTHH:mm").
+function defaultDepartureUtc(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}T${pad(now.getUTCHours())}:00`;
+}
+
+
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
 
@@ -905,8 +915,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   );
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [departureUtc, setDepartureUtc] = useState(() =>
-    (initialData?.departureUtc as string) || ""
+    (initialData?.departureUtc as string) || defaultDepartureUtc()
   );
+
   const [notes, setNotes] = useState<string>(() =>
     typeof initialData?.notes === "string" ? (initialData.notes as string) : ""
   );
@@ -1172,10 +1183,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         const isLadenForLeg = cargoOnBoardForLeg > 0;
         const { seaSpeed: legSpeed } = getSpeedForContext(currRow.distanceSpeedContext, isLadenForLeg, vesselRef.current);
 
-        // Use cascading leg departure from sequence row
+        // Use cascading leg departure from sequence row; fall back to the
+        // voyage departure (or "now") so vessel_speed + departure_utc are
+        // always sent together, as the distance API requires.
+        const baseDeparture = (departureUtc || defaultDepartureUtc()).replace("T", " ");
         const legDepartureUtc = currRow.legDepartureUtc
           ? currRow.legDepartureUtc.replace("T", " ")
-          : (i === 1 ? departureUtc.replace("T", " ") : "");
+          : baseDeparture;
+
 
         const result = await getSeaRouteDistance(
           prevLat, prevLon, currLat, currLon,
