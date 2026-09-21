@@ -1463,7 +1463,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     prevAutoDistRef.current = autoDistanceEnabled;
     if (wasOff && autoDistanceEnabled && portCoordsKey) {
       const timer = setTimeout(() => {
-        recalcRef.current();
+        // Force a fresh fetch so enabling the checkbox always calls the API,
+        // even when the port pairs have not changed since the last run.
+        recalcRef.current(true);
       }, 100);
       return () => clearTimeout(timer);
     }
@@ -2108,7 +2110,7 @@ export function useVoyageContext() {
       addRepositioning: () => {},
       removeSequence: () => {},
       recalculateDistances: () => {},
-      autoDistanceEnabled: true,
+      autoDistanceEnabled: false,
       setAutoDistanceEnabled: () => {},
       distanceLoading: false,
       suppressDistanceRecalc: () => {},
