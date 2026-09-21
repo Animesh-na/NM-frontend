@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2, Ship, RefreshCw, Loader2, AlertTriangle, ArrowUp, ArrowDown, Pencil } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Ship, Loader2, AlertTriangle, ArrowUp, ArrowDown, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PortSelect, type Port } from "./PortSelect";
 import { useVoyageContext, type SequenceRowUI, type PortOperation, type Season, type SpeedContext, type WdaysUnit } from "@/context/VoyageContext";
@@ -703,9 +703,6 @@ export function SequenceTable() {
                 onChange={(e) => setDepartureUtc(e.target.value)}
               />
             </div>
-            <button onClick={() => recalculateDistances(true)} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled} title="Re-fetch distances for all legs from the API">
-              <RefreshCw className="h-3 w-3" /> Distances
-            </button>
             <div className="flex-1" />
             <button
               type="button"
