@@ -1183,10 +1183,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         const isLadenForLeg = cargoOnBoardForLeg > 0;
         const { seaSpeed: legSpeed } = getSpeedForContext(currRow.distanceSpeedContext, isLadenForLeg, vesselRef.current);
 
-        // Use cascading leg departure from sequence row
+        // Use cascading leg departure from sequence row; fall back to the
+        // voyage departure (or "now") so vessel_speed + departure_utc are
+        // always sent together, as the distance API requires.
+        const baseDeparture = (departureUtc || defaultDepartureUtc()).replace("T", " ");
         const legDepartureUtc = currRow.legDepartureUtc
           ? currRow.legDepartureUtc.replace("T", " ")
-          : (i === 1 ? departureUtc.replace("T", " ") : "");
+          : baseDeparture;
+
 
         const result = await getSeaRouteDistance(
           prevLat, prevLon, currLat, currLon,
