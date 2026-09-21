@@ -1,6 +1,5 @@
 import { useVoyageContext } from "@/context/VoyageContext";
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { InfoTooltip } from "./InfoTooltip";
 import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
 import { computeLegSeaFuel, computePortFuel } from "@/utils/fuelBreakdown";
@@ -10,9 +9,13 @@ const co2eOf = (hsfo: number, vlsfo: number, lsmgo: number) =>
   vlsfo * CO2_EMISSION_FACTORS.vlsfo +
   lsmgo * CO2_EMISSION_FACTORS.lsmgo;
 
-export function SequenceSummary() {
+/**
+ * Expandable detail panel for the Sequence summary. The compact Sea/Port/Total
+ * toggle lives in the Sequence action row; this renders only the expanded
+ * breakdown (or nothing when collapsed).
+ */
+export function SequenceSummary({ expanded }: { expanded: boolean }) {
   const { sequence, results, vessel, bunker } = useVoyageContext();
-  const [isExpanded, setIsExpanded] = useState(false);
   const [fuelView, setFuelView] = useState<"leg" | "port">("leg");
 
   // ---------- Per-Leg (sea) and Per-Port fuel usage — shared engine-parity logic ----------
@@ -68,24 +71,12 @@ export function SequenceSummary() {
     });
   };
 
-  return (
-    <div className="mt-1 pt-1 border-t">
-      {/* Compact inline summary - always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between text-[10px] hover:bg-muted/30 rounded px-1 py-0.5"
-      >
-        <span className="font-medium text-muted-foreground">Sequence Summary</span>
-        <div className="flex items-center gap-3 font-mono tabular-nums">
-          <span className="text-muted-foreground">Sea: <span className="text-foreground font-medium">{results.totalSeaDays.toFixed(2)}d</span></span>
-          <span className="text-muted-foreground">Port: <span className="text-foreground font-medium">{results.totalPortDays.toFixed(2)}d</span></span>
-          <span className="text-muted-foreground">Total: <span className="text-primary font-bold">{results.totalVoyageDays.toFixed(2)}d</span></span>
-          <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
-        </div>
-      </button>
+  if (!expanded) return null;
 
+  return (
+    <div className="space-y-2 mt-0.5 pt-1 border-t">
       {/* Expandable detail */}
-      {isExpanded && (
+      {true && (
         <div className="space-y-2 mt-1">
           {/* Leg breakdown table */}
           <div className="grid grid-cols-3 gap-3">

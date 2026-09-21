@@ -105,13 +105,14 @@ export function SequenceTable() {
   const { 
     sequence, setSequence, updateSequenceRow, addPort, addRepositioning, removeSequence,
     recalculateDistances, autoDistanceEnabled, setAutoDistanceEnabled, distanceLoading, vessel,
-    departureUtc, setDepartureUtc, getFieldError,
+    departureUtc, setDepartureUtc, getFieldError, results,
   } = useVoyageContext();
 
   const errCls = (msg?: string) =>
     msg ? "border-destructive ring-1 ring-destructive focus-visible:ring-destructive" : "";
   
   const [isExpanded, setIsExpanded] = useState(true);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [intakeRowId, setIntakeRowId] = useState<number | null>(null);
   const [daPort, setDaPort] = useState<{ rowId: number; port: string } | null>(null);
   const [daSplitRowId, setDaSplitRowId] = useState<number | null>(null);
@@ -683,13 +684,12 @@ export function SequenceTable() {
             </table>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 pt-0.5 mt-0.5 border-t border-border">
+          {/* Action buttons + inline summary toggle */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5 mt-0.5 border-t border-border">
             <button onClick={() => addPort("loading")} className="btn-secondary flex items-center gap-1">
               <Plus className="h-3 w-3" /> Add
             </button>
             <button onClick={addRepositioning} className="btn-secondary">Repos</button>
-            <div className="flex-1" />
             <div className="flex items-center gap-1.5">
               <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-3.5 w-3.5" />
               <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">Auto dist</label>
@@ -706,9 +706,21 @@ export function SequenceTable() {
             <button onClick={recalculateDistances} className="btn-secondary flex items-center gap-1" disabled={autoDistanceEnabled}>
               <RefreshCw className="h-3 w-3" /> Distances
             </button>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setSummaryExpanded(!summaryExpanded)}
+              className="flex shrink-0 items-center gap-2 rounded px-1 py-0.5 text-[10px] font-mono tabular-nums hover:bg-muted/30"
+              title="Sequence summary"
+            >
+              <span className="text-muted-foreground">Sea: <span className="text-foreground font-medium">{results.totalSeaDays.toFixed(2)}d</span></span>
+              <span className="text-muted-foreground">Port: <span className="text-foreground font-medium">{results.totalPortDays.toFixed(2)}d</span></span>
+              <span className="text-muted-foreground">Total: <span className="text-primary font-bold">{results.totalVoyageDays.toFixed(2)}d</span></span>
+              <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${summaryExpanded ? "" : "-rotate-90"}`} />
+            </button>
           </div>
 
-          <SequenceSummary />
+          <SequenceSummary expanded={summaryExpanded} />
         </div>
       )}
 
