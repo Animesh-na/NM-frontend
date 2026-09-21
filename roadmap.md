@@ -8,6 +8,7 @@
 - [x] Sequence horizontal scrolling, readable capacities, unified row scrolling, and port full-name access
 - [x] Sequence column minima corrected so the scrollbar appears before maximum values clip
 - [x] Sequence action row reordered and Sequence Summary bar removed — Sea/Port/Total now rightmost on the action row
+- [x] Cargo section: Charterer search, Add Cargo, Remove moved into the top summary row (right of Gross BB) — old bottom action bar removed, one row at 1366×768, flex-wrap preserved for smaller screens
 
 - [x] Sequence scrollbar hidden when columns fit and recalculated naturally with Summary width changes
 - [x] Sequence columns compressed to validated maximum-value widths with overflow below the compact threshold
