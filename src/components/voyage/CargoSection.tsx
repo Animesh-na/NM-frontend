@@ -119,7 +119,7 @@ function ChartererSearch({ value, onChange }: { value: string; onChange: (name: 
   ) : null;
 
   return (
-    <div ref={containerRef} className="relative flex-1 max-w-xs">
+    <div ref={containerRef} className="relative flex-1 min-w-0 max-w-[240px]">
       <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
       <input
         type="text"
