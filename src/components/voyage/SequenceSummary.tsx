@@ -1,5 +1,4 @@
 import { useVoyageContext } from "@/context/VoyageContext";
-import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { InfoTooltip } from "./InfoTooltip";
 import { CO2_EMISSION_FACTORS } from "@/utils/emissionCalculations";
@@ -10,7 +9,12 @@ const co2eOf = (hsfo: number, vlsfo: number, lsmgo: number) =>
   vlsfo * CO2_EMISSION_FACTORS.vlsfo +
   lsmgo * CO2_EMISSION_FACTORS.lsmgo;
 
-export function SequenceSummary() {
+/**
+ * Expandable detail panel for the Sequence summary. The compact Sea/Port/Total
+ * toggle lives in the Sequence action row; this renders only the expanded
+ * breakdown (or nothing when collapsed).
+ */
+export function SequenceSummary({ expanded }: { expanded: boolean }) {
   const { sequence, results, vessel, bunker } = useVoyageContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [fuelView, setFuelView] = useState<"leg" | "port">("leg");
