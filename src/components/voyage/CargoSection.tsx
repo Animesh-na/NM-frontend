@@ -357,32 +357,6 @@ export function CargoSection() {
             />
           ))}
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 pt-1 border-t border-border">
-            <div className="flex items-center gap-2 flex-1">
-              <label className="text-xs text-muted-foreground whitespace-nowrap">Link to Charterer</label>
-              <ChartererSearch value={charterer} onChange={setCharterer} />
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={addCargo}
-                disabled={cargos.length >= MAX_CARGOS}
-                title={cargos.length >= MAX_CARGOS ? "Maximum 5 cargoes are allowed per voyage" : undefined}
-                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add Cargo
-              </button>
-              <button 
-                onClick={() => cargos.length > 1 && removeCargo(cargos[cargos.length - 1].id)}
-                className="btn-secondary flex items-center gap-1.5"
-                disabled={cargos.length <= 1}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Remove
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
