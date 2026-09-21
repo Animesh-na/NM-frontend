@@ -237,7 +237,7 @@ interface VoyageContextValue {
   addPort: (operation: PortOperation) => void;
   addRepositioning: () => void;
   removeSequence: (id: number) => void;
-  recalculateDistances: () => void;
+  recalculateDistances: (force?: boolean) => void;
   autoDistanceEnabled: boolean;
   setAutoDistanceEnabled: (enabled: boolean) => void;
   distanceLoading: boolean;
@@ -1079,7 +1079,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
    const lastComputedLegsRef = useRef<Map<number, string>>(new Map());
     const recalcRunIdRef = useRef(0);
 
-  const recalculateDistances = useCallback(async () => {
+  const recalculateDistances = useCallback(async (force = false) => {
     setDistanceLoading(true);
     // Take a snapshot of current sequence for API calls
     let snapshot: SequenceRowUI[] = [];
@@ -1147,9 +1147,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         continue;
       }
 
-       // Skip if this leg hasn't changed since last calculation
+       // Skip if this leg hasn't changed since last calculation (unless forced)
        const previousLegKey = lastComputedLegsRef.current.get(currRow.id);
-       if (previousLegKey === legKey) {
+       if (!force && previousLegKey === legKey) {
          // Keep existing distance — don't add to distanceResults so it stays unchanged
         console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): CACHED, skipping API call`);
         continue;
