@@ -6,7 +6,7 @@
 - [x] Mobile workbook cards, aligned desktop actions, create form, and pagination accessibility
 - [x] Shared minimum-width/alignment/unit/touch system across calculator sections
 - [x] Sequence horizontal scrolling, readable capacities, unified row scrolling, and port full-name access
-- [x] Sequence column minima corrected so the scrollbar appears before maximum values clip
+- [x] Sequence action row reordered and Sequence Summary bar removed — Sea/Port/Total now rightmost on the action row
 - [x] Sequence scrollbar hidden when columns fit and recalculated naturally with Summary width changes
 - [x] Sequence columns compressed to validated maximum-value widths with overflow below the compact threshold
 - [x] Sequence Port and DA minima tightened to delay genuine overflow on 1366×768 laptops
