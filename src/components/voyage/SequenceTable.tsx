@@ -228,16 +228,16 @@ export function SequenceTable() {
     return days.toFixed(2);
   };
 
-  const thClass = "min-w-0 overflow-hidden px-0.5 py-1 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
+  const thClass = "min-w-0 overflow-hidden px-0.5 py-0.5 text-[9px] font-semibold leading-none text-foreground whitespace-nowrap text-center bg-table-header";
   const rowGridClass = isTanker
     ? "grid-cols-[minmax(50px,.5fr)_minmax(136px,2fr)_minmax(38px,.38fr)_minmax(174px,1.75fr)_minmax(88px,.85fr)_minmax(58px,.55fr)_minmax(58px,.6fr)_minmax(58px,.6fr)_minmax(48px,.48fr)_minmax(48px,.48fr)_minmax(50px,.5fr)_minmax(70px,.85fr)_28px]"
     : "grid-cols-[minmax(50px,.5fr)_minmax(136px,2fr)_minmax(38px,.38fr)_minmax(174px,1.75fr)_minmax(88px,.85fr)_minmax(58px,.55fr)_minmax(58px,.6fr)_minmax(58px,.6fr)_minmax(58px,.58fr)_minmax(58px,.58fr)_minmax(48px,.48fr)_minmax(48px,.48fr)_minmax(50px,.5fr)_minmax(70px,.85fr)_28px]";
   const tableMinWidthClass = isTanker ? "min-w-[904px]" : "min-w-[1020px]";
-  const pairedCellClass = "flex h-7 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
+  const pairedCellClass = "flex h-6 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const pairedRowClass = "flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden whitespace-nowrap";
   const contextRowClass = "grid min-w-0 flex-1 grid-cols-[28px_minmax(42px,1fr)] items-center gap-0.5 overflow-hidden";
   const separatorClass = "shrink-0 text-[8px] text-muted-foreground/70";
-  const sequenceNumericInputClass = "form-input-sm h-7 w-full min-w-0 max-w-full box-border px-0.5 font-mono text-right text-[10px]";
+  const sequenceNumericInputClass = "form-input-sm h-6 w-full min-w-0 max-w-full box-border px-0.5 font-mono text-right text-[10px]";
 
   return (
     <div className="calc-card-row">
@@ -280,7 +280,7 @@ export function SequenceTable() {
                   const hasQty = showQuantityFields(row);
                   const hasBunkering = showBunkeringFields(row);
                   const typeLabel = getTypeLabel(row);
-                  const tdClass = "flex h-[30px] min-w-0 items-center overflow-hidden whitespace-nowrap px-0.5 align-middle [&>input]:block [&>select]:block";
+                  const tdClass = "flex h-6 min-w-0 items-center overflow-hidden whitespace-nowrap px-0.5 align-middle [&>input]:block [&>select]:block";
 
                   return (
                     <tr key={row.id} className={`group grid w-full min-w-0 items-center ${rowGridClass}`}>
@@ -295,7 +295,7 @@ export function SequenceTable() {
                             <DropdownMenuTrigger asChild>
                               <button
                                 type="button"
-                               className="form-select-sm flex h-7 w-full min-w-0 items-center justify-between px-1 text-[10px] capitalize"
+                               className="form-select-sm flex h-6 w-full min-w-0 items-center justify-between px-1 text-[10px] capitalize"
                                 title="Type / reorder"
                               >
                                 <span>{typeLabel}</span>
@@ -363,7 +363,7 @@ export function SequenceTable() {
                       <td className={tdClass}>
                         {hasQty && cargos.length > 0 ? (
                           <select
-                             className="form-select-sm h-7 w-full min-w-0 px-0.5 text-center text-[10px]"
+                             className="form-select-sm h-6 w-full min-w-0 px-0.5 text-center text-[10px]"
                             title="Assign one cargo to this port"
                             value={cargos.length === 1 ? String(cargos[0].id) : String((row.assignedCargoIds || [])[0] ?? "")}
                             disabled={cargos.length === 1}
@@ -435,7 +435,7 @@ export function SequenceTable() {
                       {/* Port Fuel */}
                       <td className={tdClass}>
                         {!isOpen && isPort ? (
-                           <select className="form-select-sm h-7 w-full min-w-0 px-1 text-[10px]" value={row.portFuelType || "vlsfo"}
+                           <select className="form-select-sm h-6 w-full min-w-0 px-1 text-[10px]" value={row.portFuelType || "vlsfo"}
                             onChange={(e) => updateSequenceRow(row.id, "portFuelType", e.target.value)}>
                             {vessel.hasScrubber && <option value="hsfo">HSFO</option>}
                             <option value="vlsfo">VLSFO</option>
@@ -450,7 +450,7 @@ export function SequenceTable() {
                           // Simple draft check: does the vessel's draft at this port exceed the port max draft?
                           const qtyExceedsDraft = row.operation === 'discharging' && row.portMaxDraft > 0 && row.draft > row.portMaxDraft;
                           return (
-                             <div className="flex h-7 w-full min-w-0 items-center overflow-hidden whitespace-nowrap">
+                             <div className="flex h-6 w-full min-w-0 items-center overflow-hidden whitespace-nowrap">
                               <TooltipProvider delayDuration={300}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -515,7 +515,7 @@ export function SequenceTable() {
                       {/* Terms */}
                       <td className={tdClass}>
                         {hasQty ? (
-                           <select className="form-select-sm h-7 w-full min-w-0 px-1 text-[10px]" 
+                           <select className="form-select-sm h-6 w-full min-w-0 px-1 text-[10px]" 
                             value={row.terms === "custom" ? `custom:${row.customTermsName}` : (row.terms || "shinc")}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -684,7 +684,7 @@ export function SequenceTable() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 pt-1 mt-1 border-t border-border">
+          <div className="flex items-center gap-2 pt-0.5 mt-0.5 border-t border-border">
             <button onClick={() => addPort("loading")} className="btn-secondary flex items-center gap-1">
               <Plus className="h-3 w-3" /> Add
             </button>

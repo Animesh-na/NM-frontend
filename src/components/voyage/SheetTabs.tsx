@@ -54,7 +54,7 @@ export function SheetTabs() {
   };
 
   return (
-    <div className="bg-[hsl(var(--dash-surface))] border-b border-[hsl(var(--dash-border))] flex flex-wrap items-center min-h-10 text-[11px] px-1.5 sm:px-2.5 py-1 gap-1.5 flex-shrink-0 shadow-sm">
+    <div className="bg-[hsl(var(--dash-surface))] border-b border-[hsl(var(--dash-border))] flex flex-wrap items-center min-h-9 text-[11px] px-1.5 sm:px-2.5 py-0.5 gap-1.5 flex-shrink-0 shadow-sm">
       {/* Back to Dashboard */}
       <button
         onClick={goToDashboard}
@@ -71,7 +71,7 @@ export function SheetTabs() {
         <div
           key={tab.id || `new-${idx}`}
           ref={idx === activeTabIndex ? activeTabRef : undefined}
-          className={`flex items-center gap-1.5 min-h-9 sm:min-h-7 px-2.5 rounded-lg cursor-pointer border transition-all max-w-[170px] flex-shrink-0 ${
+          className={`flex items-center gap-1.5 min-h-9 sm:min-h-6 px-2.5 rounded-lg cursor-pointer border transition-all max-w-[170px] flex-shrink-0 ${
             idx === activeTabIndex
               ? "bg-[hsl(var(--ocean))] border-transparent text-primary-foreground font-semibold shadow-sm"
               : "bg-[hsl(var(--dash-bg))] border-[hsl(var(--dash-border))] text-muted-foreground hover:text-foreground"

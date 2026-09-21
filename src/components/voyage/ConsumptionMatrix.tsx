@@ -54,7 +54,7 @@ export function ConsumptionMatrix({
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
   const { getFieldError } = useVoyageContext();
   const speedOnlyColumns: ColumnKey[] = ["ballast", "laden"];
-  const thClass = "px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground text-center";
+  const thClass = "px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground text-center";
   const visibleRows = matrixRows.filter((row) => {
     if (row.key === "hsfo" || row.key === "aeScrubber") return hasScrubber;
     if (row.key === "vlsfo" || row.key === "ae") return !hasScrubber;
@@ -149,16 +149,16 @@ export function ConsumptionMatrix({
         <tbody>
           {visibleRows.map((row) => (
             <tr key={row.key} className="border-b border-[hsl(var(--dash-border))]/60 last:border-0 hover:bg-muted/40 transition-colors">
-              <td className="px-3 py-1 text-[10px] font-semibold text-foreground">{row.label}</td>
+              <td className="px-3 py-0.5 text-[10px] font-semibold text-foreground">{row.label}</td>
               {columns.map(col => {
                 const isDisabled = loadDischIdleSame && (col.key === "discharge" || col.key === "idle");
                 const isSpeedNA = row.key === "speed" && !speedOnlyColumns.includes(col.key);
                 const value = consumptionMatrix[row.key][col.key];
                 
                 return (
-                  <td key={col.key} className="px-1 py-1">
+                  <td key={col.key} className="px-1 py-0.5">
                     {isSpeedNA ? (
-                      <div className="h-6 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
+                      <div className="h-5 flex items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                     ) : (
                       (() => {
                         const fieldKey = matrixFieldKey(row.key as string, col.key as string);
@@ -170,7 +170,7 @@ export function ConsumptionMatrix({
                         title={err}
                         type="text"
                         inputMode="decimal"
-                        className={`form-input-sm w-[62px] mx-auto block field-numeric h-6 text-[10px] px-1 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
+                        className={`form-input-sm w-[62px] mx-auto block field-numeric h-5 text-[10px] px-1 ${isDisabled ? "opacity-50" : ""} ${err ? "border-destructive ring-1 ring-destructive" : ""}`}
                         value={getDisplayValue(row.key, col.key, value)}
                         onChange={(e) => handleInputChange(row.key, col.key, e.target.value)}
                         onFocus={() => handleInputFocus(row.key, col.key, value)}
@@ -184,7 +184,7 @@ export function ConsumptionMatrix({
                   </td>
                 );
               })}
-              <td className="px-2 py-1 text-[9px] text-muted-foreground text-center">{getUnit(row.key)}</td>
+              <td className="px-2 py-0.5 text-[9px] text-muted-foreground text-center">{getUnit(row.key)}</td>
             </tr>
           ))}
         </tbody>

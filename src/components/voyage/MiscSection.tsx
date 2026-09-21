@@ -41,8 +41,8 @@ export function MiscSection() {
       </button>
 
       {isExpanded && (
-        <div className="flex-1 min-w-0 p-3 space-y-3 overflow-hidden">
-          <div className="space-y-1.5">
+        <div className="flex-1 min-w-0 p-2 space-y-2 overflow-hidden">
+          <div className="space-y-1">
             {costFields.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-2 min-w-0">
                 <label className="form-label flex-1 min-w-0 truncate mb-0">{label}</label>

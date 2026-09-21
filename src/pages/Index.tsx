@@ -177,7 +177,7 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden sheet-shell">
+    <div className="h-screen flex flex-col overflow-hidden sheet-shell sheet-density">
       {/* Header */}
       <CompactHeader />
       
@@ -205,13 +205,13 @@ const Index = () => {
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Left Panel */}
         <div
-          className={`${isMobile && mobileSummaryOpen ? "hidden" : "block"} flex-1 min-w-0 overflow-y-auto sheet-scroll p-2 sm:p-3 space-y-2.5 ${isReadOnly ? "read-only-surface" : ""}`}
+          className={`${isMobile && mobileSummaryOpen ? "hidden" : "block"} flex-1 min-w-0 overflow-y-auto sheet-scroll p-1.5 sm:p-2 space-y-2 ${isReadOnly ? "read-only-surface" : ""}`}
           onClickCapture={guardReadOnlyEdit}
           onChangeCapture={guardReadOnlyEdit}
           onInputCapture={guardReadOnlyEdit}
           onKeyDownCapture={guardReadOnlyEdit}
         >
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,4fr)_minmax(240px,1fr)] gap-2.5 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,4fr)_minmax(240px,1fr)] gap-2 items-stretch">
             <SectionFrame title="Vessel" className="min-w-0"><VesselPanel /></SectionFrame>
             <SectionFrame title="Miscellaneous" className="min-w-0"><MiscSection /></SectionFrame>
           </div>
@@ -232,7 +232,7 @@ const Index = () => {
               onInputCapture={guardReadOnlyEdit}
               onKeyDownCapture={guardReadOnlyEdit}
             >
-              <div className="p-2 space-y-2">
+              <div className="p-1.5 space-y-1.5">
                 <div className="flex items-center justify-between px-0.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Summary</span>
                   <button

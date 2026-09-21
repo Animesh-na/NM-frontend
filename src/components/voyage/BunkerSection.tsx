@@ -261,9 +261,9 @@ export function BunkerSection() {
       </button>
 
       {isExpanded && (
-        <div className="flex-1 min-w-0 p-3 space-y-3">
+        <div className="flex-1 min-w-0 p-2 space-y-2">
           {/* Global Controls - single line */}
-          <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-muted-foreground">EU ETS</span>
               <div className="input-with-unit">
@@ -339,7 +339,7 @@ export function BunkerSection() {
             </div>
             <div className={`grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border ${bobIgnored ? "opacity-50" : ""}`}>
               {fuels.map(fuel => (
-                <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-1">
+                <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-0.5">
                   <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
                   <input type="number" disabled={bobIgnored} className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />

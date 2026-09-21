@@ -17,9 +17,9 @@ export function SheetNotes() {
       </button>
 
       {isExpanded && (
-        <div className="flex-1 min-w-0 p-2">
+        <div className="flex-1 min-w-0 p-1.5">
           <textarea
-            className="w-full h-16 form-input text-[11px] resize-none"
+            className="w-full h-12 form-input text-[11px] resize-none"
             placeholder="Add notes for this voyage calculation..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
