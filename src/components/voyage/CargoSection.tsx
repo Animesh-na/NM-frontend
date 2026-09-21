@@ -206,8 +206,8 @@ export function CargoSection() {
       {isExpanded && (
         <div className="flex-1 min-w-0 px-2 py-1 space-y-1">
           {/* Top summary fields */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-1.5 items-end">
-            <div className="form-field field-min-gtc">
+          <div className="flex flex-wrap items-end gap-x-2 gap-y-1.5">
+            <div className="form-field flex-1 min-w-0 field-min-gtc">
               <label className="form-label">GTC</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","gtc","_header"); return (
@@ -228,7 +228,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field field-min-percent">
+            <div className="form-field flex-1 min-w-0 field-min-percent">
               <label className="form-label">TC Comm</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","tcCommission",cargos[0]?.id); return (
@@ -249,7 +249,7 @@ export function CargoSection() {
                 <span className="unit">%</span>
               </div>
             </div>
-            <div className="form-field field-min-gtc">
+            <div className="form-field flex-1 min-w-0 field-min-gtc">
               <label className="form-label">NTC</label>
               <div className="input-with-unit">
                 <input
@@ -261,7 +261,7 @@ export function CargoSection() {
                 <span className="unit">$/d</span>
               </div>
             </div>
-            <div className="form-field field-min-gross-bb">
+            <div className="form-field flex-1 min-w-0 field-min-gross-bb">
               <label className="form-label">Net BB</label>
               <div className="input-with-unit">
                 <input
