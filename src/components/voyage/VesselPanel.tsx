@@ -142,9 +142,9 @@ export function VesselPanel() {
       </button>
 
       {isExpanded && (
-        <div className="flex-1 min-w-0 px-3 py-3 space-y-3 overflow-hidden">
+        <div className="flex-1 min-w-0 px-2 py-2 space-y-2 overflow-hidden">
           {/* Row 1: Search + Particulars + Type/Sector/Speed */}
-          <div className="flex flex-wrap min-[1366px]:flex-nowrap gap-x-2 gap-y-2 items-end">
+          <div className="flex flex-wrap min-[1366px]:flex-nowrap gap-x-2 gap-y-1.5 items-end">
             <div className="form-field min-w-[140px] max-w-[180px] flex-1">
               <VesselSelect value={vessel.name} onChange={handleVesselSelect} placeholder="Search vessel..." />
             </div>

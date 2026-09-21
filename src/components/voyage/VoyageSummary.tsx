@@ -53,7 +53,7 @@ export function VoyageSummary() {
           <TrendingUp className="h-3.5 w-3.5" />
           <span>Voyage Summary</span>
         </div>
-        <div className="p-2 space-y-2 text-[10px]">
+        <div className="p-1.5 space-y-1.5 text-[10px]">
           <div className="bg-destructive/10 border border-destructive/40 rounded-sm p-2 space-y-1">
             <div className="flex items-center gap-1 font-semibold text-destructive">
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -137,7 +137,7 @@ export function VoyageSummary() {
         {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
-      <div className={`p-2 space-y-2 text-[10px] [&_.text-muted-foreground]:text-foreground [&_.text-muted-foreground]:font-bold [&_.font-medium]:text-primary [&_.font-medium]:font-bold ${collapsed ? "hidden" : ""}`}>
+      <div className={`p-1.5 space-y-1.5 text-[10px] [&_.text-muted-foreground]:text-foreground [&_.text-muted-foreground]:font-bold [&_.font-medium]:text-primary [&_.font-medium]:font-bold ${collapsed ? "hidden" : ""}`}>
         {/* Financial Summary */}
         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-b border-border pb-1">
           <div className="flex justify-between items-center">
@@ -181,8 +181,8 @@ export function VoyageSummary() {
         </div>
 
         {/* Distance Summary */}
-        <div className="bg-muted rounded-sm p-2">
-          <div className="text-muted-foreground font-medium mb-1">Distance</div>
+        <div className="bg-muted rounded-sm p-1.5">
+          <div className="text-muted-foreground font-medium mb-0.5">Distance</div>
           <div className="grid grid-cols-2 gap-1 text-[10px]">
             <span className="flex items-center">Total distance</span>
             <span className="font-mono text-right">{(results.totalDistance + results.totalEcaDistance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
@@ -193,7 +193,7 @@ export function VoyageSummary() {
 
         {/* Financial Results */}
         <div className="space-y-1">
-          <div className="flex items-center gap-1 mb-2 border-b border-border pb-1">
+          <div className="flex items-center gap-1 mb-1 border-b border-border pb-0.5">
             <DollarSign className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">Cargo / Economics</span>
             <InsightsPanel />
@@ -209,7 +209,7 @@ export function VoyageSummary() {
               <span className={`font-mono tabular-nums font-semibold ${signColor(results.gtce)}`}>${formatCurrency(results.gtce)}</span>
             </div>
           </div>
-          <div className="border-t border-border pt-1 mt-2 space-y-0.5">
+          <div className="border-t border-border pt-0.5 mt-1 space-y-0.5">
 {cargos.length > 1 && results.perCargoBreakdown && results.perCargoBreakdown.length > 1 ? (
               results.perCargoBreakdown.map((c) => {
                 const cargoEntry = cargos.find((ce) => ce.id === c.cargoId);

@@ -261,9 +261,9 @@ export function BunkerSection() {
       </button>
 
       {isExpanded && (
-        <div className="flex-1 min-w-0 p-3 space-y-3">
+        <div className="flex-1 min-w-0 p-2 space-y-2">
           {/* Global Controls - single line */}
-          <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-muted-foreground">EU ETS</span>
               <div className="input-with-unit">
@@ -320,7 +320,7 @@ export function BunkerSection() {
 
           {/* BOB - single row layout */}
           <div className="border border-border rounded overflow-hidden">
-            <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border flex items-center justify-between">
+            <div className="subsection-header px-2 py-0.5 text-[10px] font-medium border-b border-border flex items-center justify-between">
               <span>BOB{bobIgnored && <span className="ml-1 text-[9px] font-normal text-muted-foreground">(ignored — price &amp; tonnes excluded)</span>}</span>
               <span className="flex items-center gap-2">
                 {bobPortName && <span className="text-[9px] font-normal text-muted-foreground">Prices: {bobPortName}</span>}
@@ -339,7 +339,7 @@ export function BunkerSection() {
             </div>
             <div className={`grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border ${bobIgnored ? "opacity-50" : ""}`}>
               {fuels.map(fuel => (
-                <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-1">
+                <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-0.5">
                   <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
                   <input type="number" disabled={bobIgnored} className="form-input-sm min-w-0 flex-1 font-mono text-right text-xs"
                     value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
@@ -361,7 +361,7 @@ export function BunkerSection() {
           {/* Live market feed — what the last refresh returned */}
           {feed.length > 0 && (
             <div className="border border-border rounded overflow-hidden">
-              <div className="subsection-header px-2 py-1 text-[10px] font-medium border-b border-border flex items-center justify-between">
+              <div className="subsection-header px-2 py-0.5 text-[10px] font-medium border-b border-border flex items-center justify-between">
                 <span>Market Feed</span>
                 {feedAt && <span className="text-[9px] font-normal text-muted-foreground">Fetched {feedAt}</span>}
               </div>
@@ -395,7 +395,7 @@ export function BunkerSection() {
           {/* Port Bunkering - tabular (only when bunkering ports exist in sequence) */}
           {bunkeringPorts.length > 0 && (
           <div className="border border-border rounded overflow-hidden">
-            <div className="subsection-header px-2 py-1 border-b border-border flex items-center justify-between">
+            <div className="subsection-header px-2 py-0.5 border-b border-border flex items-center justify-between">
               <span className="text-[10px] font-medium">Port Fuel Prices</span>
               {bunkeringPorts.length > 0 && (
                 <Select onValueChange={handleAddBunkeringPort}>
@@ -417,10 +417,10 @@ export function BunkerSection() {
               <table className="w-full min-w-[520px] text-xs">
                 <thead>
                   <tr className="subsection-header">
-                    <th className="text-left px-2 py-1 text-[10px] font-medium">Port</th>
-                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">HSFO</th>
-                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">VLSFO</th>
-                    <th colSpan={2} className="text-center px-1 py-1 text-[10px] font-medium">LSMGO</th>
+                    <th className="text-left px-2 py-0.5 text-[10px] font-medium">Port</th>
+                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">HSFO</th>
+                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">VLSFO</th>
+                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">LSMGO</th>
                     <th className="w-6"></th>
                   </tr>
                   <tr className="subsection-header border-t border-border">

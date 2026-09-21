@@ -11,7 +11,7 @@ export function CompactHeader() {
   const { activeTab } = useSheets();
 
   return (
-    <header className="sheet-topbar min-h-10 flex items-center justify-between gap-2 px-2 sm:px-4 py-1 text-xs flex-shrink-0">
+    <header className="sheet-topbar min-h-9 flex items-center justify-between gap-2 px-2 sm:px-4 py-0.5 text-xs flex-shrink-0">
       {/* Logo & Title */}
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-white/15 backdrop-blur">

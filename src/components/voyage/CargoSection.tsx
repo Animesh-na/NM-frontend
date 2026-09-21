@@ -206,7 +206,7 @@ export function CargoSection() {
       {isExpanded && (
         <div className="flex-1 min-w-0 px-2 py-1 space-y-1">
           {/* Top summary fields */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2 items-end">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-1.5 items-end">
             <div className="form-field field-min-gtc">
               <label className="form-label">GTC</label>
               <div className="input-with-unit">
@@ -435,7 +435,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         type="button"
         data-readonly-allowed="true"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center gap-2 px-2 py-1 text-left hover:bg-muted/50 transition-colors"
       >
         <ChevronDown
           className={`h-3.5 w-3.5 flex-shrink-0 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`}
@@ -458,8 +458,8 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       </button>
 
       {open && (
-      <div className="px-2 pb-2 pt-1 border-t border-border">
-      <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+      <div className="px-2 pb-1.5 pt-0.5 border-t border-border">
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
         <div className="form-field flex-1 min-w-[154px]">
           <label className="form-label">{isTanker ? "Flat rate user input" : "Rate"}</label>
            <div className="input-with-unit min-w-0">
