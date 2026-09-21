@@ -104,7 +104,7 @@ function SpeedContextPicker({
 export function SequenceTable() {
   const { 
     sequence, setSequence, updateSequenceRow, addPort, addRepositioning, removeSequence,
-    recalculateDistances, autoDistanceEnabled, setAutoDistanceEnabled, distanceLoading, vessel,
+    autoDistanceEnabled, setAutoDistanceEnabled, distanceLoading, vessel,
     departureUtc, setDepartureUtc, getFieldError, results,
   } = useVoyageContext();
 
