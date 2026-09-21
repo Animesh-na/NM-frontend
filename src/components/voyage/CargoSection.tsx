@@ -276,7 +276,7 @@ export function CargoSection() {
                 <span className="unit">$</span>
               </div>
             </div>
-            <div className="form-field field-min-gross-bb">
+            <div className="form-field flex-1 min-w-0 field-min-gross-bb">
               <label className="form-label">Gross BB</label>
               <div className="input-with-unit">
                 {(() => { const err = getFieldError("cargo","grossBB","_header"); return (
@@ -296,6 +296,29 @@ export function CargoSection() {
                 );})()}
                 <span className="unit">$</span>
               </div>
+            </div>
+            <div className="form-field flex-1 min-w-[150px]">
+              <label className="form-label" title="Link to Charterer">Charterer</label>
+              <ChartererSearch value={charterer} onChange={setCharterer} />
+            </div>
+            <div className="flex shrink-0 items-end gap-1.5">
+              <button
+                onClick={addCargo}
+                disabled={cargos.length >= MAX_CARGOS}
+                title={cargos.length >= MAX_CARGOS ? "Maximum 5 cargoes are allowed per voyage" : undefined}
+                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Cargo
+              </button>
+              <button
+                onClick={() => cargos.length > 1 && removeCargo(cargos[cargos.length - 1].id)}
+                className="btn-secondary flex items-center gap-1.5"
+                disabled={cargos.length <= 1}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove
+              </button>
             </div>
           </div>
 
