@@ -19,6 +19,16 @@ import {
 } from "@/utils/validation";
 import { toast } from "sonner";
 
+// Default voyage departure used for the distance/weather-routing API when the
+// user has not picked one: current UTC time, rounded down to the hour.
+// Format matches the datetime-local input ("YYYY-MM-DDTHH:mm").
+function defaultDepartureUtc(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}T${pad(now.getUTCHours())}:00`;
+}
+
+
 // Season options for Open Port
 export type Season = "summer" | "winter" | "tropical" | "eca";
 
