@@ -16,8 +16,6 @@ const co2eOf = (hsfo: number, vlsfo: number, lsmgo: number) =>
  */
 export function SequenceSummary({ expanded }: { expanded: boolean }) {
   const { sequence, results, vessel, bunker } = useVoyageContext();
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [fuelView, setFuelView] = useState<"leg" | "port">("leg");
 
   // ---------- Per-Leg (sea) and Per-Port fuel usage — shared engine-parity logic ----------
   const legFuelRows = computeLegSeaFuel(sequence, vessel, 1).map((r) => ({
