@@ -905,8 +905,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
   );
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [departureUtc, setDepartureUtc] = useState(() =>
-    (initialData?.departureUtc as string) || ""
+    (initialData?.departureUtc as string) || defaultDepartureUtc()
   );
+
   const [notes, setNotes] = useState<string>(() =>
     typeof initialData?.notes === "string" ? (initialData.notes as string) : ""
   );
