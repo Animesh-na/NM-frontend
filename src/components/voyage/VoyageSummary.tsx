@@ -173,7 +173,7 @@ export function VoyageSummary() {
               <span className="font-mono tabular-nums">{formatDays(results.totalPortDays)} d</span>
             </div>
             <div className="flex justify-between col-span-2 border-t border-border pt-0.5">
-              <span className="font-medium flex items-center">Total Time</span>
+              <span className="text-primary font-medium flex items-center">Total Time</span>
               <span className="font-mono tabular-nums text-success font-semibold">{formatDays(results.totalVoyageDays)} d</span>
             </div>
           </div>
@@ -184,17 +184,17 @@ export function VoyageSummary() {
         <div className="space-y-1 border-t border-border pt-2">
           <div className="flex items-center gap-1 mb-1 border-b border-border pb-0.5">
             <DollarSign className="h-3 w-3 text-muted-foreground" />
-            <span className="font-medium">Cargo / Economics</span>
+            <span className="text-primary font-medium">Cargo / Economics</span>
             <InsightsPanel />
             <SensitivityAnalysis />
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">NTCE</span>
+              <span className="text-primary flex items-center">NTCE</span>
               <span className={`font-mono tabular-nums font-semibold ${signColor(results.ntce)}`}>$ {formatCurrency(results.ntce)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">GTCE</span>
+              <span className="text-primary flex items-center">GTCE</span>
               <span className={`font-mono tabular-nums font-semibold ${signColor(results.gtce)}`}>$ {formatCurrency(results.gtce)}</span>
             </div>
           </div>
@@ -250,20 +250,20 @@ export function VoyageSummary() {
               })
             ) : (
               <div className="flex justify-between">
-                <span className="text-muted-foreground flex items-center font-semibold">Gross Rate</span>
+                <span className="text-primary flex items-center font-semibold">Gross Rate</span>
                 <span className={`font-mono tabular-nums font-bold ${signColor(results.grossRate)}`}>
                   $ {formatCurrency(results.grossRate)} /mt
                 </span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center font-semibold">P&L</span>
+              <span className="text-primary flex items-center font-semibold">P&L</span>
               <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL)}`}>
                 $ {formatCurrency(results.pAndL)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center font-semibold">P&L/d</span>
+              <span className="text-primary flex items-center font-semibold">P&L/d</span>
               <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL / (results.totalVoyageDays || 1))}`}>
                 $ {formatCurrency(results.totalVoyageDays > 0 ? results.pAndL / results.totalVoyageDays : 0)}
               </span>
@@ -280,13 +280,13 @@ export function VoyageSummary() {
             )}
             <div className="flex justify-between gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">Net Frt</span>
+                <span className="text-primary flex items-center text-[9px] whitespace-nowrap">Net Frt</span>
                 <span className="font-mono tabular-nums font-bold text-success leading-tight whitespace-nowrap">
                   $ {formatCurrency(results.netFreight)}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">Gross Frt</span>
+                <span className="text-primary flex items-center text-[9px] whitespace-nowrap">Gross Frt</span>
                 <span className="font-mono tabular-nums font-bold text-success leading-tight whitespace-nowrap">
                   $ {formatCurrency(results.grossFreight)}
                 </span>
@@ -298,7 +298,7 @@ export function VoyageSummary() {
         {/* Bunker Summary */}
         <div className="space-y-1 border-t border-border pt-2">
           <div className="flex justify-between items-center border-b border-border pb-0.5">
-            <span className="font-medium flex items-center">Bunker Cost</span>
+            <span className="text-primary font-medium flex items-center">Bunker Cost</span>
             <span className="font-mono tabular-nums font-semibold text-primary">
               $ {formatCurrency(results.totalBunkerCost)}
             </span>
@@ -329,20 +329,20 @@ export function VoyageSummary() {
         <div className="space-y-1 border-t border-border pt-2">
           <div className="flex items-center gap-1 mb-2">
             <Leaf className="h-3 w-3 text-muted-foreground" />
-            <span className="font-medium">Environmental</span>
+            <span className="text-primary font-medium">Environmental</span>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-            <span className="text-muted-foreground flex items-center">EEOI</span>
+            <span className="text-primary flex items-center">EEOI</span>
             <span className="font-mono tabular-nums text-success text-right">
               {results.efoi.toFixed(2)} gCO₂/tnm
             </span>
-            <span className="text-muted-foreground flex items-center">AER/CII</span>
+            <span className="text-primary flex items-center">AER/CII</span>
             <span className="font-mono tabular-nums text-success text-right">
               {results.afrCii.toFixed(2)} gCO₂/dwtnm
             </span>
           </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
-            <span className="font-medium flex items-center">Estimated Voyage CII Rating</span>
+            <span className="text-primary font-medium flex items-center">Estimated Voyage CII Rating</span>
             <span className={`px-2 py-0.5 rounded font-bold ${
               results.ciiRating === "A" || results.ciiRating === "B" 
                 ? "bg-success text-success-foreground"
@@ -376,7 +376,7 @@ export function VoyageSummary() {
           {/* CO2 totals */}
           <div className="mt-1 space-y-0.5 text-[10px]">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground flex items-center gap-1">
+              <span className="text-primary flex items-center gap-1">
                 Total CO₂
               </span>
               <span className="font-mono tabular-nums text-success font-semibold">
@@ -384,19 +384,19 @@ export function VoyageSummary() {
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Total CO₂ Cost</span>
+              <span className="text-primary">Total CO₂ Cost</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {formatCurrency(results.totalCo2Cost)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">EUA CO₂</span>
+              <span className="text-primary">EUA CO₂</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 {results.chargeableCo2.toFixed(2)} t
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">EUA CO₂ cost</span>
+              <span className="text-primary">EUA CO₂ cost</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {formatCurrency(results.euaCo2Cost)}
               </span>
@@ -406,7 +406,7 @@ export function VoyageSummary() {
           {/* EUA Freight Impact */}
           <div className="mt-2 pt-2 border-t border-border space-y-1 text-[10px]">
             <div className="flex justify-between items-center">
-              <span className="font-medium">EUA Freight Impact</span>
+              <span className="text-primary font-medium">EUA Freight Impact</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {results.euaFreightImpact.toFixed(2)} /mt
               </span>
@@ -422,7 +422,7 @@ export function VoyageSummary() {
                 onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "EU_ETS", enabled: !!v }); setApplyEuaImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
-              <span className="text-[10px] text-regulatory font-medium">Apply EUA Freight Impact</span>
+              <span className="text-[10px] text-primary font-medium">Apply EUA Freight Impact</span>
             </label>
           </div>
 
@@ -430,22 +430,22 @@ export function VoyageSummary() {
           {/* UK ETS (independent section) */}
           <div className="mt-2 pt-2 border-t border-border space-y-0.5 text-[10px]">
             <div className="flex items-center gap-1 mb-1">
-              <span className="font-medium">UK ETS</span>
+              <span className="text-primary font-medium">UK ETS</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">UK Chargeable CO₂</span>
+              <span className="text-primary">UK Chargeable CO₂</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 {results.ukChargeableCo2.toFixed(2)} t
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">UK ETS cost</span>
+              <span className="text-primary">UK ETS cost</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {formatCurrency(results.ukEtsCost)}
               </span>
             </div>
             <div className="flex justify-between items-center pt-1">
-              <span className="text-muted-foreground">UK ETS Freight Impact</span>
+              <span className="text-primary">UK ETS Freight Impact</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {results.ukEtsFreightImpact.toFixed(2)} /mt
               </span>
@@ -456,7 +456,7 @@ export function VoyageSummary() {
                 onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "UK_ETS", enabled: !!v }); setApplyUkEtsImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
-              <span className="text-[10px] text-regulatory font-medium">Apply UK ETS Freight Impact</span>
+              <span className="text-[10px] text-primary font-medium">Apply UK ETS Freight Impact</span>
             </label>
           </div>
 
@@ -465,12 +465,12 @@ export function VoyageSummary() {
         {/* FuelEU Maritime Section */}
         <div className="space-y-1 border-t border-border pt-2 text-[10px]">
           <div className="flex items-center gap-1 mb-1">
-            <span className="font-medium">Fuel EU Maritime</span>
+            <span className="text-primary font-medium">Fuel EU Maritime</span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Wind Reward Factor</span>
-            <span className="font-mono tabular-nums font-semibold">
+            <span className="text-primary">Wind Reward Factor</span>
+            <span className="text-primary font-mono tabular-nums font-semibold">
               {results.fuelEuResult.rewardFactor.toFixed(2)}
             </span>
           </div>
@@ -482,7 +482,7 @@ export function VoyageSummary() {
               return (
                 <div key={fuel}>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">{fuel.toUpperCase()} Fuel EU Penalty</span>
+                    <span className="text-primary">{fuel.toUpperCase()} Fuel EU Penalty</span>
                     <span className="font-mono tabular-nums text-success font-semibold">
                       $ {formatCurrency(f.cost)}
                     </span>
@@ -497,7 +497,7 @@ export function VoyageSummary() {
 
           {/* FuelEU Total */}
           <div className="flex justify-between items-center mt-1 pt-1 border-t border-border">
-            <span className="font-medium">Total cost for Fuel EU</span>
+            <span className="text-primary font-medium">Total cost for Fuel EU</span>
             <span className="font-mono tabular-nums text-success font-semibold">
               $ {formatCurrency(results.fuelEuTotalPenalty)}
             </span>
@@ -506,7 +506,7 @@ export function VoyageSummary() {
           {/* FuelEU Freight Impact with checkbox */}
           <div className="mt-1 pt-1 border-t border-border space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">FuelEU Freight Impact</span>
+              <span className="text-primary">FuelEU Freight Impact</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {results.fuelEuFreightImpact.toFixed(2)} /mt
               </span>
@@ -517,7 +517,7 @@ export function VoyageSummary() {
                 onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "FuelEU", enabled: !!v }); setApplyFuelEuImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
-              <span className="text-[10px] text-regulatory font-medium">Apply FuelEU Freight Impact</span>
+              <span className="text-[10px] text-primary font-medium">Apply FuelEU Freight Impact</span>
             </label>
           </div>
         </div>
