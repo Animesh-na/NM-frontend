@@ -20,7 +20,7 @@ export function VoyageSummary() {
   const [collapsed, setCollapsed] = useState(false);
 
   // Why is the EUA freight impact zero? Surface the actual missing input.
-  const euEtsPriceEff = bunker.euEtsPrice || bunker.co2Price || 0;
+  const euEtsPriceEff = bunker.euEtsPrice || 0;
   const euCovered =
     results.euCoveredFuel.hsfo + results.euCoveredFuel.vlsfo + results.euCoveredFuel.lsmgo;
   const hasEuPort = sequence.some((r) => r.isEuEea === true);
