@@ -3,7 +3,6 @@ import { DollarSign, Clock, TrendingUp, Leaf, Download, ChevronDown, ChevronRigh
 import { useVoyageContext } from "@/context/VoyageContext";
 import { AlertTriangle } from "lucide-react";
 
-import { CoverageInfoButton } from "./CoverageInfoButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportVoyageToExcel } from "@/utils/excelExport";
@@ -388,7 +387,6 @@ export function VoyageSummary() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center gap-1">
                 Total CO₂
-                <CoverageInfoButton mode="eu" results={results} />
               </span>
               <span className="font-mono tabular-nums font-semibold">
                 {results.totalCo2.toFixed(2)} t
@@ -442,7 +440,6 @@ export function VoyageSummary() {
           <div className="mt-2 pt-2 border-t border-border space-y-0.5 text-[10px]">
             <div className="flex items-center gap-1 mb-1">
               <span className="font-medium">UK ETS</span>
-              <CoverageInfoButton mode="uk" results={results} />
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">UK Chargeable CO₂</span>
@@ -478,7 +475,6 @@ export function VoyageSummary() {
         <div className="space-y-1 border-t border-border pt-2 text-[10px]">
           <div className="flex items-center gap-1 mb-1">
             <span className="font-medium">Fuel EU Maritime</span>
-            <CoverageInfoButton mode="fueleu" results={results} />
           </div>
 
           <div className="flex justify-between items-center">
