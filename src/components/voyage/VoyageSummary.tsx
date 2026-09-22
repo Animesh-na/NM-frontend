@@ -394,32 +394,20 @@ export function VoyageSummary() {
                 {results.totalCo2.toFixed(2)} t
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">Laden CO₂</span>
-              <span className="font-mono tabular-nums">{results.co2Laden.toFixed(2)} t</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">Ballast CO₂</span>
-              <span className="font-mono tabular-nums">{results.co2Ballast.toFixed(2)} t</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">Total CO₂ Cost</span>
-              <span className="font-mono tabular-nums">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Total CO₂ Cost</span>
+              <span className="font-mono tabular-nums font-semibold">
                 ${formatCurrency(results.totalCo2Cost)}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">Commercial Sea Coverage</span>
-              <span className="font-mono tabular-nums">{(results.etsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.etsPhaseIn * 100).toFixed(0)}%)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">EUA CO₂</span>
-              <span className="font-mono tabular-nums">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">EUA CO₂</span>
+              <span className="font-mono tabular-nums font-semibold">
                 {results.chargeableCo2.toFixed(2)} t
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">EUA CO₂ cost</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">EUA CO₂ cost</span>
               <span className="font-mono tabular-nums font-semibold text-primary">
                 ${formatCurrency(results.euaCo2Cost)}
               </span>
