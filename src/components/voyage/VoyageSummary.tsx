@@ -296,10 +296,10 @@ export function VoyageSummary() {
         </div>
 
         {/* Bunker Summary */}
-        <div className="space-y-1">
-          <div className="flex justify-between border-b border-border pb-1">
-            <span className="font-medium flex items-center">Bunker cost</span>
-            <span className="font-mono tabular-nums font-semibold">
+        <div className="space-y-1 border-t border-border pt-2">
+          <div className="flex justify-between items-center border-b border-border pb-0.5">
+            <span className="font-medium flex items-center">Bunker Cost</span>
+            <span className="font-mono tabular-nums font-semibold text-primary">
               $ {formatCurrency(results.totalBunkerCost)}
             </span>
           </div>
