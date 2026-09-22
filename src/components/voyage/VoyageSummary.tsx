@@ -385,41 +385,29 @@ export function VoyageSummary() {
 
           {/* CO2 totals */}
           <div className="mt-1 space-y-0.5 text-[10px]">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center gap-1">
                 Total CO₂
                 <CoverageInfoButton mode="eu" results={results} />
               </span>
-              <span className="font-mono tabular-nums">
+              <span className="font-mono tabular-nums font-semibold">
                 {results.totalCo2.toFixed(2)} t
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">Laden CO₂</span>
-              <span className="font-mono tabular-nums">{results.co2Laden.toFixed(2)} t</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">Ballast CO₂</span>
-              <span className="font-mono tabular-nums">{results.co2Ballast.toFixed(2)} t</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">Total CO₂ Cost</span>
-              <span className="font-mono tabular-nums">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Total CO₂ Cost</span>
+              <span className="font-mono tabular-nums font-semibold">
                 ${formatCurrency(results.totalCo2Cost)}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">Commercial Sea Coverage</span>
-              <span className="font-mono tabular-nums">{(results.etsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.etsPhaseIn * 100).toFixed(0)}%)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">EUA CO₂</span>
-              <span className="font-mono tabular-nums">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">EUA CO₂</span>
+              <span className="font-mono tabular-nums font-semibold">
                 {results.chargeableCo2.toFixed(2)} t
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground pl-2">EUA CO₂ cost</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">EUA CO₂ cost</span>
               <span className="font-mono tabular-nums font-semibold text-primary">
                 ${formatCurrency(results.euaCo2Cost)}
               </span>
@@ -451,31 +439,25 @@ export function VoyageSummary() {
 
 
           {/* UK ETS (independent section) */}
-          <div className="mt-2 pt-2 border-t border-border space-y-1">
+          <div className="mt-2 pt-2 border-t border-border space-y-0.5 text-[10px]">
             <div className="flex items-center gap-1 mb-1">
               <span className="font-medium">UK ETS</span>
               <CoverageInfoButton mode="uk" results={results} />
             </div>
-            <div className="flex justify-between text-[10px]">
-              <span className="text-muted-foreground flex items-center">UK ETS Coverage</span>
-              <span className="font-mono">
-                {(results.ukEtsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.ukEtsPhaseIn * 100).toFixed(0)}%)
-              </span>
-            </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-muted-foreground">UK Chargeable CO₂</span>
-              <span className="font-mono tabular-nums">
+              <span className="font-mono tabular-nums font-semibold">
                 {results.ukChargeableCo2.toFixed(2)} t
               </span>
             </div>
-            <div className="flex justify-between text-[9px]">
-              <span className="text-muted-foreground pl-2">UK ETS cost</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">UK ETS cost</span>
               <span className="font-mono tabular-nums font-semibold text-primary">
                 ${formatCurrency(results.ukEtsCost)}
               </span>
             </div>
             <div className="flex justify-between items-center pt-1">
-              <span className="text-muted-foreground flex items-center">UK ETS Freight Impact</span>
+              <span className="text-muted-foreground">UK ETS Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.ukEtsFreightImpact.toFixed(2)} /mt
               </span>
@@ -486,7 +468,7 @@ export function VoyageSummary() {
                 onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "UK_ETS", enabled: !!v }); setApplyUkEtsImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
-              <span className="text-[9px] text-regulatory font-medium">Apply UK ETS Freight Impact</span>
+              <span className="text-[10px] text-regulatory font-medium">Apply UK ETS Freight Impact</span>
             </label>
           </div>
 
