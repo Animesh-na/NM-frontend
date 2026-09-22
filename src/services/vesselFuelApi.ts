@@ -83,7 +83,7 @@ function normalizeVesselRecord(v: Record<string, any>) {
 const meFuelTpd = (mcr: number, sfoc: number, load: number) => (mcr * load * sfoc * 24) / 1_000_000;
 const aeFuelTpd = (mcr: number, aeLoad: number) => (mcr * aeLoad * AE_SFOC * 24) / 1_000_000;
 
-function computeConsumption(mcr: number, sfoc: number, scrubber: boolean, mode: ModeParams): FuelConsumptionResult {
+export function computeConsumption(mcr: number, sfoc: number, scrubber: boolean, mode: ModeParams): FuelConsumptionResult {
   const meFuel = meFuelTpd(mcr, sfoc, mode.me_load);
   const aeSea = aeFuelTpd(mcr, mode.ae_sea_load);
   const aePort = aeFuelTpd(mcr, mode.ae_port_load);
