@@ -365,50 +365,52 @@ export function VoyageSummary() {
           </div>
         </div>
 
-        {/* CO₂ & EU ETS Section */}
+        {/* EU ETS Section */}
         <div className="space-y-1 border-t border-border pt-2">
-          <div className="flex items-center gap-1 mb-2">
-            <span className="font-medium">CO₂ & EU ETS</span>
-            <CoverageInfoButton mode="eu" results={results} />
-          </div>
-
           {/* Validation warnings */}
           {results.emissionWarnings.length > 0 && (
             <div className="bg-warning/10 border border-warning/30 rounded-sm p-1.5 space-y-0.5">
               {results.emissionWarnings.map((w, i) => (
-                <div key={i} className="text-[9px] text-warning font-medium">⚠ {w}</div>
+                <div key={i} className="text-[10px] text-warning font-medium">⚠ {w}</div>
               ))}
             </div>
           )}
           {results.emissionErrors.length > 0 && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-sm p-1.5 space-y-0.5">
               {results.emissionErrors.map((e, i) => (
-                <div key={i} className="text-[9px] text-destructive font-medium">✕ {e}</div>
+                <div key={i} className="text-[10px] text-destructive font-medium">✕ {e}</div>
               ))}
             </div>
           )}
-          
-
 
           {/* CO2 totals */}
-          <div className="mt-1 space-y-0.5">
+          <div className="mt-1 space-y-0.5 text-[10px]">
             <div className="flex justify-between">
-              <span className="text-muted-foreground flex items-center">Total CO₂</span>
+              <span className="text-muted-foreground flex items-center gap-1">
+                Total CO₂
+                <CoverageInfoButton mode="eu" results={results} />
+              </span>
               <span className="font-mono tabular-nums">
                 {results.totalCo2.toFixed(2)} t
               </span>
             </div>
-            <div className="flex justify-between text-[9px]">
-              <span className="text-muted-foreground pl-2">
-                (L {results.co2Laden.toFixed(2)} / B {results.co2Ballast.toFixed(2)})
-              </span>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground pl-2">Laden CO₂</span>
+              <span className="font-mono tabular-nums">{results.co2Laden.toFixed(2)} t</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground pl-2">Ballast CO₂</span>
+              <span className="font-mono tabular-nums">{results.co2Ballast.toFixed(2)} t</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground pl-2">Total CO₂ Cost</span>
               <span className="font-mono tabular-nums">
                 ${formatCurrency(results.totalCo2Cost)}
               </span>
             </div>
-            <div className="flex justify-between text-[9px]">
+            <div className="flex justify-between">
               <span className="text-muted-foreground pl-2">Commercial Sea Coverage</span>
-              <span className="font-mono">{(results.etsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.etsPhaseIn * 100).toFixed(0)}%)</span>
+              <span className="font-mono tabular-nums">{(results.etsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.etsPhaseIn * 100).toFixed(0)}%)</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">EUA CO₂</span>
@@ -416,7 +418,7 @@ export function VoyageSummary() {
                 {results.chargeableCo2.toFixed(2)} t
               </span>
             </div>
-            <div className="flex justify-between text-[9px]">
+            <div className="flex justify-between">
               <span className="text-muted-foreground pl-2">EUA CO₂ cost</span>
               <span className="font-mono tabular-nums font-semibold text-primary">
                 ${formatCurrency(results.euaCo2Cost)}
@@ -424,19 +426,16 @@ export function VoyageSummary() {
             </div>
           </div>
 
-          {/* EUA Freight Impact (own section) */}
-          <div className="mt-2 pt-2 border-t border-border space-y-1">
-            <div className="flex items-center gap-1 mb-1">
-              <span className="font-medium">EUA Freight Impact</span>
-            </div>
+          {/* EUA Freight Impact */}
+          <div className="mt-2 pt-2 border-t border-border space-y-1 text-[10px]">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground flex items-center">EUA Freight Impact</span>
+              <span className="font-medium">EUA Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.euaFreightImpact.toFixed(2)} /mt
               </span>
             </div>
             {results.euaFreightImpact === 0 && (
-              <div className="text-[9px] text-warning font-medium">
+              <div className="text-[10px] text-warning font-medium">
                 ⚠ {euaZeroReason}
               </div>
             )}
@@ -446,9 +445,10 @@ export function VoyageSummary() {
                 onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "EU_ETS", enabled: !!v }); setApplyEuaImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
-              <span className="text-[9px] text-regulatory font-medium">Apply EUA Freight Impact</span>
+              <span className="text-[10px] text-regulatory font-medium">Apply EUA Freight Impact</span>
             </label>
           </div>
+
 
           {/* UK ETS (independent section) */}
           <div className="mt-2 pt-2 border-t border-border space-y-1">
