@@ -150,7 +150,7 @@ export function VoyageSummary() {
         </div>
 
         {/* Time Summary */}
-        <div className="space-y-0.5">
+        <div className="space-y-0.5 border-t border-border pt-2">
           <div className="flex items-center gap-1 border-b border-border pb-0.5">
             <Clock className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">Time</span>
