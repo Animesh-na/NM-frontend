@@ -385,12 +385,12 @@ export function VoyageSummary() {
 
           {/* CO2 totals */}
           <div className="mt-1 space-y-0.5 text-[10px]">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center gap-1">
                 Total CO₂
                 <CoverageInfoButton mode="eu" results={results} />
               </span>
-              <span className="font-mono tabular-nums">
+              <span className="font-mono tabular-nums font-semibold">
                 {results.totalCo2.toFixed(2)} t
               </span>
             </div>
