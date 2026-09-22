@@ -448,7 +448,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             ? `$${(cargo.rate || 0).toLocaleString()} lump`
             : isTanker
               ? `WS ${(cargo.worldscale ?? 100).toFixed(2)} → ${(((cargo.rate || 0) * (cargo.worldscale ?? 100)) / 100).toFixed(3)} $/ton`
-              : `${(cargo.rate || 0).toFixed(3)} $/ton`}
+              : `${(cargo.rate || 0).toFixed(2)} $/ton`}
         </span>
         <span className="text-muted-foreground text-[11px]">|</span>
         <span className="text-[11px] font-mono tabular-nums">{(cargo.voyageCommission || 0)}%</span>
@@ -516,7 +516,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
         )}
 
         <div className="form-field flex-1 field-min-quantity">
-          <label className="form-label">Qty (Seq)</label>
+          <label className="form-label">Quantity (mt)</label>
           <input
             id={getFieldId("cargo","quantityBalance",cargo.id)}
             aria-invalid={!!errBal}

@@ -201,11 +201,11 @@ export function VoyageSummary() {
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">NTCE</span>
-              <span className={`font-mono tabular-nums font-semibold ${signColor(results.ntce)}`}>${formatCurrency(results.ntce)}</span>
+              <span className={`font-mono tabular-nums font-semibold ${signColor(results.ntce)}`}>$ {formatCurrency(results.ntce)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">GTCE</span>
-              <span className={`font-mono tabular-nums font-semibold ${signColor(results.gtce)}`}>${formatCurrency(results.gtce)}</span>
+              <span className={`font-mono tabular-nums font-semibold ${signColor(results.gtce)}`}>$ {formatCurrency(results.gtce)}</span>
             </div>
           </div>
           <div className="border-t border-border pt-0.5 mt-1 space-y-0.5">
@@ -225,7 +225,7 @@ export function VoyageSummary() {
                       </span>
                     </span>
                     <span className={`font-mono tabular-nums font-bold ${signColor(c.grossRate)}`}>
-                      ${formatCurrency(c.grossRate)} /mt
+                      $ {formatCurrency(c.grossRate)} /mt
                     </span>
                   </div>
                   {laytimeMode !== "cancelled" && (Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
@@ -262,20 +262,20 @@ export function VoyageSummary() {
               <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
                 <span className="text-muted-foreground flex items-center font-semibold">Gross Rate</span>
                 <span className={`font-mono tabular-nums font-bold ${signColor(results.grossRate)}`}>
-                  ${formatCurrency(results.grossRate)} /mt
+                  $ {formatCurrency(results.grossRate)} /mt
                 </span>
               </div>
             )}
             <div className="flex justify-between bg-success/10 rounded-sm px-1 py-0.5 -mx-1">
               <span className="text-muted-foreground flex items-center font-semibold">P&L</span>
               <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL)}`}>
-                ${formatCurrency(results.pAndL)}
+                $ {formatCurrency(results.pAndL)}
               </span>
             </div>
             <div className="flex justify-between bg-success/5 rounded-sm px-1 py-0.5 -mx-1">
               <span className="text-muted-foreground flex items-center font-semibold">P&L/d</span>
               <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL / (results.totalVoyageDays || 1))}`}>
-                ${formatCurrency(results.totalVoyageDays > 0 ? results.pAndL / results.totalVoyageDays : 0)}
+                $ {formatCurrency(results.totalVoyageDays > 0 ? results.pAndL / results.totalVoyageDays : 0)}
               </span>
             </div>
             {showLaytimeImpact && (
@@ -292,13 +292,13 @@ export function VoyageSummary() {
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">Net Frt</span>
                 <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 leading-tight whitespace-nowrap">
-                  ${formatCurrency(results.netFreight)}
+                  $ {formatCurrency(results.netFreight)}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">Gross Frt</span>
                 <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 leading-tight whitespace-nowrap">
-                  ${formatCurrency(results.grossFreight)}
+                  $ {formatCurrency(results.grossFreight)}
                 </span>
               </div>
             </div>
@@ -310,7 +310,7 @@ export function VoyageSummary() {
           <div className="flex justify-between border-b border-border pb-1">
             <span className="font-medium flex items-center">Bunker cost</span>
             <span className="font-mono tabular-nums font-semibold">
-              ${formatCurrency(results.totalBunkerCost)}
+              $ {formatCurrency(results.totalBunkerCost)}
             </span>
           </div>
           {/* Total fuel consumption + EU allocation (one row per fuel) */}
@@ -347,7 +347,7 @@ export function VoyageSummary() {
             </span>
             <span className="text-muted-foreground flex items-center">AER/CII</span>
             <span className="font-mono tabular-nums text-right">
-              {results.afrCii.toFixed(2)} gCO₂/dwt-nm
+              {results.afrCii.toFixed(2)} gCO₂/dwtnm
             </span>
           </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
@@ -395,7 +395,7 @@ export function VoyageSummary() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Total CO₂ Cost</span>
               <span className="font-mono tabular-nums font-semibold">
-                ${formatCurrency(results.totalCo2Cost)}
+                $ {formatCurrency(results.totalCo2Cost)}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -407,7 +407,7 @@ export function VoyageSummary() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">EUA CO₂ cost</span>
               <span className="font-mono tabular-nums font-semibold text-primary">
-                ${formatCurrency(results.euaCo2Cost)}
+                $ {formatCurrency(results.euaCo2Cost)}
               </span>
             </div>
           </div>
@@ -417,7 +417,7 @@ export function VoyageSummary() {
             <div className="flex justify-between items-center">
               <span className="font-medium">EUA Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
-                ${results.euaFreightImpact.toFixed(2)} /mt
+                $ {results.euaFreightImpact.toFixed(2)} /mt
               </span>
             </div>
             {results.euaFreightImpact === 0 && (
@@ -450,13 +450,13 @@ export function VoyageSummary() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">UK ETS cost</span>
               <span className="font-mono tabular-nums font-semibold text-primary">
-                ${formatCurrency(results.ukEtsCost)}
+                $ {formatCurrency(results.ukEtsCost)}
               </span>
             </div>
             <div className="flex justify-between items-center pt-1">
               <span className="text-muted-foreground">UK ETS Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
-                ${results.ukEtsFreightImpact.toFixed(2)} /mt
+                $ {results.ukEtsFreightImpact.toFixed(2)} /mt
               </span>
             </div>
             <label className="flex items-center gap-1.5 cursor-pointer">
@@ -493,11 +493,11 @@ export function VoyageSummary() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">{fuel.toUpperCase()} Fuel EU Penalty</span>
                     <span className="font-mono tabular-nums font-semibold">
-                      ${formatCurrency(f.cost)}
+                      $ {formatCurrency(f.cost)}
                     </span>
                   </div>
                   <div className="text-muted-foreground font-mono tabular-nums pl-2">
-                    (${f.costPerTon.toFixed(2)} for 1 ton of {fuel.toUpperCase()} bunker)
+                    ($ {f.costPerTon.toFixed(2)} for 1 ton of {fuel.toUpperCase()} bunker)
                   </div>
                 </div>
               );
@@ -508,7 +508,7 @@ export function VoyageSummary() {
           <div className="flex justify-between items-center mt-1 pt-1 border-t border-border">
             <span className="font-medium">Total cost for Fuel EU</span>
             <span className="font-mono tabular-nums font-semibold text-primary">
-              ${formatCurrency(results.fuelEuTotalPenalty)}
+              $ {formatCurrency(results.fuelEuTotalPenalty)}
             </span>
           </div>
 
@@ -517,7 +517,7 @@ export function VoyageSummary() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">FuelEU Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
-                ${results.fuelEuFreightImpact.toFixed(2)} /mt
+                $ {results.fuelEuFreightImpact.toFixed(2)} /mt
               </span>
             </div>
             <label className="flex items-center gap-1.5 cursor-pointer">
