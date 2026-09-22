@@ -278,19 +278,17 @@ export function VoyageSummary() {
                 </span>
               </div>
             )}
-            <div className="flex justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="font-semibold text-primary flex items-center text-[9px] whitespace-nowrap">Net Frt</span>
-                <span className="font-mono tabular-nums font-bold text-success leading-tight whitespace-nowrap">
-                  $ {formatCurrency(results.netFreight)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="font-semibold text-primary flex items-center text-[9px] whitespace-nowrap">Gross Frt</span>
-                <span className="font-mono tabular-nums font-bold text-success leading-tight whitespace-nowrap">
-                  $ {formatCurrency(results.grossFreight)}
-                </span>
-              </div>
+            <div className="flex justify-between">
+              <span className="font-semibold text-primary flex items-center">Net Frt</span>
+              <span className="font-mono tabular-nums font-bold text-success">
+                $ {formatCurrency(results.netFreight)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold text-primary flex items-center">Gross Frt</span>
+              <span className="font-mono tabular-nums font-bold text-success">
+                $ {formatCurrency(results.grossFreight)}
+              </span>
             </div>
           </div>
         </div>
