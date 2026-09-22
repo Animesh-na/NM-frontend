@@ -373,6 +373,9 @@ export function VoyageSummary() {
 
           {/* CO2 totals */}
           <div className="mt-1 space-y-0.5 text-[10px]">
+            <div className="flex items-center gap-1 border-b border-border pb-0.5">
+              <span className="font-medium">EU ETS (CO2 COST)</span>
+            </div>
             <div className="flex justify-between items-center">
               <span className="font-semibold text-primary flex items-center gap-1">
                 Total CO₂
