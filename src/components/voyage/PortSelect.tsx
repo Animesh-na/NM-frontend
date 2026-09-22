@@ -231,7 +231,7 @@ export function PortSelect({ value, onChange, placeholder = "Search port...", cl
           placeholder={placeholder}
            title={search || placeholder}
            aria-label={search ? `Port: ${search}. Focus to review or change the full name.` : placeholder}
-          className="form-input-sm h-7 w-full min-w-0 truncate pl-2 pr-4 text-[10px]"
+          className="form-input-sm h-6 w-full min-w-0 truncate pl-2 pr-4 text-[10px] leading-none"
           autoComplete="off"
         />
         {search && (
