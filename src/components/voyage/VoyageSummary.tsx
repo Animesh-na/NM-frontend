@@ -310,14 +310,15 @@ export function VoyageSummary() {
               { label: "VLSFO", total: results.vlsfoConsumption, eu: results.euCoveredFuel.vlsfo },
               { label: "LSMGO", total: results.lsmgoConsumption, eu: results.euCoveredFuel.lsmgo },
             ]).map((f) => (
-              <div key={f.label} className="flex items-baseline justify-between gap-2">
-                <span className="text-muted-foreground">Total {f.label}</span>
-                <span className="flex items-baseline gap-2">
-                  <span className="font-mono tabular-nums">{f.total.toFixed(2)} t</span>
-                  <span className="text-[9px] text-muted-foreground">
-                    EU ETS &amp; FuelEU: <span className="font-mono tabular-nums">{f.eu.toFixed(2)} t</span>
-                  </span>
-                </span>
+              <div key={f.label} className="space-y-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">Total {f.label}</span>
+                  <span className="font-mono tabular-nums font-semibold">{f.total.toFixed(2)} t</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">{f.label} for EU ETS &amp; Fuel EU</span>
+                  <span className="font-mono tabular-nums font-semibold">{f.eu.toFixed(2)} t</span>
+                </div>
               </div>
             ))}
           </div>
