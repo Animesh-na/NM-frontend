@@ -19,8 +19,6 @@ export function MiscSection() {
   const canalMatrix = vessel?.speedProfile === "full" ? vessel?.fullConsumption : vessel?.ecoConsumption;
   const canalRate = canalMatrix?.[canalFuel]?.canal || 0;
   const aeCanalRate = (vessel?.hasScrubber ? canalMatrix?.aeScrubber : canalMatrix?.ae)?.canal || 0;
-  const canalFuelMt = canalDays * canalRate;
-  const canalAeMt = canalDays * aeCanalRate;
 
   const costFields = [
     { key: "miscCost", label: "Misc Costs ($)" },
@@ -96,14 +94,6 @@ export function MiscSection() {
               </select>
             </div>
 
-            <div className="flex items-center gap-2 min-w-0">
-              <label className="form-label flex-1 min-w-0 truncate mb-0">
-                Canal Cons. ({canalRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} + AE {aeCanalRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} mt/d)
-              </label>
-              <span className="w-[130px] shrink-0 text-right font-mono text-xs font-semibold">
-                {(canalFuelMt + canalAeMt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mt
-              </span>
-            </div>
           </div>
 
         </div>
