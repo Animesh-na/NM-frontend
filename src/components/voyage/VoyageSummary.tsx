@@ -141,11 +141,11 @@ export function VoyageSummary() {
         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-b border-border pb-1">
           <div className="flex justify-between items-center">
             <span className="font-medium flex items-center">Incl Hire</span>
-            <span className="font-mono tabular-nums font-semibold text-primary">${formatCurrency(results.voyageCostInclHire)}</span>
+            <span className="font-mono tabular-nums font-semibold text-primary">$ {formatCurrency(results.voyageCostInclHire)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground flex items-center">Excl Hire</span>
-            <span className="font-mono tabular-nums font-semibold text-primary">${formatCurrency(results.voyageCostExclHire)}</span>
+            <span className="font-mono tabular-nums font-semibold text-primary">$ {formatCurrency(results.voyageCostExclHire)}</span>
           </div>
         </div>
 
@@ -428,7 +428,7 @@ export function VoyageSummary() {
           {/* UK ETS (independent section) */}
           <div className="mt-2 pt-2 border-t border-border space-y-0.5 text-[10px]">
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-primary font-medium">UK ETS</span>
+              <span className="text-primary font-medium">UK ETS (CO2 COST)</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="font-semibold text-primary">UK Chargeable CO₂</span>

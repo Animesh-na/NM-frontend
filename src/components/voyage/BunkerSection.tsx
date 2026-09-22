@@ -265,7 +265,7 @@ export function BunkerSection() {
           {/* Global Controls - single line */}
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-muted-foreground">EU ETS</span>
+              <span className="text-[10px] text-muted-foreground">CO2 COST (EU ETS)</span>
               <div className="input-with-unit">
               <input type="number" className="form-input-sm field-numeric w-20 text-xs"
                 value={bunker.euEtsPrice || ""} onChange={(e) => updateBunkerField("euEtsPrice", parseFloat(e.target.value) || 0)} placeholder="0" />
@@ -273,7 +273,7 @@ export function BunkerSection() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-muted-foreground">UK ETS</span>
+              <span className="text-[10px] text-muted-foreground">CO2 COST (UK ETS)</span>
               <div className="input-with-unit">
               <input type="number" className="form-input-sm field-numeric w-20 text-xs"
                 value={bunker.ukEtsPrice || ""} onChange={(e) => updateBunkerField("ukEtsPrice", parseFloat(e.target.value) || 0)} placeholder="0" />
