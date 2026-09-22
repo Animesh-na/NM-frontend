@@ -190,11 +190,11 @@ export function VoyageSummary() {
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
             <div className="flex justify-between">
-              <span className="text-primary flex items-center">NTCE</span>
+              <span className="font-semibold text-primary flex items-center">NTCE</span>
               <span className={`font-mono tabular-nums font-semibold ${signColor(results.ntce)}`}>$ {formatCurrency(results.ntce)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-primary flex items-center">GTCE</span>
+              <span className="font-semibold text-primary flex items-center">GTCE</span>
               <span className={`font-mono tabular-nums font-semibold ${signColor(results.gtce)}`}>$ {formatCurrency(results.gtce)}</span>
             </div>
           </div>
@@ -280,13 +280,13 @@ export function VoyageSummary() {
             )}
             <div className="flex justify-between gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-primary flex items-center text-[9px] whitespace-nowrap">Net Frt</span>
+                <span className="font-semibold text-primary flex items-center text-[9px] whitespace-nowrap">Net Frt</span>
                 <span className="font-mono tabular-nums font-bold text-success leading-tight whitespace-nowrap">
                   $ {formatCurrency(results.netFreight)}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-primary flex items-center text-[9px] whitespace-nowrap">Gross Frt</span>
+                <span className="font-semibold text-primary flex items-center text-[9px] whitespace-nowrap">Gross Frt</span>
                 <span className="font-mono tabular-nums font-bold text-success leading-tight whitespace-nowrap">
                   $ {formatCurrency(results.grossFreight)}
                 </span>
@@ -332,12 +332,12 @@ export function VoyageSummary() {
             <span className="text-primary font-medium">Environmental</span>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-            <span className="text-primary flex items-center">EEOI</span>
-            <span className="font-mono tabular-nums text-success text-right">
+            <span className="font-semibold text-primary flex items-center">EEOI</span>
+            <span className="font-semibold font-mono tabular-nums text-success text-right">
               {results.efoi.toFixed(2)} gCO₂/tnm
             </span>
-            <span className="text-primary flex items-center">AER/CII</span>
-            <span className="font-mono tabular-nums text-success text-right">
+            <span className="font-semibold text-primary flex items-center">AER/CII</span>
+            <span className="font-semibold font-mono tabular-nums text-success text-right">
               {results.afrCii.toFixed(2)} gCO₂/dwtnm
             </span>
           </div>
@@ -376,7 +376,7 @@ export function VoyageSummary() {
           {/* CO2 totals */}
           <div className="mt-1 space-y-0.5 text-[10px]">
             <div className="flex justify-between items-center">
-              <span className="text-primary flex items-center gap-1">
+              <span className="font-semibold text-primary flex items-center gap-1">
                 Total CO₂
               </span>
               <span className="font-mono tabular-nums text-success font-semibold">
@@ -384,19 +384,19 @@ export function VoyageSummary() {
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-primary">Total CO₂ Cost</span>
+              <span className="font-semibold text-primary">Total CO₂ Cost</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {formatCurrency(results.totalCo2Cost)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-primary">EUA CO₂</span>
+              <span className="font-semibold text-primary">EUA CO₂</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 {results.chargeableCo2.toFixed(2)} t
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-primary">EUA CO₂ cost</span>
+              <span className="font-semibold text-primary">EUA CO₂ cost</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {formatCurrency(results.euaCo2Cost)}
               </span>
@@ -433,19 +433,19 @@ export function VoyageSummary() {
               <span className="text-primary font-medium">UK ETS</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-primary">UK Chargeable CO₂</span>
+              <span className="font-semibold text-primary">UK Chargeable CO₂</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 {results.ukChargeableCo2.toFixed(2)} t
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-primary">UK ETS cost</span>
+              <span className="font-semibold text-primary">UK ETS cost</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {formatCurrency(results.ukEtsCost)}
               </span>
             </div>
             <div className="flex justify-between items-center pt-1">
-              <span className="text-primary">UK ETS Freight Impact</span>
+              <span className="font-semibold text-primary">UK ETS Freight Impact</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {results.ukEtsFreightImpact.toFixed(2)} /mt
               </span>
@@ -469,7 +469,7 @@ export function VoyageSummary() {
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-primary">Wind Reward Factor</span>
+            <span className="font-semibold text-primary">Wind Reward Factor</span>
             <span className="text-primary font-mono tabular-nums font-semibold">
               {results.fuelEuResult.rewardFactor.toFixed(2)}
             </span>
@@ -482,7 +482,7 @@ export function VoyageSummary() {
               return (
                 <div key={fuel}>
                   <div className="flex justify-between items-center">
-                    <span className="text-primary">{fuel.toUpperCase()} Fuel EU Penalty</span>
+                    <span className="font-semibold text-primary">{fuel.toUpperCase()} Fuel EU Penalty</span>
                     <span className="font-mono tabular-nums text-success font-semibold">
                       $ {formatCurrency(f.cost)}
                     </span>
@@ -506,7 +506,7 @@ export function VoyageSummary() {
           {/* FuelEU Freight Impact with checkbox */}
           <div className="mt-1 pt-1 border-t border-border space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-primary">FuelEU Freight Impact</span>
+              <span className="font-semibold text-primary">FuelEU Freight Impact</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {results.fuelEuFreightImpact.toFixed(2)} /mt
               </span>
