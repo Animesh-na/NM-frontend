@@ -145,7 +145,7 @@ export function VoyageSummary() {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground flex items-center">Excl Hire</span>
-            <span className="font-mono tabular-nums">${formatCurrency(results.voyageCostExclHire)}</span>
+            <span className="font-mono tabular-nums font-semibold text-primary">${formatCurrency(results.voyageCostExclHire)}</span>
           </div>
         </div>
 
@@ -158,23 +158,23 @@ export function VoyageSummary() {
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">Ballast</span>
-              <span className="font-mono tabular-nums">{formatDays(results.seaDaysBallast)}d</span>
+              <span className="font-mono tabular-nums">{formatDays(results.seaDaysBallast)} d</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">Laden</span>
-              <span className="font-mono tabular-nums">{formatDays(results.seaDaysLaden)}d</span>
+              <span className="font-mono tabular-nums">{formatDays(results.seaDaysLaden)} d</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">At Sea</span>
-              <span className="font-mono tabular-nums">{formatDays(results.totalSeaDays)}d</span>
+              <span className="font-mono tabular-nums">{formatDays(results.totalSeaDays)} d</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center">In Port</span>
-              <span className="font-mono tabular-nums">{formatDays(results.totalPortDays)}d</span>
+              <span className="font-mono tabular-nums">{formatDays(results.totalPortDays)} d</span>
             </div>
             <div className="flex justify-between col-span-2 border-t border-border pt-0.5">
               <span className="font-medium flex items-center">Total Time</span>
-              <span className="font-mono tabular-nums font-semibold text-primary">{formatDays(results.totalVoyageDays)}d</span>
+              <span className="font-mono tabular-nums font-semibold text-primary">{formatDays(results.totalVoyageDays)} d</span>
             </div>
           </div>
         </div>

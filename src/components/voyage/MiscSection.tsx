@@ -37,7 +37,7 @@ export function MiscSection() {
         className="section-header-vertical"
         title="Misc & Extra Time"
       >
-        <span>Misc</span>
+        <span>Miscellaneous</span>
       </button>
 
       {isExpanded && (

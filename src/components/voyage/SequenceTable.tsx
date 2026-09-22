@@ -262,15 +262,15 @@ export function SequenceTable() {
                   <th className={thClass}>Cargo</th>
                   <th className={thClass}>Distance &amp; ECA</th>
                   <th className={thClass}>Sea time &amp; WD</th>
-                  <th className={thClass}>P. Fuel</th>
-                  <th className={thClass}>Qty mt</th>
+                  <th className={thClass}>Port Fuel</th>
+                  <th className={thClass}>Quantity (mt)</th>
                   <th className={thClass}>{isTanker ? "Laytime h" : "mt/d"}</th>
                   {!isTanker && <th className={thClass}>Terms</th>}
-                  {!isTanker && <th className={thClass}>Coeff</th>}
-                  <th className={thClass}>Turn h</th>
-                  <th className={thClass}>Extra h</th>
-                  <th className={thClass}>Draft m</th>
-                  <th className={thClass}>DA $</th>
+                  {!isTanker && <th className={thClass}>Coefficient</th>}
+                  <th className={thClass}>Tt hrs</th>
+                  <th className={thClass}>Extra hrs</th>
+                  <th className={thClass}>Draft (m)</th>
+                  <th className={thClass}>DA ($)</th>
                   <th className={thClass}></th>
                 </tr>
               </thead>

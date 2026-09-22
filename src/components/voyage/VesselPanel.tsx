@@ -165,7 +165,7 @@ export function VesselPanel() {
               );})()}
             </div>
             <div className="form-field w-[88px] shrink-0">
-              <label className="form-label">Cubic (m³)</label>
+              <label className="form-label">Cubic metre</label>
               {(() => { const err = getFieldError("vessel","cubic"); return (
               <input id={getFieldId("vessel","cubic")} aria-invalid={!!err} title={err}
                 type="number" className={`form-input-sm w-full font-mono tabular-nums text-right ${errCls(err)}`}
@@ -189,7 +189,7 @@ export function VesselPanel() {
               );})()}
             </div>
             <div className="form-field w-[50px] shrink-0">
-              <label className="form-label">Scrub</label>
+              <label className="form-label">Scrubbers</label>
               <select className="form-select-sm w-full" value={vessel.hasScrubber ? "Y" : "N"} onChange={(e) => handleFieldChange("hasScrubber", e.target.value === "Y")}>
                 <option value="N">N</option><option value="Y">Y</option>
               </select>

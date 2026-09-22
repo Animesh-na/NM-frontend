@@ -25,12 +25,12 @@ type MatrixRow = {
 };
 
 const matrixRows: MatrixRow[] = [
-  { key: "speed", label: "Speed" },
-  { key: "hsfo", label: "HSFO" },
-  { key: "vlsfo", label: "VLSFO" },
-  { key: "lsmgo", label: "LSMGO" },
-  { key: "ae", label: "AE" },
-  { key: "aeScrubber", label: "AE+Scr" },
+  { key: "speed", label: "Speed (Knots)" },
+  { key: "hsfo", label: "HSFO (mt/d)" },
+  { key: "vlsfo", label: "VLSFO (mt/d)" },
+  { key: "lsmgo", label: "LSMGO (mt/d)" },
+  { key: "ae", label: "AE (mt/d)" },
+  { key: "aeScrubber", label: "AE+Scr (mt/d)" },
 ];
 
 type ColumnKey = keyof ConsumptionMatrixType["speed"];
@@ -143,7 +143,6 @@ export function ConsumptionMatrix({
             {columns.map(col => (
               <th key={col.key} className={`${thClass} w-[72px]`}>{col.label}</th>
             ))}
-            <th className={`${thClass} w-12`}>Unit</th>
           </tr>
         </thead>
         <tbody>
@@ -184,7 +183,6 @@ export function ConsumptionMatrix({
                   </td>
                 );
               })}
-              <td className="px-2 py-0.5 text-[9px] text-muted-foreground text-center">{getUnit(row.key)}</td>
             </tr>
           ))}
         </tbody>

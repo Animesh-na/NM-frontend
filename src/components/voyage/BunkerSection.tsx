@@ -343,13 +343,13 @@ export function BunkerSection() {
                   <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
                   <div className="input-with-unit min-w-0 flex-1">
                     <input type="number" disabled={bobIgnored} className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
-                      value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
-                    <span className="unit">$ / t</span>
-                  </div>
-                  <div className="input-with-unit min-w-0 flex-1">
-                    <input type="number" disabled={bobIgnored} className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
                       value={bunker[fuel].robStart || ""} onChange={(e) => updateBunker(fuel, "robStart", parseFloat(e.target.value) || 0)} placeholder="0" />
                     <span className="unit">t</span>
+                  </div> <span>@</span>
+                  <div className="input-with-unit min-w-0 flex-1">
+                    <input type="number" disabled={bobIgnored} className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
+                      value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                    <span className="unit">$ / t</span>
                   </div>
                 </div>
               ))}
