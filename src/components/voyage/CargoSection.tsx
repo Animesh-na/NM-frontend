@@ -460,7 +460,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
         <div className="form-field flex-1 min-w-[154px]">
           <label className="form-label">{isTanker ? "Flat rate user input" : "Rate"}</label>
-           <div className="input-with-unit min-w-0">
+           <div className="input-with-unit min-w-0 gap-1">
             <input
               id={getFieldId("cargo","rate",cargo.id)}
               aria-invalid={!!errRate}
@@ -472,7 +472,7 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
               onChange={(e) => onUpdate("rate", parseFloat(e.target.value) || 0)}
             />
             <select
-               className="form-select-sm unit-compact w-[62px] rounded-l-none border-l-0 px-1 pr-4 text-center"
+               className="form-select-sm h-5 w-[62px] shrink-0 rounded-md px-1 pr-4 text-center text-[10px] font-semibold"
               value={cargo.rateType}
               onChange={(e) => onUpdate("rateType", e.target.value)}
             >
