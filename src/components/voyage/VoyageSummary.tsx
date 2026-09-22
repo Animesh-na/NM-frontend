@@ -475,48 +475,33 @@ export function VoyageSummary() {
         </div>
 
         {/* FuelEU Maritime Section */}
-        <div className="space-y-1 border-t border-border pt-2">
-          <div className="flex items-center gap-1 mb-2">
+        <div className="space-y-1 border-t border-border pt-2 text-[10px]">
+          <div className="flex items-center gap-1 mb-1">
             <span className="font-medium">Fuel EU Maritime</span>
             <CoverageInfoButton mode="fueleu" results={results} />
           </div>
-          
-          <div className="bg-muted rounded-sm p-1.5 space-y-0.5 text-[9px]">
-            <div className="flex justify-between text-muted-foreground">
-              <span>Wind Reward Factor</span>
-              <span className="font-mono">{results.fuelEuResult.rewardFactor.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Year / GHG Limit</span>
-              <span className="font-mono">{results.fuelEuResult.voyageYear} · {results.fuelEuResult.ghgLimit.toFixed(2)} g/MJ</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Voyage GHG (WtW)</span>
-              <span className="font-mono">{results.fuelEuResult.voyageGhg.toFixed(2)} g/MJ</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Compliance Balance</span>
-              <span className={`font-mono ${results.fuelEuResult.totalBalance < 0 ? 'text-destructive' : 'text-emerald-600'}`}>
-                {(results.fuelEuResult.totalBalance / 1e6).toFixed(2)} t·CO₂eq·MJ
-              </span>
-            </div>
-           </div>
 
-          {/* Static Cost Per Ton & Costs */}
-          <div className="space-y-0.5 mt-1">
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Wind Reward Factor</span>
+            <span className="font-mono tabular-nums font-semibold">
+              {results.fuelEuResult.rewardFactor.toFixed(2)}
+            </span>
+          </div>
+
+          {/* Per-fuel penalties */}
+          <div className="space-y-1 mt-1">
             {(['hsfo', 'vlsfo', 'lsmgo'] as const).map(fuel => {
               const f = results.fuelEuResult.fuels[fuel];
               return (
-                <div key={fuel} className="space-y-0.5">
-                  <div className="flex justify-between text-[9px]">
-                    <span className="text-muted-foreground pl-2">$/ton</span>
-                    <span className="font-mono">${f.costPerTon.toFixed(2)} /t</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground flex items-center">{fuel.toUpperCase()} Cost</span>
-                    <span className="font-mono tabular-nums">
+                <div key={fuel}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{fuel.toUpperCase()} Fuel EU Penalty</span>
+                    <span className="font-mono tabular-nums font-semibold">
                       ${formatCurrency(f.cost)}
                     </span>
+                  </div>
+                  <div className="text-muted-foreground font-mono tabular-nums pl-2">
+                    (${f.costPerTon.toFixed(2)} for 1 ton of {fuel.toUpperCase()} bunker)
                   </div>
                 </div>
               );
@@ -524,9 +509,9 @@ export function VoyageSummary() {
           </div>
 
           {/* FuelEU Total */}
-          <div className="flex justify-between mt-1 pt-1 border-t border-border font-semibold">
-            <span>Total Fuel EU</span>
-            <span className="font-mono tabular-nums text-primary">
+          <div className="flex justify-between items-center mt-1 pt-1 border-t border-border">
+            <span className="font-medium">Total cost for Fuel EU</span>
+            <span className="font-mono tabular-nums font-semibold text-primary">
               ${formatCurrency(results.fuelEuTotalPenalty)}
             </span>
           </div>
@@ -534,7 +519,7 @@ export function VoyageSummary() {
           {/* FuelEU Freight Impact with checkbox */}
           <div className="mt-1 pt-1 border-t border-border space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground flex items-center">FuelEU Freight Impact</span>
+              <span className="text-muted-foreground">FuelEU Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.fuelEuFreightImpact.toFixed(2)} /mt
               </span>
@@ -545,7 +530,7 @@ export function VoyageSummary() {
                 onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "FuelEU", enabled: !!v }); setApplyFuelEuImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
-              <span className="text-[9px] text-regulatory font-medium">Apply FuelEU Freight Impact</span>
+              <span className="text-[10px] text-regulatory font-medium">Apply FuelEU Freight Impact</span>
             </label>
           </div>
         </div>
