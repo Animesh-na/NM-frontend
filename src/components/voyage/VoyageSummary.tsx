@@ -179,16 +179,6 @@ export function VoyageSummary() {
           </div>
         </div>
 
-        {/* Distance Summary */}
-        <div className="bg-muted rounded-sm p-1.5">
-          <div className="text-muted-foreground font-medium mb-0.5">Distance</div>
-          <div className="grid grid-cols-2 gap-1 text-[10px]">
-            <span className="flex items-center">Total distance</span>
-            <span className="font-mono text-right">{(results.totalDistance + results.totalEcaDistance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
-            <span className="flex items-center">ECA distance</span>
-            <span className="font-mono text-right">{results.totalEcaDistance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nm</span>
-          </div>
-        </div>
 
         {/* Financial Results */}
         <div className="space-y-1">
