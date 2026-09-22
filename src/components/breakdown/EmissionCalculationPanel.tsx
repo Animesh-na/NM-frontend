@@ -579,7 +579,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
             formula="Final EUA Liability × Carbon Price"
             inputs={[
               { label: "EUA Liability", value: `${results.chargeableCo2.toFixed(2)} t`, source: "Calc" },
-              { label: "Carbon Price", value: `€${bunker.euEtsPrice || bunker.co2Price}/t`, source: "Bunker" },
+              { label: "Carbon Price", value: `€${bunker.euEtsPrice || 0}/t`, source: "Bunker" },
             ]}
             result={{ label: "Total ETS Cost", value: `€${results.etsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }}
           />
@@ -693,7 +693,7 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
               ${results.ukEtsCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </div>
             <div className="text-[10px] text-muted-foreground mt-1">
-              @ ${bunker.ukEtsPrice || bunker.co2Price || 0}/t
+              @ ${bunker.ukEtsPrice || 0}/t
             </div>
           </div>
         </div>

@@ -1471,7 +1471,7 @@ ${perCargoFreight
     const ukCoveredFuel = { hsfo: ukCoveredHsfo, vlsfo: ukCoveredVlsfo, lsmgo: ukCoveredLsmgo };
     const ukCo2 = ukCo2FromFuel(ukCoveredFuel);
     const ukChargeableCo2 = ukCo2 * ukPhaseIn;
-    const ukEtsPriceEff = bunker.ukEtsPrice || bunker.co2Price || 0;
+    const ukEtsPriceEff = bunker.ukEtsPrice || 0;
     const ukEtsCost = ukChargeableCo2 * ukEtsPriceEff;
     const ukVoyageCoverage = ukTotalSeaTime > 0 ? ukWeightedSeaFactor / ukTotalSeaTime : 0;
     const ukEtsResult: UkEtsResult = {
@@ -1503,7 +1503,7 @@ ${perCargoFreight
       euCoveredLsmgo * CO2_EMISSION_FACTORS.lsmgo;
     
     totalChargeableCo2 = euCo2FromFuel * phaseInPercentage;
-    const euEtsPriceEff = bunker.euEtsPrice || bunker.co2Price || 0;
+    const euEtsPriceEff = bunker.euEtsPrice || 0;
     etsCost = totalChargeableCo2 * euEtsPriceEff;
     
     // Finalize ETS result with bottom-up values

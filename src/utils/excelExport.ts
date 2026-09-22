@@ -635,8 +635,8 @@ export function exportVoyageToExcel(data: ExportData) {
   r++;
 
   setText(0, r, "CO₂ Price ($/mt)", S.inputLabel); setNum(1, r, bunker.co2Price); const R_CO2P = r; r++;
-  setText(0, r, "EU ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.euEtsPrice || bunker.co2Price || 0); const R_EUP = r; r++;
-  setText(0, r, "UK ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.ukEtsPrice || bunker.co2Price || 0); const R_UKP = r; r++;
+  setText(0, r, "EU ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.euEtsPrice || 0); const R_EUP = r; r++;
+  setText(0, r, "UK ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.ukEtsPrice || 0); const R_UKP = r; r++;
   setText(0, r, "Wind Reward Factor (FuelEU only)", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
   r++;
 
