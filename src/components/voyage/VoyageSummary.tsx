@@ -150,7 +150,7 @@ export function VoyageSummary() {
         </div>
 
         {/* Time Summary */}
-        <div className="space-y-0.5">
+        <div className="space-y-0.5 border-t border-border pt-2">
           <div className="flex items-center gap-1 border-b border-border pb-0.5">
             <Clock className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">Time</span>
@@ -181,7 +181,7 @@ export function VoyageSummary() {
 
 
         {/* Financial Results */}
-        <div className="space-y-1">
+        <div className="space-y-1 border-t border-border pt-2">
           <div className="flex items-center gap-1 mb-1 border-b border-border pb-0.5">
             <DollarSign className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">Cargo / Economics</span>
@@ -207,7 +207,7 @@ export function VoyageSummary() {
                 const affectedRows = (cargoLaytime?.rows || []).filter((r) => Math.abs(r.diffDays) > 0.005);
                 return (
                 <div key={c.cargoId} className="space-y-0.5">
-                  <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground flex items-center font-semibold">
                       Cargo {c.cargoLabel} Gross Rate
                       <span className="ml-1 text-muted-foreground/70 font-normal">
@@ -219,7 +219,7 @@ export function VoyageSummary() {
                     </span>
                   </div>
                   {laytimeMode !== "cancelled" && (Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
-                    <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1 ml-2">
+                    <div className="flex justify-between ml-2">
                       <span className="text-muted-foreground flex items-center font-semibold">Cargo {c.cargoLabel} Extra time</span>
                       <span className="font-mono tabular-nums font-bold">
                         <span className={c.extraDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(c.extraDays)} d</span>
@@ -229,7 +229,7 @@ export function VoyageSummary() {
                     </div>
                   )}
                   {laytimeMode === "non_reversible" && affectedRows.map((r) => (
-                    <div key={r.rowId} className="flex justify-between bg-accent/5 rounded-sm px-1 py-0.5 -mx-1 ml-4">
+                    <div key={r.rowId} className="flex justify-between ml-4">
                       <span className="text-muted-foreground">
                         {r.port}
                         {r.operation ? ` (${r.operation})` : ""}
@@ -249,27 +249,27 @@ export function VoyageSummary() {
                 );
               })
             ) : (
-              <div className="flex justify-between bg-primary/10 rounded-sm px-1 py-0.5 -mx-1">
+              <div className="flex justify-between">
                 <span className="text-muted-foreground flex items-center font-semibold">Gross Rate</span>
                 <span className={`font-mono tabular-nums font-bold ${signColor(results.grossRate)}`}>
                   $ {formatCurrency(results.grossRate)} /mt
                 </span>
               </div>
             )}
-            <div className="flex justify-between bg-success/10 rounded-sm px-1 py-0.5 -mx-1">
+            <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center font-semibold">P&L</span>
               <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL)}`}>
                 $ {formatCurrency(results.pAndL)}
               </span>
             </div>
-            <div className="flex justify-between bg-success/5 rounded-sm px-1 py-0.5 -mx-1">
+            <div className="flex justify-between">
               <span className="text-muted-foreground flex items-center font-semibold">P&L/d</span>
               <span className={`font-mono tabular-nums font-bold ${signColor(results.pAndL / (results.totalVoyageDays || 1))}`}>
                 $ {formatCurrency(results.totalVoyageDays > 0 ? results.pAndL / results.totalVoyageDays : 0)}
               </span>
             </div>
             {showLaytimeImpact && (
-              <div className="flex justify-between bg-accent/10 rounded-sm px-1 py-0.5 -mx-1">
+              <div className="flex justify-between">
                 <span className="text-muted-foreground flex items-center font-semibold">Extra time</span>
                 <span className="font-mono tabular-nums font-bold">
                   <span className={totalExtraDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(totalExtraDays)} d</span>
@@ -281,13 +281,13 @@ export function VoyageSummary() {
             <div className="flex justify-between gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">Net Frt</span>
-                <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 leading-tight whitespace-nowrap">
+                <span className="font-mono tabular-nums font-bold text-success leading-tight whitespace-nowrap">
                   $ {formatCurrency(results.netFreight)}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-muted-foreground flex items-center text-[9px] whitespace-nowrap">Gross Frt</span>
-                <span className="font-mono tabular-nums font-bold text-success bg-success/15 rounded-sm px-1.5 py-0.5 leading-tight whitespace-nowrap">
+                <span className="font-mono tabular-nums font-bold text-success leading-tight whitespace-nowrap">
                   $ {formatCurrency(results.grossFreight)}
                 </span>
               </div>
@@ -296,10 +296,10 @@ export function VoyageSummary() {
         </div>
 
         {/* Bunker Summary */}
-        <div className="space-y-1">
-          <div className="flex justify-between border-b border-border pb-1">
-            <span className="font-medium flex items-center">Bunker cost</span>
-            <span className="font-mono tabular-nums font-semibold">
+        <div className="space-y-1 border-t border-border pt-2">
+          <div className="flex justify-between items-center border-b border-border pb-0.5">
+            <span className="font-medium flex items-center">Bunker Cost</span>
+            <span className="font-mono tabular-nums font-semibold text-primary">
               $ {formatCurrency(results.totalBunkerCost)}
             </span>
           </div>
