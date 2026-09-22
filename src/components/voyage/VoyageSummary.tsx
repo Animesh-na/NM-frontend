@@ -439,31 +439,25 @@ export function VoyageSummary() {
 
 
           {/* UK ETS (independent section) */}
-          <div className="mt-2 pt-2 border-t border-border space-y-1">
+          <div className="mt-2 pt-2 border-t border-border space-y-0.5 text-[10px]">
             <div className="flex items-center gap-1 mb-1">
               <span className="font-medium">UK ETS</span>
               <CoverageInfoButton mode="uk" results={results} />
             </div>
-            <div className="flex justify-between text-[10px]">
-              <span className="text-muted-foreground flex items-center">UK ETS Coverage</span>
-              <span className="font-mono">
-                {(results.ukEtsVoyageCoverage * 100).toFixed(0)}% (Phase-in: {(results.ukEtsPhaseIn * 100).toFixed(0)}%)
-              </span>
-            </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-muted-foreground">UK Chargeable CO₂</span>
-              <span className="font-mono tabular-nums">
+              <span className="font-mono tabular-nums font-semibold">
                 {results.ukChargeableCo2.toFixed(2)} t
               </span>
             </div>
-            <div className="flex justify-between text-[9px]">
-              <span className="text-muted-foreground pl-2">UK ETS cost</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">UK ETS cost</span>
               <span className="font-mono tabular-nums font-semibold text-primary">
                 ${formatCurrency(results.ukEtsCost)}
               </span>
             </div>
             <div className="flex justify-between items-center pt-1">
-              <span className="text-muted-foreground flex items-center">UK ETS Freight Impact</span>
+              <span className="text-muted-foreground">UK ETS Freight Impact</span>
               <span className="font-mono tabular-nums font-semibold text-regulatory">
                 ${results.ukEtsFreightImpact.toFixed(2)} /mt
               </span>
@@ -474,7 +468,7 @@ export function VoyageSummary() {
                 onCheckedChange={(v) => { trackEvent("regulatory.toggle", { component: "VoyageSummary", scheme: "UK_ETS", enabled: !!v }); setApplyUkEtsImpact(!!v); }}
                 className="h-3.5 w-3.5"
               />
-              <span className="text-[9px] text-regulatory font-medium">Apply UK ETS Freight Impact</span>
+              <span className="text-[10px] text-regulatory font-medium">Apply UK ETS Freight Impact</span>
             </label>
           </div>
 
