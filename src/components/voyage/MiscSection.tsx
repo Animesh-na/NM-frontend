@@ -23,10 +23,10 @@ export function MiscSection() {
   const canalAeMt = canalDays * aeCanalRate;
 
   const costFields = [
-    { key: "miscCost", label: "Misc Costs" },
-    { key: "extraFees", label: "Extra Fees" },
-    { key: "extraInsurance", label: "Insurance" },
-    { key: "canalCost1", label: "Canal Charges" },
+    { key: "miscCost", label: "Misc Costs ($)" },
+    { key: "extraFees", label: "Extra Fees ($)" },
+    { key: "extraInsurance", label: "Insurance ($)" },
+    { key: "canalCost1", label: "Canal Costs ($)" },
   ] as const;
 
   return (
@@ -47,7 +47,6 @@ export function MiscSection() {
               <div key={key} className="flex items-center gap-2 min-w-0">
                 <label className="form-label flex-1 min-w-0 truncate mb-0">{label}</label>
                 <div className="relative w-[130px] shrink-0">
-                  <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">$</span>
                   <input
                     type="number"
                     className="form-input-sm w-full min-w-0 font-mono text-right pl-6"
