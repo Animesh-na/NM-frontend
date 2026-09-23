@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import { ChevronDown, Fuel, X, RefreshCw } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useVoyageContext, type FuelAccountingMode } from "@/context/VoyageContext";
 import { getBunkerPrices } from "@/services/marineApi";
+import { BunkerPriceDialog } from "./BunkerPriceDialog";
 import { toast } from "@/hooks/use-toast";
 import { InfoTooltip } from "./InfoTooltip";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
@@ -10,9 +10,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 
 export function BunkerSection() {
   const { 
@@ -37,6 +34,11 @@ export function BunkerSection() {
   const [feed, setFeed] = useState<FeedQuote[]>([]);
   const [feedAt, setFeedAt] = useState<string | null>(null);
   const autoFilled = useRef<Set<string>>(new Set());
+
+  // Price lookup modal (opened by double-clicking a $/t field)
+  const [priceLookup, setPriceLookup] = useState<
+    { fuel: "hsfo" | "vlsfo" | "lsmgo"; scope: string; search: string; target: string } | null
+  >(null);
 
   const fetchPrices = useCallback(async (opts: { force: boolean }) => {
     const targets: { key: string; name: string; apply: (q: { hsfo: number | null; vlsfo: number | null; lsmgo: number | null }) => void }[] = [];
@@ -125,6 +127,15 @@ export function BunkerSection() {
       });
     }
   }, [bunkeringPorts, bunker.portBunkering, removePortBunkering]);
+
+  // Auto-add a price row for every bunkering call in the sequence.
+  useEffect(() => {
+    bunkeringPorts.forEach(p => {
+      if (!bunker.portBunkering.some(pb => pb.portUnloc === p.portUnloc)) {
+        addPortBunkering(p.portUnloc, p.port);
+      }
+    });
+  }, [bunkeringPorts, bunker.portBunkering, addPortBunkering]);
 
   // Keep the market feed limited to ports still relevant to the voyage.
   useEffect(() => {
@@ -242,11 +253,6 @@ export function BunkerSection() {
     };
   };
 
-  const handleAddBunkeringPort = (portUnloc: string) => {
-    const port = bunkeringPorts.find(p => p.portUnloc === portUnloc);
-    if (port) addPortBunkering(port.portUnloc, port.port);
-  };
-
   const fuels = ["hsfo", "vlsfo", "lsmgo"] as const;
 
   return (
@@ -318,26 +324,12 @@ export function BunkerSection() {
             </div>
           </div>
 
-          {/* BOB - single row layout */}
+          {/* BOB + bunkering port rows — one row per source */}
           <div className="border border-border rounded overflow-hidden">
-            <div className="subsection-header px-2 py-0.5 text-[10px] font-medium border-b border-border flex items-center justify-between">
-              <span>BOB{bobIgnored && <span className="ml-1 text-[9px] font-normal text-muted-foreground">(ignored — price &amp; tonnes excluded)</span>}</span>
-              <span className="flex items-center gap-2">
-                {bobPortName && <span className="text-[9px] font-normal text-muted-foreground">Prices: {bobPortName}</span>}
-                <Button
-                  type="button"
-                  variant="outline" size="sm"
-                  onClick={() => fetchPrices({ force: true })}
-                  disabled={fetching}
-                  className="h-5 px-1.5 text-[9px] gap-1"
-                  title="Fetch latest market bunker prices"
-                >
-                  <RefreshCw className={`h-3 w-3 ${fetching ? "animate-spin" : ""}`} />
-                  Refresh Prices
-                </Button>
-              </span>
-            </div>
-            <div className={`grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border ${bobIgnored ? "opacity-50" : ""}`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-[minmax(72px,auto)_repeat(3,minmax(0,1fr))] items-center divide-y sm:divide-y-0 sm:divide-x divide-border ${bobIgnored ? "opacity-50" : ""}`}>
+              <div className="px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap">
+                BOB{bobIgnored && <span className="ml-1 text-[9px] font-normal text-muted-foreground">(ignored)</span>}
+              </div>
               {fuels.map(fuel => (
                 <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-0.5">
                   <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
@@ -348,12 +340,37 @@ export function BunkerSection() {
                   </div> <span>@</span>
                   <div className="input-with-unit min-w-0 flex-1">
                     <input type="number" disabled={bobIgnored} className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
+                      title="Double-click to look up latest market prices"
+                      onDoubleClick={() => setPriceLookup({ fuel, scope: "bob", search: bobPortName, target: bobPortName ? `BOB (${bobPortName})` : "BOB" })}
                       value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
                     <span className="unit">$ / t</span>
                   </div>
                 </div>
               ))}
             </div>
+
+            {bunker.portBunkering.map((port) => (
+              <div key={port.id} className="grid grid-cols-1 sm:grid-cols-[minmax(72px,auto)_repeat(3,minmax(0,1fr))] items-center divide-y sm:divide-y-0 sm:divide-x divide-border border-t border-border">
+                <div className="px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap">{port.portName}</div>
+                {fuels.map(fuel => (
+                  <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-0.5">
+                    <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
+                    <div className="input-with-unit min-w-0 flex-1">
+                      <input type="number" className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
+                        value={port[fuel].quantity || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
+                      <span className="unit">t</span>
+                    </div> <span>@</span>
+                    <div className="input-with-unit min-w-0 flex-1">
+                      <input type="number" className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
+                        title="Double-click to look up latest market prices"
+                        onDoubleClick={() => setPriceLookup({ fuel, scope: String(port.id), search: port.portName, target: port.portName })}
+                        value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                      <span className="unit">$ / t</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
 
             {shortfalls.length > 0 && (
               <div className="px-2 py-1 text-[9px] text-destructive border-t border-border">
@@ -396,77 +413,6 @@ export function BunkerSection() {
             </div>
           )}
 
-          {/* Port Bunkering - tabular (only when bunkering ports exist in sequence) */}
-          {bunkeringPorts.length > 0 && (
-          <div className="border border-border rounded overflow-hidden">
-            <div className="subsection-header px-2 py-0.5 border-b border-border flex items-center justify-between">
-              <span className="text-[10px] font-medium">Port Fuel Prices</span>
-              {bunkeringPorts.length > 0 && (
-                <Select onValueChange={handleAddBunkeringPort}>
-                  <SelectTrigger className="w-28 h-6 text-[10px]"><SelectValue placeholder="Add port..." /></SelectTrigger>
-                  <SelectContent>
-                    {bunkeringPorts
-                      .filter(p => !bunker.portBunkering.find(pb => pb.portUnloc === p.portUnloc))
-                      .map(port => (
-                        <SelectItem key={port.id} value={port.portUnloc} className="text-xs">{port.port}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            {bunker.portBunkering.length === 0 ? (
-              <p className="text-[10px] text-muted-foreground text-center py-2">No bunkering ports in sequence.</p>
-            ) : (
-              <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-xs">
-                <thead>
-                  <tr className="subsection-header">
-                    <th className="text-left px-2 py-0.5 text-[10px] font-medium">Port</th>
-                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">HSFO</th>
-                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">VLSFO</th>
-                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">LSMGO</th>
-                    <th className="w-6"></th>
-                  </tr>
-                  <tr className="subsection-header border-t border-border">
-                    <th></th>
-                    {fuels.map(fuel => (
-                      <React.Fragment key={fuel}>
-                         <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$ / t</th>
-                        <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">t</th>
-                      </React.Fragment>
-                    ))}
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bunker.portBunkering.map((port) => (
-                    <tr key={port.id} className="border-t border-border">
-                      <td className="px-2 py-0.5 text-[10px] font-medium whitespace-nowrap">{port.portName}</td>
-                      {fuels.map(fuel => (
-                        <React.Fragment key={fuel}>
-                          <td className="px-0.5 py-0.5">
-                            <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
-                              value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
-                          </td>
-                          <td className="px-0.5 py-0.5">
-                            <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
-                              value={port[fuel].quantity || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
-                          </td>
-                        </React.Fragment>
-                      ))}
-                      <td className="px-0.5 py-0.5">
-                         <Button variant="ghost" size="sm" onClick={() => removePortBunkering(port.id)} className="min-h-9 min-w-9 p-0 text-muted-foreground hover:text-destructive" aria-label={`Remove ${port.portName} bunkering`}>
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            )}
-          </div>
-          )}
 
           {/* Summary - only when bunkering ports exist */}
           {bunkeringPorts.length > 0 && (
@@ -507,6 +453,24 @@ export function BunkerSection() {
               </tbody>
             </table>
           </details>
+          )}
+
+          {priceLookup && (
+            <BunkerPriceDialog
+              open={!!priceLookup}
+              onOpenChange={(o) => { if (!o) setPriceLookup(null); }}
+              fuel={priceLookup.fuel}
+              target={priceLookup.target}
+              initialSearch={priceLookup.search}
+              onSelect={(price) => {
+                if (priceLookup.scope === "bob") {
+                  updateBunker(priceLookup.fuel, "price", price);
+                } else {
+                  const row = bunker.portBunkering.find(p => String(p.id) === priceLookup.scope);
+                  if (row) updatePortBunkering(row.id, priceLookup.fuel, "price", price);
+                }
+              }}
+            />
           )}
         </div>
       )}

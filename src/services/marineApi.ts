@@ -745,6 +745,63 @@ const pickField = (row: Record<string, unknown>, keys: string[]): number | null 
   return null;
 };
 
+export interface LatestBunkerPriceRow {
+  portId: string;
+  portName: string;
+  countryName: string;
+  hsfo: number | null;
+  vlsfo: number | null;
+  lsmgo: number | null;
+}
+
+export interface LatestBunkerPriceResult {
+  rows: LatestBunkerPriceRow[];
+  page: number;
+  totalPages: number;
+  total: number;
+}
+
+/** Latest bunker price list (all ports, or filtered by port name). */
+export async function getLatestBunkerPrices(opts?: {
+  portName?: string;
+  page?: number;
+  limit?: number;
+}): Promise<LatestBunkerPriceResult> {
+  const params: Record<string, string | number> = {
+    fuel_grade_id: "mgo,hsfo,vlsfo",
+    page: opts?.page || 1,
+    limit: opts?.limit || 50,
+  };
+  const name = (opts?.portName || "").trim();
+  if (name) params.port_name = name;
+
+  const data = await apiRequest<{
+    pagination?: { page?: number; total?: number; total_pages?: number };
+    ports?: Array<{
+      port_id?: string;
+      port_name?: string;
+      country_name?: string;
+      fuel_prices?: Record<string, unknown>;
+    }>;
+  }>("/bunker_price/latest", params, { authenticated: true });
+
+  const rows = (data.ports || []).map((p) => ({
+    portId: String(p.port_id ?? p.port_name ?? ""),
+    portName: String(p.port_name ?? ""),
+    countryName: String(p.country_name ?? ""),
+    hsfo: numOrNull(p.fuel_prices?.hsfo),
+    vlsfo: numOrNull(p.fuel_prices?.vlsfo),
+    lsmgo: numOrNull(p.fuel_prices?.mgo ?? p.fuel_prices?.lsmgo),
+  }));
+
+  return {
+    rows,
+    page: data.pagination?.page || 1,
+    totalPages: data.pagination?.total_pages || 1,
+    total: data.pagination?.total || rows.length,
+  };
+}
+
 /** Latest bunker prices for a port (global endpoint, not mode-scoped). */
 export async function getBunkerPrices(portName: string): Promise<BunkerPriceQuote | null> {
   const name = (portName || "").trim();
