@@ -113,20 +113,29 @@ const Index = () => {
     isHydratingRef.current = true;
 
     if (activeTab.data && Object.keys(activeTab.data).length > 0) {
-      // Existing sheet with data — hydrate
+      // Existing sheet with data — clear any leftover state from the previously
+      // opened sheet first, then hydrate only this sheet's saved values.
       const d = activeTab.data as Record<string, any>;
       suppressDistanceRecalc();
+      resetState();
       if (d.vessel) voyage.setVessel(d.vessel);
       if (d.sequence) voyage.setSequence(d.sequence);
       if (d.cargos) voyage.setCargos(d.cargos);
       if (d.bunker) voyage.setBunker(d.bunker);
-      if (d.misc) voyage.setMisc(d.misc);
-      if (d.hireRate !== undefined) voyage.setHireRate(d.hireRate);
-      if (d.vesselCost !== undefined) voyage.setVesselCost(d.vesselCost);
-      if (d.netBB !== undefined) voyage.setNetBB(d.netBB);
-      if (d.applyEuaImpact !== undefined) voyage.setApplyEuaImpact(d.applyEuaImpact);
-      if (d.applyFuelEuImpact !== undefined) voyage.setApplyFuelEuImpact(d.applyFuelEuImpact);
-      if (d.applyUkEtsImpact !== undefined) voyage.setApplyUkEtsImpact(d.applyUkEtsImpact);
+      if (d.misc) {
+        const m = d.misc as Record<string, any>;
+        voyage.setMisc((prev) => ({
+          ...prev,
+          ...m,
+          extraTime: { ...prev.extraTime, ...(m.extraTime ?? {}) },
+        }));
+      }
+      voyage.setHireRate(d.hireRate ?? 0);
+      voyage.setVesselCost(d.vesselCost ?? 0);
+      voyage.setNetBB(d.netBB ?? 0);
+      voyage.setApplyEuaImpact(d.applyEuaImpact === true);
+      voyage.setApplyFuelEuImpact(d.applyFuelEuImpact === true);
+      voyage.setApplyUkEtsImpact(d.applyUkEtsImpact === true);
       if (d.departureUtc !== undefined) voyage.setDepartureUtc(d.departureUtc as string);
       voyage.setAutoDistanceEnabled(d.autoDistanceEnabled === true);
       voyage.setNotes(typeof d.notes === "string" ? d.notes : "");
