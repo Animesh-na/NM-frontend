@@ -547,7 +547,6 @@ export function VoyageSummary() {
                   hsfo: bunker.hsfo,
                   vlsfo: bunker.vlsfo,
                   lsmgo: bunker.lsmgo,
-                  co2Price: bunker.co2Price,
                   rewardFactor: bunker.rewardFactor,
                   euEtsPrice: bunker.euEtsPrice,
                   ukEtsPrice: bunker.ukEtsPrice,

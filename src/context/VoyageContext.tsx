@@ -351,7 +351,6 @@ export interface MiscState {
   extraFees: number;
   extraInsurance: number;
   canalCost1: number;
-  tradeType: string;
   /** Fuel burned by the main engine during canal transit. */
   canalFuel?: "hsfo" | "vlsfo" | "lsmgo";
   
@@ -366,8 +365,7 @@ interface BunkerState {
   lsmgo: { price: number; robStart: number };
   
   // CO2 price for emission compliance
-  co2Price: number;
-  // Separate carbon prices per scheme (fallback to co2Price when 0/undefined)
+  // Separate carbon prices per scheme
   euEtsPrice: number;
   ukEtsPrice: number;
   
@@ -813,7 +811,6 @@ const initialBunker: BunkerState = {
   hsfo: { price: 0, robStart: 0 },
   vlsfo: { price: 450, robStart: 0 },
   lsmgo: { price: 750, robStart: 0 },
-  co2Price: 0,
   euEtsPrice: 0,
   ukEtsPrice: 0,
   fuelMode: "average",
@@ -830,7 +827,6 @@ const initialMisc: MiscState = {
   extraFees: 0,
   extraInsurance: 0,
   canalCost1: 0,
-  tradeType: "",
   canalFuel: "vlsfo",
   extraTime: {
     canal1: { mode: "VL", value: 0, unit: "days" },
@@ -1399,8 +1395,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       hsfo: { price: 0, robStart: 0 },
       vlsfo: { price: 0, robStart: 0 },
       lsmgo: { price: 0, robStart: 0 },
-      co2Price: 0,
-      euEtsPrice: 0,
+          euEtsPrice: 0,
       ukEtsPrice: 0,
       fuelMode: "average",
       ignoreBOB: false,
@@ -1415,8 +1410,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       extraFees: 0,
       extraInsurance: 0,
       canalCost1: 0,
-      tradeType: "",
-      canalFuel: "vlsfo",
+          canalFuel: "vlsfo",
       extraTime: {
         canal1: { mode: "VL", value: 0, unit: "days" },
       },
@@ -1892,7 +1886,6 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       hsfo: { price: bunker.hsfo.price, robStart: bunker.hsfo.robStart },
       vlsfo: { price: bunker.vlsfo.price, robStart: bunker.vlsfo.robStart },
       lsmgo: { price: bunker.lsmgo.price, robStart: bunker.lsmgo.robStart },
-      co2Price: bunker.co2Price,
       euEtsPrice: bunker.euEtsPrice,
       ukEtsPrice: bunker.ukEtsPrice,
       rewardFactor: bunker.rewardFactor,
@@ -2116,8 +2109,7 @@ export function useVoyageContext() {
         hsfo: { price: 0, robStart: 0 }, 
         vlsfo: { price: 0, robStart: 0 }, 
         lsmgo: { price: 0, robStart: 0 }, 
-        co2Price: 0,
-        euEtsPrice: 0,
+              euEtsPrice: 0,
         ukEtsPrice: 0,
         fuelMode: "average" as const,
         ignoreBOB: false,
@@ -2138,8 +2130,7 @@ export function useVoyageContext() {
         extraFees: 0,
         extraInsurance: 0,
         canalCost1: 0,
-        tradeType: "",
-        extraTime: {
+              extraTime: {
           canal1: { mode: "VL", value: 0, unit: "days" as const },
         },
       },
