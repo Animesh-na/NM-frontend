@@ -1153,7 +1153,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
        // Skip if this leg hasn't changed since last calculation (unless forced)
        const previousLegKey = lastComputedLegsRef.current.get(currRow.id);
-       if (!force && previousLegKey === legKey) {
+       const hasExistingDistance = (currRow.distance || 0) > 0 || (currRow.ecaDistance || 0) > 0;
+       if (!force && previousLegKey === legKey && hasExistingDistance) {
          // Keep existing distance — don't add to distanceResults so it stays unchanged
         console.log(`[Distance] Leg ${i} (${prevRow.port} → ${currRow.port}): CACHED, skipping API call`);
         continue;
