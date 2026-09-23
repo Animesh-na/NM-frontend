@@ -363,7 +363,7 @@ export function BunkerSection() {
                     <div className="input-with-unit min-w-0 flex-1">
                       <input type="number" className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
                         title="Double-click to look up latest market prices"
-                        onDoubleClick={() => setPriceLookup({ fuel, scope: port.id, search: port.portName, target: port.portName })}
+                        onDoubleClick={() => setPriceLookup({ fuel, scope: String(port.id), search: port.portName, target: port.portName })}
                         value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
                       <span className="unit">$ / t</span>
                     </div>
@@ -453,6 +453,24 @@ export function BunkerSection() {
               </tbody>
             </table>
           </details>
+          )}
+
+          {priceLookup && (
+            <BunkerPriceDialog
+              open={!!priceLookup}
+              onOpenChange={(o) => { if (!o) setPriceLookup(null); }}
+              fuel={priceLookup.fuel}
+              target={priceLookup.target}
+              initialSearch={priceLookup.search}
+              onSelect={(price) => {
+                if (priceLookup.scope === "bob") {
+                  updateBunker(priceLookup.fuel, "price", price);
+                } else {
+                  const row = bunker.portBunkering.find(p => String(p.id) === priceLookup.scope);
+                  if (row) updatePortBunkering(row.id, priceLookup.fuel, "price", price);
+                }
+              }}
+            />
           )}
         </div>
       )}
