@@ -51,7 +51,7 @@ describe("Sea Days Calculation", () => {
     expect(r.totalEcaDistance).toBe(300);
   });
 
-  it("Weather delay (extra at-sea days) is added to totalSeaDays", () => {
+  it("extra at-sea days are no longer applied to totalSeaDays", () => {
     const sequence = [
       customLeg({ id: 1, operation: "load", seaTime: 3, ecaTime: 0, nonEcaTime: 3, quantity: 30000 }),
       customLeg({ id: 2, operation: "disch", port: "Rotterdam", portUnloc: "NLRTM", seaTime: 7, ecaTime: 0, nonEcaTime: 7, quantity: 30000, expDa: 25000 }),
@@ -61,7 +61,7 @@ describe("Sea Days Calculation", () => {
       useVoyageCalculation(createVoyageTestInputs({ sequence, extraTime: customExtraTime({ canal1Days: 0 }) })),
     ).result.current;
 
-    expect(withWeather.extraSeaDays).toBeCloseTo(1.5, 4);
-    expect(withWeather.totalSeaDays - noWeather.totalSeaDays).toBeCloseTo(1.5, 4);
+    expect(withWeather.extraSeaDays).toBeCloseTo(0, 4);
+    expect(withWeather.totalSeaDays - noWeather.totalSeaDays).toBeCloseTo(0, 4);
   });
 });
