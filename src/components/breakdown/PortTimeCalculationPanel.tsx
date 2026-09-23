@@ -28,18 +28,9 @@ export function PortTimeCalculationPanel({ sequence, misc, results }: PortTimeCa
     .reduce((sum, r) => sum + r.calculatedPortDays, 0);
 
   // Extra time calculations
-  const canal1Days = misc.extraTime.canal1.unit === "days" 
-    ? misc.extraTime.canal1.value 
+  const canal1Days = misc.extraTime.canal1.unit === "days"
+    ? misc.extraTime.canal1.value
     : misc.extraTime.canal1.value / 24;
-  const canal2Days = misc.extraTime.canal2.unit === "days" 
-    ? misc.extraTime.canal2.value 
-    : misc.extraTime.canal2.value / 24;
-  const idlePortDays = misc.extraTime.idlePort.unit === "days" 
-    ? misc.extraTime.idlePort.value 
-    : misc.extraTime.idlePort.value / 24;
-  const atSeaDays = misc.extraTime.atSea.unit === "days" 
-    ? misc.extraTime.atSea.value 
-    : misc.extraTime.atSea.value / 24;
 
   return (
     <BreakdownCard 

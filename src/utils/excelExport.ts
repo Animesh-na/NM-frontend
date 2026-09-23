@@ -652,7 +652,6 @@ export function exportVoyageToExcel(data: ExportData) {
   setText(0, r, "Extra Fees ($)", S.inputLabel); setNum(1, r, misc.extraFees); const R_XFEE = r; r++;
   setText(0, r, "Extra Insurance ($)", S.inputLabel); setNum(1, r, misc.extraInsurance); const R_XINS = r; r++;
   setText(0, r, "Canal Cost 1 ($)", S.inputLabel); setNum(1, r, misc.canalCost1); const R_CC1 = r; r++;
-  setText(0, r, "Canal Cost 2 ($)", S.inputLabel); setNum(1, r, misc.canalCost2); const R_CC2 = r; r++;
   r++;
 
   // --- EXTRA TIME ---
@@ -1320,7 +1319,7 @@ export function exportVoyageToExcel(data: ExportData) {
   const R_MISCT = r; r++;
 
   setCalcLabel(r, "Canal Costs ($)");
-  setCalcFormula(r, `${B(R_CC1)}+${B(R_CC2)}`, results.canalCosts);
+  setCalcFormula(r, `${B(R_CC1)}`, results.canalCosts);
   const R_CANALT = r; r++;
 
   // --- Regulatory costs (only added when the corresponding toggle is on) ---
