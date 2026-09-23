@@ -228,23 +228,33 @@ export function VoyageSummary() {
                       </span>
                     </div>
                   )}
-                  {laytimeMode === "non_reversible" && affectedRows.map((r) => (
-                    <div key={r.rowId} className="flex justify-between ml-4">
-                      <span className="text-muted-foreground">
-                        {r.port}
-                        {r.operation ? ` (${r.operation})` : ""}
-                      </span>
-                      <span className="font-mono tabular-nums">
-                        <span className={r.diffDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(r.diffDays)} d</span>
-                        {r.diffDays > 0.005 && r.despatchRate > 0 && (
-                          <span className="text-destructive"> / Despatch : $ {formatCurrency(r.diffDays * r.despatchRate)}</span>
-                        )}
-                        {r.diffDays < -0.005 && r.demurrageRate > 0 && (
-                          <span className="text-success"> / Demurrage : $ {formatCurrency(Math.abs(r.diffDays) * r.demurrageRate)}</span>
-                        )}
-                      </span>
-                    </div>
-                  ))}
+                  {laytimeMode === "non_reversible" && (() => {
+                    const counters = { loading: 0, discharging: 0, other: 0 };
+                    return affectedRows.map((r) => {
+                      const key = r.operation === "loading" ? "loading" : r.operation === "discharging" ? "discharging" : "other";
+                      counters[key] += 1;
+                      const label =
+                        key === "loading"
+                          ? `Loading port ${counters.loading}`
+                          : key === "discharging"
+                            ? `Discharging port ${counters.discharging}`
+                            : `Port ${counters.other}`;
+                      return (
+                        <div key={r.rowId} className="flex justify-between ml-4">
+                          <span className="text-muted-foreground flex items-center font-semibold">{label}</span>
+                          <span className="font-mono tabular-nums font-bold">
+                            <span className={r.diffDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(r.diffDays)} d</span>
+                            {r.diffDays > 0.005 && r.despatchRate > 0 && (
+                              <span className="text-destructive"> / Despatch : $ {formatCurrency(r.diffDays * r.despatchRate)}</span>
+                            )}
+                            {r.diffDays < -0.005 && r.demurrageRate > 0 && (
+                              <span className="text-success"> / Demurrage : $ {formatCurrency(Math.abs(r.diffDays) * r.demurrageRate)}</span>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
                 );
               })
