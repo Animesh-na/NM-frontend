@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import { ChevronDown, Fuel, X, RefreshCw } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useVoyageContext, type FuelAccountingMode } from "@/context/VoyageContext";
 import { getBunkerPrices } from "@/services/marineApi";
+import { BunkerPriceDialog } from "./BunkerPriceDialog";
 import { toast } from "@/hooks/use-toast";
 import { InfoTooltip } from "./InfoTooltip";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
@@ -242,11 +242,6 @@ export function BunkerSection() {
     };
   };
 
-  const handleAddBunkeringPort = (portUnloc: string) => {
-    const port = bunkeringPorts.find(p => p.portUnloc === portUnloc);
-    if (port) addPortBunkering(port.portUnloc, port.port);
-  };
-
   const fuels = ["hsfo", "vlsfo", "lsmgo"] as const;
 
   return (
@@ -407,77 +402,6 @@ export function BunkerSection() {
             </div>
           )}
 
-          {/* Port Bunkering - tabular (only when bunkering ports exist in sequence) */}
-          {bunkeringPorts.length > 0 && (
-          <div className="border border-border rounded overflow-hidden">
-            <div className="subsection-header px-2 py-0.5 border-b border-border flex items-center justify-between">
-              <span className="text-[10px] font-medium">Port Fuel Prices</span>
-              {bunkeringPorts.length > 0 && (
-                <Select onValueChange={handleAddBunkeringPort}>
-                  <SelectTrigger className="w-28 h-6 text-[10px]"><SelectValue placeholder="Add port..." /></SelectTrigger>
-                  <SelectContent>
-                    {bunkeringPorts
-                      .filter(p => !bunker.portBunkering.find(pb => pb.portUnloc === p.portUnloc))
-                      .map(port => (
-                        <SelectItem key={port.id} value={port.portUnloc} className="text-xs">{port.port}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            {bunker.portBunkering.length === 0 ? (
-              <p className="text-[10px] text-muted-foreground text-center py-2">No bunkering ports in sequence.</p>
-            ) : (
-              <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-xs">
-                <thead>
-                  <tr className="subsection-header">
-                    <th className="text-left px-2 py-0.5 text-[10px] font-medium">Port</th>
-                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">HSFO</th>
-                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">VLSFO</th>
-                    <th colSpan={2} className="text-center px-1 py-0.5 text-[10px] font-medium">LSMGO</th>
-                    <th className="w-6"></th>
-                  </tr>
-                  <tr className="subsection-header border-t border-border">
-                    <th></th>
-                    {fuels.map(fuel => (
-                      <React.Fragment key={fuel}>
-                         <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">$ / t</th>
-                        <th className="text-right px-1 py-0.5 text-[9px] text-muted-foreground font-normal">t</th>
-                      </React.Fragment>
-                    ))}
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bunker.portBunkering.map((port) => (
-                    <tr key={port.id} className="border-t border-border">
-                      <td className="px-2 py-0.5 text-[10px] font-medium whitespace-nowrap">{port.portName}</td>
-                      {fuels.map(fuel => (
-                        <React.Fragment key={fuel}>
-                          <td className="px-0.5 py-0.5">
-                            <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
-                              value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
-                          </td>
-                          <td className="px-0.5 py-0.5">
-                            <input type="number" className="form-input-sm w-full font-mono text-right text-xs"
-                              value={port[fuel].quantity || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
-                          </td>
-                        </React.Fragment>
-                      ))}
-                      <td className="px-0.5 py-0.5">
-                         <Button variant="ghost" size="sm" onClick={() => removePortBunkering(port.id)} className="min-h-9 min-w-9 p-0 text-muted-foreground hover:text-destructive" aria-label={`Remove ${port.portName} bunkering`}>
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            )}
-          </div>
-          )}
 
           {/* Summary - only when bunkering ports exist */}
           {bunkeringPorts.length > 0 && (
