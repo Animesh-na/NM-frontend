@@ -25,16 +25,23 @@ export function BunkerPriceDialog({
   const [rows, setRows] = useState<LatestBunkerPriceRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const load = useCallback(async (term: string) => {
+  const load = useCallback(async (term: string, pageNo: number) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getLatestBunkerPrices({ portName: term, page: 1, limit: 50 });
+      const res = await getLatestBunkerPrices({ portName: term, page: pageNo, limit: 50 });
       setRows(res.rows);
+      setTotalPages(res.totalPages || 1);
+      setTotal(res.total || res.rows.length);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load bunker prices");
       setRows([]);
+      setTotalPages(1);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -43,16 +50,26 @@ export function BunkerPriceDialog({
   useEffect(() => {
     if (!open) return;
     setSearch(initialSearch || "");
-    load(initialSearch || "");
+    setPage(1);
+    load(initialSearch || "", 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const t = setTimeout(() => load(search), 350);
+    const t = setTimeout(() => {
+      setPage(1);
+      load(search, 1);
+    }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
+
+  const goToPage = (p: number) => {
+    if (p < 1 || p > totalPages || loading) return;
+    setPage(p);
+    load(search, p);
+  };
 
   const label = fuel.toUpperCase();
 
