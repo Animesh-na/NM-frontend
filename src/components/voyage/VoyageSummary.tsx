@@ -374,7 +374,7 @@ export function VoyageSummary() {
           {/* CO2 totals */}
           <div className="mt-1 space-y-0.5 text-[10px]">
             <div className="flex items-center gap-1 border-b border-border pb-0.5">
-              <span className="font-medium">EU ETS (CO2 COST)</span>
+              <span className="font-medium">EU ETS</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="font-semibold text-primary flex items-center gap-1">
@@ -397,9 +397,15 @@ export function VoyageSummary() {
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-primary">EUA CO₂ cost</span>
+              <span className="font-semibold text-primary">Total EUA CO2 Cost</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {formatCurrency(results.euaCo2Cost)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-primary">CO2 Cost per tonne</span>
+              <span className="font-mono tabular-nums text-success font-semibold">
+                $ {formatCurrency(results.chargeableCo2 > 0 ? results.euaCo2Cost / results.chargeableCo2 : 0)} /t
               </span>
             </div>
           </div>
@@ -431,18 +437,24 @@ export function VoyageSummary() {
           {/* UK ETS (independent section) */}
           <div className="mt-2 pt-2 border-t border-border space-y-0.5 text-[10px]">
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-primary font-medium">UK ETS (CO2 COST)</span>
+              <span className="text-primary font-medium">UK ETS</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-primary">UK Chargeable CO₂</span>
+              <span className="font-semibold text-primary">UK CO2</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 {results.ukChargeableCo2.toFixed(2)} t
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-primary">UK ETS cost</span>
+              <span className="font-semibold text-primary">Total UK ETS CO2 cost</span>
               <span className="font-mono tabular-nums text-success font-semibold">
                 $ {formatCurrency(results.ukEtsCost)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-primary">CO2 Cost per tonne</span>
+              <span className="font-mono tabular-nums text-success font-semibold">
+                $ {formatCurrency(results.ukChargeableCo2 > 0 ? results.ukEtsCost / results.ukChargeableCo2 : 0)} /t
               </span>
             </div>
             <div className="flex justify-between items-center pt-1">
