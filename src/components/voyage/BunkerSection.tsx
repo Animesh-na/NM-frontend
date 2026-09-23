@@ -318,26 +318,12 @@ export function BunkerSection() {
             </div>
           </div>
 
-          {/* BOB - single row layout */}
+          {/* BOB + bunkering port rows — one row per source */}
           <div className="border border-border rounded overflow-hidden">
-            <div className="subsection-header px-2 py-0.5 text-[10px] font-medium border-b border-border flex items-center justify-between">
-              <span>BOB{bobIgnored && <span className="ml-1 text-[9px] font-normal text-muted-foreground">(ignored — price &amp; tonnes excluded)</span>}</span>
-              <span className="flex items-center gap-2">
-                {bobPortName && <span className="text-[9px] font-normal text-muted-foreground">Prices: {bobPortName}</span>}
-                <Button
-                  type="button"
-                  variant="outline" size="sm"
-                  onClick={() => fetchPrices({ force: true })}
-                  disabled={fetching}
-                  className="h-5 px-1.5 text-[9px] gap-1"
-                  title="Fetch latest market bunker prices"
-                >
-                  <RefreshCw className={`h-3 w-3 ${fetching ? "animate-spin" : ""}`} />
-                  Refresh Prices
-                </Button>
-              </span>
-            </div>
-            <div className={`grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border ${bobIgnored ? "opacity-50" : ""}`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-[minmax(72px,auto)_repeat(3,minmax(0,1fr))] items-center divide-y sm:divide-y-0 sm:divide-x divide-border ${bobIgnored ? "opacity-50" : ""}`}>
+              <div className="px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap">
+                BOB{bobIgnored && <span className="ml-1 text-[9px] font-normal text-muted-foreground">(ignored)</span>}
+              </div>
               {fuels.map(fuel => (
                 <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-0.5">
                   <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
@@ -348,12 +334,37 @@ export function BunkerSection() {
                   </div> <span>@</span>
                   <div className="input-with-unit min-w-0 flex-1">
                     <input type="number" disabled={bobIgnored} className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
+                      title="Double-click to look up latest market prices"
+                      onDoubleClick={() => setPriceLookup({ fuel, scope: "bob", search: bobPortName, target: bobPortName ? `BOB (${bobPortName})` : "BOB" })}
                       value={bunker[fuel].price || ""} onChange={(e) => updateBunker(fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
                     <span className="unit">$ / t</span>
                   </div>
                 </div>
               ))}
             </div>
+
+            {bunker.portBunkering.map((port) => (
+              <div key={port.id} className="grid grid-cols-1 sm:grid-cols-[minmax(72px,auto)_repeat(3,minmax(0,1fr))] items-center divide-y sm:divide-y-0 sm:divide-x divide-border border-t border-border">
+                <div className="px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap">{port.portName}</div>
+                {fuels.map(fuel => (
+                  <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-0.5">
+                    <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
+                    <div className="input-with-unit min-w-0 flex-1">
+                      <input type="number" className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
+                        value={port[fuel].quantity || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "quantity", parseFloat(e.target.value) || 0)} placeholder="0" />
+                      <span className="unit">t</span>
+                    </div> <span>@</span>
+                    <div className="input-with-unit min-w-0 flex-1">
+                      <input type="number" className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
+                        title="Double-click to look up latest market prices"
+                        onDoubleClick={() => setPriceLookup({ fuel, scope: port.id, search: port.portName, target: port.portName })}
+                        value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
+                      <span className="unit">$ / t</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
 
             {shortfalls.length > 0 && (
               <div className="px-2 py-1 text-[9px] text-destructive border-t border-border">
