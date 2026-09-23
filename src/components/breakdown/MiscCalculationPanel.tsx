@@ -18,7 +18,6 @@ export function MiscCalculationPanel({ misc, results }: MiscCalculationPanelProp
     <BreakdownCard 
       title="Miscellaneous Costs" 
       icon={<DollarSign className="h-5 w-5" />}
-      badge={misc.tradeType || undefined}
     >
       <div className="grid grid-cols-2 gap-6">
         {/* Cost Inputs */}

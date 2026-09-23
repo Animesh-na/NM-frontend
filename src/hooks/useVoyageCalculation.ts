@@ -87,7 +87,8 @@ export interface BunkerData {
   hsfo: { price: number; robStart: number };
   vlsfo: { price: number; robStart: number };
   lsmgo: { price: number; robStart: number };
-  co2Price: number;
+  /** @deprecated legacy single carbon price — no longer used. */
+  co2Price?: number;
   rewardFactor?: number; // Multiplier for wind-assisted propulsion (default 1.0)
   euEtsPrice?: number;
   ukEtsPrice?: number;
@@ -382,7 +383,7 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     vlog(`[Input] Vessel: ${vessel.name}, DWT: ${vessel.dwt}, Speed Profile: ${vessel.speedProfile}`);
     vlog(`[Input] Hire Rate: $${hireRate}/day`);
     vlog(`[Input] Cargo: rate=${cargo.rate} ${cargo.rateType}, qty=${cargo.quantity}, voyComm=${cargo.voyageCommission}%, tcComm=${cargo.tcCommission}%`);
-    vlog(`[Input] Bunker Prices: HSFO=$${bunker.hsfo.price}, VLSFO=$${bunker.vlsfo.price}, LSMGO=$${bunker.lsmgo.price}, CO2=$${bunker.co2Price}`);
+    vlog(`[Input] Bunker Prices: HSFO=$${bunker.hsfo.price}, VLSFO=$${bunker.vlsfo.price}, LSMGO=$${bunker.lsmgo.price}, EU ETS=$${bunker.euEtsPrice || 0}`);
     vlog(`[Input] Reward Factor: ${bunker?.rewardFactor ?? 1.0}`);
 
     sequence.forEach((leg) => {
@@ -1526,7 +1527,7 @@ ${perCargoFreight
     ETS Cost = ${totalChargeableCo2.toFixed(2)} × $${euEtsPriceEff} = $${etsCost.toFixed(2)}`);
     
     // Total CO2 cost (all CO2 × price)
-    const totalCo2Cost = totalCo2 * (bunker.co2Price || 0);
+    const totalCo2Cost = totalCo2 * (bunker.euEtsPrice || 0);
     
     // EUA CO2 cost = chargeable CO2 × price
     const euaCo2Cost = etsCost;
@@ -1583,7 +1584,7 @@ ${perCargoFreight
       vessel.dwt,
       totalDistance + totalEcaDistance,
       cargo.quantity,
-      Math.max(bunker.euEtsPrice || 0, bunker.ukEtsPrice || 0, bunker.co2Price || 0)
+      Math.max(bunker.euEtsPrice || 0, bunker.ukEtsPrice || 0)
     );
 
     // ============================================

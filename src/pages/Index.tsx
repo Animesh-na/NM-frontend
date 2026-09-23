@@ -132,7 +132,6 @@ const Index = () => {
           extraFees: Number(m.extraFees) || 0,
           extraInsurance: Number(m.extraInsurance) || 0,
           canalCost1: Number(m.canalCost1) || 0,
-          tradeType: typeof m.tradeType === "string" ? m.tradeType : "",
           canalFuel: m.canalFuel ?? prev.canalFuel,
           extraTime: {
             canal1: { ...prev.extraTime.canal1, ...(m.extraTime?.canal1 ?? {}) },

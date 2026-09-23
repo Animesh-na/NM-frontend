@@ -13,7 +13,6 @@ interface BunkerState {
   hsfo: { price: number; robStart: number };
   vlsfo: { price: number; robStart: number };
   lsmgo: { price: number; robStart: number };
-  co2Price: number;
   fuelMode: "average" | "fifo";
   ignoreBOB: boolean;
   rewardFactor: number;

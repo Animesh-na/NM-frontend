@@ -28,7 +28,6 @@ interface ExportData {
     hsfo: { price: number; robStart: number };
     vlsfo: { price: number; robStart: number };
     lsmgo: { price: number; robStart: number };
-    co2Price: number;
     rewardFactor: number;
     euEtsPrice?: number;
     ukEtsPrice?: number;
@@ -634,7 +633,6 @@ export function exportVoyageToExcel(data: ExportData) {
   const R_LPE = r; r++;
   r++;
 
-  setText(0, r, "CO₂ Price ($/mt)", S.inputLabel); setNum(1, r, bunker.co2Price); const R_CO2P = r; r++;
   setText(0, r, "EU ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.euEtsPrice || 0); const R_EUP = r; r++;
   setText(0, r, "UK ETS Price ($/mt)", S.inputLabel); setNum(1, r, bunker.ukEtsPrice || 0); const R_UKP = r; r++;
   setText(0, r, "Wind Reward Factor (FuelEU only)", S.inputLabel); setNum(1, r, bunker.rewardFactor); const R_RF = r; r++;
@@ -1689,7 +1687,7 @@ export function exportVoyageToExcel(data: ExportData) {
 
   // Total CO₂ Cost
   setCalcLabel(r, "Total CO₂ Cost ($)", false, false, true);
-  setCalcFormula(r, `${B(R_TCO2)}*${B(R_CO2P)}`, results.totalCo2Cost, false, false, true);
+  setCalcFormula(r, `${B(R_TCO2)}*${B(R_EUP)}`, results.totalCo2Cost, false, false, true);
   r++;
 
   // ═══════════════════════════════════════════════════════

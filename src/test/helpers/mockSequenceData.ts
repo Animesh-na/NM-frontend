@@ -116,7 +116,6 @@ export const mockBunker: BunkerData = {
   hsfo: { price: 450, robStart: 500 },
   vlsfo: { price: 580, robStart: 300 },
   lsmgo: { price: 750, robStart: 150 },
-  co2Price: 70,
   rewardFactor: 1.0,
 };
 
