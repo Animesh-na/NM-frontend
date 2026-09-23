@@ -1800,7 +1800,8 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       // opOverrides and calculate from Sequence again.
       let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
       for (const c of cargos) {
-        const cargoDdActive = (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0;
+        const cargoDdActive = ((c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0)
+          && (c.laytimeMode ?? "average") !== "cancelled";
         if (!cargoDdActive) continue;
         const o = c.opOverrides?.[row.id];
         if (o && Object.keys(o).length > 0) { opOv = o; break; }

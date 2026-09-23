@@ -812,7 +812,8 @@ export function exportVoyageToExcel(data: ExportData) {
   function effectiveLeg(leg: SequenceRowUI) {
     let opOv: NonNullable<CargoEntry["opOverrides"]>[number] | undefined;
     for (const c of cargos) {
-      const ddActive = (c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0;
+      const ddActive = ((c.demurrageRate || 0) > 0 || (c.despatchRate || 0) > 0)
+        && (c.laytimeMode ?? "average") !== "cancelled";
       if (!ddActive) continue;
       const o = c.opOverrides?.[leg.id];
       if (o && Object.keys(o).length > 0) { opOv = o; break; }

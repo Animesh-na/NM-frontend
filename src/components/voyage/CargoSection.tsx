@@ -615,8 +615,11 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
       {cpRows.length > 0 && ((cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0) && (
         <div className="mt-1.5 rounded border border-sky-400 bg-sky-50 dark:bg-sky-950/30 p-1 space-y-1">
           {cpRows.map((r) => {
-            const ov = cargo.cpOverrides?.[r.id] || {};
-            const op = cargo.opOverrides?.[r.id] || {};
+            // When dem/desp is cancelled the panel shows the untouched CP
+            // baseline; stored overrides stay saved for when it's re-enabled.
+            const cancelled = laytimeMode === "cancelled";
+            const ov = cancelled ? {} : (cargo.cpOverrides?.[r.id] || {});
+            const op = cancelled ? {} : (cargo.opOverrides?.[r.id] || {});
             const opQty = op.quantity ?? r.quantity ?? 0;
             const opProd = op.productivity ?? r.productivity ?? 0;
             const opTerms = (op.terms ?? r.terms ?? "") as string;
