@@ -530,9 +530,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     totalBaseSeaTime=${totalBaseSeaTime.toFixed(4)}, totalSeaMarginTime=${totalSeaMarginTime.toFixed(4)}`);
 
     // 2. Calculate extra time (from misc section) - convert to days
-    const extraSeaDays = extraTime?.atSeaDays || 0;
-    const extraPortDays = extraTime?.idlePortDays || 0;
-    const extraCanalDays = (extraTime?.canal1Days || 0) + (extraTime?.canal2Days || 0);
+    // Legacy extra sea / idle-port entries were removed from the UI — always 0.
+    const extraSeaDays = 0;
+    const extraPortDays = 0;
+    const extraCanalDays = extraTime?.canal1Days || 0;
 
     // 3. Total sea days = sum of all leg sea times (already includes sea margin) + extra sea days
     const totalSeaDays = seaDaysBallast + seaDaysLaden + extraSeaDays;
@@ -813,7 +814,7 @@ ${perCargoFreight
 
     // 7. Calculate misc costs
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
-    const canalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
+    const canalCosts = misc?.canalCost1 || 0;
 
     vlog(`\n[Step 7] MISC COSTS:
     Misc: miscCost=$${misc?.miscCost || 0} + extraFees=$${misc?.extraFees || 0} + extraInsurance=$${misc?.extraInsurance || 0} = $${miscCosts}
