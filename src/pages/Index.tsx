@@ -123,11 +123,20 @@ const Index = () => {
       if (d.cargos) voyage.setCargos(d.cargos);
       if (d.bunker) voyage.setBunker(d.bunker);
       if (d.misc) {
+        // Only hydrate fields that still exist — legacy entries (canal 2, idle
+        // port, extra sailing time) in older saved sheets are ignored.
         const m = d.misc as Record<string, any>;
         voyage.setMisc((prev) => ({
           ...prev,
-          ...m,
-          extraTime: { ...prev.extraTime, ...(m.extraTime ?? {}) },
+          miscCost: Number(m.miscCost) || 0,
+          extraFees: Number(m.extraFees) || 0,
+          extraInsurance: Number(m.extraInsurance) || 0,
+          canalCost1: Number(m.canalCost1) || 0,
+          tradeType: typeof m.tradeType === "string" ? m.tradeType : "",
+          canalFuel: m.canalFuel ?? prev.canalFuel,
+          extraTime: {
+            canal1: { ...prev.extraTime.canal1, ...(m.extraTime?.canal1 ?? {}) },
+          },
         }));
       }
       voyage.setHireRate(d.hireRate ?? 0);

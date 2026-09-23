@@ -28,18 +28,9 @@ export function PortTimeCalculationPanel({ sequence, misc, results }: PortTimeCa
     .reduce((sum, r) => sum + r.calculatedPortDays, 0);
 
   // Extra time calculations
-  const canal1Days = misc.extraTime.canal1.unit === "days" 
-    ? misc.extraTime.canal1.value 
+  const canal1Days = misc.extraTime.canal1.unit === "days"
+    ? misc.extraTime.canal1.value
     : misc.extraTime.canal1.value / 24;
-  const canal2Days = misc.extraTime.canal2.unit === "days" 
-    ? misc.extraTime.canal2.value 
-    : misc.extraTime.canal2.value / 24;
-  const idlePortDays = misc.extraTime.idlePort.unit === "days" 
-    ? misc.extraTime.idlePort.value 
-    : misc.extraTime.idlePort.value / 24;
-  const atSeaDays = misc.extraTime.atSea.unit === "days" 
-    ? misc.extraTime.atSea.value 
-    : misc.extraTime.atSea.value / 24;
 
   return (
     <BreakdownCard 
@@ -77,22 +68,8 @@ export function PortTimeCalculationPanel({ sequence, misc, results }: PortTimeCa
           <h3 className="text-sm font-medium border-b border-border pb-2">Extra Time Adjustments</h3>
           
           <div className="space-y-2">
-            <ValueRow label="Canal 1 Time" value={`${canal1Days.toFixed(2)} d`} source="Misc" />
-            <ValueRow label="Canal 2 Time" value={`${canal2Days.toFixed(2)} d`} source="Misc" />
-            <ValueRow label="Idle Port Time" value={`${idlePortDays.toFixed(2)} d`} source="Misc" />
-            <ValueRow label="Extra Sailing Time" value={`${atSeaDays.toFixed(2)} d`} source="Misc" />
-            <ValueRow label="Total Extra Time" value={`${(results.extraCanalDays + results.extraPortDays + results.extraSeaDays).toFixed(2)} d`} isTotal />
-          </div>
-
-          <div className="bg-muted/30 rounded-lg p-3 space-y-2 text-xs">
-            <div className="font-medium">Speed Context for Extra Sailing</div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Mode</span>
-              <span className="font-mono">{misc.extraTime.atSea.mode}</span>
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              EV = Eco Voyage (Outside ECA), FV = Full Voyage
-            </div>
+            <ValueRow label="Canal Time" value={`${canal1Days.toFixed(2)} d`} source="Misc" />
+            <ValueRow label="Total Extra Time" value={`${results.extraCanalDays.toFixed(2)} d`} isTotal />
           </div>
         </div>
       </div>

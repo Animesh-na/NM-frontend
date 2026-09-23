@@ -125,13 +125,8 @@ export const mockMiscCosts: MiscCostsData = {
   extraFees: 2000,
   extraInsurance: 3000,
   canalCost1: 50000,
-  canalCost2: 0,
 };
 
 export const mockExtraTime: ExtraTimeData = {
   canal1Days: 1,
-  canal2Days: 0,
-  idlePortDays: 0.5,
-  atSeaDays: 0,
-  atSeaSpeedContext: "EV",
 };

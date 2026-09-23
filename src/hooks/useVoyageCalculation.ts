@@ -105,11 +105,12 @@ export interface BunkerData {
 
 // Extra time data for calculation
 export interface ExtraTimeData {
-  canal1Days: number; // Extra canal 1 time in days
-  canal2Days: number; // Extra canal 2 time in days
-  idlePortDays: number; // Extra idle port time in days
-  atSeaDays: number; // Extra at sea time in days
-  atSeaSpeedContext: string; // EV or FV for fuel consumption
+  canal1Days: number; // Canal transit time in days
+  /** @deprecated legacy fields kept optional for older saved sheets — always ignored. */
+  canal2Days?: number;
+  idlePortDays?: number;
+  atSeaDays?: number;
+  atSeaSpeedContext?: string;
   canalFuel?: "hsfo" | "vlsfo" | "lsmgo"; // ME fuel burned during canal transit
 }
 
@@ -119,7 +120,8 @@ export interface MiscCostsData {
   extraFees: number;
   extraInsurance: number;
   canalCost1: number;
-  canalCost2: number;
+  /** @deprecated no longer used — kept optional for older saved sheets. */
+  canalCost2?: number;
 }
 
 export interface VoyageInputs {
@@ -528,9 +530,10 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     totalBaseSeaTime=${totalBaseSeaTime.toFixed(4)}, totalSeaMarginTime=${totalSeaMarginTime.toFixed(4)}`);
 
     // 2. Calculate extra time (from misc section) - convert to days
-    const extraSeaDays = extraTime?.atSeaDays || 0;
-    const extraPortDays = extraTime?.idlePortDays || 0;
-    const extraCanalDays = (extraTime?.canal1Days || 0) + (extraTime?.canal2Days || 0);
+    // Legacy extra sea / idle-port entries were removed from the UI — always 0.
+    const extraSeaDays = 0;
+    const extraPortDays = 0;
+    const extraCanalDays = extraTime?.canal1Days || 0;
 
     // 3. Total sea days = sum of all leg sea times (already includes sea margin) + extra sea days
     const totalSeaDays = seaDaysBallast + seaDaysLaden + extraSeaDays;
@@ -811,7 +814,7 @@ ${perCargoFreight
 
     // 7. Calculate misc costs
     const miscCosts = (misc?.miscCost || 0) + (misc?.extraFees || 0) + (misc?.extraInsurance || 0);
-    const canalCosts = (misc?.canalCost1 || 0) + (misc?.canalCost2 || 0);
+    const canalCosts = misc?.canalCost1 || 0;
 
     vlog(`\n[Step 7] MISC COSTS:
     Misc: miscCost=$${misc?.miscCost || 0} + extraFees=$${misc?.extraFees || 0} + extraInsurance=$${misc?.extraInsurance || 0} = $${miscCosts}

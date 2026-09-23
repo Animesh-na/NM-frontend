@@ -342,9 +342,6 @@ export interface ExtraTimeEntry {
 // Extra time state
 export interface ExtraTimeState {
   canal1: ExtraTimeEntry;
-  canal2: ExtraTimeEntry;
-  idlePort: ExtraTimeEntry;
-  atSea: ExtraTimeEntry;
 }
 
 // Miscellaneous state
@@ -354,7 +351,6 @@ export interface MiscState {
   extraFees: number;
   extraInsurance: number;
   canalCost1: number;
-  canalCost2: number;
   tradeType: string;
   /** Fuel burned by the main engine during canal transit. */
   canalFuel?: "hsfo" | "vlsfo" | "lsmgo";
@@ -834,14 +830,10 @@ const initialMisc: MiscState = {
   extraFees: 0,
   extraInsurance: 0,
   canalCost1: 0,
-  canalCost2: 0,
   tradeType: "",
   canalFuel: "vlsfo",
   extraTime: {
     canal1: { mode: "VL", value: 0, unit: "days" },
-    canal2: { mode: "VL", value: 0, unit: "days" },
-    idlePort: { mode: "VL", value: 0, unit: "hours" },
-    atSea: { mode: "EV", value: 0, unit: "hours" },
   },
 };
 
@@ -1423,14 +1415,10 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       extraFees: 0,
       extraInsurance: 0,
       canalCost1: 0,
-      canalCost2: 0,
       tradeType: "",
       canalFuel: "vlsfo",
       extraTime: {
         canal1: { mode: "VL", value: 0, unit: "days" },
-        canal2: { mode: "VL", value: 0, unit: "days" },
-        idlePort: { mode: "VL", value: 0, unit: "hours" },
-        atSea: { mode: "EV", value: 0, unit: "hours" },
       },
     });
     setHireRate(0);
@@ -1923,22 +1911,11 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       extraFees: misc.extraFees,
       extraInsurance: misc.extraInsurance,
       canalCost1: misc.canalCost1,
-      canalCost2: misc.canalCost2,
     },
     extraTime: {
-      canal1Days: misc.extraTime.canal1.unit === "days" 
-        ? misc.extraTime.canal1.value 
+      canal1Days: misc.extraTime.canal1.unit === "days"
+        ? misc.extraTime.canal1.value
         : misc.extraTime.canal1.value / 24,
-      canal2Days: misc.extraTime.canal2.unit === "days" 
-        ? misc.extraTime.canal2.value 
-        : misc.extraTime.canal2.value / 24,
-      idlePortDays: misc.extraTime.idlePort.unit === "days" 
-        ? misc.extraTime.idlePort.value 
-        : misc.extraTime.idlePort.value / 24,
-      atSeaDays: misc.extraTime.atSea.unit === "days" 
-        ? misc.extraTime.atSea.value 
-        : misc.extraTime.atSea.value / 24,
-      atSeaSpeedContext: misc.extraTime.atSea.mode,
       canalFuel: misc.canalFuel,
     },
     applyEuaImpact,
@@ -2161,13 +2138,9 @@ export function useVoyageContext() {
         extraFees: 0,
         extraInsurance: 0,
         canalCost1: 0,
-        canalCost2: 0,
         tradeType: "",
         extraTime: {
           canal1: { mode: "VL", value: 0, unit: "days" as const },
-          canal2: { mode: "VL", value: 0, unit: "days" as const },
-          idlePort: { mode: "VL", value: 0, unit: "hours" as const },
-          atSea: { mode: "EV", value: 0, unit: "hours" as const },
         },
       },
       setMisc: () => {},

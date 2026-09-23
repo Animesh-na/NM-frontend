@@ -157,7 +157,6 @@ export function customMiscCosts(values: Partial<MiscCostsData> = {}): MiscCostsD
     extraFees: 0,
     extraInsurance: 0,
     canalCost1: 0,
-    canalCost2: 0,
     ...values,
   };
 }
@@ -165,10 +164,6 @@ export function customMiscCosts(values: Partial<MiscCostsData> = {}): MiscCostsD
 export function customExtraTime(values: Partial<ExtraTimeData> = {}): ExtraTimeData {
   return {
     canal1Days: 0,
-    canal2Days: 0,
-    idlePortDays: 0,
-    atSeaDays: 0,
-    atSeaSpeedContext: "EV",
     ...values,
   };
 }
