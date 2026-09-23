@@ -10,9 +10,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 
 export function BunkerSection() {
   const { 
@@ -37,6 +34,11 @@ export function BunkerSection() {
   const [feed, setFeed] = useState<FeedQuote[]>([]);
   const [feedAt, setFeedAt] = useState<string | null>(null);
   const autoFilled = useRef<Set<string>>(new Set());
+
+  // Price lookup modal (opened by double-clicking a $/t field)
+  const [priceLookup, setPriceLookup] = useState<
+    { fuel: "hsfo" | "vlsfo" | "lsmgo"; scope: string; search: string; target: string } | null
+  >(null);
 
   const fetchPrices = useCallback(async (opts: { force: boolean }) => {
     const targets: { key: string; name: string; apply: (q: { hsfo: number | null; vlsfo: number | null; lsmgo: number | null }) => void }[] = [];
@@ -125,6 +127,15 @@ export function BunkerSection() {
       });
     }
   }, [bunkeringPorts, bunker.portBunkering, removePortBunkering]);
+
+  // Auto-add a price row for every bunkering call in the sequence.
+  useEffect(() => {
+    bunkeringPorts.forEach(p => {
+      if (!bunker.portBunkering.some(pb => pb.portUnloc === p.portUnloc)) {
+        addPortBunkering(p.portUnloc, p.port);
+      }
+    });
+  }, [bunkeringPorts, bunker.portBunkering, addPortBunkering]);
 
   // Keep the market feed limited to ports still relevant to the voyage.
   useEffect(() => {
