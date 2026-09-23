@@ -58,7 +58,7 @@ describe("Sea Days Calculation", () => {
     ];
     const noWeather = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ sequence }))).result.current;
     const withWeather = renderHook(() =>
-      useVoyageCalculation(createVoyageTestInputs({ sequence, extraTime: customExtraTime({ atSeaDays: 1.5 }) })),
+      useVoyageCalculation(createVoyageTestInputs({ sequence, extraTime: customExtraTime({ canal1Days: 0 }) })),
     ).result.current;
 
     expect(withWeather.extraSeaDays).toBeCloseTo(1.5, 4);

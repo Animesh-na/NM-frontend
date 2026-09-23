@@ -21,18 +21,17 @@ describe("Sequence Section", () => {
   });
 
   describe("Sea time", () => {
-    it("totalSeaDays equals ballast + laden + custom extra at-sea days", () => {
+    it("totalSeaDays equals ballast + laden", () => {
       const sequence = [
         customLeg({ id: 1, operation: "load", seaTime: 2.5, ecaTime: 0, nonEcaTime: 2.5, quantity: 30_000 }),
         customLeg({ id: 2, operation: "disch", seaTime: 6.5, ecaTime: 0.5, nonEcaTime: 6, quantity: 30_000 }),
       ];
-      const extraTime = customExtraTime({ atSeaDays: 1.25 });
-      const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ sequence, extraTime }))).result.current;
+      const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ sequence }))).result.current;
 
       expect(r.seaDaysBallast).toBeCloseTo(2.5, 4);
       expect(r.seaDaysLaden).toBeCloseTo(6.5, 4);
-      expect(r.extraSeaDays).toBeCloseTo(1.25, 4);
-      expect(r.totalSeaDays).toBeCloseTo(10.25, 4);
+      expect(r.extraSeaDays).toBeCloseTo(0, 4);
+      expect(r.totalSeaDays).toBeCloseTo(9, 4);
     });
 
     it("first custom load leg sails ballast and next discharge leg sails laden", () => {
@@ -61,15 +60,15 @@ describe("Sequence Section", () => {
   });
 
   describe("Total voyage time", () => {
-    it("totalVoyageDays equals custom sea, port, idle-port, and canal time", () => {
+    it("totalVoyageDays equals custom sea, port, and canal time", () => {
       const sequence = [
         customLeg({ id: 1, operation: "load", seaTime: 3, ecaTime: 0, nonEcaTime: 3, portDays: 2 }),
         customLeg({ id: 2, operation: "disch", seaTime: 5, ecaTime: 0, nonEcaTime: 5, portDays: 4 }),
       ];
-      const extraTime = customExtraTime({ atSeaDays: 0.5, idlePortDays: 0.75, canal1Days: 1, canal2Days: 0.25 });
+      const extraTime = customExtraTime({ canal1Days: 1 });
       const r = renderHook(() => useVoyageCalculation(createVoyageTestInputs({ sequence, extraTime }))).result.current;
 
-      expect(r.totalVoyageDays).toBeCloseTo(3 + 5 + 0.5 + 2 + 4 + 0.75 + 1 + 0.25, 4);
+      expect(r.totalVoyageDays).toBeCloseTo(3 + 5 + 2 + 4 + 1, 4);
       expect(r.totalVoyageDays).toBeGreaterThan(0);
     });
   });
