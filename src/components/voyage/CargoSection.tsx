@@ -601,7 +601,15 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
           <select
             className="form-input-sm w-full"
             value={cargo.laytimeMode ?? "average"}
-            onChange={(e) => onUpdate("laytimeMode", e.target.value)}
+            onChange={(e) => {
+              const mode = e.target.value;
+              onUpdate("laytimeMode", mode);
+              // Cancelling dem/desp clears both rates so the operational rows hide.
+              if (mode === "cancelled") {
+                onUpdate("demurrageRate", 0);
+                onUpdate("despatchRate", 0);
+              }
+            }}
           >
             <option value="average">Average</option>
             <option value="non_reversible">Non-reversible</option>
