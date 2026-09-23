@@ -105,11 +105,12 @@ export interface BunkerData {
 
 // Extra time data for calculation
 export interface ExtraTimeData {
-  canal1Days: number; // Extra canal 1 time in days
-  canal2Days: number; // Extra canal 2 time in days
-  idlePortDays: number; // Extra idle port time in days
-  atSeaDays: number; // Extra at sea time in days
-  atSeaSpeedContext: string; // EV or FV for fuel consumption
+  canal1Days: number; // Canal transit time in days
+  /** @deprecated legacy fields kept optional for older saved sheets — always ignored. */
+  canal2Days?: number;
+  idlePortDays?: number;
+  atSeaDays?: number;
+  atSeaSpeedContext?: string;
   canalFuel?: "hsfo" | "vlsfo" | "lsmgo"; // ME fuel burned during canal transit
 }
 
@@ -119,7 +120,8 @@ export interface MiscCostsData {
   extraFees: number;
   extraInsurance: number;
   canalCost1: number;
-  canalCost2: number;
+  /** @deprecated no longer used — kept optional for older saved sheets. */
+  canalCost2?: number;
 }
 
 export interface VoyageInputs {
