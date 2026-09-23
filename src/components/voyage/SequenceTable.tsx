@@ -692,7 +692,7 @@ export function SequenceTable() {
             <button onClick={addRepositioning} className="btn-secondary">Repos</button>
             <div className="flex items-center gap-1.5">
               <Checkbox id="auto-dist" checked={autoDistanceEnabled} onCheckedChange={(checked) => setAutoDistanceEnabled(checked === true)} className="h-3.5 w-3.5" />
-              <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">Auto dist</label>
+              <label htmlFor="auto-dist" className="text-[10px] text-muted-foreground cursor-pointer">Fetch distance</label>
             </div>
             <div className="flex items-center gap-1">
               <label className="text-[10px] text-muted-foreground">Dep:</label>
