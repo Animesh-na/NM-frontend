@@ -219,7 +219,7 @@ export function VoyageSummary() {
                     </span>
                   </div>
                   {laytimeMode !== "cancelled" && (Math.abs(c.extraDays) > 0.005 || (c.demurrage || 0) > 0 || (c.despatch || 0) > 0) && (
-                    <div className="flex justify-between ml-2">
+                    <div className="flex justify-between">
                       <span className="text-muted-foreground flex items-center font-semibold">Cargo {c.cargoLabel} Extra time</span>
                       <span className="font-mono tabular-nums font-bold">
                         <span className={c.extraDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(c.extraDays)} d</span>
@@ -240,7 +240,7 @@ export function VoyageSummary() {
                             ? `Discharging port ${counters.discharging}`
                             : `Port ${counters.other}`;
                       return (
-                        <div key={r.rowId} className="flex justify-between ml-4">
+                        <div key={r.rowId} className="flex justify-between">
                           <span className="text-muted-foreground flex items-center font-semibold">{label}</span>
                           <span className="font-mono tabular-nums font-bold">
                             <span className={r.diffDays >= 0 ? "text-destructive" : "text-success"}>{formatDays(r.diffDays)} d</span>
