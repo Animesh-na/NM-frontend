@@ -1089,10 +1089,14 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
 
     if (snapshot.length === 0) { setDistanceLoading(false); return; }
 
-    // Check: Open port must be selected
-    const openRow = snapshot.find(r => r.type === "open");
-    if (!openRow || !openRow.port || !openRow.portUnloc) {
-      // No open port — zero out all distances
+    // Need at least one complete leg: two consecutive rows with a selected port.
+    const hasCompleteLeg = snapshot.some((row, idx) => {
+      if (idx === 0) return false;
+      const prev = snapshot[idx - 1];
+      return !!(prev.port && prev.portUnloc && row.port && row.portUnloc);
+    });
+    if (!hasCompleteLeg) {
+      // Nothing fetchable yet — zero out all distances
       setSequence((prev) => {
         const currentVessel = vesselRef.current;
         const zeroedRows = prev.map((row) => ({ ...row, distance: 0, ecaDistance: 0 }));
