@@ -143,7 +143,6 @@ export function customCargo(values: Partial<CargoData> = {}): CargoData {
 
 export function customBunker(values: CustomBunkerValues = {}): BunkerData {
   return {
-    co2Price: values.co2Price ?? 75,
     rewardFactor: values.rewardFactor ?? 1,
     hsfo: { price: 450, robStart: 500, ...values.hsfo },
     vlsfo: { price: 600, robStart: 300, ...values.vlsfo },
