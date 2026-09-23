@@ -195,6 +195,8 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     if (!incoming.length && !emptyWorkbook) return;
 
     trackEvent("workbook.open", { component: "SheetContext", sheet_count: incoming.length });
+    const hasPayload = (d: unknown) =>
+      !!d && typeof d === "object" && Object.keys(d as Record<string, unknown>).length > 0;
     const next: SheetTab[] = [];
     for (const s of incoming) {
       const tabKey = s.readOnly ? `org:${s.id}` : s.id;
@@ -204,7 +206,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
         name: s.readOnly ? `${s.name} (Read-only)` : s.name,
         data: s.data || {},
         isDirty: false,
-        isLoading: !s.data,
+        isLoading: !hasPayload(s.data),
         readOnly: !!s.readOnly,
         workbookId: s.workbookId ?? null,
         workbookName: s.workbookName ?? null,
@@ -227,7 +229,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     setCurrentView("editor");
 
     // Fetch any sheets that arrived without an embedded payload
-    incoming.filter(s => !s.data).forEach(async (s) => {
+    incoming.filter(s => !hasPayload(s.data)).forEach(async (s) => {
       const tabKey = s.readOnly ? `org:${s.id}` : s.id;
       try {
         const detail = await getSheet(s.id);

@@ -113,6 +113,10 @@ const Index = () => {
     // Build a unique key for this tab instance
     const tabKey = activeTab.id ?? `new-${activeTab.name}`;
     if (lastLoadedTabRef.current === tabKey) return;
+    // A saved sheet whose payload hasn't arrived yet: wait for it instead of
+    // clearing the editor and locking this tab as "already loaded".
+    const hasData = !!activeTab.data && Object.keys(activeTab.data).length > 0;
+    if (activeTab.id && !hasData) return;
     lastLoadedTabRef.current = tabKey;
 
     isHydratingRef.current = true;
