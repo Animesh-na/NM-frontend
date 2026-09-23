@@ -143,6 +143,23 @@ export function BunkerPriceDialog({
             </tbody>
           </table>
         </div>
+
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>
+            {total > 0 ? `${total} ports` : ""}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-[10px]"
+              disabled={loading || page <= 1} onClick={() => goToPage(1)}>First</Button>
+            <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-[10px]"
+              disabled={loading || page <= 1} onClick={() => goToPage(page - 1)}>Prev</Button>
+            <span className="px-1">Page {page} / {totalPages}</span>
+            <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-[10px]"
+              disabled={loading || page >= totalPages} onClick={() => goToPage(page + 1)}>Next</Button>
+            <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-[10px]"
+              disabled={loading || page >= totalPages} onClick={() => goToPage(totalPages)}>Last</Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
