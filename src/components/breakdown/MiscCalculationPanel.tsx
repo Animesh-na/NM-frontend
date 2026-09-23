@@ -12,7 +12,7 @@ export function MiscCalculationPanel({ misc, results }: MiscCalculationPanelProp
   const formatCurrency = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const totalMiscCosts = misc.miscCost + misc.extraFees + misc.extraInsurance;
-  const totalCanalCosts = misc.canalCost1 + misc.canalCost2;
+  const totalCanalCosts = misc.canalCost1;
 
   return (
     <BreakdownCard 
@@ -35,8 +35,7 @@ export function MiscCalculationPanel({ misc, results }: MiscCalculationPanelProp
 
           <div className="space-y-2">
             <div className="text-xs font-medium text-muted-foreground">Canal Costs</div>
-            <ValueRow label="Canal Cost 1" value={formatCurrency(misc.canalCost1)} source="Manual" />
-            <ValueRow label="Canal Cost 2" value={formatCurrency(misc.canalCost2)} source="Manual" />
+            <ValueRow label="Canal Cost" value={formatCurrency(misc.canalCost1)} source="Manual" />
             <ValueRow label="Subtotal" value={formatCurrency(totalCanalCosts)} isTotal />
           </div>
         </div>
@@ -58,10 +57,9 @@ export function MiscCalculationPanel({ misc, results }: MiscCalculationPanelProp
 
           <FormulaBlock
             name="Total Canal Cost"
-            formula="Canal Cost 1 + Canal Cost 2"
+            formula="Canal Cost"
             inputs={[
-              { label: "Canal 1", value: formatCurrency(misc.canalCost1), source: "Misc" },
-              { label: "Canal 2", value: formatCurrency(misc.canalCost2), source: "Misc" },
+              { label: "Canal", value: formatCurrency(misc.canalCost1), source: "Misc" },
             ]}
             result={{ label: "Total Canal", value: formatCurrency(totalCanalCosts) }}
           />
