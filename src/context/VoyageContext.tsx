@@ -342,9 +342,6 @@ export interface ExtraTimeEntry {
 // Extra time state
 export interface ExtraTimeState {
   canal1: ExtraTimeEntry;
-  canal2: ExtraTimeEntry;
-  idlePort: ExtraTimeEntry;
-  atSea: ExtraTimeEntry;
 }
 
 // Miscellaneous state
@@ -354,7 +351,6 @@ export interface MiscState {
   extraFees: number;
   extraInsurance: number;
   canalCost1: number;
-  canalCost2: number;
   tradeType: string;
   /** Fuel burned by the main engine during canal transit. */
   canalFuel?: "hsfo" | "vlsfo" | "lsmgo";
