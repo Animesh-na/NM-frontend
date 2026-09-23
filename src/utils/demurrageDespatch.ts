@@ -79,7 +79,10 @@ export function calculateCargoDemurrageDespatchFromRows(
   cargo: CargoEntry,
   rows: SequenceRowUI[],
 ): DemurrageDespatchCargoResult {
-  const isActive = (cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0;
+  // "Cancel dem/desp" fully reverts to the CP baseline: no rates, and the
+  // operational overrides are ignored so nothing they changed stays applied.
+  const isActive = ((cargo.demurrageRate || 0) > 0 || (cargo.despatchRate || 0) > 0)
+    && (cargo.laytimeMode ?? "average") !== "cancelled";
   const rowBreakdown = rows.filter((row) => isCargoOperation(row.operation)).map((row) => {
     const cpOverride = cargo.cpOverrides?.[row.id];
     const opOverride = isActive ? cargo.opOverrides?.[row.id] : undefined;
