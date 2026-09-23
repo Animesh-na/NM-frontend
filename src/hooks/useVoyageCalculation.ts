@@ -1580,7 +1580,7 @@ ${perCargoFreight
       vessel.dwt,
       totalDistance + totalEcaDistance,
       cargo.quantity,
-      bunker.co2Price
+      Math.max(bunker.euEtsPrice || 0, bunker.ukEtsPrice || 0, bunker.co2Price || 0)
     );
 
     // ============================================
