@@ -25,17 +25,22 @@ const Index = () => {
   const isAdmin = user?.role === "admin";
   const isReadOnly = activeTab?.readOnly === true;
   const [sidebarOpen, setSidebarOpen] = useState(() =>
-    typeof window === "undefined" ? true : window.innerWidth >= 1440,
+    typeof window === "undefined" ? true : window.innerWidth >= 1024,
   );
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 1440px)");
-    const handleBreakpoint = (event: MediaQueryListEvent) => setSidebarOpen(event.matches);
+    const media = window.matchMedia("(min-width: 1024px)");
+    // Only force the summary open when crossing up into desktop widths; a user
+    // who collapsed it manually keeps their choice.
+    const handleBreakpoint = (event: MediaQueryListEvent) => {
+      if (event.matches) setSidebarOpen(true);
+    };
     media.addEventListener("change", handleBreakpoint);
     return () => media.removeEventListener("change", handleBreakpoint);
   }, []);
+
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
