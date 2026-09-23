@@ -229,7 +229,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     setCurrentView("editor");
 
     // Fetch any sheets that arrived without an embedded payload
-    incoming.filter(s => !s.data).forEach(async (s) => {
+    incoming.filter(s => !hasPayload(s.data)).forEach(async (s) => {
       const tabKey = s.readOnly ? `org:${s.id}` : s.id;
       try {
         const detail = await getSheet(s.id);
