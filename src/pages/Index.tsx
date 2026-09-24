@@ -18,7 +18,7 @@ import { Calculator, Loader2, PanelRightClose, PanelRightOpen, Trash2, TrendingU
 import { toast } from "sonner";
 
 const Index = () => {
-  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, updateTabData } = useSheets();
+  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, updateTabData, registerDataGetter } = useSheets();
   const { user } = useAuth();
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
@@ -86,6 +86,14 @@ const Index = () => {
     notes: voyage.notes,
     charterer: voyage.charterer,
   }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.autoDistanceEnabled, voyage.notes, voyage.charterer]);
+
+  // Let the sheet manager read current values for auto-save on leave
+  const gatherRef = useRef(gatherData);
+  gatherRef.current = gatherData;
+  useEffect(() => {
+    registerDataGetter(() => gatherRef.current());
+    return () => registerDataGetter(null);
+  }, [registerDataGetter]);
 
   // Snapshot current voyage data back to the previous tab when switching tabs
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { SheetContext, type SheetTab } from "@/context/sheetContextCore";
 import { getSheet, saveSheet, updateSheet, deleteSheet, type SheetDetail } from "@/services/marineApi";
 import { toast } from "@/components/ui/sonner";
@@ -325,6 +325,35 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     }
   }, [tabs, activeTabIndex]);
 
+  // Current-data getter registered by the editor, used for auto-save on leave
+  const dataGetterRef = useRef<(() => Record<string, unknown>) | null>(null);
+  const registerDataGetter = useCallback((fn: (() => Record<string, unknown>) | null) => {
+    dataGetterRef.current = fn;
+  }, []);
+
+  const autoSaveTab = useCallback(async (index: number) => {
+    const tab = tabs[index];
+    const getter = dataGetterRef.current;
+    if (!tab || tab.readOnly || !tab.isDirty || !getter) return;
+    const data = getter();
+    const wbId = tab.workbookId ?? null;
+    // Keep the in-memory copy so re-opening the tab shows the latest values
+    setTabs(prev => prev.map((t, i) => i === index ? { ...t, data } : t));
+    try {
+      const result = tab.id && !tab.id.startsWith("org:")
+        ? await updateSheet(tab.id, tab.name, data, wbId)
+        : await saveSheet(tab.name, data, wbId);
+      if (result) {
+        setTabs(prev => prev.map((t, i) => i === index ? { ...t, id: result.id, name: result.name, data: result.data || data, isDirty: false } : t));
+        toast.success(`"${result.name}" auto-saved`);
+      } else {
+        toast.error(`Auto-save failed for "${tab.name}"`);
+      }
+    } catch {
+      toast.error(`Auto-save failed for "${tab.name}"`);
+    }
+  }, [tabs]);
+
   const markDirty = useCallback(() => {
     setTabs(prev => prev.map((t, i) => (i === activeTabIndex && !t.readOnly && !t.isDirty) ? { ...t, isDirty: true } : t));
   }, [activeTabIndex]);
@@ -333,11 +362,13 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     setTabs(prev => prev.map((t, i) => (i === activeTabIndex && t.isDirty) ? { ...t, isDirty: false } : t));
   }, [activeTabIndex]);
 
-  // Warn before leaving a sheet with unsaved changes
+  // Auto-save the current sheet before leaving it (no popup)
   const confirmLeave = useCallback((): boolean => {
-    if (currentView !== "editor" || !activeTab?.isDirty || activeTab.readOnly) return true;
-    return window.confirm(`"${activeTab.name}" has unsaved changes. Please save this sheet before leaving, or press OK to leave without saving.`);
-  }, [currentView, activeTab]);
+    if (currentView === "editor" && activeTab?.isDirty && !activeTab.readOnly) {
+      void autoSaveTab(activeTabIndex);
+    }
+    return true;
+  }, [currentView, activeTab, activeTabIndex, autoSaveTab]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -390,7 +421,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       currentView, setCurrentView: guardedSetCurrentView,
       returnSection, setReturnSection,
       tabs, activeTabIndex, setActiveTabIndex: guardedSetActiveTabIndex, activeTab,
-      createNewSheet: guardedCreateNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, goToDashboard, renameTab, updateTabData,
+      createNewSheet: guardedCreateNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, goToDashboard, registerDataGetter, renameTab, updateTabData,
       compareSheetIds, openCompare,
     }}>
       {children}
