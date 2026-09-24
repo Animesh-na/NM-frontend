@@ -326,7 +326,11 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   }, [tabs, activeTabIndex]);
 
   const markDirty = useCallback(() => {
-    setTabs(prev => prev.map((t, i) => (i === activeTabIndex && !t.readOnly) ? { ...t, isDirty: true } : t));
+    setTabs(prev => prev.map((t, i) => (i === activeTabIndex && !t.readOnly && !t.isDirty) ? { ...t, isDirty: true } : t));
+  }, [activeTabIndex]);
+
+  const markClean = useCallback(() => {
+    setTabs(prev => prev.map((t, i) => (i === activeTabIndex && t.isDirty) ? { ...t, isDirty: false } : t));
   }, [activeTabIndex]);
 
   // Warn before leaving a sheet with unsaved changes
@@ -386,7 +390,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       currentView, setCurrentView: guardedSetCurrentView,
       returnSection, setReturnSection,
       tabs, activeTabIndex, setActiveTabIndex: guardedSetActiveTabIndex, activeTab,
-      createNewSheet: guardedCreateNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
+      createNewSheet: guardedCreateNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, goToDashboard, renameTab, updateTabData,
       compareSheetIds, openCompare,
     }}>
       {children}

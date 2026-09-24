@@ -18,7 +18,7 @@ import { Calculator, Loader2, PanelRightClose, PanelRightOpen, Trash2, TrendingU
 import { toast } from "sonner";
 
 const Index = () => {
-  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, updateTabData } = useSheets();
+  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, updateTabData } = useSheets();
   const { user } = useAuth();
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
@@ -185,9 +185,35 @@ const Index = () => {
     return () => window.removeEventListener("sheet-save", handler);
   }, [gatherData, saveCurrentSheet, voyage.hasErrors, voyage.validationIssues.length]);
 
-  // Mark dirty on any voyage change — but NOT during hydration
+  // Unsaved-changes tracking: compare current values against a baseline
+  // snapshot taken after the sheet finishes loading (and after each save).
+  // Automatic recalculations in the first moments after opening update the
+  // baseline instead of marking the sheet as changed.
+  const baselineRef = useRef<string | null>(null);
+  const settleUntilRef = useRef(0);
   useEffect(() => {
-    if (activeTab && !activeTab.isLoading && !isHydratingRef.current) {
+    baselineRef.current = null;
+    settleUntilRef.current = Date.now() + 2500;
+  }, [activeTab?.id, activeTab?.name, activeTab?.isLoading]);
+  useEffect(() => {
+    // After a successful save (tab no longer dirty and has an id), re-baseline
+    if (activeTab && !activeTab.isDirty) {
+      baselineRef.current = JSON.stringify(gatherData());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab?.isDirty, activeTab?.id]);
+
+  useEffect(() => {
+    if (!activeTab || activeTab.isLoading || isHydratingRef.current) return;
+    const snap = JSON.stringify(gatherData());
+    if (baselineRef.current === null || Date.now() < settleUntilRef.current) {
+      baselineRef.current = snap;
+      if (activeTab.isDirty && activeTab.id) markClean();
+      return;
+    }
+    if (snap === baselineRef.current) {
+      if (activeTab.isDirty) markClean();
+    } else {
       markDirty();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
