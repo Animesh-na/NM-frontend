@@ -331,6 +331,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
           </div>
         </nav>
       )}
+      </>)}
     </>
   );
 }
