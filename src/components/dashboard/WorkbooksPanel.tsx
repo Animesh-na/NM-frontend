@@ -157,14 +157,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
     );
   }
 
-  if (workbooks.length === 0) {
-    return (
-      <div className="dash-card border-dashed py-20 text-center">
-        <BookOpen className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
-        <p className="text-[13px] dash-muted">{trimmedQuery ? "No workbooks match your search" : "No workbooks yet"}</p>
-      </div>
-    );
-  }
+  const isEmpty = workbooks.length === 0;
 
   return (
     <>
@@ -217,6 +210,12 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
         )}
       </div>
 
+      {isEmpty ? (
+        <div className="dash-card border-dashed py-20 text-center">
+          <BookOpen className="mx-auto mb-3 h-12 w-12 dash-muted opacity-40" />
+          <p className="text-[13px] dash-muted">{trimmedQuery ? "No workbooks match your search" : "No workbooks yet — create one to get started"}</p>
+        </div>
+      ) : (<>
       <div className="space-y-2 sm:hidden">
         {workbooks.map((wb) => {
           const own = isOwn(wb);
