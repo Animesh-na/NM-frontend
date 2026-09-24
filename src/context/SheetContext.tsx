@@ -329,14 +329,48 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     setTabs(prev => prev.map((t, i) => (i === activeTabIndex && !t.readOnly) ? { ...t, isDirty: true } : t));
   }, [activeTabIndex]);
 
+  // Warn before leaving a sheet with unsaved changes
+  const confirmLeave = useCallback((): boolean => {
+    if (currentView !== "editor" || !activeTab?.isDirty || activeTab.readOnly) return true;
+    return window.confirm(`"${activeTab.name}" has unsaved changes. Please save this sheet before leaving, or press OK to leave without saving.`);
+  }, [currentView, activeTab]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (currentView === "editor" && activeTab?.isDirty && !activeTab.readOnly) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [currentView, activeTab]);
+
   const goToDashboard = useCallback(() => {
+    if (!confirmLeave()) return;
     trackView("dashboard", { component: "SheetContext" });
     // Return to the Workbooks section when the active sheet belongs to a workbook,
     // otherwise fall back to the Overview section.
     const section: DashSection = activeTab?.workbookId ? "workbooks" : "overview";
     setReturnSection(section);
     setCurrentView("dashboard");
-  }, [activeTab?.workbookId]);
+  }, [activeTab?.workbookId, confirmLeave]);
+
+  const guardedSetActiveTabIndex = useCallback((index: number) => {
+    if (index === activeTabIndex) return;
+    if (!confirmLeave()) return;
+    setActiveTabIndex(index);
+  }, [activeTabIndex, confirmLeave]);
+
+  const guardedSetCurrentView = useCallback((view: "dashboard" | "editor" | "admin" | "compare") => {
+    if (view !== currentView && view !== "editor" && !confirmLeave()) return;
+    setCurrentView(view);
+  }, [currentView, confirmLeave]);
+
+  const guardedCreateNewSheet = useCallback((workbookId?: string | null, workbookName?: string | null) => {
+    if (!confirmLeave()) return;
+    createNewSheet(workbookId, workbookName);
+  }, [confirmLeave, createNewSheet]);
 
   const renameTab = useCallback((index: number, name: string) => {
     trackEvent("sheet.rename", { component: "SheetContext", sheet_index: index, sheet_name: name });
@@ -349,10 +383,10 @@ export function SheetProvider({ children }: { children: ReactNode }) {
 
   return (
     <SheetContext.Provider value={{
-      currentView, setCurrentView,
+      currentView, setCurrentView: guardedSetCurrentView,
       returnSection, setReturnSection,
-      tabs, activeTabIndex, setActiveTabIndex, activeTab,
-      createNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
+      tabs, activeTabIndex, setActiveTabIndex: guardedSetActiveTabIndex, activeTab,
+      createNewSheet: guardedCreateNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, goToDashboard, renameTab, updateTabData,
       compareSheetIds, openCompare,
     }}>
       {children}
