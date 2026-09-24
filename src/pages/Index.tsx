@@ -18,7 +18,7 @@ import { Calculator, Loader2, PanelRightClose, PanelRightOpen, Trash2, TrendingU
 import { toast } from "sonner";
 
 const Index = () => {
-  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, updateTabData } = useSheets();
+  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, updateTabData } = useSheets();
   const { user } = useAuth();
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
