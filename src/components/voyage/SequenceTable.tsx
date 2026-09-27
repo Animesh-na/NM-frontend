@@ -261,7 +261,7 @@ export function SequenceTable() {
                    <th className={`${thClass} border-r border-border text-left`}>Port</th>
                   <th className={thClass}>Cargo</th>
                   <th className={thClass}>Distance (nm) &amp; ECA (nm)</th>
-                  <th className={thClass}>Sea time (d) &amp; WD (%)</th>
+                  <th className={thClass}>Sea time (d) | WD%</th>
                   <th className={thClass}>Port Fuel</th>
                   <th className={thClass}>Quantity (mt)</th>
                   <th className={thClass}>{isTanker ? "Laytime (h)" : "mt/d"}</th>
