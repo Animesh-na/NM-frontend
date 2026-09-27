@@ -369,7 +369,7 @@ export function CargoSection() {
 interface CargoEntryCardProps {
   cargo: CargoEntry;
   index: number;
-  onUpdate: (field: string, value: number | string) => void;
+  onUpdate: (field: string, value: number | string | Record<string, unknown>) => void;
   onRemove: () => void;
   canRemove: boolean;
   sequenceQuantity: number;
