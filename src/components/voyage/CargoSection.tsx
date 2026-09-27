@@ -610,6 +610,8 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
               if (mode === "cancelled") {
                 onUpdate("opOverrides", {});
                 onUpdate("cpOverrides", {});
+                onUpdate("demurrageRate", 0);
+                onUpdate("despatchRate", 0);
                 onUpdate("laytimeMode", "average");
                 return;
               }
