@@ -603,16 +603,17 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             value={cargo.laytimeMode ?? "average"}
             onChange={(e) => {
               const mode = e.target.value;
-              onUpdate("laytimeMode", mode);
-              // Cancelling dem/desp clears both rates so the operational rows
-              // hide, and drops every popup override so the rows revert to the
-              // original Charter Party values. Applies to demurrage AND despatch.
+              // "Cancel dem/desp" is a one-shot reset, not a persistent mode:
+              // it drops every popup override so demurrage/despatch revert to
+              // the original Charter Party values, then the dropdown falls
+              // back to "Average". Applies to demurrage AND despatch.
               if (mode === "cancelled") {
-                onUpdate("demurrageRate", 0);
-                onUpdate("despatchRate", 0);
                 onUpdate("opOverrides", {});
                 onUpdate("cpOverrides", {});
+                onUpdate("laytimeMode", "average");
+                return;
               }
+              onUpdate("laytimeMode", mode);
             }}
           >
             <option value="average">Average</option>
