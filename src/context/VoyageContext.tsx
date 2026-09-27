@@ -253,7 +253,7 @@ interface VoyageContextValue {
   setCargos: React.Dispatch<React.SetStateAction<CargoEntry[]>>;
   addCargo: () => void;
   removeCargo: (id: number) => void;
-  updateCargoEntry: (id: number, field: string, value: number | string) => void;
+  updateCargoEntry: (id: number, field: string, value: number | string | Record<string, unknown>) => void;
   updateCargoCpOverride: (
     cargoId: number,
     rowId: number,
@@ -1554,7 +1554,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     setCargos(prev => prev.filter(c => c.id !== id));
   }, []);
 
-  const updateCargoEntry = useCallback((id: number, field: string, value: number | string) => {
+  const updateCargoEntry = useCallback((id: number, field: string, value: number | string | Record<string, unknown>) => {
     setCargos(prev => prev.map(c => 
       c.id === id ? { ...c, [field]: value } : c
     ));

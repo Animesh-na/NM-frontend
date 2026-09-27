@@ -369,7 +369,7 @@ export function CargoSection() {
 interface CargoEntryCardProps {
   cargo: CargoEntry;
   index: number;
-  onUpdate: (field: string, value: number | string) => void;
+  onUpdate: (field: string, value: number | string | Record<string, unknown>) => void;
   onRemove: () => void;
   canRemove: boolean;
   sequenceQuantity: number;
@@ -604,10 +604,14 @@ function CargoEntryCard({ cargo, index, onUpdate, sequenceQuantity, cpRows, onCp
             onChange={(e) => {
               const mode = e.target.value;
               onUpdate("laytimeMode", mode);
-              // Cancelling dem/desp clears both rates so the operational rows hide.
+              // Cancelling dem/desp clears both rates so the operational rows
+              // hide, and drops every popup override so the rows revert to the
+              // original Charter Party values. Applies to demurrage AND despatch.
               if (mode === "cancelled") {
                 onUpdate("demurrageRate", 0);
                 onUpdate("despatchRate", 0);
+                onUpdate("opOverrides", {});
+                onUpdate("cpOverrides", {});
               }
             }}
           >
