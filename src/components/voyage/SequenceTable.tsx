@@ -260,8 +260,8 @@ export function SequenceTable() {
                    <th className={`${thClass} border-r border-border`}>Type</th>
                    <th className={`${thClass} border-r border-border text-left`}>Port</th>
                   <th className={thClass}>Cargo</th>
-                  <th className={thClass}>Distance &amp; ECA</th>
-                  <th className={thClass}>Sea time &amp; WD</th>
+                  <th className={thClass}>Distance (nm) &amp; ECA (nm)</th>
+                  <th className={thClass}>Sea time (d) &amp; WD (%)</th>
                   <th className={thClass}>Port Fuel</th>
                   <th className={thClass}>Quantity (mt)</th>
                   <th className={thClass}>{isTanker ? "Laytime (h)" : "mt/d"}</th>
@@ -413,7 +413,7 @@ export function SequenceTable() {
                               : row.totalLegTime > 0
                                 ? formatTime(row.totalLegTime)
                                 : "0.00"}
-                             </span></div><span className={separatorClass}>&</span>
+                             </span></div><span className={separatorClass}></span>
                             <div className={pairedRowClass}>
                             {(autoDistanceEnabled && !row.weatherDelayFailed && row.weatherDelayHours !== undefined) ? (
                            <span className="min-w-0 flex-1 truncate text-right font-mono text-[10px] text-muted-foreground" title="Weather delay from distance API (h)">
