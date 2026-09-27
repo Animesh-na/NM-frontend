@@ -478,21 +478,11 @@ function calculateSeaTime(
   // Total base sea time (before margin)
   const baseSeaTime = baseNonEcaTime + baseEcaTime;
   
-    // When auto-distance with weather delay: use delayHours from API instead of sea margin %
-    // API returns negative delayHours when weather helps (faster). We convert to positive and add as weather delay.
-    if (useWeatherDelay && row.weatherDelayHours !== undefined && !row.weatherDelayFailed) {
-      const weatherDelayHours = Math.abs(row.weatherDelayHours);
-      const weatherDelayDays = weatherDelayHours / 24;
-      const seaMarginTime = weatherDelayDays;
-      const ecaFraction = baseSeaTime > 0 ? baseEcaTime / baseSeaTime : 0;
-      const nonEcaFraction = baseSeaTime > 0 ? baseNonEcaTime / baseSeaTime : 0;
-      const seaTime = baseNonEcaTime + weatherDelayDays * nonEcaFraction;
-      const ecaTime = baseEcaTime + weatherDelayDays * ecaFraction;
-      const totalLegTime = baseSeaTime + weatherDelayDays;
-      return { baseSeaTime, seaMarginTime, ecaTime, seaTime, totalLegTime };
-    }
+    // API-based weather delay is intentionally ignored: sea time always uses the
+    // user-entered sea margin %, regardless of the "Fetch distance" checkbox.
+    void useWeatherDelay;
 
-    // Manual mode: use sea margin percentage
+    // Sea margin percentage
   const seaMarginPercent = row.seaMargin || 0;
   const seaMarginTime = baseSeaTime * (seaMarginPercent / 100);
   
