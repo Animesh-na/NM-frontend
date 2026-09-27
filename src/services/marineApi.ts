@@ -233,14 +233,15 @@ export async function getSeaRouteDistance(
   const latLonOrigin = `:${originLat},${originLon}`;
   const latLonDest = `:${destLat},${destLon}`;
 
-  // Build extra params for weather routing
+  // Weather-routing options disabled for now — plain distance only.
+  // const extraParams: Record<string, string | number> = {};
+  // // API requires both vessel_speed AND departure_utc together — send neither if one is missing
+  // if (vesselSpeed && vesselSpeed > 0 && departureUtc) {
+  //   extraParams.vessel_speed = vesselSpeed;
+  //   // API expects "YYYY-MM-DD HH:mm" format; HTML datetime-local gives "YYYY-MM-DDTHH:mm"
+  //   extraParams.departure_utc = departureUtc.replace("T", " ");
+  // }
   const extraParams: Record<string, string | number> = {};
-  // API requires both vessel_speed AND departure_utc together — send neither if one is missing
-  if (vesselSpeed && vesselSpeed > 0 && departureUtc) {
-    extraParams.vessel_speed = vesselSpeed;
-    // API expects "YYYY-MM-DD HH:mm" format; HTML datetime-local gives "YYYY-MM-DDTHH:mm"
-    extraParams.departure_utc = departureUtc.replace("T", " ");
-  }
 
   // Try port codes first if both look valid, fall back to lat/lon on failure
   if (bothValid) {
