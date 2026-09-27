@@ -415,20 +415,15 @@ export function SequenceTable() {
                                 : "0.00"}
                              </span></div><span className={separatorClass}></span>
                             <div className={pairedRowClass}>
-                            {(autoDistanceEnabled && !row.weatherDelayFailed && row.weatherDelayHours !== undefined) ? (
-                           <span className="min-w-0 flex-1 truncate text-right font-mono text-[10px] text-muted-foreground" title="Weather delay from distance API (h)">
-                            {Math.abs(row.weatherDelayHours).toFixed(1)}
-                          </span>
-                        ) : (
                           <input
                             type="number" min="0" max="100" step="0.5"
-                             className={`${sequenceNumericInputClass} ${row.weatherDelayFailed ? "border-warning/60" : ""}`}
+                             className={sequenceNumericInputClass}
                             value={row.seaMargin || ""}
                             onChange={(e) => updateSequenceRow(row.id, "seaMargin", parseFloat(e.target.value) || 0)}
                             placeholder="0"
-                            title={row.weatherDelayFailed ? "Weather delay unavailable — enter sea margin % manually" : "Sea margin %"}
+                            title="Sea margin %"
                           />
-                        )}</div>
+                        </div>
                           </div>
                         )}
                       </td>
