@@ -264,6 +264,8 @@ export interface VoyageResults {
   
   // Laden distance (for EFOI)
   ladenDistance: number;
+  // EEOI transport work Σ(leg distance incl. ECA × cargo on board), t·nm
+  transportWork?: number;
   
   // Gross Rate: Net Rate / (1 − voyage commission %) where Net Rate = freight rate × (1 − voy comm) − total voyage P&L / cargo qty
   grossRate: number;
@@ -340,6 +342,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     let totalEcaDistance = 0;
     let ballastDistance = 0;
     let ladenDistance = 0;
+    // EEOI transport work: Σ (leg distance incl. ECA × cargo on board) per leg
+    let transportWork = 0;
+    let ladenDistanceInclEca = 0;
     let totalPortDays = 0;
     let portCosts = 0;
     // Ballast/laden is determined by running cargo on board (load adds, discharge subtracts)
@@ -417,6 +422,9 @@ export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
     cargoOnBoardBefore=${cargoOnBoard} mt, portQty=${legQuantity} mt → assigned as ${legIsLaden ? 'LADEN' : 'BALLAST'} leg`);
       if (legIsLaden) {
         ladenDistance += leg.distance || 0;
+        const legTotalDist = (leg.distance || 0) + (leg.ecaDistance || 0);
+        ladenDistanceInclEca += legTotalDist;
+        transportWork += legTotalDist * cargoOnBoard;
         seaDaysLaden += legSeaTime;
         ecaSeaDaysLaden += legEcaTime;
         nonEcaSeaDaysLaden += legNonEcaTime;
@@ -902,8 +910,8 @@ ${perCargoFreight
     const co2Laden = totalSeaDays > 0 ? totalCo2 * (seaDaysLaden / totalSeaDays) : 0;
 
     // Calculate EFOI using the module
-    const efoiResult = calculateEfoi(totalCo2, cargo.quantity, ladenDistance);
-    const efoi = efoiResult.efoi;
+    // EEOI = CO2 × 10^6 / Σ(leg distance (non-ECA + ECA) × cargo on board)
+    const efoi = transportWork > 0 ? (totalCo2 * 1000000) / transportWork : 0;
 
     const getLegPortKey = (leg: Pick<SequenceRow, "port" | "portUnloc">): string =>
       (leg.portUnloc || leg.port || "").trim();
@@ -1070,7 +1078,7 @@ ${perCargoFreight
     CO2 Laden = totalCO2(${totalCo2}) × ladenDays(${seaDaysLaden})/totalSeaDays(${totalSeaDays}) = ${co2Laden} mt
     
     --- EFOI ---
-    EFOI = totalCO2(${totalCo2}) × 1000000 / (cargo(${cargo.quantity}) × ladenDist(${ladenDistance})) = ${efoi} gCO2/tnm
+    EFOI = totalCO2(${totalCo2}) × 1000000 / transportWork(${transportWork} t·nm, ladenDist incl. ECA ${ladenDistanceInclEca}) = ${efoi} gCO2/tnm
     
     --- CII ---
     Actual CII = totalCO2(${totalCo2}) × 1000000 / (DWT(${vessel.dwt}) × totalDist(${totalDistance})) = ${afrCii} gCO2/dwt-nm
@@ -1960,6 +1968,7 @@ ${perCargoFreight
       emissionErrors: validation.errors,
       // Additional
       ladenDistance,
+      transportWork,
       grossRate: adjustedGrossRate,
       // EU-covered fuel & FuelEU
       euCoveredFuel,

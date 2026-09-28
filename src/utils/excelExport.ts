@@ -1667,7 +1667,7 @@ export function exportVoyageToExcel(data: ExportData) {
   // EFOI
   setCalcLabel(r, "EFOI (gCO₂/tnm)", false, false, true);
   setCalcFormula(r,
-    `IF(AND(${B(R_QTY)}>0,${B(R_LADIST)}>0),${B(R_TCO2)}*1000000/(${B(R_QTY)}*${B(R_LADIST)}),0)`,
+    `IF(${results.transportWork || 0}>0,${B(R_TCO2)}*1000000/${results.transportWork || 0},0)`,
     results.efoi, false, false, true);
   r++;
 
