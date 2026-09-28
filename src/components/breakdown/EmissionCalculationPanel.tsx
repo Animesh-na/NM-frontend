@@ -897,11 +897,10 @@ export function EmissionCalculationPanel({ results, bunker, vessel, sequence = [
         <div className="grid grid-cols-2 gap-6">
           <FormulaBlock
             name="EFOI (gCO₂/tnm)"
-            formula="Total CO₂ × 10⁶ / (Cargo × Laden Distance)"
+            formula="Total CO₂ × 10⁶ / Σ(leg distance incl. ECA × cargo on board)"
             inputs={[
               { label: "Total CO₂", value: `${results.totalCo2.toFixed(2)} t`, source: "Calc" },
-              { label: "Cargo", value: `${results.ladenDistance > 0 ? 'Available' : 'N/A'}`, source: "Cargo" },
-              { label: "Laden Distance", value: `${results.ladenDistance?.toLocaleString() || 0} nm`, source: "Seq" },
+              { label: "Transport Work", value: `${(results.transportWork || 0).toLocaleString()} t·nm`, source: "Seq" },
             ]}
             result={{ label: "EFOI", value: `${results.efoi.toFixed(2)} gCO₂/tnm` }}
           />

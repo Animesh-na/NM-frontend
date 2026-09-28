@@ -264,6 +264,8 @@ export interface VoyageResults {
   
   // Laden distance (for EFOI)
   ladenDistance: number;
+  // EEOI transport work Σ(leg distance incl. ECA × cargo on board), t·nm
+  transportWork?: number;
   
   // Gross Rate: Net Rate / (1 − voyage commission %) where Net Rate = freight rate × (1 − voy comm) − total voyage P&L / cargo qty
   grossRate: number;
@@ -1966,6 +1968,7 @@ ${perCargoFreight
       emissionErrors: validation.errors,
       // Additional
       ladenDistance,
+      transportWork,
       grossRate: adjustedGrossRate,
       // EU-covered fuel & FuelEU
       euCoveredFuel,
