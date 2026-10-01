@@ -69,7 +69,7 @@ export function toResultDTO(results: unknown): NormalizedResult {
 
 export interface FieldDiff {
   path: string;
-  class: "VALUE" | "MISSING_IN_GO" | "MISSING_IN_FRONTEND" | "LENGTH" | "TYPE" | "NOT_COMPUTED";
+  class: "VALUE" | "MISSING_IN_GO" | "MISSING_IN_FRONTEND" | "LENGTH" | "TYPE" | "NOT_COMPUTED" | "NON_FINITE";
   kind?: string;
   abs_diff?: number;
   rel_diff?: number;
@@ -128,4 +128,10 @@ export function compareResults(frontend: unknown, server: unknown, notComputed: 
   };
   walk(resultSchema.$defs.CalculationResultDTO, "", frontend, server);
   return diffs.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+}
+
+/** Compares the non-finite path maps of both sides (mirrors contract.CompareNonFinite). */
+export function compareNonFinite(frontend: Record<string, string>, server: Record<string, string>): FieldDiff[] {
+  const keys = [...new Set([...Object.keys(frontend), ...Object.keys(server)])].sort();
+  return keys.filter((k) => frontend[k] !== server[k]).map((path) => ({ path, class: "NON_FINITE" as const }));
 }

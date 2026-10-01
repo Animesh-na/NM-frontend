@@ -9,7 +9,7 @@
  * computed.
  */
 import { useEffect, useRef } from "react";
-import { compareResults, toResultDTO, type FieldDiff } from "@/contracts/calc/normalize";
+import { compareNonFinite, compareResults, toResultDTO, type FieldDiff } from "@/contracts/calc/normalize";
 import type { CalculationInput, CalculationResponse } from "@/contracts/calc/types.generated";
 import { calculateVoyageOnBackend, reportShadowMismatch, type ShadowReport } from "@/services/voyageCalculationApi";
 import { getApiMode } from "@/services/apiMode";
@@ -105,13 +105,15 @@ export class ShadowRunner {
         sheet_id: snap.sheetId,
         segment: snap.segment,
         working_sequence: snap.seq,
-        calculation_date: new Date(this.deps.now()).toISOString().slice(0, 10),
+        // The frontend year rules use the local calendar, so send the local date.
+        calculation_date: localDate(this.deps.now()),
         sheet: snap.sheet as unknown as CalculationInput["sheet"],
       });
-      const frontend = toResultDTO(snap.frontendResult).result;
-      const diffs = compareResults(frontend, response.result, response.not_computed).filter(
-        (d) => d.class !== "NOT_COMPUTED",
-      );
+      const frontend = toResultDTO(snap.frontendResult);
+      const diffs = [
+        ...compareResults(frontend.result, response.result, response.not_computed).filter((d) => d.class !== "NOT_COMPUTED"),
+        ...compareNonFinite(frontend.non_finite, response.non_finite ?? {}),
+      ];
       if (diffs.length > 0 && !this.disposed) {
         await this.deps.report({
           calculation_id: response.calculation_id || calculationId,
@@ -134,6 +136,12 @@ export class ShadowRunner {
       }
     }
   }
+}
+
+function localDate(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 function pickReportFields(d: FieldDiff): ShadowReport["mismatches"][number] {

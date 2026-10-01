@@ -72,6 +72,7 @@ async function settle(read: () => unknown) {
 }
 
 async function runSheet(input: CalculationInput) {
+  if (!input.calculation_date) throw new Error("golden scenarios must set calculation_date (D-012)");
   vi.setSystemTime(new Date(`${input.calculation_date}T12:00:00Z`));
   setApiMode(input.segment === "tanker" ? "tanker" : "dry-bulk");
   let results: unknown;
