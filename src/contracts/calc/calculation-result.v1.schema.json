@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "calc.v1/calculation-result",
+  "title": "CalculationResponse",
+  "description": "Browser-facing calculation response. result mirrors the frontend VoyageResults shape so the UI can switch authority without remapping. x-kind drives parity tolerance: money = abs 0.005 (displayed to the cent); quantity/ratio = rel 1e-9 (abs 1e-9 near zero); count/label/flag = exact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["calculation_id", "working_sequence", "engine_version", "reference_data_version", "status", "result", "not_computed"],
+  "properties": {
+    "calculation_id": { "type": "string" },
+    "working_sequence": { "type": "integer" },
+    "engine_version": { "type": "string" },
+    "reference_data_version": { "type": "string" },
+    "status": { "type": "string", "enum": ["completed"] },
+    "result": { "$ref": "#/$defs/CalculationResultDTO" },
+    "not_computed": { "type": "array", "items": { "type": "string" }, "description": "Result paths the engine does not compute yet (zero-filled in result). Shrinks to empty by M2." },
+    "non_finite": { "type": "object", "additionalProperties": { "type": "string", "enum": ["NaN", "Infinity", "-Infinity"] }, "description": "Paths whose value was non-finite; the value in result is 0." }
+  },
+  "$defs": {
+    "CalculationResultDTO": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalDistance", "totalEcaDistance", "seaDaysBallast", "seaDaysLaden", "totalSeaDays", "totalPortDays", "extraSeaDays", "extraPortDays", "extraCanalDays", "totalVoyageDays", "baseSeaTime", "seaMarginTime", "hsfoConsumption", "vlsfoConsumption", "lsmgoConsumption", "totalBunkerCost", "effectiveFuelPrices", "nonEcaFuel", "ecaFuel", "nonEcaCo2", "ecaCo2", "nonEcaDistance", "grossFreight", "voyageCommission", "netFreight", "portCosts", "miscCosts", "canalCosts", "totalVoyageCosts", "hireCost", "voyageCostInclHire", "voyageCostExclHire", "grossProfit", "netProfit", "tce", "ntce", "gtce", "pAndL", "totalCo2", "co2Laden", "co2Ballast", "co2ByFuel", "efoi", "afrCii", "ciiRating", "ciiResult", "etsResult", "etsCost", "chargeableCo2", "etsVoyageCoverage", "etsPhaseIn", "etsLegDetails", "ukEtsResult", "ukEtsCost", "ukChargeableCo2", "ukEtsVoyageCoverage", "ukEtsPhaseIn", "ukEtsFreightImpact", "emissionWarnings", "emissionErrors", "ladenDistance", "grossRate", "euCoveredFuel", "totalCo2Cost", "euaCo2Cost", "euaFreightImpact", "fuelEuResult", "fuelEuTotalPenalty", "fuelEuFreightImpact", "perCargoBreakdown", "repositioningCost"],
+      "properties": {
+        "totalDistance": { "type": "number", "x-kind": "quantity" },
+        "totalEcaDistance": { "type": "number", "x-kind": "quantity" },
+        "seaDaysBallast": { "type": "number", "x-kind": "quantity" },
+        "seaDaysLaden": { "type": "number", "x-kind": "quantity" },
+        "totalSeaDays": { "type": "number", "x-kind": "quantity" },
+        "totalPortDays": { "type": "number", "x-kind": "quantity" },
+        "extraSeaDays": { "type": "number", "x-kind": "quantity" },
+        "extraPortDays": { "type": "number", "x-kind": "quantity" },
+        "extraCanalDays": { "type": "number", "x-kind": "quantity" },
+        "totalVoyageDays": { "type": "number", "x-kind": "quantity" },
+        "baseSeaTime": { "type": "number", "x-kind": "quantity" },
+        "seaMarginTime": { "type": "number", "x-kind": "quantity" },
+        "hsfoConsumption": { "type": "number", "x-kind": "quantity" },
+        "vlsfoConsumption": { "type": "number", "x-kind": "quantity" },
+        "lsmgoConsumption": { "type": "number", "x-kind": "quantity" },
+        "totalBunkerCost": { "type": "number", "x-kind": "money" },
+        "effectiveFuelPrices": { "$ref": "#/$defs/FuelMoney" },
+        "nonEcaFuel": { "$ref": "#/$defs/FuelQuantityWithTotal" },
+        "ecaFuel": { "$ref": "#/$defs/FuelQuantityWithTotal" },
+        "nonEcaCo2": { "type": "number", "x-kind": "quantity" },
+        "ecaCo2": { "type": "number", "x-kind": "quantity" },
+        "nonEcaDistance": { "type": "number", "x-kind": "quantity" },
+        "grossFreight": { "type": "number", "x-kind": "money" },
+        "voyageCommission": { "type": "number", "x-kind": "money" },
+        "netFreight": { "type": "number", "x-kind": "money" },
+        "portCosts": { "type": "number", "x-kind": "money" },
+        "miscCosts": { "type": "number", "x-kind": "money" },
+        "canalCosts": { "type": "number", "x-kind": "money" },
+        "totalVoyageCosts": { "type": "number", "x-kind": "money" },
+        "hireCost": { "type": "number", "x-kind": "money" },
+        "voyageCostInclHire": { "type": "number", "x-kind": "money" },
+        "voyageCostExclHire": { "type": "number", "x-kind": "money" },
+        "grossProfit": { "type": "number", "x-kind": "money" },
+        "netProfit": { "type": "number", "x-kind": "money" },
+        "tce": { "type": "number", "x-kind": "money" },
+        "ntce": { "type": "number", "x-kind": "money" },
+        "gtce": { "type": "number", "x-kind": "money" },
+        "pAndL": { "type": "number", "x-kind": "money" },
+        "totalCo2": { "type": "number", "x-kind": "quantity" },
+        "co2Laden": { "type": "number", "x-kind": "quantity" },
+        "co2Ballast": { "type": "number", "x-kind": "quantity" },
+        "co2ByFuel": { "$ref": "#/$defs/FuelQuantityWithTotal" },
+        "efoi": { "type": "number", "x-kind": "ratio" },
+        "afrCii": { "type": "number", "x-kind": "ratio" },
+        "ciiRating": { "type": "string", "x-kind": "label" },
+        "ciiResult": { "$ref": "#/$defs/CiiResult" },
+        "etsResult": { "$ref": "#/$defs/EtsResult" },
+        "etsCost": { "type": "number", "x-kind": "money" },
+        "chargeableCo2": { "type": "number", "x-kind": "quantity" },
+        "etsVoyageCoverage": { "type": "number", "x-kind": "ratio" },
+        "etsPhaseIn": { "type": "number", "x-kind": "ratio" },
+        "etsLegDetails": { "type": "array", "items": { "$ref": "#/$defs/EtsLegDetail" } },
+        "ukEtsResult": { "$ref": "#/$defs/UkEtsResult" },
+        "ukEtsCost": { "type": "number", "x-kind": "money" },
+        "ukChargeableCo2": { "type": "number", "x-kind": "quantity" },
+        "ukEtsVoyageCoverage": { "type": "number", "x-kind": "ratio" },
+        "ukEtsPhaseIn": { "type": "number", "x-kind": "ratio" },
+        "ukEtsFreightImpact": { "type": "number", "x-kind": "money" },
+        "emissionWarnings": { "type": "array", "items": { "type": "string", "x-kind": "label" } },
+        "emissionErrors": { "type": "array", "items": { "type": "string", "x-kind": "label" } },
+        "ladenDistance": { "type": "number", "x-kind": "quantity" },
+        "transportWork": { "type": "number", "x-kind": "quantity" },
+        "grossRate": { "type": "number", "x-kind": "money" },
+        "euCoveredFuel": { "$ref": "#/$defs/FuelQuantity" },
+        "totalCo2Cost": { "type": "number", "x-kind": "money" },
+        "euaCo2Cost": { "type": "number", "x-kind": "money" },
+        "euaFreightImpact": { "type": "number", "x-kind": "money" },
+        "fuelEuResult": { "$ref": "#/$defs/FuelEuResult" },
+        "fuelEuTotalPenalty": { "type": "number", "x-kind": "money" },
+        "fuelEuFreightImpact": { "type": "number", "x-kind": "money" },
+        "perCargoBreakdown": { "type": "array", "items": { "$ref": "#/$defs/PerCargoBreakdown" } },
+        "repositioningCost": { "type": "number", "x-kind": "money" }
+      }
+    },
+    "FuelQuantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hsfo", "vlsfo", "lsmgo"],
+      "properties": {
+        "hsfo": { "type": "number", "x-kind": "quantity" },
+        "vlsfo": { "type": "number", "x-kind": "quantity" },
+        "lsmgo": { "type": "number", "x-kind": "quantity" }
+      }
+    },
+    "FuelQuantityWithTotal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hsfo", "vlsfo", "lsmgo", "total"],
+      "properties": {
+        "hsfo": { "type": "number", "x-kind": "quantity" },
+        "vlsfo": { "type": "number", "x-kind": "quantity" },
+        "lsmgo": { "type": "number", "x-kind": "quantity" },
+        "total": { "type": "number", "x-kind": "quantity" }
+      }
+    },
+    "FuelMoney": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hsfo", "vlsfo", "lsmgo"],
+      "properties": {
+        "hsfo": { "type": "number", "x-kind": "money" },
+        "vlsfo": { "type": "number", "x-kind": "money" },
+        "lsmgo": { "type": "number", "x-kind": "money" }
+      }
+    },
+    "CiiResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actualCii", "requiredCii", "ciiRatio", "rating", "ratingDescription", "boundaries"],
+      "properties": {
+        "actualCii": { "type": "number", "x-kind": "ratio" },
+        "requiredCii": { "type": "number", "x-kind": "ratio" },
+        "ciiRatio": { "type": "number", "x-kind": "ratio" },
+        "rating": { "type": "string", "x-kind": "label" },
+        "ratingDescription": { "type": "string", "x-kind": "label" },
+        "boundaries": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["A", "B", "C", "D"],
+          "properties": {
+            "A": { "type": "number", "x-kind": "ratio" },
+            "B": { "type": "number", "x-kind": "ratio" },
+            "C": { "type": "number", "x-kind": "ratio" },
+            "D": { "type": "number", "x-kind": "ratio" }
+          }
+        }
+      }
+    },
+    "EtsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalCo2", "etsVoyageCoverage", "phaseInPercentage", "chargeableCo2", "etsCost", "legBreakdown"],
+      "properties": {
+        "totalCo2": { "type": "number", "x-kind": "quantity" },
+        "etsVoyageCoverage": { "type": "number", "x-kind": "ratio" },
+        "phaseInPercentage": { "type": "number", "x-kind": "ratio" },
+        "chargeableCo2": { "type": "number", "x-kind": "quantity" },
+        "etsCost": { "type": "number", "x-kind": "money" },
+        "legBreakdown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["origin", "destination", "coverage", "co2", "chargeableCo2"],
+            "properties": {
+              "origin": { "type": "string", "x-kind": "label" },
+              "destination": { "type": "string", "x-kind": "label" },
+              "coverage": { "type": "number", "x-kind": "ratio" },
+              "co2": { "type": "number", "x-kind": "quantity" },
+              "chargeableCo2": { "type": "number", "x-kind": "quantity" }
+            }
+          }
+        }
+      }
+    },
+    "EtsLegDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legIndex", "isPortOnly", "originPort", "originUnloc", "originIsEu", "destPort", "destUnloc", "destIsEu", "coveragePct", "portCoveragePct", "coverageLabel", "seaVlsfo", "seaLsmgo", "seaHsfo", "portVlsfo", "portLsmgo", "portHsfo", "chargeableVlsfo", "chargeableLsmgo", "chargeableHsfo", "chargeableCo2"],
+      "properties": {
+        "legIndex": { "type": "integer", "x-kind": "count" },
+        "isPortOnly": { "type": "boolean", "x-kind": "flag" },
+        "originPort": { "type": "string", "x-kind": "label" },
+        "originUnloc": { "type": "string", "x-kind": "label" },
+        "originIsEu": { "type": "boolean", "x-kind": "flag" },
+        "destPort": { "type": "string", "x-kind": "label" },
+        "destUnloc": { "type": "string", "x-kind": "label" },
+        "destIsEu": { "type": "boolean", "x-kind": "flag" },
+        "coveragePct": { "type": "number", "x-kind": "ratio" },
+        "portCoveragePct": { "type": "number", "x-kind": "ratio" },
+        "coverageLabel": { "type": "string", "x-kind": "label" },
+        "seaVlsfo": { "type": "number", "x-kind": "quantity" },
+        "seaLsmgo": { "type": "number", "x-kind": "quantity" },
+        "seaHsfo": { "type": "number", "x-kind": "quantity" },
+        "portVlsfo": { "type": "number", "x-kind": "quantity" },
+        "portLsmgo": { "type": "number", "x-kind": "quantity" },
+        "portHsfo": { "type": "number", "x-kind": "quantity" },
+        "chargeableVlsfo": { "type": "number", "x-kind": "quantity" },
+        "chargeableLsmgo": { "type": "number", "x-kind": "quantity" },
+        "chargeableHsfo": { "type": "number", "x-kind": "quantity" },
+        "chargeableCo2": { "type": "number", "x-kind": "quantity" }
+      }
+    },
+    "UkEtsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phaseIn", "ukCoveredFuel", "ukCoveredCo2", "chargeableCo2", "ukEtsCost", "ukVoyageCoverage", "legBreakdown"],
+      "properties": {
+        "phaseIn": { "type": "number", "x-kind": "ratio" },
+        "ukCoveredFuel": { "$ref": "#/$defs/FuelQuantity" },
+        "ukCoveredCo2": { "type": "number", "x-kind": "quantity" },
+        "chargeableCo2": { "type": "number", "x-kind": "quantity" },
+        "ukEtsCost": { "type": "number", "x-kind": "money" },
+        "ukVoyageCoverage": { "type": "number", "x-kind": "ratio" },
+        "legBreakdown": { "type": "array", "items": { "$ref": "#/$defs/UkEtsLegDetail" } }
+      }
+    },
+    "UkEtsLegDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legIndex", "originPort", "originZone", "destPort", "destZone", "seaCoveragePct", "portCoveragePct", "ukCoveredFuel", "ukCoveredCo2", "chargeableCo2"],
+      "properties": {
+        "legIndex": { "type": "integer", "x-kind": "count" },
+        "originPort": { "type": "string", "x-kind": "label" },
+        "originZone": { "type": ["string", "null"], "x-kind": "label" },
+        "destPort": { "type": "string", "x-kind": "label" },
+        "destZone": { "type": ["string", "null"], "x-kind": "label" },
+        "seaCoveragePct": { "type": "number", "x-kind": "ratio" },
+        "portCoveragePct": { "type": "number", "x-kind": "ratio" },
+        "ukCoveredFuel": { "$ref": "#/$defs/FuelQuantity" },
+        "ukCoveredCo2": { "type": "number", "x-kind": "quantity" },
+        "chargeableCo2": { "type": "number", "x-kind": "quantity" }
+      }
+    },
+    "FuelEuResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["voyageYear", "ghgLimit", "voyageGhg", "totalEuEnergy", "hsfoBalance", "vlsfoBalance", "mgoBalance", "totalBalance", "penaltyEur", "totalPenalty", "rewardFactor", "fuels", "costPerTon", "legs"],
+      "properties": {
+        "voyageYear": { "type": "integer", "x-kind": "count" },
+        "ghgLimit": { "type": "number", "x-kind": "ratio" },
+        "voyageGhg": { "type": "number", "x-kind": "ratio" },
+        "totalEuEnergy": { "type": "number", "x-kind": "quantity" },
+        "hsfoBalance": { "type": "number", "x-kind": "quantity" },
+        "vlsfoBalance": { "type": "number", "x-kind": "quantity" },
+        "mgoBalance": { "type": "number", "x-kind": "quantity" },
+        "totalBalance": { "type": "number", "x-kind": "quantity" },
+        "penaltyEur": { "type": "number", "x-kind": "money" },
+        "totalPenalty": { "type": "number", "x-kind": "money" },
+        "rewardFactor": { "type": "number", "x-kind": "ratio" },
+        "fuels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hsfo", "vlsfo", "lsmgo"],
+          "properties": {
+            "hsfo": { "$ref": "#/$defs/FuelEuFuelDetail" },
+            "vlsfo": { "$ref": "#/$defs/FuelEuFuelDetail" },
+            "lsmgo": { "$ref": "#/$defs/FuelEuFuelDetail" }
+          }
+        },
+        "costPerTon": { "$ref": "#/$defs/FuelMoney" },
+        "legs": { "type": "array", "items": { "$ref": "#/$defs/FuelEuLegOutput" } }
+      }
+    },
+    "FuelEuFuelDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fuelType", "euQuantity", "lcv", "ghg", "euEnergy", "balance", "penaltyEur", "costPerTon", "cost"],
+      "properties": {
+        "fuelType": { "type": "string", "x-kind": "label" },
+        "euQuantity": { "type": "number", "x-kind": "quantity" },
+        "lcv": { "type": "number", "x-kind": "ratio" },
+        "ghg": { "type": "number", "x-kind": "ratio" },
+        "euEnergy": { "type": "number", "x-kind": "quantity" },
+        "balance": { "type": "number", "x-kind": "quantity" },
+        "penaltyEur": { "type": "number", "x-kind": "money" },
+        "costPerTon": { "type": "number", "x-kind": "money" },
+        "cost": { "type": "number", "x-kind": "money" }
+      }
+    },
+    "FuelEuLegOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fromPort", "toPort", "fuelType", "euFactor", "euEnergy"],
+      "properties": {
+        "fromPort": { "type": "string", "x-kind": "label" },
+        "toPort": { "type": "string", "x-kind": "label" },
+        "fuelType": { "type": "string", "x-kind": "label" },
+        "euFactor": { "type": "number", "x-kind": "ratio" },
+        "euEnergy": { "type": "number", "x-kind": "quantity" }
+      }
+    },
+    "PerCargoBreakdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cargoId", "cargoLabel", "loadedQty", "grossFreight", "voyageCommissionAmount", "netFreight", "share", "allocatedBunker", "allocatedPortCosts", "allocatedVoyageCosts", "allocatedHire", "grossRate", "routeStartIdx", "routeEndIdx", "extraDays", "demurrage", "despatch", "cargoDistanceNm", "cargoTonMiles", "tonMileShare", "allocatedDirectPortCost", "allocatedSharedPortCost", "allocatedMiscCost", "allocatedCanalCost", "allocatedRepositioningCost", "allocatedTotalCost", "netRate", "voyageCommissionPct"],
+      "properties": {
+        "cargoId": { "type": "integer", "x-kind": "count" },
+        "cargoLabel": { "type": "string", "x-kind": "label" },
+        "loadedQty": { "type": "number", "x-kind": "quantity" },
+        "grossFreight": { "type": "number", "x-kind": "money" },
+        "voyageCommissionAmount": { "type": "number", "x-kind": "money" },
+        "netFreight": { "type": "number", "x-kind": "money" },
+        "share": { "type": "number", "x-kind": "ratio" },
+        "allocatedBunker": { "type": "number", "x-kind": "money" },
+        "allocatedPortCosts": { "type": "number", "x-kind": "money" },
+        "allocatedVoyageCosts": { "type": "number", "x-kind": "money" },
+        "allocatedHire": { "type": "number", "x-kind": "money" },
+        "grossRate": { "type": "number", "x-kind": "money" },
+        "routeStartIdx": { "type": "integer", "x-kind": "count" },
+        "routeEndIdx": { "type": "integer", "x-kind": "count" },
+        "extraDays": { "type": "number", "x-kind": "quantity" },
+        "demurrage": { "type": "number", "x-kind": "money" },
+        "despatch": { "type": "number", "x-kind": "money" },
+        "cargoDistanceNm": { "type": "number", "x-kind": "quantity" },
+        "cargoTonMiles": { "type": "number", "x-kind": "quantity" },
+        "tonMileShare": { "type": "number", "x-kind": "ratio" },
+        "allocatedDirectPortCost": { "type": "number", "x-kind": "money" },
+        "allocatedSharedPortCost": { "type": "number", "x-kind": "money" },
+        "allocatedMiscCost": { "type": "number", "x-kind": "money" },
+        "allocatedCanalCost": { "type": "number", "x-kind": "money" },
+        "allocatedRepositioningCost": { "type": "number", "x-kind": "money" },
+        "allocatedTotalCost": { "type": "number", "x-kind": "money" },
+        "netRate": { "type": "number", "x-kind": "money" },
+        "voyageCommissionPct": { "type": "number", "x-kind": "ratio" }
+      }
+    }
+  }
+}

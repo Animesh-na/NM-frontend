@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "calc.v1/calculation-input",
+  "title": "CalculationInput",
+  "description": "Canonical voyage-calculation input (D-010). The sheet is the saved sheet document exactly as the frontend serialises it (Index.tsx gatherData). organization_id is never accepted from the browser: the server takes it from the JWT.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "segment", "working_sequence", "sheet"],
+  "properties": {
+    "contract_version": { "type": "string", "enum": ["calc.v1"] },
+    "calculation_id": { "type": ["string", "null"], "description": "Optional client UUID; the server generates one when absent." },
+    "sheet_id": { "type": ["string", "null"], "description": "Sheet UUID; null for an unsaved sheet." },
+    "segment": { "type": "string", "enum": ["dry_bulk", "tanker"] },
+    "engine_version": { "type": ["string", "null"], "description": "Engine version the client expects (informational until M3)." },
+    "reference_data_version": { "type": ["string", "null"], "description": "Reference-data version the client expects (informational until M3)." },
+    "working_sequence": { "type": "integer", "minimum": 0 },
+    "calculation_date": { "type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "description": "UTC date (YYYY-MM-DD) for year/date-dependent regulatory rules (D-012). Server uses today (UTC) when absent." },
+    "sheet": { "$ref": "#/$defs/SheetDocument" }
+  },
+  "$defs": {
+    "SheetDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vessel", "sequence"],
+      "properties": {
+        "vessel": { "$ref": "#/$defs/Vessel" },
+        "sequence": { "type": "array", "maxItems": 200, "items": { "$ref": "#/$defs/SequenceRow" } },
+        "cargos": { "type": "array", "maxItems": 50, "items": { "$ref": "#/$defs/CargoEntry" } },
+        "bunker": { "$ref": "#/$defs/Bunker" },
+        "misc": { "$ref": "#/$defs/Misc" },
+        "hireRate": { "type": "number" },
+        "vesselCost": { "type": "number" },
+        "netBB": { "type": "number" },
+        "applyEuaImpact": { "type": "boolean" },
+        "applyFuelEuImpact": { "type": "boolean" },
+        "applyUkEtsImpact": { "type": "boolean" },
+        "departureUtc": { "type": "string" },
+        "autoDistanceEnabled": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "charterer": { "type": "string" }
+      }
+    },
+    "Vessel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "imo": { "type": "string" },
+        "dwt": { "type": "number" },
+        "gt": { "type": "number" },
+        "cubic": { "type": "number" },
+        "cubicUnit": { "type": "string" },
+        "draft": { "type": "number" },
+        "tpcTpi": { "type": "number" },
+        "hsfoCapability": { "type": "boolean" },
+        "hasScrubber": { "type": "boolean" },
+        "scrubberCount": { "type": "number" },
+        "builtYear": { "type": "number" },
+        "builder": { "type": "string" },
+        "owner": { "type": "string" },
+        "loa": { "type": "number" },
+        "beam": { "type": "number" },
+        "speedProfile": { "type": "string", "enum": ["eco", "full"] },
+        "ecoConsumption": { "$ref": "#/$defs/ConsumptionMatrix" },
+        "fullConsumption": { "$ref": "#/$defs/ConsumptionMatrix" },
+        "loadDischIdleSame": { "type": "boolean" },
+        "miscMultiplier": { "type": "number" },
+        "consumption": { "$ref": "#/$defs/LegacyConsumption" }
+      }
+    },
+    "ConsumptionMatrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "speed": { "$ref": "#/$defs/MatrixRow" },
+        "hsfo": { "$ref": "#/$defs/MatrixRow" },
+        "vlsfo": { "$ref": "#/$defs/MatrixRow" },
+        "lsmgo": { "$ref": "#/$defs/MatrixRow" },
+        "ae": { "$ref": "#/$defs/MatrixRow" },
+        "aeScrubber": { "$ref": "#/$defs/MatrixRow" }
+      }
+    },
+    "MatrixRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ballast": { "type": "number" },
+        "laden": { "type": "number" },
+        "canal": { "type": "number" },
+        "load": { "type": "number" },
+        "discharge": { "type": "number" },
+        "idle": { "type": "number" },
+        "misc1": { "type": "number" },
+        "misc2": { "type": "number" }
+      }
+    },
+    "LegacyConsumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Legacy speed-profile-independent table. Stored by old sheets; not read by the calculation.",
+      "properties": {
+        "speed": { "$ref": "#/$defs/LegacyRow" },
+        "hsfo": { "$ref": "#/$defs/LegacyRow" },
+        "vlsfo": { "$ref": "#/$defs/LegacyRow" },
+        "lsmgo": { "$ref": "#/$defs/LegacyRow" },
+        "ae": { "$ref": "#/$defs/LegacyRow" },
+        "aeScrubber": { "$ref": "#/$defs/LegacyRow" }
+      }
+    },
+    "LegacyRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ecoBallast": { "type": "number" },
+        "ecoLaden": { "type": "number" },
+        "canal": { "type": "number" }
+      }
+    },
+    "SequenceRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "integer" },
+        "type": { "type": "string", "enum": ["open", "port", "repos"] },
+        "operation": { "type": "string" },
+        "port": { "type": "string" },
+        "portUnloc": { "type": "string" },
+        "portId": { "type": "number" },
+        "coordinates": { "type": "array", "items": { "type": "number" }, "maxItems": 2 },
+        "season": { "type": "string" },
+        "distance": { "type": "number" },
+        "distanceSpeedContext": { "type": "string" },
+        "ecaDistance": { "type": "number" },
+        "ecaDistanceSpeedContext": { "type": "string" },
+        "baseSeaTime": { "type": "number", "description": "Derived; recomputed, never trusted." },
+        "seaMarginTime": { "type": "number", "description": "Derived; recomputed, never trusted." },
+        "ecaTime": { "type": "number", "description": "Derived; recomputed, never trusted." },
+        "seaTime": { "type": "number", "description": "Derived; recomputed, never trusted." },
+        "totalLegTime": { "type": "number", "description": "Derived; recomputed, never trusted." },
+        "timeOverride": { "type": "number" },
+        "quantity": { "type": "number" },
+        "productivity": { "type": "number" },
+        "layTime": { "type": "number" },
+        "terms": { "type": "string" },
+        "customTermsName": { "type": "string" },
+        "turnTime": { "type": "number" },
+        "extraTime": { "type": "number" },
+        "calculatedPortDays": { "type": "number", "description": "Derived; recomputed, never trusted." },
+        "wdaysPortOverride": { "type": "number" },
+        "wdaysUnit": { "type": "string" },
+        "draft": { "type": "number" },
+        "cranes": { "type": "number" },
+        "seaMargin": { "type": "number" },
+        "bunkeringHsfo": { "type": "number" },
+        "bunkeringVlsfo": { "type": "number" },
+        "bunkeringLsmgo": { "type": "number" },
+        "expDa": { "type": "number" },
+        "daOwnerAcct": { "type": "number" },
+        "daChartererAcct": { "type": "number" },
+        "portMaxDraft": { "type": "number" },
+        "ukcPercent": { "type": "number" },
+        "stowageFactor": { "type": "number" },
+        "portFuelType": { "type": "string", "enum": ["hsfo", "vlsfo", "lsmgo"] },
+        "coefficientFactor": { "type": "number" },
+        "isEuEea": { "type": "boolean" },
+        "portCountry": { "type": "string" },
+        "ukEts": { "type": "boolean" },
+        "ukZone": { "type": ["string", "null"], "enum": ["gb", "ni", null] },
+        "weatherDelayHours": { "type": "number" },
+        "weatherDelayFailed": { "type": "boolean" },
+        "eta": { "type": "string" },
+        "legDepartureUtc": { "type": "string" },
+        "legArrivalUtc": { "type": "string" },
+        "assignedCargoIds": { "type": "array", "maxItems": 50, "items": { "type": "integer" } }
+      }
+    },
+    "CargoEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "integer" },
+        "rate": { "type": "number" },
+        "rateType": { "type": "string", "enum": ["mt", "lumpsum"] },
+        "quantity": { "type": "number" },
+        "worldscale": { "type": "number" },
+        "voyageCommission": { "type": "number" },
+        "tcCommission": { "type": "number" },
+        "demurrageRate": { "type": "number" },
+        "despatchRate": { "type": "number" },
+        "demurrageAmount": { "type": "number" },
+        "despatchAmount": { "type": "number" },
+        "averageMode": { "type": "string" },
+        "laytimeMode": { "type": "string", "enum": ["average", "non_reversible", "cancelled"] },
+        "ntcBase": { "type": "number" },
+        "gtcTarget": { "type": "number" },
+        "netBBOverride": { "type": "number" },
+        "stowageFactor": { "type": "number" },
+        "cpOverrides": { "type": "object", "propertyNames": { "pattern": "^[0-9]+$" }, "additionalProperties": { "$ref": "#/$defs/CpOverride" } },
+        "opOverrides": { "type": "object", "propertyNames": { "pattern": "^[0-9]+$" }, "additionalProperties": { "$ref": "#/$defs/OpOverride" } }
+      }
+    },
+    "CpOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quantity": { "type": "number" },
+        "productivity": { "type": "number" },
+        "demurrage": { "type": "number" },
+        "despatch": { "type": "number" },
+        "turnTime": { "type": "number" },
+        "extraTime": { "type": "number" },
+        "terms": { "type": "string" },
+        "coefficientFactor": { "type": "number" },
+        "layTime": { "type": "number" }
+      }
+    },
+    "OpOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quantity": { "type": "number" },
+        "productivity": { "type": "number" },
+        "turnTime": { "type": "number" },
+        "extraTime": { "type": "number" },
+        "terms": { "type": "string" },
+        "coefficientFactor": { "type": "number" },
+        "cranes": { "type": "number" },
+        "expDa": { "type": "number" },
+        "layTime": { "type": "number" }
+      }
+    },
+    "Bunker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hsfo": { "$ref": "#/$defs/BunkerPrice" },
+        "vlsfo": { "$ref": "#/$defs/BunkerPrice" },
+        "lsmgo": { "$ref": "#/$defs/BunkerPrice" },
+        "co2Price": { "type": "number", "description": "Deprecated; ignored." },
+        "euEtsPrice": { "type": "number" },
+        "ukEtsPrice": { "type": "number" },
+        "fuelMode": { "type": "string", "enum": ["average", "fifo"] },
+        "ignoreBOB": { "type": "boolean" },
+        "rewardFactor": { "type": "number" },
+        "portBunkering": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/PortBunkeringEntry" } },
+        "euEtsHsfo": { "type": "number" },
+        "euEtsVlsfo": { "type": "number" },
+        "euEtsLsmgo": { "type": "number" }
+      }
+    },
+    "BunkerPrice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "price": { "type": "number" },
+        "robStart": { "type": "number" }
+      }
+    },
+    "PortBunkeringEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "number" },
+        "portUnloc": { "type": "string" },
+        "portName": { "type": "string" },
+        "hsfo": { "$ref": "#/$defs/BunkerLot" },
+        "vlsfo": { "$ref": "#/$defs/BunkerLot" },
+        "lsmgo": { "$ref": "#/$defs/BunkerLot" }
+      }
+    },
+    "BunkerLot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quantity": { "type": "number" },
+        "price": { "type": "number" }
+      }
+    },
+    "Misc": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "miscCost": { "type": "number" },
+        "extraFees": { "type": "number" },
+        "extraInsurance": { "type": "number" },
+        "canalCost1": { "type": "number" },
+        "canalFuel": { "type": "string", "enum": ["hsfo", "vlsfo", "lsmgo"] },
+        "extraTime": { "$ref": "#/$defs/MiscExtraTime" }
+      }
+    },
+    "MiscExtraTime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "canal1": { "$ref": "#/$defs/ExtraTimeEntry" }
+      }
+    },
+    "ExtraTimeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string" },
+        "value": { "type": "number" },
+        "unit": { "type": "string", "enum": ["days", "hours"] }
+      }
+    }
+  }
+}
