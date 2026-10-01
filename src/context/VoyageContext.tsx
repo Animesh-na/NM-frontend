@@ -1829,6 +1829,9 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
       ecaDistance: row.ecaDistance,
       portDays,
       quantity: effQty,
+      productivity: hasOp && opOv!.productivity !== undefined ? opOv!.productivity : row.productivity,
+      terms: hasOp && opOv!.terms !== undefined ? opOv!.terms : row.terms,
+      coefficientFactor: hasOp && opOv!.coefficientFactor !== undefined ? opOv!.coefficientFactor : row.coefficientFactor,
       expDa: effExpDa,
       // Pass sea margin adjusted times for accurate downstream calculations
       seaTime: row.totalLegTime, // Total sea time WITH sea margin applied

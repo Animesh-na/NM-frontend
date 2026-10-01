@@ -43,6 +43,10 @@ export interface SequenceRow {
   ecaDistance: number; // nm in ECA zones
   portDays: number; // days in port (total including working + turn + extra)
   quantity: number; // mt or cbm
+  // Raw port inputs required by the Go engine to independently derive port time.
+  productivity?: number;
+  terms?: string;
+  coefficientFactor?: number;
   expDa: number; // port costs in USD
   // Sea margin adjusted times (calculated in VoyageContext)
   seaTime?: number; // Total sea time WITH sea margin applied
