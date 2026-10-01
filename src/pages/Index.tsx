@@ -14,6 +14,7 @@ import { SectionFrame } from "@/components/voyage/SectionFrame";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
+import { useCalcShadow } from "@/services/calcShadow";
 import { Calculator, Loader2, PanelRightClose, PanelRightOpen, Trash2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
@@ -86,6 +87,10 @@ const Index = () => {
     notes: voyage.notes,
     charterer: voyage.charterer,
   }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.autoDistanceEnabled, voyage.notes, voyage.charterer]);
+
+  // Calculation shadow mode (VITE_CALC_SHADOW, default off): compares this
+  // sheet's results with the Go engine in the background. Display is unchanged.
+  useCalcShadow(gatherData, voyage.results, activeTab?.id ?? null);
 
   // Let the sheet manager read current values for auto-save on leave
   const gatherRef = useRef(gatherData);
