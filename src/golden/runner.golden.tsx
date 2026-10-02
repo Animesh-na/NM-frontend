@@ -17,7 +17,8 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { VoyageProvider, useVoyageContext } from "@/context/VoyageContext";
 import { setApiMode } from "@/services/apiMode";
-import { calculateDraftRestriction, type DraftCheckInput } from "@/utils/draftRestriction";
+import { calculateDraftRestriction, estimateCubicFromDwt, type DraftCheckInput } from "@/utils/draftRestriction";
+import { estimateTpc } from "@/data/vessels";
 import { toResultDTO } from "@/contracts/calc/normalize";
 import type { CalculationInput } from "@/contracts/calc/types.generated";
 
@@ -38,10 +39,19 @@ interface ManifestEntry {
   path: string;
   domains: string[];
 }
-interface FunctionScenario {
-  kind: "function";
-  function: "calculateDraftRestriction";
-  input: DraftCheckInput;
+type FunctionScenario =
+  | { kind: "function"; function: "calculateDraftRestriction"; input: DraftCheckInput }
+  | { kind: "function"; function: "estimateCubicFromDwt" | "estimateTpc"; input: { dwt: number } };
+
+function runFunction(sc: FunctionScenario): unknown {
+  switch (sc.function) {
+    case "calculateDraftRestriction":
+      return calculateDraftRestriction(sc.input);
+    case "estimateCubicFromDwt":
+      return estimateCubicFromDwt(sc.input.dwt);
+    case "estimateTpc":
+      return estimateTpc(sc.input.dwt);
+  }
 }
 
 const frontendCommit = (() => {
@@ -108,7 +118,7 @@ describe("golden: frontend runner", () => {
       const input = JSON.parse(fs.readFileSync(`${base}.input.json`, "utf8")) as CalculationInput | FunctionScenario;
       let body: Record<string, unknown>;
       if ("kind" in input && input.kind === "function") {
-        body = { result: calculateDraftRestriction(input.input) };
+        body = { result: runFunction(input) };
       } else {
         const { result, non_finite } = await runSheet(input as CalculationInput);
         body = { result, non_finite };
