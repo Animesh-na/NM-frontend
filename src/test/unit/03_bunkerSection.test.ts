@@ -95,11 +95,15 @@ describe("Bunker Section", () => {
 
       const coverage = computeFifoCoverage(sequence, vessel, ["NLRTM"]);
 
-      // BOB: Rotterdam→Antwerp sea (6), Antwerp idle (0.4),
+      // BOB: Rotterdam→Antwerp sea (6), Antwerp passing-port stay (1 day at the
+      // canal rate: computeFifoCoverage burns pssg stays at "canal", not "idle"),
       // Antwerp→Rotterdam sea (6). New lot starts at Rotterdam port stay.
-      expect(coverage.vlsfo[0]).toBeCloseTo(12.4, 6);
+      // The Go engine agrees (migration X-001, decision D-019).
+      expect(coverage.vlsfo[0]).toBeCloseTo(15, 6);
       expect(coverage.vlsfo[1]).toBeCloseTo(0.4, 6);
-      expect(coverage.lsmgo[0]).toBeCloseTo(2.5, 6);
+      // AE on BOB: 1 + 1 sea days at the ballast AE rate (1); the pssg stay uses
+      // the AE canal rate (0), not idle (0.5).
+      expect(coverage.lsmgo[0]).toBeCloseTo(2, 6);
       expect(coverage.lsmgo[1]).toBeCloseTo(0.5, 6);
     });
 
