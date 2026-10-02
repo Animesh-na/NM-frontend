@@ -13,7 +13,7 @@ export const SERVER_CALCULATION_ENABLED = import.meta.env.VITE_SERVER_CALCULATIO
 
 export const PATCH_DEBOUNCE_MS = 200;
 
-export function createBrowserSession(sheetId: string, segment: "dry_bulk" | "tanker", initialDoc: unknown): VoyageSession {
+export function createBrowserSession(sheetId: string, segment: "dry_bulk" | "tanker", initialDoc: unknown, loadedDoc?: unknown): VoyageSession {
   return new VoyageSession(sheetId, segment, initialDoc, {
     socket: browserSocketDeps(),
     loadSavedDoc: async (id) => {
@@ -24,7 +24,7 @@ export function createBrowserSession(sheetId: string, segment: "dry_bulk" | "tan
     tabs: createTabCoordinator(sheetId),
     setTimeout: (fn, ms) => setTimeout(fn, ms),
     clearTimeout: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
-  });
+  }, loadedDoc);
 }
 
 /**
@@ -36,18 +36,22 @@ export function useVoyageSession(opts: {
   sheetId: string | null;
   segment: "dry_bulk" | "tanker";
   getInitialDoc: () => unknown;
+  /** The sheet as loaded from the server (raw REST payload), to detect newer saves. */
+  getLoadedDoc?: () => unknown;
   factory?: typeof createBrowserSession;
 }): VoyageSession | null {
   const [session, setSession] = useState<VoyageSession | null>(null);
   const getDoc = useRef(opts.getInitialDoc);
   getDoc.current = opts.getInitialDoc;
+  const getLoaded = useRef(opts.getLoadedDoc);
+  getLoaded.current = opts.getLoadedDoc;
   const factory = opts.factory ?? createBrowserSession;
   useEffect(() => {
     if (!opts.enabled || !opts.sheetId) {
       setSession(null);
       return;
     }
-    const s = factory(opts.sheetId, opts.segment, getDoc.current());
+    const s = factory(opts.sheetId, opts.segment, getDoc.current(), getLoaded.current?.());
     setSession(s);
     void s.start();
     return () => s.dispose();
@@ -94,6 +98,25 @@ export function useDebouncedPatch(session: VoyageSession | null, doc: unknown, d
       session.update(latest.current);
     }, delayMs);
   }, [session, doc, delayMs]);
+
+  // The session pulls the latest document itself when it is disposed (sheet
+  // switch, unmount), so edits still in the debounce reach it; the timer
+  // belongs to that session and is cleared with it.
+  useEffect(() => {
+    if (!session) return;
+    session.setDocumentProvider(() => latest.current);
+    return () => {
+      if (timer.current !== null) clearTimeout(timer.current);
+      timer.current = null;
+    };
+  }, [session]);
+
+  // An idle save may complete while an edit is still buffered: send it at
+  // once, so "Saved" is never shown over an unsent edit for long.
+  const saveState = useSessionSnapshot(session)?.saveState;
+  useEffect(() => {
+    if (saveState === "SAVED" && timer.current !== null) flushRef.current();
+  }, [saveState]);
 
   useEffect(() => {
     if (!session) return;

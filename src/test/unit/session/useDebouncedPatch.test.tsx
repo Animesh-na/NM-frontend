@@ -7,7 +7,7 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 function stubSession() {
-  return { update: vi.fn(), flush: vi.fn() } as unknown as VoyageSession & { update: ReturnType<typeof vi.fn>; flush: ReturnType<typeof vi.fn> };
+  return { update: vi.fn(), flush: vi.fn(), setDocumentProvider: vi.fn(), subscribe: () => () => undefined, getSnapshot: () => null } as unknown as VoyageSession & { update: ReturnType<typeof vi.fn>; flush: ReturnType<typeof vi.fn> };
 }
 
 describe("useDebouncedPatch", () => {

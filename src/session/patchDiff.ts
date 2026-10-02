@@ -92,10 +92,10 @@ export interface PatchPlan {
 }
 
 /** Diffs and validates; the valid ops fit one patch (the rest follows next time). */
-export function planPatch(serverDoc: unknown, localDoc: unknown): PatchPlan {
+export function planPatch(serverDoc: unknown, localDoc: unknown, isHeld: (op: PatchOp) => boolean = () => false): PatchPlan {
   const all = diffDocuments(serverDoc, localDoc);
   const ops: PatchOp[] = [];
   const held: PatchOp[] = [];
-  for (const op of all) (validateOp(op) === null ? ops : held).push(op);
+  for (const op of all) (validateOp(op) === null && !isHeld(op) ? ops : held).push(op);
   return { ops: ops.slice(0, MAX_OPS_PER_PATCH), held, overflow: ops.length > MAX_OPS_PER_PATCH };
 }

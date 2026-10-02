@@ -22,7 +22,7 @@ describe("calculation socket", () => {
     expect(backoffDelay(5, () => 0)).toBe(0);
   });
 
-  it("reconnects after a drop with growing jittered delays, and resets after a successful open", async () => {
+  it("reconnects after a drop with growing jittered delays, and resets only once the session is healthy", async () => {
     const server = new FakeServer();
     const { s, opened } = make(server, { random: () => 0.5 });
     s.start();
@@ -45,7 +45,8 @@ describe("calculation socket", () => {
     await settle();
     expect(server.sockets).toHaveLength(3);
     expect(server.tickets).toBe(3);
-    server.last.accept(); // success resets the backoff
+    server.last.accept();
+    s.markHealthy(); // the session reports connected/resumed: backoff resets
     server.last.drop();
     await vi.advanceTimersByTimeAsync(250);
     await settle();

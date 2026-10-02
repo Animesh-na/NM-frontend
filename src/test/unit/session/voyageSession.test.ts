@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { VoyageSession } from "@/session/voyageSession";
+import { SETTLE_MS, VoyageSession } from "@/session/voyageSession";
 import { OWNER_PROBE_MS, createTabCoordinator } from "@/session/tabCoordinator";
 import { FakeServer, channelBus, sessionDeps, sessionState, settle, type FakeSocket } from "./fakeServer";
 
@@ -8,8 +8,10 @@ afterEach(() => vi.useRealTimers());
 
 const DOC = { vessel: { name: "V", dwt: 81000 }, sequence: [{ id: 1 }] };
 
-async function openSession(server: FakeServer, opts: { doc?: unknown; state?: Record<string, unknown>; deps?: Parameters<typeof sessionDeps>[1] } = {}) {
-  const session = new VoyageSession("sheet-1", "dry_bulk", opts.doc ?? DOC, sessionDeps(server, opts.deps));
+type Opts = { doc?: unknown; loaded?: unknown; state?: Record<string, unknown>; deps?: Parameters<typeof sessionDeps>[1]; settled?: boolean };
+
+async function openSession(server: FakeServer, opts: Opts = {}) {
+  const session = new VoyageSession("sheet-1", "dry_bulk", opts.doc ?? DOC, sessionDeps(server, opts.deps), opts.loaded ?? opts.doc ?? DOC);
   const started = session.start();
   await vi.advanceTimersByTimeAsync(OWNER_PROBE_MS + 50); // the other-tab probe
   await started;
@@ -17,8 +19,9 @@ async function openSession(server: FakeServer, opts: { doc?: unknown; state?: Re
   const sock = server.last;
   sock.accept();
   const st = sessionState(opts.state);
-  sock.push({ type: "connected", request_id: "c-1", ...st });
+  sock.push({ type: "connected", request_id: "c-1", connection_id: "conn-1", ...st });
   sock.push({ type: "calculation_started", client_sequence: st.last_client_sequence, working_sequence: st.working_sequence, generation: st.working_sequence, calculation_id: "calc-0" });
+  if (opts.settled !== false) await vi.advanceTimersByTimeAsync(SETTLE_MS); // past the load-settle window
   return { session, sock };
 }
 
@@ -26,6 +29,14 @@ const lastPatch = (server: FakeServer) => server.ofType("patch").at(-1)!;
 
 function ack(sock: FakeSocket, seq: number, ws = seq) {
   sock.push({ type: "calculation_started", client_sequence: seq, working_sequence: ws, generation: ws, calculation_id: `calc-${ws}` });
+}
+
+async function reconnect(server: FakeServer) {
+  await vi.advanceTimersByTimeAsync(1000);
+  await settle();
+  const s = server.last;
+  s.accept();
+  return s;
 }
 
 describe("voyage session", () => {
@@ -84,14 +95,13 @@ describe("voyage session", () => {
     sock.push({ type: "save_started", working_sequence: 1 });
     sock.drop(); // save_completed never reaches this socket
     expect(session.getSnapshot().saveState).toBe("OFFLINE");
-    await vi.advanceTimersByTimeAsync(1000);
-    await settle();
-    const s2 = server.last;
+    const s2 = await reconnect(server);
     expect(s2).not.toBe(sock);
-    s2.accept();
-    expect(server.ofType("resume")[0]).toMatchObject({ session_id: "sess-1", last_client_sequence: 1, last_working_sequence: 1 });
+    // Resume reclaims only our own previous connection — never a take over.
+    expect(server.ofType("resume")[0]).toMatchObject({ session_id: "sess-1", last_client_sequence: 1, last_working_sequence: 1, take_over_from: "conn-1" });
+    expect(server.ofType("resume")[0]).not.toHaveProperty("take_over");
     expect(session.getSnapshot().saveState).toBe("RECOVERING");
-    s2.push({ type: "resumed", ...sessionState({ working_sequence: 1, last_client_sequence: 1, persisted_version: 2, dirty: false, sheet: { ...DOC, hireRate: 1 } }) });
+    s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ working_sequence: 1, last_client_sequence: 1, persisted_version: 2, dirty: false, sheet: { ...DOC, hireRate: 1 } }) });
     expect(session.getSnapshot()).toMatchObject({ saveState: "SAVED", persistedVersion: 2, conflict: null });
   });
 
@@ -102,12 +112,9 @@ describe("voyage session", () => {
     session.update({ ...DOC, hireRate: 2 }); // seq 2
     sock.drop(); // no acks
     session.update({ ...DOC, hireRate: 3 }); // offline: diffed after resume
-    await vi.advanceTimersByTimeAsync(1000);
-    await settle();
-    const s2 = server.last;
-    s2.accept();
+    const s2 = await reconnect(server);
     // The server applied seq 1 before the drop; seq 2 was lost.
-    s2.push({ type: "resumed", ...sessionState({ working_sequence: 1, last_client_sequence: 1, dirty: true, sheet: { ...DOC, hireRate: 1 } }) });
+    s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ working_sequence: 1, last_client_sequence: 1, dirty: true, sheet: { ...DOC, hireRate: 1 } }) });
     const replay = s2.sent.filter((m) => m.type === "patch");
     expect(replay.map((p) => p.client_sequence)).toEqual([2, 3]);
     expect(replay[1]).toMatchObject({ ops: [{ op: "set", path: "/hireRate", value: 3 }] });
@@ -119,10 +126,8 @@ describe("voyage session", () => {
     const { session, sock } = await openSession(server);
     session.update({ ...DOC, hireRate: 5 });
     sock.drop();
-    await vi.advanceTimersByTimeAsync(1000);
-    await settle();
-    server.last.accept();
-    server.last.push({ type: "resumed", ...sessionState({ session_id: "sess-OTHER", sheet: { ...DOC, hireRate: 9 } }) });
+    const s2 = await reconnect(server);
+    s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ session_id: "sess-OTHER", sheet: { ...DOC, hireRate: 9 } }) });
     const snap = session.getSnapshot();
     expect(snap.saveState).toBe("CONFLICT");
     expect(snap.conflict).toMatchObject({ reason: "RESUME_MISMATCH", differences: ["/hireRate"] });
@@ -137,10 +142,12 @@ describe("voyage session", () => {
     expect(session.getSnapshot().saveState).toBe("LOCAL_ONLY");
   });
 
-  it("conflict flow: VERSION_CONFLICT shows the differences; 'keep my changes' rebases them on the saved version", async () => {
+  it("conflict flow: VERSION_CONFLICT shows the differences; 'keep my changes' rebases them on the saved version, never SAVED early", async () => {
     const server = new FakeServer();
     const saved = { ...DOC, hireRate: 900 };
     const { session, sock } = await openSession(server, { deps: { loadSavedDoc: async () => ({ data: saved, version: 3 }) } });
+    const states: string[] = [];
+    session.subscribe(() => states.push(session.getSnapshot().saveState));
     session.update({ ...DOC, hireRate: 100 });
     ack(sock, 1);
     session.save();
@@ -155,18 +162,20 @@ describe("voyage session", () => {
     await session.resolveConflict("reapply");
     // 1) working sheet := saved version
     expect(lastPatch(server)).toMatchObject({ client_sequence: 2, ops: [{ op: "set", path: "/hireRate", value: 900 }] });
-    ack(sock, 2);
-    await vi.advanceTimersByTimeAsync(200);
+    session.update({ ...DOC, hireRate: 112 }); // still resolving: not sent
+    expect(server.ofType("patch")).toHaveLength(2);
+    expect(session.getSnapshot().saveState).toBe("RECOVERING");
+    ack(sock, 2); // 2) acknowledged → reopen
     await settle();
-    // 2) reopen: the server adopts version 3 as the base
     const s2 = server.last;
     expect(s2).not.toBe(sock);
     s2.accept();
-    expect(server.ofType("connect").at(-1)).toMatchObject({ take_over: false });
-    s2.push({ type: "connected", ...sessionState({ session_id: "sess-1", working_sequence: 2, last_client_sequence: 2, persisted_version: 3, dirty: false, sheet: saved }) });
-    // 3) my change (as of the conflict) goes on top of the new base
-    expect(lastPatch(server)).toMatchObject({ client_sequence: 3, ops: [{ op: "set", path: "/hireRate", value: 111 }] });
+    expect(server.ofType("resume").at(-1)).toMatchObject({ take_over_from: "conn-1" });
+    s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ session_id: "sess-1", working_sequence: 2, last_client_sequence: 2, persisted_version: 3, dirty: false, sheet: saved }) });
+    // 3) my latest change goes on top of the new base
+    expect(lastPatch(server)).toMatchObject({ client_sequence: 3, ops: [{ op: "set", path: "/hireRate", value: 112 }] });
     expect(session.getSnapshot().conflict).toBeNull();
+    expect(states.slice(states.indexOf("CONFLICT"))).not.toContain("SAVED");
   });
 
   it("acceptance: two tabs — the second is read-only, take over moves editing, no silent overwrite", async () => {
@@ -193,11 +202,10 @@ describe("voyage session", () => {
     const s2 = server.last;
     s2.accept();
     expect(server.ofType("connect").at(-1)).toMatchObject({ take_over: true });
-    s2.push({ type: "connected", ...sessionState() });
+    s2.push({ type: "connected", connection_id: "conn-2", ...sessionState() });
     expect(tab2.getSnapshot().role).toBe("owner");
     expect(tab1.getSnapshot().role).toBe("readonly"); // told at once over BroadcastChannel
-    // Even without the channel, the server rejects the old tab's write:
-    sock.push({ type: "conflict", code: "STALE_FENCE", fatal: true });
+    sock.push({ type: "conflict", code: "STALE_FENCE", fatal: true }); // and the server fences it anyway
     expect(tab1.getSnapshot().role).toBe("readonly");
   });
 
@@ -219,6 +227,128 @@ describe("voyage session", () => {
     session.update({ ...DOC, hireRate: 1, notes: "n" });
     sock.push({ type: "error", code: "INVALID_PATCH", message: "x", retryable: false, fatal: false, client_sequence: 1, path: "/notes" });
     expect(lastPatch(server)).toMatchObject({ client_sequence: 1, ops: [{ op: "set", path: "/hireRate", value: 1 }] });
+    sock.push({ type: "error", code: "INVALID_PATCH", message: "x", retryable: false, fatal: false, client_sequence: 1 }); // no path: hold the whole patch
+    const sends = server.ofType("patch").length;
+    session.flush();
+    expect(server.ofType("patch")).toHaveLength(sends); // no resend loop
+    session.update({ ...DOC, hireRate: 2, notes: "n" }); // a changed value is sent again
+    expect(lastPatch(server)).toMatchObject({ client_sequence: 1, ops: [{ op: "set", path: "/hireRate", value: 2 }] });
+  });
+});
+
+describe("M7 review regressions", () => {
+  it("BLOCKER: a newer saved version on connect is adopted and shown, never reverted by the next edit", async () => {
+    const server = new FakeServer();
+    const v40 = { ...DOC, hireRate: 40 };
+    const v41 = { ...DOC, hireRate: 41, notes: "saved elsewhere" };
+    const { session } = await openSession(server, { doc: v40, state: { dirty: false, persisted_version: 41, sheet: v41 } });
+    expect(session.getSnapshot().recoveredDoc).toEqual(v41);
+    expect(server.ofType("patch")).toHaveLength(0);
+    // The UI hydrates v41, settles, then the user edits.
+    session.clearRecovered();
+    session.update(v41);
+    await vi.advanceTimersByTimeAsync(SETTLE_MS);
+    session.update({ ...v41, vessel: { name: "X", dwt: 81000 } });
+    expect(lastPatch(server).ops).toEqual([{ op: "set", path: "/vessel/name", value: "X" }]);
+  });
+
+  it("BLOCKER: a resume into a newer session with nothing unsent adopts it (no diff of old data onto it)", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server);
+    sock.drop();
+    const s2 = await reconnect(server);
+    const v2 = { ...DOC, hireRate: 2 };
+    s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ session_id: "sess-NEW", persisted_version: 2, sheet: v2 }) });
+    expect(session.getSnapshot()).toMatchObject({ recoveredDoc: v2, conflict: null, sessionId: "sess-NEW" });
+    expect(server.ofType("patch")).toHaveLength(0);
+  });
+
+  it("an edit typed while connecting is not overwritten by newer server edits: conflict", async () => {
+    const server = new FakeServer();
+    const session = new VoyageSession("sheet-1", "dry_bulk", DOC, sessionDeps(server), DOC);
+    void session.start();
+    await vi.advanceTimersByTimeAsync(SETTLE_MS);
+    session.update({ ...DOC, hireRate: 5 }); // typed before the connection is up
+    await settle();
+    server.last.accept();
+    server.last.push({ type: "connected", connection_id: "c", ...sessionState({ dirty: true, working_sequence: 3, last_client_sequence: 3, sheet: { ...DOC, hireRate: 9 } }) });
+    expect(session.getSnapshot().conflict).toMatchObject({ reason: "RESUME_MISMATCH" });
+  });
+
+  it("sequence errors: an in-flight patch is not re-planned, the resend after UNAVAILABLE is bounded, and the sequence never goes back", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server);
+    session.update({ ...DOC, hireRate: 1 }); // 1
+    ack(sock, 1);
+    session.update({ ...DOC, hireRate: 2 }); // 2
+    session.update({ ...DOC, hireRate: 3 }); // 3 (pipelined)
+    sock.push({ type: "error", code: "UNAVAILABLE", message: "x", retryable: true, fatal: false, client_sequence: 2 });
+    sock.push({ type: "error", code: "INVALID_PATCH", message: "gap", retryable: false, fatal: false, client_sequence: 3, expected_sequence: 2 });
+    expect(server.ofType("patch")).toHaveLength(3); // 2 is in flight: nothing re-planned
+    await vi.advanceTimersByTimeAsync(1000); // resend 2, 3 in order
+    expect(server.ofType("patch").slice(3).map((p) => p.client_sequence)).toEqual([2, 3]);
+    ack(sock, 2);
+    ack(sock, 3);
+    session.update({ ...DOC, hireRate: 4 });
+    expect(lastPatch(server)).toMatchObject({ client_sequence: 4 });
+  });
+
+  it("a server behind our acknowledgements resynchronises through a reopen, never by lowering the sequence", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server);
+    session.update({ ...DOC, hireRate: 1 });
+    ack(sock, 1);
+    session.update({ ...DOC, hireRate: 2 });
+    sock.push({ type: "error", code: "INVALID_PATCH", message: "regression", retryable: false, fatal: false, client_sequence: 2, expected_sequence: 1 });
+    await settle();
+    expect(server.sockets.length).toBe(2); // reopened
+  });
+
+  it("a resume mismatch clears stale pending patches: 'reload' never sends the discarded edits", async () => {
+    const server = new FakeServer();
+    const saved = { ...DOC, hireRate: 50 };
+    const { session, sock } = await openSession(server, { deps: { loadSavedDoc: async () => ({ data: saved, version: 2 }) } });
+    session.update({ ...DOC, hireRate: 5 }); // seq 1, never acked
+    sock.drop();
+    const s2 = await reconnect(server);
+    s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ session_id: "sess-OTHER", sheet: saved }) });
+    expect(session.getSnapshot().conflict?.reason).toBe("RESUME_MISMATCH");
+    await session.resolveConflict("reload");
+    expect(session.getSnapshot().recoveredDoc).toEqual(saved);
+    const after = s2.sent.filter((m) => m.type === "patch");
+    expect(after.every((p) => !JSON.stringify(p.ops).includes(":5}"))).toBe(true);
+  });
+
+  it("a disposed session never connects (probe still pending at dispose)", async () => {
+    const server = new FakeServer();
+    const bus = channelBus();
+    const session = new VoyageSession("sheet-1", "dry_bulk", DOC, sessionDeps(server, { tabs: createTabCoordinator("sheet-1", { channel: bus.channel(), tabId: "t" }) }));
+    const started = session.start();
+    session.dispose();
+    await vi.advanceTimersByTimeAsync(OWNER_PROBE_MS + 50);
+    await started;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(server.sockets).toHaveLength(0);
+  });
+
+  it("dispose sends edits still waiting in the debounce", async () => {
+    const server = new FakeServer();
+    const { session } = await openSession(server);
+    session.setDocumentProvider(() => ({ ...DOC, hireRate: 99 }));
+    session.dispose();
+    expect(lastPatch(server)).toMatchObject({ ops: [{ op: "set", path: "/hireRate", value: 99 }] });
+  });
+
+  it("losing the lease with unsent edits is not shown as Saved", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server);
+    sock.drop(); // edits from now on are not sent
+    session.update({ ...DOC, hireRate: 7 });
+    const s2 = await reconnect(server);
+    s2.push({ type: "conflict", code: "LEASE_HELD", fatal: true });
+    expect(session.getSnapshot().role).toBe("readonly");
+    expect(session.getSnapshot().saveState).not.toBe("SAVED");
+    expect(session.getSnapshot().notice).toMatch(/not sent/);
   });
 });
 
@@ -228,7 +358,7 @@ describe("load normalisation", () => {
     // The page's document differs from the server copy only by values the app
     // recomputed on load (e.g. a derived sea time).
     const loaded = { ...DOC, sequence: [{ id: 1, seaTime: 2.5 }] };
-    const { session } = await openSession(server, { doc: loaded });
+    const { session } = await openSession(server, { doc: loaded, loaded: DOC });
     session.update(loaded);
     session.flush();
     expect(server.ofType("patch")).toHaveLength(0);

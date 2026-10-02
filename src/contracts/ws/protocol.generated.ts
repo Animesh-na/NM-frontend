@@ -84,6 +84,7 @@ export interface ConnectedMessage {
   message_id: string;
   request_id?: string;
   session_id: string;
+  connection_id: string;
   working_sequence: number;
   persisted_version: number;
   last_client_sequence: number;
@@ -105,6 +106,7 @@ export interface ErrorMessage {
   fatal: boolean;
   client_sequence?: number;
   path?: string;
+  expected_sequence?: number;
 }
 
 export interface PatchMessage {
@@ -142,6 +144,7 @@ export interface ResumeMessage {
   last_working_sequence: number;
   acknowledge_engine_change?: boolean;
   take_over?: boolean;
+  take_over_from?: string;
 }
 
 export interface ResumedMessage {
@@ -150,6 +153,7 @@ export interface ResumedMessage {
   message_id: string;
   request_id?: string;
   session_id: string;
+  connection_id: string;
   working_sequence: number;
   persisted_version: number;
   last_client_sequence: number;

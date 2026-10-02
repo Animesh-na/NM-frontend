@@ -144,8 +144,10 @@ const Index = () => {
     // Allow React to flush state updates, then stop suppressing dirty
     requestAnimationFrame(() => {
       isHydratingRef.current = false;
-      setHydratedTabKey(tabKey);
     });
+    // The server session starts once the hydrated state is committed. A timer,
+    // not an animation frame: hidden/background tabs run no animation frames.
+    setTimeout(() => setHydratedTabKey(tabKey), 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab?.id, activeTab?.name, activeTab?.isLoading]);
 
@@ -199,6 +201,7 @@ const Index = () => {
     sheetId: sessionSheetId,
     segment: getApiMode() === "tanker" ? "tanker" : "dry_bulk",
     getInitialDoc: gatherData,
+    getLoadedDoc: () => activeTab?.data,
   });
   const sessionSnap = useSessionSnapshot(session);
   const currentDoc = useMemo(() => gatherData(), [gatherData]);

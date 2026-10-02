@@ -18,12 +18,12 @@ describe("save state machine", () => {
     for (const s of SAVE_STATES) for (const e of events) expect(SAVE_STATES).toContain(saveReducer(s, e));
   });
 
-  it("enters SAVED only on save_completed, an authoritative resume, or a resolved conflict — never on a result or an acknowledged patch", () => {
+  it("enters SAVED only on save_completed or an authoritative resume — never on a result, an acknowledged patch or a resolved conflict", () => {
     for (const s of SAVE_STATES) {
       for (const e of events) {
         const next = saveReducer(s, e);
         if (next === "SAVED" && s !== "SAVED") {
-          expect(["SAVE_COMPLETED", "RESUMED", "CONFLICT_RESOLVED"]).toContain(e.type);
+          expect(["SAVE_COMPLETED", "RESUMED"]).toContain(e.type);
           expect((e as { dirty?: boolean }).dirty).toBe(false);
         }
       }

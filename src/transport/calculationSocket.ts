@@ -35,12 +35,14 @@ export interface SocketDeps {
   random(): number;
   uuid(): string;
   events?: EventTarget; // emits "online"
+  now?: () => number;
   visibility?: { addEventListener: EventTarget["addEventListener"]; removeEventListener: EventTarget["removeEventListener"]; visibilityState: string };
 }
 
 export const BACKOFF_BASE_MS = 500;
 export const BACKOFF_CAP_MS = 30_000;
 export const DEFAULT_HEARTBEAT_MS = 20_000;
+export const CONNECT_TIMEOUT_MS = 10_000;
 
 /** Full jitter: uniform in [0, min(cap, base·2^attempt)). */
 export function backoffDelay(attempt: number, random: () => number): number {
@@ -105,6 +107,8 @@ export class CalculationSocket {
   private heartbeatMs = DEFAULT_HEARTBEAT_MS;
   private stopped = false;
   private connecting = false;
+  private connectTimer: unknown = null;
+  private lastInbound = 0;
   status: SocketStatus = "idle";
 
   constructor(
@@ -135,6 +139,7 @@ export class CalculationSocket {
     this.deps.visibility?.removeEventListener("visibilitychange", this.onVisibility);
     if (this.retryTimer !== null) this.deps.clearTimeout(this.retryTimer);
     this.retryTimer = null;
+    this.clearConnectTimer();
     this.stopHeartbeat();
     const ws = this.ws;
     this.ws = null;
@@ -147,6 +152,15 @@ export class CalculationSocket {
       }
     }
     this.setStatus("stopped");
+  }
+
+  /** The session is healthy (connected/resumed): reset the backoff. */
+  markHealthy(): void {
+    this.attempt = 0;
+  }
+
+  private now(): number {
+    return this.deps.now ? this.deps.now() : Date.now();
   }
 
   setHeartbeat(seconds: number): void {
@@ -215,16 +229,38 @@ export class CalculationSocket {
       this.connecting = false;
       return;
     }
-    const ws = this.deps.createSocket(this.deps.socketUrl(ticket));
+    let ws: WebSocketLike;
+    try {
+      ws = this.deps.createSocket(this.deps.socketUrl(ticket));
+    } catch {
+      this.connecting = false;
+      this.scheduleReconnect();
+      return;
+    }
     this.ws = ws;
+    // A socket stuck connecting is abandoned (onclose then reconnects).
+    this.connectTimer = this.deps.setTimeout(() => {
+      this.connectTimer = null;
+      if (ws.readyState !== 1) {
+        try {
+          ws.close(4000, "connect timeout");
+        } catch {
+          /* closed */
+        }
+      }
+    }, CONNECT_TIMEOUT_MS);
     ws.onopen = () => {
       this.connecting = false;
-      this.attempt = 0;
+      this.clearConnectTimer();
+      this.lastInbound = this.now();
+      // The backoff resets only once the session is healthy (markHealthy):
+      // a server that accepts and then closes must not cause a storm.
       this.setStatus("open");
       this.startHeartbeat();
       this.handlers.onOpen();
     };
     ws.onmessage = (ev) => {
+      this.lastInbound = this.now();
       let msg: ServerMessage;
       try {
         msg = JSON.parse(String(ev.data)) as ServerMessage;
@@ -238,6 +274,7 @@ export class CalculationSocket {
     };
     ws.onclose = (ev) => {
       this.connecting = false;
+      this.clearConnectTimer();
       if (this.ws === ws) this.ws = null;
       this.stopHeartbeat();
       this.scheduleReconnect({ code: ev.code, reason: ev.reason });
@@ -246,7 +283,24 @@ export class CalculationSocket {
 
   private startHeartbeat(): void {
     this.stopHeartbeat();
-    this.heartbeat = this.deps.setInterval(() => this.send({ type: "ping" }), this.heartbeatMs);
+    this.heartbeat = this.deps.setInterval(() => {
+      // Nothing received for two heartbeats (pongs included): a half-open
+      // socket (e.g. after sleep). Close it; onclose reconnects and resumes.
+      if (this.ws && this.now() - this.lastInbound > 2 * this.heartbeatMs + 5_000) {
+        try {
+          this.ws.close(4000, "no heartbeat");
+        } catch {
+          /* closed */
+        }
+        return;
+      }
+      this.send({ type: "ping" });
+    }, this.heartbeatMs);
+  }
+
+  private clearConnectTimer(): void {
+    if (this.connectTimer !== null) this.deps.clearTimeout(this.connectTimer);
+    this.connectTimer = null;
   }
 
   private stopHeartbeat(): void {

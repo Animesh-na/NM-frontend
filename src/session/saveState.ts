@@ -73,7 +73,7 @@ export const TRANSITIONS: Record<SaveState, Record<SaveEvent["type"], Rule>> = {
   CONFLICT: {
     LOCAL_EDIT: "CONFLICT", PATCH_ACKED: "CONFLICT", RESULT: "CONFLICT", SAVE_STARTED: "CONFLICT",
     SAVE_COMPLETED: "CONFLICT", SAVE_FAILED: "CONFLICT", CONFLICT: "CONFLICT",
-    CONFLICT_RESOLVED: (e) => ("dirty" in e && e.dirty ? "LOCAL_ONLY" : "SAVED"),
+    CONFLICT_RESOLVED: "RECOVERING", // the server confirms the new base on the next resume
     DISCONNECTED: "CONFLICT", RECONNECTING: "CONFLICT", RESUMED: "CONFLICT",
   },
   OFFLINE: {
