@@ -7,7 +7,8 @@ export interface CalculationInput {
   calculation_id?: string | null; // Optional client UUID; the server generates one when absent.
   sheet_id?: string | null; // Sheet UUID; null for an unsaved sheet.
   segment: "dry_bulk" | "tanker";
-  engine_version?: string | null; // Engine version the client expects (informational until M3).
+  engine_version?: string | null; // Engine version the client's last result was computed with. A different value than the server's engine is refused with ENGINE_VERSION_CHANGED unless acknowledge_engine_change is true (D-003).
+  acknowledge_engine_change?: boolean; // Confirms recalculating on the current engine when engine_version pins another one (D-003).
   reference_data_version?: string | null; // Reference-data version the client expects (informational until M3).
   working_sequence: number;
   calculation_date?: string | null; // UTC date (YYYY-MM-DD) for year/date-dependent regulatory rules (D-012). Server uses today (UTC) when absent.
