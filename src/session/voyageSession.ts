@@ -74,10 +74,11 @@ interface Pending {
 interface Resolving {
   choice: "reload" | "reapply";
   revertSeq: number | null; // the patch making the working sheet equal the saved one
+  reopened: boolean; // the outcome is judged only on the open that answers our own reopen
 }
 
 const MAX_DIFF_PATHS = 12;
-/** After a (re)load, the app normalises and recomputes for a moment: absorbed, not "edits". */
+/** Kept for tests that wait out app start-up; load normalisation is detected by user input, not time. */
 export const SETTLE_MS = 2500;
 const MAX_RESYNCS = 5;
 
@@ -92,7 +93,7 @@ export class VoyageSession {
   private serverDoc: unknown = null;
   private sentDoc: unknown = null;
   private quietDoc: unknown | null; // see `quiet`
-  private quietUntil: number;
+  private userEdited = false; // the user changed something since the last (re)load
   private pending: Pending[] = [];
   private lastAcked = 0;
   private nextSeq = 1;
@@ -117,7 +118,6 @@ export class VoyageSession {
     this.localDoc = projectDocument(initialDoc);
     this.loadedDoc = projectDocument(loadedDoc ?? initialDoc);
     this.quietDoc = this.localDoc;
-    this.quietUntil = this.now() + SETTLE_MS;
     deps.tabs?.onTakenOver(() => this.onConflict("STALE_FENCE"));
     this.snap = {
       role: "starting", connection: "idle", saveState: "RECOVERING", sessionId: null, persistedVersion: null,
@@ -126,9 +126,6 @@ export class VoyageSession {
     };
   }
 
-  private now(): number {
-    return this.deps.now ? this.deps.now() : Date.now();
-  }
 
   // ── store ────────────────────────────────────────────────────────────────
   subscribe = (fn: () => void): (() => void) => {
@@ -147,26 +144,33 @@ export class VoyageSession {
   }
 
   /**
-   * Load normalisation: differences between the document as loaded and the
-   * server copy come from the app recomputing values, not from the user.
-   * During the settle window they are absorbed; afterwards nothing is sent
-   * (or reported unsaved) until the user really edits — then they travel with
-   * that edit, as with a REST save.
+   * Load normalisation: until the user really edits (markUserEdit: an input,
+   * change, key or control click in the editor, or an explicit save), changes
+   * to the document come from the app loading and recomputing values. They
+   * are absorbed — not sent, not "unsaved" — and travel with the first real
+   * edit, as with a REST save. Detection is by user input, never by time, so
+   * a real edit is never swallowed.
    */
   private get quiet(): boolean {
     if (this.quietDoc === null) return false;
-    if (this.now() < this.quietUntil) {
+    if (!this.userEdited) {
       this.quietDoc = this.localDoc;
       return true;
     }
-    if (!jsonEqual(this.localDoc, this.quietDoc)) this.quietDoc = null; // a real edit
-    return this.quietDoc !== null;
+    this.quietDoc = null;
+    return false;
+  }
+
+  /** The user changed something (or saved): from now on every change is sent. */
+  markUserEdit(): void {
+    if (this.disposed || this.snap.role === "readonly") return;
+    this.userEdited = true;
   }
   private get unsaved(): boolean {
     return this.pending.length > 0 || this.snap.workingSequence > this.savedSequence || (!this.quiet && !jsonEqual(this.sentDoc, this.localDoc));
   }
   private get hasUnsentEdits(): boolean {
-    return this.pending.length > 0 || (!this.quiet && !jsonEqual(this.serverDoc ?? this.loadedDoc, this.localDoc));
+    return this.pending.length > 0 || (this.userEdited && !jsonEqual(this.serverDoc ?? this.loadedDoc, this.localDoc));
   }
 
   // ── lifecycle ────────────────────────────────────────────────────────────
@@ -280,6 +284,7 @@ export class VoyageSession {
       this.saveRequested = true;
       return;
     }
+    this.markUserEdit(); // an explicit save sends everything, like the REST save
     this.flush();
     this.saveRequested = !(this.socket?.send({ type: "save" }) ?? false);
   }
@@ -289,9 +294,9 @@ export class VoyageSession {
     return v !== undefined && op.op === "set" && v === JSON.stringify(op.value);
   };
 
-  private sendDiff(target: unknown = this.localDoc): number | null {
+  private sendDiff(target: unknown = this.localDoc, force = false): number | null {
     if (this.sentDoc === null || this.disposed) return null; // not open yet: sent after (re)open
-    if (target === this.localDoc && this.quiet) return null;
+    if (!force && this.quiet) return null;
     let last: number | null = null;
     for (let guard = 0; guard < 20; guard++) {
       const plan = planPatch(this.sentDoc, target, this.isHeld);
@@ -355,22 +360,30 @@ export class VoyageSession {
     this.connectionId = m.connection_id;
     const L = m.last_client_sequence;
     const sameSession = this.snap.sessionId !== null && m.session_id === this.snap.sessionId;
+    const hadPending = this.pending.length > 0;
+    const unsentBefore = this.hasUnsentEdits;
+    // What the server copy should be if nothing happened elsewhere: our last
+    // known copy plus, on a same-session resume, our patches it reports applied.
+    let expected = this.serverDoc ?? this.loadedDoc;
+    let remaining = this.pending;
     if (sameSession) {
-      // Patches the server applied while we lost the acknowledgement.
-      for (const p of this.pending.filter((q) => q.seq <= L)) this.serverDoc = applyOps(this.serverDoc, p.ops);
-      this.pending = this.pending.filter((p) => p.seq > L);
+      for (const p of this.pending.filter((q) => q.seq <= L)) expected = applyOps(expected, p.ops);
+      remaining = this.pending.filter((p) => p.seq > L);
     } else {
-      this.pending = []; // another session's sequence space
+      remaining = []; // another session's sequence space
     }
-    // What the server copy should be if nothing happened elsewhere.
-    const expected = this.serverDoc ?? this.loadedDoc;
     const server = projectDocument(m.sheet);
     if (!jsonEqual(server, projectDocument(expected))) {
-      // The server moved: another tab/device saved, a newer session, or its
-      // unsaved edits after a crash.
-      if (this.hasUnsentEdits && !this.resolving) return this.mismatch(m);
+      // The server moved: another tab/device saved or took over (its patches
+      // share the sequence space, so L alone proves nothing), a newer session,
+      // or unsaved edits after a crash. Never assume our work is in there.
+      if ((unsentBefore || hadPending) && !(this.resolving && this.resolving.choice === "reload")) return this.mismatch(m);
       this.adopt(m.sheet);
+      remaining = [];
+    } else {
+      this.serverDoc = expected;
     }
+    this.pending = remaining;
     this.lastAcked = L;
     this.nextSeq = Math.max(L + 1, (this.pending.at(-1)?.seq ?? L) + 1);
     this.serverDoc = m.sheet;
@@ -384,7 +397,7 @@ export class VoyageSession {
       this.sentDoc = applyOps(this.sentDoc, p.ops);
       this.transmit(p);
     }
-    if (this.resolving) {
+    if (this.resolving?.reopened) {
       if (m.dirty) {
         // The server did not adopt the saved version (it moved again): decide anew.
         this.resolving = null;
@@ -407,7 +420,7 @@ export class VoyageSession {
     this.serverDoc = sheet;
     this.localDoc = projectDocument(sheet);
     this.quietDoc = this.localDoc;
-    this.quietUntil = this.now() + SETTLE_MS; // the UI re-normalises after hydration
+    this.userEdited = false; // the UI re-normalises after hydration
     this.set({ recoveredDoc: sheet });
   }
 
@@ -559,17 +572,17 @@ export class VoyageSession {
     let saved = c.serverDoc;
     if (saved === null) saved = projectDocument((await this.deps.loadSavedDoc(this.sheetId)).data);
     if (this.disposed) return;
-    this.resolving = { choice, revertSeq: null };
+    this.resolving = { choice, revertSeq: null, reopened: false };
     this.set({ conflict: null });
     this.event({ type: "CONFLICT_RESOLVED", dirty: false });
     if (choice === "reload") {
       this.localDoc = saved;
       this.quietDoc = saved;
-      this.quietUntil = this.now() + SETTLE_MS;
+      this.userEdited = false; // the UI re-normalises the saved version
       this.set({ recoveredDoc: saved });
     }
     // 1) Make the server's working sheet equal the saved version…
-    const last = this.sendDiff(saved);
+    const last = this.sendDiff(saved, true);
     // 2) …once acknowledged, reopen: the server adopts the saved version as the
     //    new base (working sheet equals saved data, D-034); for reapply, the
     //    local edits then go out as a patch on that base.
@@ -579,6 +592,7 @@ export class VoyageSession {
 
   private reopen() {
     if (this.disposed) return;
+    if (this.resolving) this.resolving.reopened = true;
     // A fresh connection: the server reconciles the session with PostgreSQL.
     this.clearTimers();
     this.socket?.stop(1000, "reopen");

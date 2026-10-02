@@ -27,6 +27,12 @@ async function openSession(server: FakeServer, opts: Opts = {}) {
 
 const lastPatch = (server: FakeServer) => server.ofType("patch").at(-1)!;
 
+/** A real user edit: the editor reports input, then the debounced document arrives. */
+function edit(session: VoyageSession, doc: unknown) {
+  session.markUserEdit();
+  session.update(doc);
+}
+
 function ack(sock: FakeSocket, seq: number, ws = seq) {
   sock.push({ type: "calculation_started", client_sequence: seq, working_sequence: ws, generation: ws, calculation_id: `calc-${ws}` });
 }
@@ -50,7 +56,7 @@ describe("voyage session", () => {
   it("coalesces several edits into one patch with the next client_sequence", async () => {
     const server = new FakeServer();
     const { session } = await openSession(server);
-    session.update({ ...DOC, vessel: { name: "W", dwt: 82000 }, hireRate: 15000 });
+    edit(session, { ...DOC, vessel: { name: "W", dwt: 82000 }, hireRate: 15000 });
     expect(server.ofType("patch")).toHaveLength(1);
     expect(lastPatch(server)).toMatchObject({
       client_sequence: 1,
@@ -62,8 +68,8 @@ describe("voyage session", () => {
   it("ignores a calculation_result older than the latest acknowledged sequence", async () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
-    session.update({ ...DOC, hireRate: 1 });
-    session.update({ ...DOC, hireRate: 2 });
+    edit(session, { ...DOC, hireRate: 1 });
+    edit(session, { ...DOC, hireRate: 2 });
     ack(sock, 1);
     ack(sock, 2);
     sock.push({ type: "calculation_result", generation: 1, working_sequence: 1, calculation_id: "calc-1", result: { calculation_id: "calc-1", status: "completed", result: { stale: true } } });
@@ -76,7 +82,7 @@ describe("voyage session", () => {
   it("SAVED only on save_completed, with the committed version", async () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
-    session.update({ ...DOC, hireRate: 1 });
+    edit(session, { ...DOC, hireRate: 1 });
     ack(sock, 1);
     session.save();
     expect(server.ofType("save")).toHaveLength(1);
@@ -89,7 +95,7 @@ describe("voyage session", () => {
   it("acceptance: save succeeds, the socket drops, reconnect → resume shows SAVED with the right version", async () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
-    session.update({ ...DOC, hireRate: 1 });
+    edit(session, { ...DOC, hireRate: 1 });
     ack(sock, 1);
     session.save();
     sock.push({ type: "save_started", working_sequence: 1 });
@@ -108,10 +114,10 @@ describe("voyage session", () => {
   it("replays unacknowledged patches after a reconnect (and drops those the server already applied)", async () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
-    session.update({ ...DOC, hireRate: 1 }); // seq 1
-    session.update({ ...DOC, hireRate: 2 }); // seq 2
+    edit(session, { ...DOC, hireRate: 1 }); // seq 1
+    edit(session, { ...DOC, hireRate: 2 }); // seq 2
     sock.drop(); // no acks
-    session.update({ ...DOC, hireRate: 3 }); // offline: diffed after resume
+    edit(session, { ...DOC, hireRate: 3 }); // offline: diffed after resume
     const s2 = await reconnect(server);
     // The server applied seq 1 before the drop; seq 2 was lost.
     s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ working_sequence: 1, last_client_sequence: 1, dirty: true, sheet: { ...DOC, hireRate: 1 } }) });
@@ -124,7 +130,7 @@ describe("voyage session", () => {
   it("never assumes state after a resume into a different session with unsaved local edits: CONFLICT", async () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
-    session.update({ ...DOC, hireRate: 5 });
+    edit(session, { ...DOC, hireRate: 5 });
     sock.drop();
     const s2 = await reconnect(server);
     s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ session_id: "sess-OTHER", sheet: { ...DOC, hireRate: 9 } }) });
@@ -148,7 +154,7 @@ describe("voyage session", () => {
     const { session, sock } = await openSession(server, { deps: { loadSavedDoc: async () => ({ data: saved, version: 3 }) } });
     const states: string[] = [];
     session.subscribe(() => states.push(session.getSnapshot().saveState));
-    session.update({ ...DOC, hireRate: 100 });
+    edit(session, { ...DOC, hireRate: 100 });
     ack(sock, 1);
     session.save();
     sock.push({ type: "save_failed", working_sequence: 1, code: "VERSION_CONFLICT", retryable: false });
@@ -156,13 +162,13 @@ describe("voyage session", () => {
     await settle();
     expect(session.getSnapshot().saveState).toBe("CONFLICT");
     expect(session.getSnapshot().conflict).toMatchObject({ reason: "VERSION_CONFLICT", currentVersion: 3, differences: ["/hireRate"] });
-    session.update({ ...DOC, hireRate: 111 }); // edits during a conflict are not sent
+    edit(session, { ...DOC, hireRate: 111 }); // edits during a conflict are not sent
     expect(server.ofType("patch")).toHaveLength(1);
 
     await session.resolveConflict("reapply");
     // 1) working sheet := saved version
     expect(lastPatch(server)).toMatchObject({ client_sequence: 2, ops: [{ op: "set", path: "/hireRate", value: 900 }] });
-    session.update({ ...DOC, hireRate: 112 }); // still resolving: not sent
+    edit(session, { ...DOC, hireRate: 112 }); // still resolving: not sent
     expect(server.ofType("patch")).toHaveLength(2);
     expect(session.getSnapshot().saveState).toBe("RECOVERING");
     ack(sock, 2); // 2) acknowledged → reopen
@@ -224,14 +230,14 @@ describe("voyage session", () => {
   it("an invalid patch rejected by the server is held back and the sequence continues", async () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
-    session.update({ ...DOC, hireRate: 1, notes: "n" });
+    edit(session, { ...DOC, hireRate: 1, notes: "n" });
     sock.push({ type: "error", code: "INVALID_PATCH", message: "x", retryable: false, fatal: false, client_sequence: 1, path: "/notes" });
     expect(lastPatch(server)).toMatchObject({ client_sequence: 1, ops: [{ op: "set", path: "/hireRate", value: 1 }] });
     sock.push({ type: "error", code: "INVALID_PATCH", message: "x", retryable: false, fatal: false, client_sequence: 1 }); // no path: hold the whole patch
     const sends = server.ofType("patch").length;
     session.flush();
     expect(server.ofType("patch")).toHaveLength(sends); // no resend loop
-    session.update({ ...DOC, hireRate: 2, notes: "n" }); // a changed value is sent again
+    edit(session, { ...DOC, hireRate: 2, notes: "n" }); // a changed value is sent again
     expect(lastPatch(server)).toMatchObject({ client_sequence: 1, ops: [{ op: "set", path: "/hireRate", value: 2 }] });
   });
 });
@@ -246,9 +252,9 @@ describe("M7 review regressions", () => {
     expect(server.ofType("patch")).toHaveLength(0);
     // The UI hydrates v41, settles, then the user edits.
     session.clearRecovered();
-    session.update(v41);
+    session.update(v41); // the UI hydrated v41
     await vi.advanceTimersByTimeAsync(SETTLE_MS);
-    session.update({ ...v41, vessel: { name: "X", dwt: 81000 } });
+    edit(session, { ...v41, vessel: { name: "X", dwt: 81000 } });
     expect(lastPatch(server).ops).toEqual([{ op: "set", path: "/vessel/name", value: "X" }]);
   });
 
@@ -268,7 +274,7 @@ describe("M7 review regressions", () => {
     const session = new VoyageSession("sheet-1", "dry_bulk", DOC, sessionDeps(server), DOC);
     void session.start();
     await vi.advanceTimersByTimeAsync(SETTLE_MS);
-    session.update({ ...DOC, hireRate: 5 }); // typed before the connection is up
+    edit(session, { ...DOC, hireRate: 5 }); // typed before the connection is up
     await settle();
     server.last.accept();
     server.last.push({ type: "connected", connection_id: "c", ...sessionState({ dirty: true, working_sequence: 3, last_client_sequence: 3, sheet: { ...DOC, hireRate: 9 } }) });
@@ -278,10 +284,10 @@ describe("M7 review regressions", () => {
   it("sequence errors: an in-flight patch is not re-planned, the resend after UNAVAILABLE is bounded, and the sequence never goes back", async () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
-    session.update({ ...DOC, hireRate: 1 }); // 1
+    edit(session, { ...DOC, hireRate: 1 }); // 1
     ack(sock, 1);
-    session.update({ ...DOC, hireRate: 2 }); // 2
-    session.update({ ...DOC, hireRate: 3 }); // 3 (pipelined)
+    edit(session, { ...DOC, hireRate: 2 }); // 2
+    edit(session, { ...DOC, hireRate: 3 }); // 3 (pipelined)
     sock.push({ type: "error", code: "UNAVAILABLE", message: "x", retryable: true, fatal: false, client_sequence: 2 });
     sock.push({ type: "error", code: "INVALID_PATCH", message: "gap", retryable: false, fatal: false, client_sequence: 3, expected_sequence: 2 });
     expect(server.ofType("patch")).toHaveLength(3); // 2 is in flight: nothing re-planned
@@ -289,16 +295,16 @@ describe("M7 review regressions", () => {
     expect(server.ofType("patch").slice(3).map((p) => p.client_sequence)).toEqual([2, 3]);
     ack(sock, 2);
     ack(sock, 3);
-    session.update({ ...DOC, hireRate: 4 });
+    edit(session, { ...DOC, hireRate: 4 });
     expect(lastPatch(server)).toMatchObject({ client_sequence: 4 });
   });
 
   it("a server behind our acknowledgements resynchronises through a reopen, never by lowering the sequence", async () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
-    session.update({ ...DOC, hireRate: 1 });
+    edit(session, { ...DOC, hireRate: 1 });
     ack(sock, 1);
-    session.update({ ...DOC, hireRate: 2 });
+    edit(session, { ...DOC, hireRate: 2 });
     sock.push({ type: "error", code: "INVALID_PATCH", message: "regression", retryable: false, fatal: false, client_sequence: 2, expected_sequence: 1 });
     await settle();
     expect(server.sockets.length).toBe(2); // reopened
@@ -308,7 +314,7 @@ describe("M7 review regressions", () => {
     const server = new FakeServer();
     const saved = { ...DOC, hireRate: 50 };
     const { session, sock } = await openSession(server, { deps: { loadSavedDoc: async () => ({ data: saved, version: 2 }) } });
-    session.update({ ...DOC, hireRate: 5 }); // seq 1, never acked
+    edit(session, { ...DOC, hireRate: 5 }); // seq 1, never acked
     sock.drop();
     const s2 = await reconnect(server);
     s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ session_id: "sess-OTHER", sheet: saved }) });
@@ -334,6 +340,7 @@ describe("M7 review regressions", () => {
   it("dispose sends edits still waiting in the debounce", async () => {
     const server = new FakeServer();
     const { session } = await openSession(server);
+    session.markUserEdit(); // typed; still in the debounce
     session.setDocumentProvider(() => ({ ...DOC, hireRate: 99 }));
     session.dispose();
     expect(lastPatch(server)).toMatchObject({ ops: [{ op: "set", path: "/hireRate", value: 99 }] });
@@ -343,7 +350,7 @@ describe("M7 review regressions", () => {
     const server = new FakeServer();
     const { session, sock } = await openSession(server);
     sock.drop(); // edits from now on are not sent
-    session.update({ ...DOC, hireRate: 7 });
+    edit(session, { ...DOC, hireRate: 7 });
     const s2 = await reconnect(server);
     s2.push({ type: "conflict", code: "LEASE_HELD", fatal: true });
     expect(session.getSnapshot().role).toBe("readonly");
@@ -359,15 +366,100 @@ describe("load normalisation", () => {
     // recomputed on load (e.g. a derived sea time).
     const loaded = { ...DOC, sequence: [{ id: 1, seaTime: 2.5 }] };
     const { session } = await openSession(server, { doc: loaded, loaded: DOC });
+    session.update(loaded); // the app recomputed: not a user edit
+    await vi.advanceTimersByTimeAsync(10_000);
     session.update(loaded);
     session.flush();
     expect(server.ofType("patch")).toHaveLength(0);
     expect(session.getSnapshot().saveState).toBe("SAVED");
-    session.update({ ...loaded, hireRate: 15000 }); // a real edit
+    edit(session, { ...loaded, hireRate: 15000 }); // a real edit
     expect(lastPatch(server).ops).toEqual([
       { op: "set", path: "/sequence/0/seaTime", value: 2.5 },
       { op: "set", path: "/hireRate", value: 15000 },
     ]);
     expect(session.getSnapshot().saveState).toBe("LOCAL_ONLY");
+  });
+});
+
+describe("M7 re-review regressions", () => {
+  it("BLOCKER: an edit made right after opening is never swallowed — save sends it and SAVED waits for the commit", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server, { settled: false });
+    edit(session, { ...DOC, hireRate: 5 }); // typed ~immediately after connect
+    await vi.advanceTimersByTimeAsync(3000);
+    session.save();
+    expect(server.ofType("patch").flatMap((p) => p.ops as { path: string }[]).some((o) => o.path === "/hireRate")).toBe(true);
+    expect(session.getSnapshot().saveState).not.toBe("SAVED");
+    ack(sock, 1);
+    sock.push({ type: "save_completed", working_sequence: 1, persisted_version: 2, engine_version: "2026.10.0", engine_version_changed: false });
+    expect(session.getSnapshot().saveState).toBe("SAVED");
+  });
+
+  it("an explicit save sends everything, even values only the app changed", async () => {
+    const server = new FakeServer();
+    const loaded = { ...DOC, sequence: [{ id: 1, seaTime: 2.5 }] };
+    const { session } = await openSession(server, { doc: loaded, loaded: DOC });
+    session.save();
+    expect(lastPatch(server).ops).toEqual([{ op: "set", path: "/sequence/0/seaTime", value: 2.5 }]);
+  });
+
+  it("an edit typed while connecting (no wait) is not overwritten by newer server edits: conflict", async () => {
+    const server = new FakeServer();
+    const session = new VoyageSession("sheet-1", "dry_bulk", DOC, sessionDeps(server), DOC);
+    void session.start();
+    edit(session, { ...DOC, hireRate: 5 });
+    await settle();
+    server.last.accept();
+    server.last.push({ type: "connected", connection_id: "c", ...sessionState({ dirty: true, working_sequence: 3, last_client_sequence: 3, sheet: { ...DOC, hireRate: 9 } }) });
+    expect(session.getSnapshot().conflict).toMatchObject({ reason: "RESUME_MISMATCH" });
+  });
+
+  it("MAJOR: a same-session resume whose sequence counts another device's patches is a conflict, not 'applied'", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server);
+    edit(session, { ...DOC, hireRate: 5 }); // seq 1, never acked
+    sock.drop();
+    const s2 = await reconnect(server);
+    // Meanwhile another device of the same user took over, sent 1 and 2, and left.
+    s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ working_sequence: 2, last_client_sequence: 2, dirty: true, sheet: { ...DOC, notes: "other device" } }) });
+    expect(session.getSnapshot().conflict).toMatchObject({ reason: "RESUME_MISMATCH" });
+    expect(session.getSnapshot().recoveredDoc).toBeNull(); // my document was not replaced
+  });
+
+  it("an ordinary reconnect while resolving does not re-raise the conflict; the reopen follows the ack", async () => {
+    const server = new FakeServer();
+    const saved = { ...DOC, hireRate: 900 };
+    const { session, sock } = await openSession(server, { deps: { loadSavedDoc: async () => ({ data: saved, version: 3 }) } });
+    edit(session, { ...DOC, hireRate: 100 });
+    ack(sock, 1);
+    sock.push({ type: "conflict", code: "VERSION_CONFLICT", current_version: 3, expected_version: 1, fatal: false });
+    await settle();
+    await session.resolveConflict("reload");
+    sock.drop(); // before the revert is acknowledged
+    const s2 = await reconnect(server);
+    s2.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ working_sequence: 1, last_client_sequence: 1, dirty: true, sheet: { ...DOC, hireRate: 100 } }) });
+    expect(session.getSnapshot().conflict).toBeNull();
+    const revert = s2.sent.filter((m) => m.type === "patch").at(-1)!;
+    expect(revert).toMatchObject({ client_sequence: 2 });
+    ack(s2, 2);
+    await settle();
+    expect(server.sockets.length).toBe(3); // reopened after the ack
+  });
+
+  it("'keep my changes' meeting a newer server copy raises a conflict instead of discarding the changes", async () => {
+    const server = new FakeServer();
+    const saved = { ...DOC, hireRate: 900 };
+    const { session, sock } = await openSession(server, { deps: { loadSavedDoc: async () => ({ data: saved, version: 3 }) } });
+    edit(session, { ...DOC, hireRate: 100 });
+    ack(sock, 1);
+    sock.push({ type: "conflict", code: "VERSION_CONFLICT", current_version: 3, expected_version: 1, fatal: false });
+    await settle();
+    await session.resolveConflict("reapply");
+    ack(sock, 2);
+    await settle();
+    server.last.accept();
+    server.last.push({ type: "resumed", connection_id: "conn-2", ...sessionState({ session_id: "sess-NEW", persisted_version: 42, sheet: { ...DOC, hireRate: 4242 } }) });
+    expect(session.getSnapshot().conflict).not.toBeNull();
+    expect(session.getSnapshot().recoveredDoc).toBeNull();
   });
 });

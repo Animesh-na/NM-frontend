@@ -287,11 +287,18 @@ export class CalculationSocket {
       // Nothing received for two heartbeats (pongs included): a half-open
       // socket (e.g. after sleep). Close it; onclose reconnects and resumes.
       if (this.ws && this.now() - this.lastInbound > 2 * this.heartbeatMs + 5_000) {
+        // Do not wait for onclose: on a dead TCP connection the closing
+        // handshake can take long. Detach it and reconnect now.
+        const dead = this.ws;
+        dead.onclose = dead.onmessage = dead.onopen = null;
         try {
-          this.ws.close(4000, "no heartbeat");
+          dead.close(4000, "no heartbeat");
         } catch {
           /* closed */
         }
+        this.ws = null;
+        this.stopHeartbeat();
+        this.scheduleReconnect({ code: 4000, reason: "no heartbeat" });
         return;
       }
       this.send({ type: "ping" });

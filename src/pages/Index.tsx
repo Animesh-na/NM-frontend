@@ -228,13 +228,19 @@ const Index = () => {
   const isReadOnly = activeTab?.readOnly === true || sessionReadOnly;
 
   const guardReadOnlyEdit = useCallback((event: SyntheticEvent<HTMLElement>) => {
-    if (!isReadOnly) return;
     const target = event.target as HTMLElement;
-    const interactive = target.closest("button, input, select, textarea, [role='button'], [contenteditable='true']") as HTMLElement | null;
+    const interactive = target.closest("button, input, select, textarea, [role='button'], [role='checkbox'], [role='combobox'], [role='option'], [contenteditable='true']") as HTMLElement | null;
+    if (!isReadOnly) {
+      // A real user edit (input, change, key or control click in the editor):
+      // from now on the server session sends every change (D-044). Changes
+      // the app makes on its own while loading are never "edits".
+      if (interactive && !interactive.closest("[data-readonly-allowed='true']")) session?.markUserEdit();
+      return;
+    }
     if (!interactive || interactive.closest("[data-readonly-allowed='true']")) return;
     event.preventDefault();
     event.stopPropagation();
-  }, [isReadOnly]);
+  }, [isReadOnly, session]);
 
   // Listen for save events from SheetTabs
   useEffect(() => {

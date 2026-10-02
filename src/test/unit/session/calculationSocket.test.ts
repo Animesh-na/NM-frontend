@@ -107,3 +107,19 @@ describe("socket URL", () => {
     expect(socketUrl("T", "/api/v1", "https://app.example.com/sheets")).toBe("wss://app.example.com/api/v1/ws?ticket=T");
   });
 });
+
+describe("liveness", () => {
+  it("a half-open socket (no messages, close never completes) is abandoned and reconnected", async () => {
+    vi.useFakeTimers();
+    const server = new FakeServer();
+    const { s } = make(server, { random: () => 0 });
+    s.start();
+    await settle();
+    server.last.accept();
+    server.last.close = () => undefined; // the closing handshake never completes
+    await vi.advanceTimersByTimeAsync(3 * 20_000 + 1000);
+    await settle();
+    expect(server.sockets.length).toBeGreaterThan(1);
+    s.stop();
+  });
+});
