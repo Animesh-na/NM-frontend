@@ -11,6 +11,12 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    // Local full-stack development (M7): DEV_API_PROXY=http://localhost:8090 serves
+    // the API (incl. the calculation WebSocket) from this origin, with
+    // VITE_MARINE_API_BASE=/api/v1. Off unless set.
+    proxy: process.env.DEV_API_PROXY
+      ? { "/api": { target: process.env.DEV_API_PROXY, ws: true, changeOrigin: false } }
+      : undefined,
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

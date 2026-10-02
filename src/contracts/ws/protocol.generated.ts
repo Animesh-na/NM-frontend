@@ -75,6 +75,7 @@ export interface ConnectMessage {
   sheet_id: string;
   segment: string;
   acknowledge_engine_change?: boolean;
+  take_over?: boolean;
 }
 
 export interface ConnectedMessage {
@@ -140,6 +141,7 @@ export interface ResumeMessage {
   last_client_sequence: number;
   last_working_sequence: number;
   acknowledge_engine_change?: boolean;
+  take_over?: boolean;
 }
 
 export interface ResumedMessage {

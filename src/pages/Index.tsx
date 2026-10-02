@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState, type SyntheticEvent } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState, type SyntheticEvent } from "react";
 import { CompactHeader } from "@/components/voyage/CompactHeader";
 import { SheetTabs } from "@/components/voyage/SheetTabs";
 import { VesselPanel } from "@/components/voyage/VesselPanel";
@@ -15,8 +15,15 @@ import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
 import { useCalcShadow } from "@/services/calcShadow";
+import { getApiMode } from "@/services/apiMode";
+import { SERVER_CALCULATION_ENABLED, useDebouncedPatch, useSessionSnapshot, useVoyageSession } from "@/hooks/useVoyageSession";
+import { ConflictDialog, SessionStatusBar } from "@/components/voyage/SessionStatus";
 import { Calculator, Loader2, PanelRightClose, PanelRightOpen, Trash2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+
+// A saved sheet document as loaded (loosely typed legacy payload).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SheetDoc = Record<string, any>;
 
 const Index = () => {
   const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, updateTabData, registerDataGetter } = useSheets();
@@ -24,7 +31,7 @@ const Index = () => {
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
   const isAdmin = user?.role === "admin";
-  const isReadOnly = activeTab?.readOnly === true;
+  const [hydratedTabKey, setHydratedTabKey] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(() =>
     typeof window === "undefined" ? true : window.innerWidth >= 1024,
   );
@@ -53,14 +60,6 @@ const Index = () => {
     return () => media.removeEventListener("change", handleMobile);
   }, []);
 
-  const guardReadOnlyEdit = useCallback((event: SyntheticEvent<HTMLElement>) => {
-    if (!isReadOnly) return;
-    const target = event.target as HTMLElement;
-    const interactive = target.closest("button, input, select, textarea, [role='button'], [contenteditable='true']") as HTMLElement | null;
-    if (!interactive || interactive.closest("[data-readonly-allowed='true']")) return;
-    event.preventDefault();
-    event.stopPropagation();
-  }, [isReadOnly]);
 
   // Track which tab id we last loaded to detect tab switches
   const lastLoadedTabRef = useRef<string | null | undefined>(undefined);
@@ -137,7 +136,23 @@ const Index = () => {
     if (activeTab.data && Object.keys(activeTab.data).length > 0) {
       // Existing sheet with data — clear any leftover state from the previously
       // opened sheet first, then hydrate only this sheet's saved values.
-      const d = activeTab.data as Record<string, any>;
+      hydrateFromData(activeTab.data as SheetDoc);
+    } else {
+      // New empty sheet — reset all state
+      resetState();
+    }
+    // Allow React to flush state updates, then stop suppressing dirty
+    requestAnimationFrame(() => {
+      isHydratingRef.current = false;
+      setHydratedTabKey(tabKey);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab?.id, activeTab?.name, activeTab?.isLoading]);
+
+  // Load a sheet document into VoyageContext (opening a sheet, or adopting a
+  // document the server session recovered).
+  function hydrateFromData(d: SheetDoc) {
+    {
       suppressDistanceRecalc();
       resetState();
       if (d.vessel) voyage.setVessel(d.vessel);
@@ -170,17 +185,53 @@ const Index = () => {
       voyage.setAutoDistanceEnabled(d.autoDistanceEnabled === true);
       voyage.setNotes(typeof d.notes === "string" ? d.notes : "");
       voyage.setCharterer(typeof d.charterer === "string" ? d.charterer : "");
-    } else {
-      // New empty sheet — reset all state
-      resetState();
     }
+  }
 
-    // Allow React to flush state updates, then stop suppressing dirty
+  // ── Server calculation session (M7, VITE_SERVER_CALCULATION, off by default) ──
+  // Saving, ordering and conflicts go through the server session; the screen
+  // keeps showing the local results (display cutover per domain is M10, D-007).
+  const sessionSheetId = SERVER_CALCULATION_ENABLED && activeTab?.id && !activeTab.readOnly && hydratedTabKey === activeTab.id
+    ? activeTab.id
+    : null;
+  const session = useVoyageSession({
+    enabled: sessionSheetId !== null,
+    sheetId: sessionSheetId,
+    segment: getApiMode() === "tanker" ? "tanker" : "dry_bulk",
+    getInitialDoc: gatherData,
+  });
+  const sessionSnap = useSessionSnapshot(session);
+  const currentDoc = useMemo(() => gatherData(), [gatherData]);
+  const flushPatches = useDebouncedPatch(session, currentDoc);
+  // The server held newer unsaved edits (another tab, a crash) or the user
+  // resolved a conflict: show that document.
+  useEffect(() => {
+    if (!session || !sessionSnap?.recoveredDoc) return;
+    isHydratingRef.current = true;
+    hydrateFromData(sessionSnap.recoveredDoc as SheetDoc);
+    session.clearRecovered();
     requestAnimationFrame(() => {
       isHydratingRef.current = false;
     });
+    toast.info("Loaded the latest version from the server.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab?.id, activeTab?.name, activeTab?.isLoading]);
+  }, [session, sessionSnap?.recoveredDoc]);
+  // "Saved" only after the server's save_completed.
+  useEffect(() => {
+    if (sessionSnap?.saveState === "SAVED" && activeTab?.isDirty) markClean();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionSnap?.saveState]);
+  const sessionReadOnly = sessionSnap?.role === "readonly";
+  const isReadOnly = activeTab?.readOnly === true || sessionReadOnly;
+
+  const guardReadOnlyEdit = useCallback((event: SyntheticEvent<HTMLElement>) => {
+    if (!isReadOnly) return;
+    const target = event.target as HTMLElement;
+    const interactive = target.closest("button, input, select, textarea, [role='button'], [contenteditable='true']") as HTMLElement | null;
+    if (!interactive || interactive.closest("[data-readonly-allowed='true']")) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, [isReadOnly]);
 
   // Listen for save events from SheetTabs
   useEffect(() => {
@@ -191,12 +242,23 @@ const Index = () => {
           description: "Sheet saved. Review flagged fields when ready.",
         });
       }
+      // With a live server session this tab owns, the session saves (the
+      // server persists via RabbitMQ; "Saved" only on save_completed).
+      if (session && sessionSnap?.role === "owner" && name === activeTab?.name) {
+        flushPatches();
+        session.save();
+        return;
+      }
+      if (sessionReadOnly) {
+        toast.warning("This sheet is being edited in another tab or device. Take over editing to save here.");
+        return;
+      }
       const data = gatherData();
       saveCurrentSheet(name, data, workbookId);
     };
     window.addEventListener("sheet-save", handler);
     return () => window.removeEventListener("sheet-save", handler);
-  }, [gatherData, saveCurrentSheet, voyage.hasErrors, voyage.validationIssues.length]);
+  }, [gatherData, saveCurrentSheet, voyage.hasErrors, voyage.validationIssues.length, session, sessionSnap?.role, sessionReadOnly, flushPatches, activeTab?.name]);
 
   // Unsaved-changes tracking: compare current values against a baseline
   // snapshot taken after the sheet finishes loading (and after each save).
@@ -249,6 +311,10 @@ const Index = () => {
       {/* Sheet Tabs */}
       <SheetTabs />
 
+      {sessionSnap && session && (
+        <SessionStatusBar snap={sessionSnap} onTakeOver={() => session.takeOverEditing()} />
+      )}
+      {session && <ConflictDialog conflict={sessionSnap?.conflict ?? null} onResolve={(c) => void session.resolveConflict(c)} />}
       {activeTab?.readOnly && (
         <div className="bg-warning/10 border-b border-warning/30 text-amber-700 dark:text-amber-300 px-4 py-1.5 text-[11px] flex items-center justify-between flex-shrink-0">
           <span>This sheet belongs to another user in your organization and is read-only. Use <strong>Copy Sheet</strong> to create your own editable copy.</span>

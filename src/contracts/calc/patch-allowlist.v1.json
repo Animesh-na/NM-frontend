@@ -1,0 +1,2143 @@
+[
+  {
+    "path": "/applyEuaImpact",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/applyFuelEuImpact",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/applyUkEtsImpact",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/autoDistanceEnabled",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/bunker",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/bunker/co2Price",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/euEtsHsfo",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/euEtsLsmgo",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/euEtsPrice",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/euEtsVlsfo",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/fuelMode",
+    "types": [
+      "string"
+    ],
+    "enum": [
+      "average",
+      "fifo"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/bunker/hsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/bunker/hsfo/price",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/hsfo/robStart",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/ignoreBOB",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/bunker/lsmgo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/bunker/lsmgo/price",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/lsmgo/robStart",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/portBunkering",
+    "types": [
+      "array"
+    ],
+    "max_items": 100
+  },
+  {
+    "path": "/bunker/portBunkering/*",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/bunker/portBunkering/*/hsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/bunker/portBunkering/*/hsfo/price",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/portBunkering/*/hsfo/quantity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/portBunkering/*/id",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/portBunkering/*/lsmgo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/bunker/portBunkering/*/lsmgo/price",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/portBunkering/*/lsmgo/quantity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/portBunkering/*/portName",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/bunker/portBunkering/*/portUnloc",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/bunker/portBunkering/*/vlsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/bunker/portBunkering/*/vlsfo/price",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/portBunkering/*/vlsfo/quantity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/rewardFactor",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/ukEtsPrice",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/vlsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/bunker/vlsfo/price",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/bunker/vlsfo/robStart",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos",
+    "types": [
+      "array"
+    ],
+    "max_items": 50
+  },
+  {
+    "path": "/cargos/*",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/cargos/*/averageMode",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/cargos/*/cpOverrides",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/coefficientFactor",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/demurrage",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/despatch",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/extraTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/layTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/productivity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/quantity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/terms",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/cargos/*/cpOverrides/{^[0-9]+$}/turnTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/demurrageAmount",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/demurrageRate",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/despatchAmount",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/despatchRate",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/gtcTarget",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/id",
+    "types": [
+      "integer"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/laytimeMode",
+    "types": [
+      "string"
+    ],
+    "enum": [
+      "average",
+      "non_reversible",
+      "cancelled"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/cargos/*/netBBOverride",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/ntcBase",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/opOverrides",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/coefficientFactor",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/cranes",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/expDa",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/extraTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/layTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/productivity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/quantity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/terms",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/cargos/*/opOverrides/{^[0-9]+$}/turnTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/quantity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/rate",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/rateType",
+    "types": [
+      "string"
+    ],
+    "enum": [
+      "mt",
+      "lumpsum"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/cargos/*/stowageFactor",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/tcCommission",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/voyageCommission",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/cargos/*/worldscale",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/charterer",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/departureUtc",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/hireRate",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/misc",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/misc/canalCost1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/misc/canalFuel",
+    "types": [
+      "string"
+    ],
+    "enum": [
+      "hsfo",
+      "vlsfo",
+      "lsmgo"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/misc/extraFees",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/misc/extraInsurance",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/misc/extraTime",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/misc/extraTime/canal1",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/misc/extraTime/canal1/mode",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/misc/extraTime/canal1/unit",
+    "types": [
+      "string"
+    ],
+    "enum": [
+      "days",
+      "hours"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/misc/extraTime/canal1/value",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/misc/miscCost",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/netBB",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/notes",
+    "types": [
+      "string"
+    ],
+    "max_length": 20000
+  },
+  {
+    "path": "/sequence",
+    "types": [
+      "array"
+    ],
+    "max_items": 200
+  },
+  {
+    "path": "/sequence/*",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/sequence/*/assignedCargoIds",
+    "types": [
+      "array"
+    ],
+    "max_items": 50
+  },
+  {
+    "path": "/sequence/*/assignedCargoIds/*",
+    "types": [
+      "integer"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/baseSeaTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/bunkeringHsfo",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/bunkeringLsmgo",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/bunkeringVlsfo",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/calculatedPortDays",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/coefficientFactor",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/coordinates",
+    "types": [
+      "array"
+    ],
+    "max_items": 2
+  },
+  {
+    "path": "/sequence/*/coordinates/*",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/cranes",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/customTermsName",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/daChartererAcct",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/daOwnerAcct",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/distance",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/distanceSpeedContext",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/draft",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/ecaDistance",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/ecaDistanceSpeedContext",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/ecaTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/eta",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/expDa",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/extraTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/id",
+    "types": [
+      "integer"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/isEuEea",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/sequence/*/layTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/legArrivalUtc",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/legDepartureUtc",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/operation",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/port",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/portCountry",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/portFuelType",
+    "types": [
+      "string"
+    ],
+    "enum": [
+      "hsfo",
+      "vlsfo",
+      "lsmgo"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/portId",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/portMaxDraft",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/portUnloc",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/productivity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/quantity",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/seaMargin",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/seaMarginTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/seaTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/season",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/stowageFactor",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/terms",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/timeOverride",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/totalLegTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/turnTime",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/type",
+    "types": [
+      "string"
+    ],
+    "enum": [
+      "open",
+      "port",
+      "repos"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/ukEts",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/sequence/*/ukZone",
+    "types": [
+      "string",
+      "null"
+    ],
+    "enum": [
+      "gb",
+      "ni",
+      null
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/ukcPercent",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/wdaysPortOverride",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/sequence/*/wdaysUnit",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/sequence/*/weatherDelayFailed",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/sequence/*/weatherDelayHours",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/beam",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/builder",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/vessel/builtYear",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/consumption/ae",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/consumption/ae/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/ae/ecoBallast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/ae/ecoLaden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/aeScrubber",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/consumption/aeScrubber/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/aeScrubber/ecoBallast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/aeScrubber/ecoLaden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/hsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/consumption/hsfo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/hsfo/ecoBallast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/hsfo/ecoLaden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/lsmgo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/consumption/lsmgo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/lsmgo/ecoBallast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/lsmgo/ecoLaden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/speed",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/consumption/speed/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/speed/ecoBallast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/speed/ecoLaden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/vlsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/consumption/vlsfo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/vlsfo/ecoBallast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/consumption/vlsfo/ecoLaden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/cubic",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/cubicUnit",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/vessel/draft",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/dwt",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/ae/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/aeScrubber/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/hsfo/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/lsmgo/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/speed/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/ecoConsumption/vlsfo/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/fullConsumption/ae",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/fullConsumption/ae/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/ae/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/ae/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/ae/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/ae/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/ae/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/ae/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/ae/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/aeScrubber/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/hsfo/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/lsmgo/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/speed",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/fullConsumption/speed/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/speed/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/speed/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/speed/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/speed/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/speed/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/speed/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/speed/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo",
+    "types": [
+      "object"
+    ]
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo/ballast",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo/canal",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo/discharge",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo/idle",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo/laden",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo/load",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo/misc1",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/fullConsumption/vlsfo/misc2",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/gt",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/hasScrubber",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/vessel/hsfoCapability",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/vessel/imo",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/vessel/loa",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/loadDischIdleSame",
+    "types": [
+      "boolean"
+    ]
+  },
+  {
+    "path": "/vessel/miscMultiplier",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/name",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/vessel/owner",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/vessel/scrubberCount",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/speedProfile",
+    "types": [
+      "string"
+    ],
+    "enum": [
+      "eco",
+      "full"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/vessel/tpcTpi",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  },
+  {
+    "path": "/vessel/type",
+    "types": [
+      "string"
+    ],
+    "max_length": 1000
+  },
+  {
+    "path": "/vesselCost",
+    "types": [
+      "number"
+    ],
+    "max_abs": 1000000000000
+  }
+]
