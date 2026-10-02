@@ -40,7 +40,8 @@ const ENDPOINTS: Array<{ path: string; method: "GET" | "POST" | "PUT" | "DELETE"
 ];
 
 const SHOULD_RUN = process.env.RUN_CORS_SMOKE === "1";
-const REQUIRED_HEADERS = "API-Key,Authorization,Content-Type,X-Auth-Token";
+// The browser no longer sends API-Key (D-005).
+const REQUIRED_HEADERS = "Authorization,Content-Type,X-Auth-Token";
 
 function originAllowed(acao: string | null, origin: string): boolean {
   if (!acao) return false;

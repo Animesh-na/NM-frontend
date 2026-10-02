@@ -14,7 +14,8 @@
     "test:report": "mkdir -p test-reports && vitest run --reporter=verbose --reporter=json --outputFile.json=test-reports/test-report.json 2>&1 | tee test-reports/test-report.log",
     "golden:update": "vitest run -c vitest.golden.config.ts",
     "contract:gen": "node scripts/gen-contract-types.mjs",
-    "contract:check": "node scripts/gen-contract-types.mjs --check"
+    "contract:check": "node scripts/gen-contract-types.mjs --check",
+    "check:bundle": "node scripts/check-bundle-secrets.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

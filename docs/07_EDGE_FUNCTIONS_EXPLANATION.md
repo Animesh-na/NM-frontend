@@ -13,7 +13,7 @@ CORS proxy that forwards requests to the external Marine API, injecting the API 
 1. Browser sends request to edge function with `?endpoint=/vessels/search&q=...`
 2. Edge function extracts the `endpoint` parameter
 3. Forwards all other query params to `https://development.effimove.in/marine/api/v1{endpoint}?{params}`
-4. Adds `API-Key: effimove@2026` header
+4. Adds `API-Key: <server-side secret>` header
 5. Returns the JSON response with CORS headers
 
 ### Request Flow
@@ -21,7 +21,7 @@ CORS proxy that forwards requests to the external Marine API, injecting the API 
 GET /functions/v1/marine-api?endpoint=/vessels/search&q=Global&limit=10
 
 → GET https://development.effimove.in/marine/api/v1/vessels/search?q=Global&limit=10
-  Headers: { API-Key: effimove@2026 }
+  Headers: { API-Key: <server-side secret> }
 
 ← JSON response proxied back to browser
 ```
