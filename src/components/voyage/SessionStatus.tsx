@@ -2,12 +2,13 @@
  * Save status and conflict UI for the server calculation session (M7).
  * Status is text plus icon (never colour only) and is announced politely.
  */
-import { AlertTriangle, CheckCircle2, CloudOff, Loader2, Lock, RefreshCw, Save, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CloudOff, Loader2, Lock, RefreshCw, Save, Server, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SAVE_STATE_LABEL, type SaveState } from "@/session/saveState";
 import type { ConflictInfo, SessionSnapshot } from "@/session/voyageSession";
+import type { ResultSource } from "@/context/VoyageContext";
 
 const ICON: Record<SaveState, ReactNode> = {
   LOCAL_ONLY: <Save className="h-3.5 w-3.5" aria-hidden />,
@@ -20,7 +21,7 @@ const ICON: Record<SaveState, ReactNode> = {
   RECOVERING: <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden />,
 };
 
-export function SessionStatusBar({ snap, onTakeOver }: { snap: SessionSnapshot; onTakeOver: () => void }) {
+export function SessionStatusBar({ snap, onTakeOver, resultSource = "local" }: { snap: SessionSnapshot; onTakeOver: () => void; resultSource?: ResultSource }) {
   if (snap.role === "readonly") {
     return (
       <div role="status" className="bg-warning/10 border-b border-warning/30 text-amber-800 dark:text-amber-300 px-4 py-1.5 text-[11px] flex items-center justify-between gap-2 flex-shrink-0">
@@ -44,6 +45,12 @@ export function SessionStatusBar({ snap, onTakeOver }: { snap: SessionSnapshot; 
       </span>
       {snap.heldPaths.length > 0 && (
         <span className="text-muted-foreground">{snap.heldPaths.length} incomplete field{snap.heldPaths.length > 1 ? "s" : ""} not sent yet</span>
+      )}
+      {resultSource !== "local" && (
+        <span className="flex items-center gap-1 text-muted-foreground" data-result-source={resultSource}>
+          {resultSource === "server" ? <Server className="h-3.5 w-3.5" aria-hidden /> : <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+          {resultSource === "server" ? "Results: server" : "Results: browser (server calculating…)"}
+        </span>
       )}
     </div>
   );

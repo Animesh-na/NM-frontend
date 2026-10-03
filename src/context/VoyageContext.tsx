@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo, useRef } from "react";
 import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/hooks/useVoyageCalculation";
+import { useCalcAuthority } from "@/services/calcAuthority";
+import { useDisplayComparison } from "@/services/displayCompare";
+import { fromResultDTO, useServerResult } from "@/session/serverDisplay";
 import { defaultVessel, type VesselData } from "@/data/vessels";
 import { getSeaRouteDistance, searchPorts as searchMarinePorts } from "@/services/marineApi";
 import { type Port } from "@/components/voyage/PortSelect";
@@ -303,8 +306,13 @@ interface VoyageContextValue {
   notes: string;
   setNotes: (value: string) => void;
    
-   // Calculated results
+   // Calculated results: what the screen shows (M10 stage 3: the Go result when
+   // it matches the sheet on screen, else the browser's own result).
    results: VoyageResults;
+   // Where `results` came from: "local" (browser authority), "server" (Go result
+   // for exactly this sheet), "local_pending" (server display on, server result
+   // pending/stale/unavailable — the browser's result is shown meanwhile).
+   resultSource: ResultSource;
 
    // Cargo assignment validation (route mapping)
    cargoValidation: CargoValidationResult;
@@ -825,12 +833,16 @@ const initialMisc: MiscState = {
 
 const VoyageContext = createContext<VoyageContextValue | null>(null);
 
+export type ResultSource = "local" | "server" | "local_pending";
+
 export interface VoyageProviderProps {
   children: ReactNode;
   initialData?: Record<string, unknown> | null;
+  /** The sheet this provider shows (its server result is looked up by id, M10). */
+  sheetId?: string | null;
 }
 
-export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
+export function VoyageProvider({ children, initialData, sheetId = null }: VoyageProviderProps) {
   const [vessel, setVessel] = useState<VesselData>(() => (initialData?.vessel as VesselData) || ({
     ...defaultVessel,
     name: "",
@@ -1910,7 +1922,16 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
     applyUkEtsImpact,
   };
 
-  const results = useVoyageCalculation(voyageInputs);
+  // M10 stage 3 (D-055): the browser always computes; with server display on,
+  // the Go result for exactly this sheet is shown instead and the two are
+  // compared in the background. Rollback = CALC_AUTHORITY=local.
+  const localResults = useVoyageCalculation(voyageInputs);
+  const calcAuthority = useCalcAuthority();
+  const serverResponse = useServerResult(calcAuthority === "server_display" ? sheetId : null);
+  const serverResults = useMemo(() => (serverResponse ? fromResultDTO(serverResponse) : null), [serverResponse]);
+  const results = serverResults ?? localResults;
+  const resultSource: ResultSource = calcAuthority === "local" ? "local" : serverResults ? "server" : "local_pending";
+  useDisplayComparison(localResults, serverResponse);
 
   const cargoValidation = useMemo(
     () => validateCargoAssignments(cargos, sequence),
@@ -2039,6 +2060,7 @@ export function VoyageProvider({ children, initialData }: VoyageProviderProps) {
         setNetBB,
         resetState,
         results,
+        resultSource,
         cargoValidation,
         validationIssues,
         hasErrors,
@@ -2136,6 +2158,7 @@ export function useVoyageContext() {
       netBB: 0,
       setNetBB: () => {},
       resetState: () => {},
+      resultSource: "local",
       results: {
         totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
         totalSeaDays: 0, totalPortDays: 0, extraSeaDays: 0, extraPortDays: 0, extraCanalDays: 0,

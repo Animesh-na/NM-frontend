@@ -18,6 +18,8 @@ import { useCalcShadow } from "@/services/calcShadow";
 import { getApiMode } from "@/services/apiMode";
 import { SERVER_CALCULATION_ENABLED, useDebouncedPatch, useSessionSnapshot, useVoyageSession } from "@/hooks/useVoyageSession";
 import { ConflictDialog, SessionStatusBar } from "@/components/voyage/SessionStatus";
+import { useCalcAuthority } from "@/services/calcAuthority";
+import { publishServerResult } from "@/session/serverDisplay";
 import { Calculator, Loader2, PanelRightClose, PanelRightOpen, Trash2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
@@ -193,7 +195,9 @@ const Index = () => {
   // ── Server calculation session (M7, VITE_SERVER_CALCULATION, off by default) ──
   // Saving, ordering and conflicts go through the server session; the screen
   // keeps showing the local results (display cutover per domain is M10, D-007).
-  const sessionSheetId = SERVER_CALCULATION_ENABLED && activeTab?.id && !activeTab.readOnly && hydratedTabKey === activeTab.id
+  // M10: server display (CALC_AUTHORITY != local) needs the session too.
+  const calcAuthority = useCalcAuthority();
+  const sessionSheetId = (SERVER_CALCULATION_ENABLED || calcAuthority !== "local") && activeTab?.id && !activeTab.readOnly && hydratedTabKey === activeTab.id
     ? activeTab.id
     : null;
   const session = useVoyageSession({
@@ -217,6 +221,12 @@ const Index = () => {
   }, [activeTab?.id]);
   const currentDoc = useMemo(() => gatherData(), [gatherData]);
   const flushPatches = useDebouncedPatch(session, currentDoc);
+  // M10 stage 3: publish the server result computed for exactly the sheet on
+  // screen (or null while pending/stale/unavailable); VoyageContext shows it.
+  useEffect(() => {
+    const sheetId = activeTab?.id ?? null;
+    publishServerResult(sheetId, session && calcAuthority !== "local" ? session.currentResult(currentDoc) : null);
+  }, [session, sessionSnap, currentDoc, calcAuthority, activeTab?.id]);
   // The server held newer unsaved edits (another tab, a crash) or the user
   // resolved a conflict: show that document.
   useEffect(() => {
@@ -335,7 +345,7 @@ const Index = () => {
       <SheetTabs />
 
       {sessionSnap && session && (
-        <SessionStatusBar snap={sessionSnap} onTakeOver={() => session.takeOverEditing()} />
+        <SessionStatusBar snap={sessionSnap} onTakeOver={() => session.takeOverEditing()} resultSource={voyage.resultSource} />
       )}
       {session && <ConflictDialog conflict={sessionSnap?.conflict ?? null} onResolve={(c) => void session.resolveConflict(c)} />}
       {activeTab?.readOnly && (

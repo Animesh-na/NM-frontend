@@ -278,6 +278,19 @@ export class VoyageSession {
     this.sendDiff();
   }
 
+  /**
+   * The server result computed for exactly `doc` (the sheet on screen), or
+   * null while it is pending, stale or unavailable (M10 stage 3): the latest
+   * server generation has its result, nothing is unacknowledged, and the
+   * server's copy of the sheet equals `doc`.
+   */
+  currentResult(doc: unknown): CalculationResponse | null {
+    const s = this.snap;
+    if (this.disposed || !s.result || s.calculating || s.resultWorkingSequence !== s.workingSequence) return null;
+    if (this.pending.length > 0 || this.serverDoc === null) return null;
+    return jsonEqual(this.serverDoc, projectDocument(doc)) ? s.result : null;
+  }
+
   /** Sends anything not yet sent (blur, Enter, save, unload). */
   flush(): void {
     if (!this.disposed && this.snap.role === "owner" && !this.snap.conflict && !this.resolving) this.sendDiff();

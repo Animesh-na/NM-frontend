@@ -478,3 +478,23 @@ describe("M7 final review", () => {
     expect(session.getSnapshot().saveState).not.toBe("SAVED");
   });
 });
+
+describe("current server result for the sheet on screen (M10 stage 3)", () => {
+  const result = (ws: number) => ({ type: "calculation_result", generation: ws, working_sequence: ws, calculation_id: `calc-${ws}`, result: { calculation_id: `calc-${ws}`, status: "completed", result: { totalDistance: ws } } });
+
+  it("is the latest result only when the server's sheet equals the sheet on screen and nothing is pending", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server);
+    sock.push(result(0));
+    expect(session.currentResult(DOC)).toMatchObject({ calculation_id: "calc-0" });
+    const edited = { ...DOC, hireRate: 1 };
+    expect(session.currentResult(edited)).toBeNull(); // the user typed: stale
+    edit(session, edited);
+    expect(session.currentResult(edited)).toBeNull(); // sent, not acknowledged
+    ack(sock, 1);
+    expect(session.currentResult(edited)).toBeNull(); // acknowledged, calculating
+    sock.push(result(1));
+    expect(session.currentResult(edited)).toMatchObject({ calculation_id: "calc-1" });
+    expect(session.currentResult(DOC)).toBeNull();
+  });
+});

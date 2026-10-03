@@ -18,8 +18,17 @@ import { useExcelNavigation } from "@/hooks/useExcelNavigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { initLogger, logger, setLoggerUser, trackView } from "@/services/logger";
 import { useEffect } from "react";
+import { refreshCalcAuthority } from "@/services/calcAuthority";
 
 initLogger();
+
+// M10: the calculation authority stage comes from the backend at runtime
+// (CALC_AUTHORITY); fetched after sign-in and whenever the page becomes visible.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void refreshCalcAuthority();
+  });
+}
 
 const queryClient = new QueryClient();
 
@@ -48,7 +57,7 @@ function SheetRouter() {
   }
 
   return (
-    <VoyageProvider key={activeTab?.id || 'new'} initialData={activeTab?.data && Object.keys(activeTab.data).length > 0 ? activeTab.data : null}>
+    <VoyageProvider key={activeTab?.id || 'new'} sheetId={activeTab?.id ?? null} initialData={activeTab?.data && Object.keys(activeTab.data).length > 0 ? activeTab.data : null}>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -67,6 +76,11 @@ function AppContent() {
   useEffect(() => {
     setLoggerUser(user ? { id: user.id, email: user.email, token: token ?? undefined } : null);
   }, [user, token]);
+
+  // The config endpoint needs a signed-in user: fetch the stage after sign-in.
+  useEffect(() => {
+    if (token) void refreshCalcAuthority();
+  }, [token]);
 
   if (!isAuthenticated) {
     return <Login />;
