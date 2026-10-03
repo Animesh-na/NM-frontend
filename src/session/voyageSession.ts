@@ -78,6 +78,30 @@ interface Resolving {
 }
 
 const MAX_DIFF_PATHS = 12;
+
+/**
+ * Sequence-row fields the browser derives from the primary inputs and stores in
+ * the sheet; the Go engine recomputes its own leg times and never reads them
+ * (backend TestBrowserDerivedRowFieldsAreNotEngineInputs, D-055). A server
+ * result therefore belongs to the sheet on screen even when only these differ
+ * (they are recomputed on load and not sent until the user edits, D-044).
+ */
+export const BROWSER_DERIVED_ROW_FIELDS = ["seaTime", "baseSeaTime", "seaMarginTime", "ecaTime", "totalLegTime", "calculatedPortDays", "legDepartureUtc", "legArrivalUtc"] as const;
+
+function withoutDerivedRowFields(doc: unknown): unknown {
+  if (doc === null || typeof doc !== "object") return doc;
+  const d = doc as Record<string, unknown>;
+  if (!Array.isArray(d.sequence)) return doc;
+  return {
+    ...d,
+    sequence: d.sequence.map((row) => {
+      if (row === null || typeof row !== "object") return row;
+      const r = { ...(row as Record<string, unknown>) };
+      for (const f of BROWSER_DERIVED_ROW_FIELDS) delete r[f];
+      return r;
+    }),
+  };
+}
 /** Kept for tests that wait out app start-up; load normalisation is detected by user input, not time. */
 export const SETTLE_MS = 2500;
 const MAX_RESYNCS = 5;
@@ -282,13 +306,14 @@ export class VoyageSession {
    * The server result computed for exactly `doc` (the sheet on screen), or
    * null while it is pending, stale or unavailable (M10 stage 3): the latest
    * server generation has its result, nothing is unacknowledged, and the
-   * server's copy of the sheet equals `doc`.
+   * server's copy of the sheet equals `doc` — ignoring the row values the
+   * browser derives on load and the engine never reads (BROWSER_DERIVED_ROW_FIELDS).
    */
   currentResult(doc: unknown): CalculationResponse | null {
     const s = this.snap;
     if (this.disposed || !s.result || s.calculating || s.resultWorkingSequence !== s.workingSequence) return null;
     if (this.pending.length > 0 || this.serverDoc === null) return null;
-    return jsonEqual(this.serverDoc, projectDocument(doc)) ? s.result : null;
+    return jsonEqual(withoutDerivedRowFields(this.serverDoc), withoutDerivedRowFields(projectDocument(doc))) ? s.result : null;
   }
 
   /** Sends anything not yet sent (blur, Enter, save, unload). */

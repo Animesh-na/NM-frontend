@@ -498,3 +498,14 @@ describe("current server result for the sheet on screen (M10 stage 3)", () => {
     expect(session.currentResult(DOC)).toBeNull();
   });
 });
+
+describe("current result ignores browser-derived row values (M10, D-055)", () => {
+  it("a sheet differing only in derived leg times still gets the server result; a primary input does not", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server);
+    sock.push({ type: "calculation_result", generation: 0, working_sequence: 0, calculation_id: "calc-0", result: { calculation_id: "calc-0", status: "completed", result: {} } });
+    const derived = { ...DOC, sequence: [{ id: 1, seaTime: 3.2, ecaTime: 0.4, totalLegTime: 4, calculatedPortDays: 1, legDepartureUtc: "2026-01-01T00:00:00Z" }] };
+    expect(session.currentResult(derived)).toMatchObject({ calculation_id: "calc-0" });
+    expect(session.currentResult({ ...DOC, sequence: [{ id: 1, distance: 100 }] })).toBeNull();
+  });
+});
