@@ -288,6 +288,7 @@ export class CalculationSocket {
       this.handlers.onOpen();
     };
     ws.onmessage = (ev) => {
+      if (this.ws !== ws) return; // a superseded socket: its messages belong to the old connection
       this.lastInbound = this.now();
       let msg: ServerMessage;
       try {

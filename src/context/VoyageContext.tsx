@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { useVoyageCalculation, type VoyageInputs, type VoyageResults } from "@/hooks/useVoyageCalculation";
 import { useCalcAuthority } from "@/services/calcAuthority";
 import { useDisplayComparison } from "@/services/displayCompare";
-import { fromResultDTO, useServerResult } from "@/session/serverDisplay";
+import { fromResultDTO, useServerDisplay } from "@/session/serverDisplay";
 import { defaultVessel, type VesselData } from "@/data/vessels";
 import { getSeaRouteDistance, searchPorts as searchMarinePorts } from "@/services/marineApi";
 import { type Port } from "@/components/voyage/PortSelect";
@@ -1121,7 +1121,7 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
       return row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca && row.portFuelType === portFuelType
         ? row
         : { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca, portFuelType };
-    }), vessel, autoDistanceEnabled, departureUtc)); // speed contexts change leg times (X-015)
+    }), { ...vessel, speedProfile, hasScrubber }, autoDistanceEnabled, departureUtc)); // speed contexts change leg times (X-015); the caller is setting these vessel fields in the same event
   }, [vessel, autoDistanceEnabled, departureUtc]);
 
   const removeSequence = useCallback((id: number) => {
@@ -2003,21 +2003,29 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
   // M10 stage 3 (D-055): the browser always computes; with server display on,
   // the Go result for exactly this sheet is shown instead and the two are
   // compared in the background. Rollback = CALC_AUTHORITY=local.
-  const calcAuthority = useCalcAuthority();
-  // Stage 4 (server_only): the browser does not calculate at all.
-  const localResults = useVoyageCalculation(voyageInputs, calcAuthority !== "server_only");
+  const requestedAuthority = useCalcAuthority();
   // A new token whenever any sheet input changes (the same state the page's
   // sheet document is built from): a server result evaluated for older inputs
   // no longer matches in the very render that shows the edit.
   const inputsToken = useMemo(() => ({}),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [vessel, sequence, cargos, bunker, misc, hireRate, vesselCost, netBB, applyEuaImpact, applyFuelEuImpact, applyUkEtsImpact, departureUtc, autoDistanceEnabled, notes, charterer]);
-  const serverResponse = useServerResult(calcAuthority !== "local" ? sheetId : null, inputsToken);
+  const server = useServerDisplay(requestedAuthority !== "local" ? sheetId : null, inputsToken);
+  // Server stages apply only where a live server session owns the sheet. Views
+  // without one (comparison page, read-only or new sheets, another tab owns it)
+  // keep the browser's calculation and label it as such (review: no unlabelled
+  // placeholder numbers in server_only).
+  const calcAuthority = server.available ? requestedAuthority : "local";
+  // Stage 4 (server_only): the browser does not calculate at all.
+  const localResults = useVoyageCalculation(voyageInputs, calcAuthority !== "server_only");
+  const serverResponse = server.response;
   const serverResults = useMemo(() => (serverResponse ? fromResultDTO(serverResponse) : null), [serverResponse]);
   // Stage 4: while the next server result is calculating, keep showing the
-  // last one for this sheet (marked as updating); this provider is per sheet.
-  const lastServerResults = useRef<VoyageResults | null>(null);
-  if (serverResults) lastServerResults.current = serverResults;
+  // last one — of the same document only (epoch changes when another document
+  // is loaded into this editor).
+  const lastServerResults = useRef<{ epoch: number; results: VoyageResults } | null>(null);
+  if (serverResults) lastServerResults.current = { epoch: server.epoch, results: serverResults };
+  const lastForThisDoc = lastServerResults.current?.epoch === server.epoch ? lastServerResults.current.results : null;
   let results: VoyageResults;
   let resultSource: ResultSource;
   if (calcAuthority === "local") {
@@ -2029,8 +2037,8 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
   } else if (calcAuthority === "server_display") {
     results = localResults ?? EMPTY_VOYAGE_RESULTS;
     resultSource = "local_pending";
-  } else if (lastServerResults.current) {
-    results = lastServerResults.current;
+  } else if (lastForThisDoc) {
+    results = lastForThisDoc;
     resultSource = "server_stale";
   } else {
     results = EMPTY_VOYAGE_RESULTS;

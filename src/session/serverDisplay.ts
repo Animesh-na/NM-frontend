@@ -16,14 +16,19 @@ interface Entry {
   response: CalculationResponse | null;
   /** The provider's inputs token the page evaluated the response against. */
   inputsToken: object | null;
+  /** A live server session owns this sheet (results can come from the server). */
+  available: boolean;
+  /** Changes whenever the page loads another document into the editor (recovery, conflict reload). */
+  epoch: number;
 }
 
-let entry: Entry = { sheetId: null, response: null, inputsToken: null };
+let entry: Entry = { sheetId: null, response: null, inputsToken: null, available: false, epoch: 0 };
 const listeners = new Set<() => void>();
 
-export function publishServerResult(sheetId: string | null, response: CalculationResponse | null, inputsToken: object | null = null): void {
-  if (entry.sheetId === sheetId && entry.response === response && entry.inputsToken === inputsToken) return;
-  entry = { sheetId, response, inputsToken };
+export function publishServerResult(sheetId: string | null, response: CalculationResponse | null, inputsToken: object | null = null,
+  available = response !== null, epoch = 0): void {
+  if (entry.sheetId === sheetId && entry.response === response && entry.inputsToken === inputsToken && entry.available === available && entry.epoch === epoch) return;
+  entry = { sheetId, response, inputsToken, available, epoch };
   listeners.forEach((l) => l());
 }
 
@@ -31,6 +36,19 @@ const subscribe = (l: () => void) => {
   listeners.add(l);
   return () => listeners.delete(l);
 };
+
+export interface ServerDisplay {
+  response: CalculationResponse | null;
+  available: boolean;
+  epoch: number;
+}
+
+/** What the server side offers this sheet: availability, document epoch, and the current response (as useServerResult). */
+export function useServerDisplay(sheetId: string | null, inputsToken: object | null): ServerDisplay {
+  const e = useSyncExternalStore(subscribe, () => entry, () => entry);
+  if (sheetId === null || e.sheetId !== sheetId) return { response: null, available: false, epoch: 0 };
+  return { response: e.inputsToken !== null && e.inputsToken === inputsToken ? e.response : null, available: e.available, epoch: e.epoch };
+}
 
 /**
  * The server response for this sheet if it was evaluated against exactly the

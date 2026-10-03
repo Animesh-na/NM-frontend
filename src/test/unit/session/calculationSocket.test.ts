@@ -218,3 +218,25 @@ describe("server shutdown hint is per socket (M9 review)", () => {
     s.stop();
   });
 });
+
+describe("superseded sockets (M10 final review)", () => {
+  it("ignores a late message from a socket that has been replaced", async () => {
+    const server = new FakeServer();
+    const onMessage = vi.fn();
+    const s = new CalculationSocket("sheet-1", "dry_bulk", { onOpen: vi.fn(), onMessage, onStatus: vi.fn() }, socketDeps(server, { random: () => 0 }));
+    s.start();
+    await settle();
+    const first = server.last;
+    first.accept();
+    first.drop(1006);
+    await vi.advanceTimersByTimeAsync(1);
+    await settle();
+    expect(server.sockets).toHaveLength(2);
+    server.last.accept();
+    first.push({ type: "calculation_result", working_sequence: 7 }); // late, from the old connection
+    expect(onMessage).not.toHaveBeenCalled();
+    server.last.push({ type: "pong" });
+    expect(onMessage).toHaveBeenCalledTimes(1);
+    s.stop();
+  });
+});

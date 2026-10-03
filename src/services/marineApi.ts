@@ -46,6 +46,26 @@ export interface MarinePort {
   source_table?: string;
 }
 
+/** A non-2xx API response; `body` is the parsed JSON body when there is one. */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly body: unknown) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/**
+ * A sheet save refused by optimistic concurrency (M10, D-059): the sheet was
+ * saved elsewhere since it was loaded (VERSION_CONFLICT, with the current
+ * version), or a live editing session holds it (LEASE_HELD).
+ */
+export class SheetSaveConflict extends Error {
+  constructor(readonly code: string, readonly currentVersion: number | null) {
+    super(code);
+    this.name = "SheetSaveConflict";
+  }
+}
+
 // Helper for direct API requests to the upstream Marine API
 export async function apiRequest<T>(
   endpoint: string,
@@ -79,11 +99,13 @@ export async function apiRequest<T>(
       dispatchSessionExpired();
     }
     let detail = "";
+    let body: unknown = null;
     try {
       const text = await response.text();
       if (text) {
         try {
           const parsed = JSON.parse(text) as { error?: string; message?: string; detail?: string };
+          body = parsed;
           detail = parsed.error || parsed.message || parsed.detail || text;
         } catch {
           detail = text;
@@ -92,8 +114,10 @@ export async function apiRequest<T>(
     } catch {
       /* ignore body read failures */
     }
-    throw new Error(
-      `API Error: ${response.status} ${response.statusText}${detail ? ` — ${detail.slice(0, 200)}` : ""}`
+    throw new ApiError(
+      `API Error: ${response.status} ${response.statusText}${detail ? ` — ${detail.slice(0, 200)}` : ""}`,
+      response.status,
+      body,
     );
   }
 
@@ -311,6 +335,8 @@ export interface SheetDetail {
   id: string;
   name: string;
   data: Record<string, unknown>;
+  /** Optimistic-concurrency version (M3); sent back as base_version on save. */
+  version?: number;
   created_at: string;
   updated_at: string;
 }
@@ -403,16 +429,22 @@ export async function saveSheet(name: string, sheetData: Record<string, unknown>
   }
 }
 
-// 7. Update an existing sheet
-export async function updateSheet(id: string, name: string, sheetData: Record<string, unknown>, workbookId?: string | null): Promise<SheetDetail | null> {
+// 7. Update an existing sheet. With baseVersion the save is versioned (M10,
+// D-059): if the sheet changed since that version it is refused with
+// SheetSaveConflict instead of overwriting (no last-writer-wins).
+export async function updateSheet(id: string, name: string, sheetData: Record<string, unknown>, workbookId?: string | null, baseVersion?: number | null): Promise<SheetDetail | null> {
   try {
     const data = await apiRequest<{ sheet: SheetDetail }>(modePath("/sheets"), undefined, {
       method: 'POST',
-      body: { id, name, workbook_id: workbookId ?? null, data: sheetData },
+      body: { id, name, workbook_id: workbookId ?? null, data: sheetData, ...(baseVersion != null ? { base_version: baseVersion } : {}) },
       authenticated: true,
     });
     return data.sheet || null;
   } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      const b = (error.body ?? {}) as { error?: string; current_version?: number };
+      throw new SheetSaveConflict(b.error ?? "VERSION_CONFLICT", typeof b.current_version === "number" ? b.current_version : null);
+    }
     console.error("Failed to update sheet:", error);
     return null;
   }

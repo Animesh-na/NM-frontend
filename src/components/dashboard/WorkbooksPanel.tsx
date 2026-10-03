@@ -121,7 +121,7 @@ export default function WorkbooksPanel({ query = "" }: { query?: string }) {
         return !wbReadOnly;
       };
       trackEvent("workbook.open_all", { component: "WorkbooksPanel", workbook_id: wb.id, sheet_count: sheets.length, read_only: wbReadOnly });
-      openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, readOnly: !isSheetOwn(s), workbookId: wb.id, workbookName: wb.name })));
+      openSheets(sheets.map(s => ({ id: s.id, name: s.name, data: s.data, version: (s as { version?: number }).version ?? null, readOnly: !isSheetOwn(s), workbookId: wb.id, workbookName: wb.name })));
     } catch {
       if (requestId === openRequestRef.current) toast.error("Failed to load workbook sheets");
     } finally {

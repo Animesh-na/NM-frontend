@@ -3,7 +3,7 @@ import { act, cleanup, render, renderHook } from "@testing-library/react";
 import { VoyageProvider, useVoyageContext } from "@/context/VoyageContext";
 import { toResultDTO } from "@/contracts/calc/normalize";
 import type { CalculationResponse } from "@/contracts/calc/types.generated";
-import { getCalcAuthority, refreshCalcAuthority, setCalcAuthority } from "@/services/calcAuthority";
+import { getCalcAuthority, isCalcAuthorityReady, refreshCalcAuthority, resetCalcAuthorityForTests, setCalcAuthority } from "@/services/calcAuthority";
 import { diffDisplayed, useDisplayComparison } from "@/services/displayCompare";
 import { fromResultDTO, publishServerResult } from "@/session/serverDisplay";
 import type { ShadowReport } from "@/services/voyageCalculationApi";
@@ -48,23 +48,26 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   act(() => publishServerResult(null, null));
-  setCalcAuthority("local");
+  resetCalcAuthorityForTests();
   vi.restoreAllMocks();
 });
 
 describe("calculation authority flag", () => {
-  it("defaults to local and follows the backend config; unknown values and failures keep the stage", async () => {
+  it("defaults to local until the backend answers; the first answer is fixed for the page load (D-059)", async () => {
     expect(getCalcAuthority()).toBe("local");
-    await refreshCalcAuthority(async () => ({ calc_authority: "server_display" }));
-    expect(getCalcAuthority()).toBe("server_display");
-    await refreshCalcAuthority(async () => ({ calc_authority: "bogus" }));
-    expect(getCalcAuthority()).toBe("server_display");
     await refreshCalcAuthority(async () => {
-      throw new Error("401");
+      throw new Error("401"); // not signed in yet
     });
+    expect(isCalcAuthorityReady()).toBe(false);
+    await refreshCalcAuthority(async () => ({ calc_authority: "server_display" }));
+    expect([getCalcAuthority(), isCalcAuthorityReady()]).toEqual(["server_display", true]);
+    await refreshCalcAuthority(async () => ({ calc_authority: "local" })); // a later change waits for the next load
     expect(getCalcAuthority()).toBe("server_display");
-    await refreshCalcAuthority(async () => ({ calc_authority: "local" })); // rollback
-    expect(getCalcAuthority()).toBe("local");
+  });
+
+  it("an unknown value fixes the safe stage (local)", async () => {
+    await refreshCalcAuthority(async () => ({ calc_authority: "bogus" }));
+    expect([getCalcAuthority(), isCalcAuthorityReady()]).toEqual(["local", true]);
   });
 });
 
@@ -91,14 +94,17 @@ describe("VoyageProvider display authority", () => {
   it("server_display: shows the server result for this sheet; falls back to the browser's result while pending; ignores other sheets", () => {
     setCalcAuthority("server_display");
     const ctx = mount("sheet-1");
+    expect(ctx().resultSource).toBe("local"); // no session yet: the browser's result, unlabelled server stage not applied
+    act(() => publishServerResult("sheet-1", null, ctx().inputsToken, true)); // the session owns the sheet, result pending
     expect(ctx().resultSource).toBe("local_pending");
     const local = ctx().results;
     act(() => publishServerResult("sheet-2", response({ ...local, totalDistance: 123 }), ctx().inputsToken));
-    expect(ctx().resultSource).toBe("local_pending");
+    expect(ctx().resultSource).toBe("local"); // another sheet's entry never applies here
+    expect(ctx().results.totalDistance).toBe(local.totalDistance);
     act(() => publishServerResult("sheet-1", response({ ...local, totalDistance: 999_999 }), ctx().inputsToken));
     expect(ctx().resultSource).toBe("server");
     expect(ctx().results.totalDistance).toBe(999_999);
-    act(() => publishServerResult("sheet-1", null, ctx().inputsToken)); // stale until the next result
+    act(() => publishServerResult("sheet-1", null, ctx().inputsToken, true)); // stale until the next result
     expect(ctx().resultSource).toBe("local_pending");
     expect(ctx().results.totalDistance).toBe(local.totalDistance);
   });
@@ -141,6 +147,7 @@ describe("stage 4 (server_only, D-057)", () => {
   it("never shows a browser result: placeholders until the first server result, then the server result, then the last one while updating", () => {
     setCalcAuthority("server_only");
     const ctx = mount("sheet-1");
+    act(() => publishServerResult("sheet-1", null, ctx().inputsToken, true)); // session owns the sheet
     expect(ctx().resultSource).toBe("server_pending");
     expect(ctx().results.pAndL).toBe(0);
     expect(ctx().results.totalVoyageDays).toBe(0);
@@ -150,13 +157,31 @@ describe("stage 4 (server_only, D-057)", () => {
     expect(ctx().resultSource).toBe("server");
     expect(ctx().results.pAndL).toBe(12345);
     act(() => ctx().setHireRate((ctx().hireRate ?? 0) + 1000)); // an edit: the next result is calculating
+    act(() => publishServerResult("sheet-1", null, ctx().inputsToken, true));
     expect(ctx().resultSource).toBe("server_stale");
     expect(ctx().results.pAndL).toBe(12345);
+    // Another document is loaded into the editor (recovery): the old result is not shown for it.
+    act(() => publishServerResult("sheet-1", null, ctx().inputsToken, true, 1));
+    expect(ctx().resultSource).toBe("server_pending");
+    expect(ctx().results.pAndL).toBe(0);
+  });
+
+  it("without a live session (comparison page, read-only, new sheet) the browser calculation is used and labelled local", () => {
+    setCalcAuthority("server_only");
+    const ctxNoSheet = mount(null);
+    expect(ctxNoSheet().resultSource).toBe("local");
+    expect(ctxNoSheet().results.totalDistance).toBeGreaterThan(0); // a real browser calculation, not placeholders
+    cleanup();
+    const ctx = mount("sheet-1"); // a sheet whose session is not (yet) the owner
+    act(() => publishServerResult("sheet-1", null, ctx().inputsToken, false));
+    expect(ctx().resultSource).toBe("local");
+    expect(ctx().results.totalDistance).toBeGreaterThan(0);
   });
 
   it("does not run the browser calculation (no comparison report even with a differing server result)", () => {
     setCalcAuthority("server_only");
     const ctx = mount("sheet-1");
+    act(() => publishServerResult("sheet-1", null, ctx().inputsToken, true));
     const report = vi.fn(async () => ({}));
     const { result } = renderHook(() => useDisplayComparison(null, response({ totalDistance: 1 }), report));
     expect(result.current).toBeUndefined();

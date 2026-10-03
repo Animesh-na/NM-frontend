@@ -18,7 +18,7 @@ import { CALC_SHADOW_ENABLED, useCalcShadow } from "@/services/calcShadow";
 import { getApiMode } from "@/services/apiMode";
 import { SERVER_CALCULATION_ENABLED, useDebouncedPatch, useSessionSnapshot, useVoyageSession } from "@/hooks/useVoyageSession";
 import { ConflictDialog, SessionStatusBar } from "@/components/voyage/SessionStatus";
-import { useCalcAuthority } from "@/services/calcAuthority";
+import { useCalcAuthority, useCalcAuthorityReady } from "@/services/calcAuthority";
 import { publishServerResult } from "@/session/serverDisplay";
 import { Calculator, Loader2, PanelRightClose, PanelRightOpen, Trash2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
@@ -28,7 +28,7 @@ import { toast } from "sonner";
 type SheetDoc = Record<string, any>;
 
 const Index = () => {
-  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, updateTabData, registerDataGetter } = useSheets();
+  const { activeTab, activeTabIndex, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, updateTabData, registerDataGetter, setTabServerState } = useSheets();
   const { user } = useAuth();
   const voyage = useVoyageContext();
   const { suppressDistanceRecalc, setDistanceSuppressed, resetState } = voyage;
@@ -197,7 +197,10 @@ const Index = () => {
   // keeps showing the local results (display cutover per domain is M10, D-007).
   // M10: server display (CALC_AUTHORITY != local) needs the session too.
   const calcAuthority = useCalcAuthority();
-  const sessionSheetId = (SERVER_CALCULATION_ENABLED || calcAuthority !== "local") && activeTab?.id && !activeTab.readOnly && hydratedTabKey === activeTab.id
+  const calcAuthorityReady = useCalcAuthorityReady();
+  // The stage is fixed per page load (D-059); a sheet opened before it is known
+  // starts its session (if any) only once it is.
+  const sessionSheetId = (SERVER_CALCULATION_ENABLED || (calcAuthorityReady && calcAuthority !== "local")) && activeTab?.id && !activeTab.readOnly && hydratedTabKey === activeTab.id
     ? activeTab.id
     : null;
   const session = useVoyageSession({
@@ -223,15 +226,33 @@ const Index = () => {
   const flushPatches = useDebouncedPatch(session, currentDoc);
   // M10 stage 3: publish the server result computed for exactly the sheet on
   // screen (or null while pending/stale/unavailable); VoyageContext shows it.
+  const docEpochRef = useRef(0); // bumped whenever another document is loaded into the editor
   useEffect(() => {
     const sheetId = activeTab?.id ?? null;
-    publishServerResult(sheetId, session && calcAuthority !== "local" ? session.currentResult(currentDoc) : null, voyage.inputsToken);
+    const available = !!session && sessionSnap?.role === "owner" && calcAuthority !== "local";
+    publishServerResult(sheetId, available ? session!.currentResult(currentDoc) : null, voyage.inputsToken, available, docEpochRef.current);
   }, [session, sessionSnap, currentDoc, calcAuthority, activeTab?.id, voyage.inputsToken]);
+  // The session owns this tab's saves while it is the editor: no REST auto-save
+  // on leave (it saves on close itself); the tab tracks the saved version.
+  const sessionOwnsTab = !!session && sessionSnap?.role === "owner";
+  useEffect(() => {
+    if (!activeTab?.id) return;
+    setTabServerState(activeTab.id, { serverSession: sessionOwnsTab });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionOwnsTab, activeTab?.id]);
+  useEffect(() => {
+    if (activeTab?.id && sessionSnap?.saveState === "SAVED" && sessionSnap.persistedVersion != null) {
+      setTabServerState(activeTab.id, { version: sessionSnap.persistedVersion });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionSnap?.saveState, sessionSnap?.persistedVersion, activeTab?.id]);
+
   // The server held newer unsaved edits (another tab, a crash) or the user
   // resolved a conflict: show that document.
   useEffect(() => {
     if (!session || !sessionSnap?.recoveredDoc) return;
     isHydratingRef.current = true;
+    docEpochRef.current++;
     hydrateFromData(sessionSnap.recoveredDoc as SheetDoc);
     session.clearRecovered();
     requestAnimationFrame(() => {

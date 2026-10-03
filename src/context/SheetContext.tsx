@@ -1,6 +1,18 @@
 import { useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { SheetContext, type SheetTab } from "@/context/sheetContextCore";
-import { getSheet, saveSheet, updateSheet, deleteSheet, type SheetDetail } from "@/services/marineApi";
+import { getSheet, saveSheet, updateSheet, deleteSheet, SheetSaveConflict, type SheetDetail } from "@/services/marineApi";
+
+/** Tells the user a save was refused because the sheet changed elsewhere (D-059). */
+function reportSaveConflict(err: SheetSaveConflict, name: string, overwrite: () => Promise<void>) {
+  if (err.code === "LEASE_HELD") {
+    toast.error(`"${name}" is being edited in another tab or device; it was not saved here.`);
+    return;
+  }
+  toast.error(`"${name}" was saved elsewhere since you opened it${err.currentVersion ? ` (now version ${err.currentVersion})` : ""}. Your changes are kept.`, {
+    duration: 15000,
+    action: { label: "Overwrite with mine", onClick: () => void overwrite() },
+  });
+}
 import { toast } from "@/components/ui/sonner";
 import { logger, trackEvent, trackView } from "@/services/logger";
 import type { DashSection } from "@/components/dashboard/DashboardSidebar";
@@ -136,7 +148,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     try {
       const detail = await getSheet(id);
       if (detail) {
-        setTabs(prev => prev.map(t => t.id === id ? { ...t, data: detail.data || {}, isLoading: false } : t));
+        setTabs(prev => prev.map(t => t.id === id ? { ...t, data: detail.data || {}, version: detail.version ?? null, isLoading: false } : t));
       } else {
         toast.error("Failed to load sheet data");
         setTabs(prev => prev.map(t => t.id === id ? { ...t, isLoading: false } : t));
@@ -177,7 +189,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     try {
       const detail = await getSheet(id);
       if (detail) {
-        setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, data: detail.data || {}, isLoading: false } : t));
+        setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, data: detail.data || {}, version: detail.version ?? null, isLoading: false } : t));
       } else {
         toast.error("Failed to load organization sheet");
         setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, isLoading: false } : t));
@@ -189,7 +201,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const openSheets = useCallback((
-    incoming: { id: string; name: string; data?: Record<string, unknown>; readOnly?: boolean; workbookId?: string | null; workbookName?: string | null }[],
+    incoming: { id: string; name: string; data?: Record<string, unknown>; version?: number | null; readOnly?: boolean; workbookId?: string | null; workbookName?: string | null }[],
     emptyWorkbook?: { id: string; name: string }
   ) => {
     if (!incoming.length && !emptyWorkbook) return;
@@ -205,6 +217,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
         id: tabKey,
         name: s.readOnly ? `${s.name} (Read-only)` : s.name,
         data: s.data || {},
+        version: s.version ?? null,
         isDirty: false,
         isLoading: !hasPayload(s.data),
         readOnly: !!s.readOnly,
@@ -233,7 +246,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       const tabKey = s.readOnly ? `org:${s.id}` : s.id;
       try {
         const detail = await getSheet(s.id);
-        setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, data: detail?.data || {}, isLoading: false } : t));
+        setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, data: detail?.data || {}, version: detail?.version ?? null, isLoading: false } : t));
       } catch {
         setTabs(prev => prev.map(t => t.id === tabKey ? { ...t, isLoading: false } : t));
       }
@@ -297,8 +310,8 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     try {
       let result: SheetDetail | null;
       if (tab.id && !tab.id.startsWith("org:")) {
-        // Update existing
-        result = await updateSheet(tab.id, name, data, wbId);
+        // Update existing, versioned (D-059): refused if saved elsewhere since it was loaded
+        result = await updateSheet(tab.id, name, data, wbId, tab.version ?? null);
       } else {
         // Create new
         result = await saveSheet(name, data, wbId);
@@ -311,6 +324,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
           name: result!.name,
           data: result!.data || data,
           workbookId: wbId,
+          version: result!.version ?? null,
           isDirty: false,
         } : t));
         logger.info(tab.id ? "Sheet updated" : "Sheet saved", { component: "SheetContext", sheet_id: result.id, sheet_name: result.name });
@@ -320,6 +334,17 @@ export function SheetProvider({ children }: { children: ReactNode }) {
         toast.error("Failed to save sheet");
       }
     } catch (err) {
+      if (err instanceof SheetSaveConflict) {
+        // Never overwrite silently (D-059): the edits stay; the user decides.
+        reportSaveConflict(err, tab.name, async () => {
+          const forced = await updateSheet(tab.id!, name, data, wbId, err.currentVersion);
+          if (forced) {
+            setTabs(prev => prev.map(t => t.id === tab.id ? { ...t, data: forced.data || data, version: forced.version ?? null, isDirty: false } : t));
+            toast.success("Sheet saved over the newer version");
+          }
+        });
+        return;
+      }
       logger.error("Sheet save failed", { component: "SheetContext", sheet_id: tab.id, stack: (err as Error)?.stack });
       toast.error("Error saving sheet");
     }
@@ -335,21 +360,29 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     const tab = tabs[index];
     const getter = dataGetterRef.current;
     if (!tab || tab.readOnly || !tab.isDirty || !getter) return;
+    // A server session saves its sheet on close itself (M7/M10); a REST save
+    // here would race it (LEASE_HELD).
+    if (tab.serverSession) return;
     const data = getter();
     const wbId = tab.workbookId ?? null;
     // Keep the in-memory copy so re-opening the tab shows the latest values
     setTabs(prev => prev.map((t, i) => i === index ? { ...t, data } : t));
     try {
       const result = tab.id && !tab.id.startsWith("org:")
-        ? await updateSheet(tab.id, tab.name, data, wbId)
+        ? await updateSheet(tab.id, tab.name, data, wbId, tab.version ?? null)
         : await saveSheet(tab.name, data, wbId);
       if (result) {
-        setTabs(prev => prev.map((t, i) => i === index ? { ...t, id: result.id, name: result.name, data: result.data || data, isDirty: false } : t));
+        setTabs(prev => prev.map((t, i) => i === index ? { ...t, id: result.id, name: result.name, data: result.data || data, version: result.version ?? null, isDirty: false } : t));
         toast.success(`"${result.name}" auto-saved`);
       } else {
         toast.error(`Auto-save failed for "${tab.name}"`);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof SheetSaveConflict) {
+        // Not auto-saved over a newer version; the tab stays dirty (D-059).
+        toast.error(`"${tab.name}" was not auto-saved: it was changed elsewhere. Open it to decide.`);
+        return;
+      }
       toast.error(`Auto-save failed for "${tab.name}"`);
     }
   }, [tabs]);
@@ -412,6 +445,10 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     setTabs(prev => prev.map((t, i) => i === index ? { ...t, name, isDirty: true } : t));
   }, []);
 
+  const setTabServerState = useCallback((id: string, state: { version?: number | null; serverSession?: boolean }) => {
+    setTabs(prev => prev.map(t => t.id === id ? { ...t, ...state } : t));
+  }, []);
+
   const updateTabData = useCallback((index: number, data: Record<string, unknown>) => {
     setTabs(prev => prev.map((t, i) => i === index ? { ...t, data } : t));
   }, []);
@@ -421,7 +458,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
       currentView, setCurrentView: guardedSetCurrentView,
       returnSection, setReturnSection,
       tabs, activeTabIndex, setActiveTabIndex: guardedSetActiveTabIndex, activeTab,
-      createNewSheet: guardedCreateNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, goToDashboard, registerDataGetter, renameTab, updateTabData,
+      createNewSheet: guardedCreateNewSheet, copyCurrentSheet, copySheets, openSheet, openOrganizationSheet, openSheets, closeTab, saveCurrentSheet, deleteCurrentSheet, markDirty, markClean, goToDashboard, registerDataGetter, renameTab, updateTabData, setTabServerState,
       compareSheetIds, openCompare,
     }}>
       {children}

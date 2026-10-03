@@ -10,6 +10,10 @@ export interface SheetTab {
   readOnly?: boolean; // true for organization sheets owned by other users
   workbookId?: string | null; // workbook this sheet belongs to
   workbookName?: string | null;
+  /** Version the editor's data is based on (sent as base_version on REST saves, D-059). */
+  version?: number | null;
+  /** A server calculation session owns this tab's saves (M7/M10): no REST auto-save on leave. */
+  serverSession?: boolean;
 }
 
 export interface SheetContextValue {
@@ -53,6 +57,8 @@ export interface SheetContextValue {
   goToDashboard: () => void;
   renameTab: (index: number, name: string) => void;
   updateTabData: (index: number, data: Record<string, unknown>) => void;
+  /** The server session saved `version` / owns or released the tab's saves (M10). */
+  setTabServerState: (id: string, state: { version?: number | null; serverSession?: boolean }) => void;
 }
 
 export const SheetContext = createContext<SheetContextValue | null>(null);
