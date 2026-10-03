@@ -161,7 +161,12 @@ export class VoyageSession {
     return false;
   }
 
-  /** The user changed something (or saved): from now on every change is sent. */
+  /**
+   * The user changed something (or saved): from now on every change is sent.
+   * Contract: any editor that changes the sheet without an input, change,
+   * key or control-click event in the editor panels (drag-and-drop, a custom
+   * pointer-only control, an import) must call this itself.
+   */
   markUserEdit(): void {
     if (this.disposed || this.snap.role === "readonly") return;
     this.userEdited = true;

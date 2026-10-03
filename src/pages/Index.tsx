@@ -204,6 +204,17 @@ const Index = () => {
     getLoadedDoc: () => activeTab?.data,
   });
   const sessionSnap = useSessionSnapshot(session);
+  // An edit made between hydration and the session starting must not be absorbed
+  // as load normalisation.
+  const pendingUserEditRef = useRef(false);
+  useEffect(() => {
+    if (!session) return;
+    if (pendingUserEditRef.current) session.markUserEdit();
+    pendingUserEditRef.current = false;
+  }, [session]);
+  useEffect(() => {
+    pendingUserEditRef.current = false; // a different sheet
+  }, [activeTab?.id]);
   const currentDoc = useMemo(() => gatherData(), [gatherData]);
   const flushPatches = useDebouncedPatch(session, currentDoc);
   // The server held newer unsaved edits (another tab, a crash) or the user
@@ -234,7 +245,10 @@ const Index = () => {
       // A real user edit (input, change, key or control click in the editor):
       // from now on the server session sends every change (D-044). Changes
       // the app makes on its own while loading are never "edits".
-      if (interactive && !interactive.closest("[data-readonly-allowed='true']")) session?.markUserEdit();
+      if (interactive && !interactive.closest("[data-readonly-allowed='true']")) {
+        if (session) session.markUserEdit();
+        else pendingUserEditRef.current = true; // before the session exists: applied when it starts
+      }
       return;
     }
     if (!interactive || interactive.closest("[data-readonly-allowed='true']")) return;

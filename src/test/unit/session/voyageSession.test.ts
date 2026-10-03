@@ -463,3 +463,18 @@ describe("M7 re-review regressions", () => {
     expect(session.getSnapshot().recoveredDoc).toBeNull();
   });
 });
+
+describe("M7 final review", () => {
+  it("an edit recorded before the session connects is sent on connect, not absorbed as load normalisation", async () => {
+    const server = new FakeServer();
+    const typed = { ...DOC, hireRate: 8 };
+    const session = new VoyageSession("sheet-1", "dry_bulk", typed, sessionDeps(server), DOC);
+    session.markUserEdit(); // Index applies the edit noted before the session existed
+    void session.start();
+    await settle();
+    server.last.accept();
+    server.last.push({ type: "connected", connection_id: "c", ...sessionState() });
+    expect(lastPatch(server).ops).toEqual([{ op: "set", path: "/hireRate", value: 8 }]);
+    expect(session.getSnapshot().saveState).not.toBe("SAVED");
+  });
+});
