@@ -37,12 +37,31 @@ export interface SocketDeps {
   events?: EventTarget; // emits "online"
   now?: () => number;
   visibility?: { addEventListener: EventTarget["addEventListener"]; removeEventListener: EventTarget["removeEventListener"]; visibilityState: string };
+  /** Fills a buffer with random bytes (trace ids); defaults to crypto.getRandomValues. */
+  randomBytes?: (buf: Uint8Array) => void;
 }
 
 export const BACKOFF_BASE_MS = 500;
 export const BACKOFF_CAP_MS = 30_000;
 export const DEFAULT_HEARTBEAT_MS = 20_000;
 export const CONNECT_TIMEOUT_MS = 10_000;
+
+const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+
+/**
+ * A new W3C traceparent (version 00, sampled) for one client message (M8,
+ * D-045). The server continues this trace for the message's spans, so one
+ * trace id follows an edit from the browser through calculation, RabbitMQ,
+ * the worker and PostgreSQL. It carries only random ids — no user or sheet
+ * data.
+ */
+export function newTraceparent(fill: (buf: Uint8Array) => void = (b) => globalThis.crypto.getRandomValues(b)): string {
+  const trace = new Uint8Array(16);
+  const span = new Uint8Array(8);
+  do fill(trace); while (trace.every((x) => x === 0));
+  do fill(span); while (span.every((x) => x === 0));
+  return `00-${hex(trace)}-${hex(span)}-01`;
+}
 
 /** Full jitter: uniform in [0, min(cap, base·2^attempt)). */
 export function backoffDelay(attempt: number, random: () => number): number {
@@ -176,6 +195,7 @@ export class CalculationSocket {
   send(msg: Outgoing): boolean {
     if (!this.ws || this.ws.readyState !== 1) return false;
     const full = { ...msg, protocol_version: PROTOCOL_VERSION, message_id: msg.message_id ?? this.deps.uuid() };
+    if (msg.type !== "ping") full.traceparent = newTraceparent(this.deps.randomBytes);
     try {
       this.ws.send(JSON.stringify(full));
       return true;

@@ -111,7 +111,7 @@ function checkValue(n: Node, v: unknown): string | null {
     }
     case "array": {
       const a = v as unknown[];
-      if (e.max_items !== undefined && a.length > e.max_items) return "too many array items";
+      if (e.max_items !== undefined && a.length > e.max_items) return `too many array items (at most ${e.max_items})`;
       const item = n.children.get("*");
       if (!item) return "array items not allowed";
       for (const x of a) {

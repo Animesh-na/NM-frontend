@@ -28,6 +28,7 @@ export interface CalculationResultMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   generation: number;
   working_sequence: number;
   calculation_id: string;
@@ -39,6 +40,7 @@ export interface CalculationStartedMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   client_sequence: number;
   working_sequence: number;
   generation: number;
@@ -50,6 +52,7 @@ export interface CalculationSupersededMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   generation: number;
   calculation_id: string;
   superseded_by: number;
@@ -60,6 +63,7 @@ export interface ConflictMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   code: string;
   current_version?: number;
   expected_version?: number;
@@ -72,6 +76,7 @@ export interface ConnectMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   sheet_id: string;
   segment: string;
   acknowledge_engine_change?: boolean;
@@ -83,6 +88,7 @@ export interface ConnectedMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   session_id: string;
   connection_id: string;
   working_sequence: number;
@@ -100,6 +106,7 @@ export interface ErrorMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   code: string;
   message: string;
   retryable: boolean;
@@ -114,6 +121,7 @@ export interface PatchMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   client_sequence: number;
   ops: PatchOp[];
 }
@@ -123,6 +131,7 @@ export interface PingMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
 }
 
 export interface PongMessage {
@@ -130,6 +139,7 @@ export interface PongMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
 }
 
 export interface ResumeMessage {
@@ -137,6 +147,7 @@ export interface ResumeMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   sheet_id: string;
   segment: string;
   session_id: string;
@@ -152,6 +163,7 @@ export interface ResumedMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   session_id: string;
   connection_id: string;
   working_sequence: number;
@@ -169,6 +181,7 @@ export interface SaveMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
 }
 
 export interface SaveCompletedMessage {
@@ -176,6 +189,7 @@ export interface SaveCompletedMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   working_sequence: number;
   persisted_version: number;
   engine_version: string;
@@ -187,6 +201,7 @@ export interface SaveFailedMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   working_sequence: number;
   code: string;
   retryable: boolean;
@@ -197,6 +212,7 @@ export interface SaveStartedMessage {
   protocol_version: "ws.v1";
   message_id: string;
   request_id?: string;
+  traceparent?: string;
   working_sequence: number;
 }
 

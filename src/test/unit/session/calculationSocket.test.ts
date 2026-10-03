@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BACKOFF_CAP_MS, CalculationSocket, backoffDelay } from "@/transport/calculationSocket";
+import { BACKOFF_CAP_MS, CalculationSocket, backoffDelay, newTraceparent } from "@/transport/calculationSocket";
 import { FakeServer, settle, socketDeps } from "./fakeServer";
 
 beforeEach(() => vi.useFakeTimers());
@@ -121,5 +121,32 @@ describe("liveness", () => {
     await settle();
     expect(server.sockets.length).toBeGreaterThan(1);
     s.stop();
+  });
+});
+
+describe("trace context (M8, D-045)", () => {
+  it("every client message except ping carries its own valid W3C traceparent", async () => {
+    const server = new FakeServer();
+    const { s } = make(server);
+    s.start();
+    await settle();
+    server.last.accept();
+    s.send({ type: "patch", client_sequence: 1, ops: [] } as never);
+    s.send({ type: "save" } as never);
+    await vi.advanceTimersByTimeAsync(20_000);
+    const [patch] = server.ofType("patch");
+    const [save] = server.ofType("save");
+    const [ping] = server.ofType("ping");
+    const re = /^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/;
+    expect(patch.traceparent).toMatch(re);
+    expect(save.traceparent).toMatch(re);
+    expect(patch.traceparent).not.toBe(save.traceparent);
+    expect(ping.traceparent).toBeUndefined();
+  });
+
+  it("never emits all-zero ids", () => {
+    let calls = 0;
+    const tp = newTraceparent((b) => b.fill(calls++ < 1 ? 0 : 7));
+    expect(tp).toBe(`00-${"07".repeat(16)}-${"07".repeat(8)}-01`);
   });
 });
