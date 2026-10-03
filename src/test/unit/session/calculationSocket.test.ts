@@ -187,3 +187,34 @@ describe("server shutdown hint (M9)", () => {
     s.stop();
   });
 });
+
+describe("server shutdown hint is per socket (M9 review)", () => {
+  it("a hint on a socket later abandoned by the heartbeat check does not make the next socket's close look planned", async () => {
+    const server = new FakeServer();
+    const { s } = make(server, { random: () => 0.9 });
+    s.start();
+    await settle();
+    server.last.accept();
+    server.last.push({ type: "reconnect", reason: "server_shutdown" });
+    // The hinted socket goes silent and is abandoned (attempt 0 → 450 ms).
+    await vi.advanceTimersByTimeAsync(3 * 20_000 + 450);
+    await settle();
+    expect(server.sockets).toHaveLength(2);
+    // Socket 2 fails before opening: a real failure (attempt 1 → 900 ms).
+    server.last.drop(1006);
+    await vi.advanceTimersByTimeAsync(900);
+    await settle();
+    expect(server.sockets).toHaveLength(3);
+    // Socket 3 fails too: attempt 2 → 0.9 × 2000 = 1800 ms. Had the stale hint
+    // made socket 2's close "planned", the backoff would not have grown and
+    // this would reconnect after 900 ms.
+    server.last.drop(1006);
+    await vi.advanceTimersByTimeAsync(1799);
+    await settle();
+    expect(server.sockets).toHaveLength(3);
+    await vi.advanceTimersByTimeAsync(1);
+    await settle();
+    expect(server.sockets).toHaveLength(4);
+    s.stop();
+  });
+});

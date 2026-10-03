@@ -173,6 +173,7 @@ export class CalculationSocket {
         /* already closed */
       }
     }
+    this.serverDraining = false;
     this.setStatus("stopped");
   }
 
@@ -264,6 +265,7 @@ export class CalculationSocket {
       return;
     }
     this.ws = ws;
+    this.serverDraining = false; // a hint applies only to the socket it came on
     // A socket stuck connecting is abandoned (onclose then reconnects).
     this.connectTimer = this.deps.setTimeout(() => {
       this.connectTimer = null;
@@ -332,6 +334,7 @@ export class CalculationSocket {
           /* closed */
         }
         this.ws = null;
+        this.serverDraining = false; // a dead socket is a failure, even after a hint
         this.stopHeartbeat();
         this.scheduleReconnect({ code: 4000, reason: "no heartbeat" });
         return;
