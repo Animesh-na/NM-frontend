@@ -1,0 +1,10 @@
+# Never send local env files into the image build: Vite would read them and
+# bake their values into the bundle (M9).
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
+.git
+**/*.log
