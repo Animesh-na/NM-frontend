@@ -1,5 +1,12 @@
 # Welcome to your Lovable project
 
+> **Server-authoritative calculation (migration).** The backend architecture, WebSocket protocol, persistence,
+> concurrency, recovery, versioning and deployment are documented in the backend repository:
+> `Mcs_backend/look-up-service/docs/` — start with [ARCHITECTURE.md](../Mcs_backend/look-up-service/docs/ARCHITECTURE.md)
+> and [DEPLOYMENT.md](../Mcs_backend/look-up-service/docs/DEPLOYMENT.md). This app's side of it: `src/transport/`,
+> `src/session/` (behind `VITE_SERVER_CALCULATION`, off by default). Container build: `Dockerfile` (public `VITE_*`
+> build args only; see `.env.example`).
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
