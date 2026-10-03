@@ -336,8 +336,20 @@ export interface PerCargoBreakdown {
   voyageCommissionPct: number;
 }
 
-export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults {
-  return useMemo(() => {
+/**
+ * The browser's voyage calculation (authoritative until M10 stage 3; the
+ * comparison/fallback in stage 3; not run in stage 4, server_only). With
+ * `enabled` false nothing is computed and null is returned.
+ */
+export function useVoyageCalculation(inputs: VoyageInputs): VoyageResults;
+export function useVoyageCalculation(inputs: VoyageInputs, enabled: boolean): VoyageResults | null;
+export function useVoyageCalculation(inputs: VoyageInputs, enabled = true): VoyageResults | null {
+  return useMemo(() => (enabled ? computeVoyageResults(inputs) : null), [inputs, enabled]);
+}
+
+/** The calculation itself (pure; see useVoyageCalculation). */
+export function computeVoyageResults(inputs: VoyageInputs): VoyageResults {
+  {
     const { vessel, sequence, cargo, bunker, hireRate, misc, extraTime } = inputs;
 
     // 1. Calculate distances, times, and identify leg types
@@ -2021,7 +2033,7 @@ ${perCargoFreight
     exposeVoyageDebug({ inputs, result });
 
     return result;
-  }, [inputs]);
+  }
 }
 
 // Helper to parse distance string like "370 & EL" or "1555"

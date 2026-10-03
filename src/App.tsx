@@ -23,11 +23,16 @@ import { refreshCalcAuthority } from "@/services/calcAuthority";
 initLogger();
 
 // M10: the calculation authority stage comes from the backend at runtime
-// (CALC_AUTHORITY); fetched after sign-in and whenever the page becomes visible.
+// (CALC_AUTHORITY); fetched after sign-in, when the page becomes visible and every
+// minute while it is visible.
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") void refreshCalcAuthority();
   });
+  // A rollback (CALC_AUTHORITY changed on the API) also reaches tabs that stay visible.
+  setInterval(() => {
+    if (document.visibilityState === "visible") void refreshCalcAuthority();
+  }, 60_000);
 }
 
 const queryClient = new QueryClient();

@@ -136,3 +136,31 @@ describe("stage-3 background comparison", () => {
     expect(JSON.stringify(sent)).not.toContain(String((local.totalDistance ?? 0) + 10));
   });
 });
+
+describe("stage 4 (server_only, D-057)", () => {
+  it("never shows a browser result: placeholders until the first server result, then the server result, then the last one while updating", () => {
+    setCalcAuthority("server_only");
+    const ctx = mount("sheet-1");
+    expect(ctx().resultSource).toBe("server_pending");
+    expect(ctx().results.pAndL).toBe(0);
+    expect(ctx().results.totalVoyageDays).toBe(0);
+    // A synthetic server result (the browser computed nothing).
+    const server = response({ ...ctx().results, totalDistance: 4242, pAndL: 12345 });
+    act(() => publishServerResult("sheet-1", server, ctx().inputsToken));
+    expect(ctx().resultSource).toBe("server");
+    expect(ctx().results.pAndL).toBe(12345);
+    act(() => ctx().setHireRate((ctx().hireRate ?? 0) + 1000)); // an edit: the next result is calculating
+    expect(ctx().resultSource).toBe("server_stale");
+    expect(ctx().results.pAndL).toBe(12345);
+  });
+
+  it("does not run the browser calculation (no comparison report even with a differing server result)", () => {
+    setCalcAuthority("server_only");
+    const ctx = mount("sheet-1");
+    const report = vi.fn(async () => ({}));
+    const { result } = renderHook(() => useDisplayComparison(null, response({ totalDistance: 1 }), report));
+    expect(result.current).toBeUndefined();
+    expect(report).not.toHaveBeenCalled();
+    expect(ctx().results.totalDistance).toBe(0); // placeholder, not a browser calculation of the fixture sheet
+  });
+});

@@ -21,6 +21,14 @@ const ICON: Record<SaveState, ReactNode> = {
   RECOVERING: <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden />,
 };
 
+/** What the result line says; "unavailable" when the server is not calculating (failed, disconnected). */
+const RESULT_LABEL: Record<Exclude<ResultSource, "local">, (snap: SessionSnapshot) => string> = {
+  server: () => "Results: server",
+  local_pending: (s) => (s.calculating ? "Results: browser (server calculating…)" : "Results: browser (server result unavailable)"),
+  server_stale: (s) => (s.calculating ? "Results: server (updating…)" : "Results: server (out of date — server unavailable)"),
+  server_pending: (s) => (s.calculating ? "Results: server (calculating…)" : "Results: not available (server unavailable)"),
+};
+
 export function SessionStatusBar({ snap, onTakeOver, resultSource = "local" }: { snap: SessionSnapshot; onTakeOver: () => void; resultSource?: ResultSource }) {
   if (snap.role === "readonly") {
     return (
@@ -49,7 +57,7 @@ export function SessionStatusBar({ snap, onTakeOver, resultSource = "local" }: {
       {resultSource !== "local" && (
         <span className="flex items-center gap-1 text-muted-foreground" data-result-source={resultSource}>
           {resultSource === "server" ? <Server className="h-3.5 w-3.5" aria-hidden /> : <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
-          {resultSource === "server" ? "Results: server" : "Results: browser (server calculating…)"}
+          {RESULT_LABEL[resultSource](snap)}
         </span>
       )}
     </div>

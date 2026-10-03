@@ -14,7 +14,7 @@ import { SectionFrame } from "@/components/voyage/SectionFrame";
 import { useSheets } from "@/context/sheetContextCore";
 import { useAuth } from "@/context/AuthContext";
 import { useVoyageContext } from "@/context/VoyageContext";
-import { useCalcShadow } from "@/services/calcShadow";
+import { CALC_SHADOW_ENABLED, useCalcShadow } from "@/services/calcShadow";
 import { getApiMode } from "@/services/apiMode";
 import { SERVER_CALCULATION_ENABLED, useDebouncedPatch, useSessionSnapshot, useVoyageSession } from "@/hooks/useVoyageSession";
 import { ConflictDialog, SessionStatusBar } from "@/components/voyage/SessionStatus";
@@ -91,7 +91,7 @@ const Index = () => {
 
   // Calculation shadow mode (VITE_CALC_SHADOW, default off): compares this
   // sheet's results with the Go engine in the background. Display is unchanged.
-  useCalcShadow(gatherData, voyage.results, activeTab?.id ?? null);
+  useCalcShadow(gatherData, voyage.results, activeTab?.id ?? null, CALC_SHADOW_ENABLED && voyage.resultSource === "local"); // M1 shadow mode: only while the browser is the authority
 
   // Let the sheet manager read current values for auto-save on leave
   const gatherRef = useRef(gatherData);

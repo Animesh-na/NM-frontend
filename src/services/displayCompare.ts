@@ -25,13 +25,13 @@ export function diffDisplayed(local: VoyageResults, server: CalculationResponse)
 }
 
 export function useDisplayComparison(
-  local: VoyageResults,
+  local: VoyageResults | null,
   server: CalculationResponse | null,
   report: (r: ShadowReport) => Promise<unknown> = reportShadowMismatch,
 ): void {
   const reported = useRef<string | null>(null);
   useEffect(() => {
-    if (!server || reported.current === server.calculation_id) return;
+    if (!server || !local || reported.current === server.calculation_id) return;
     reported.current = server.calculation_id;
     const diffs = diffDisplayed(local, server);
     if (diffs.length === 0) return;

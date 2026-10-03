@@ -833,9 +833,82 @@ const initialMisc: MiscState = {
   },
 };
 
+
+/**
+ * Placeholder results (all zero) for the context fallback and for stage 4
+ * (server_only) before the first server result of a sheet arrives.
+ */
+const EMPTY_VOYAGE_RESULTS: VoyageResults = {
+    totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
+    totalSeaDays: 0, totalPortDays: 0, extraSeaDays: 0, extraPortDays: 0, extraCanalDays: 0,
+    totalVoyageDays: 0, baseSeaTime: 0, seaMarginTime: 0,
+    hsfoConsumption: 0, vlsfoConsumption: 0, lsmgoConsumption: 0, 
+    totalBunkerCost: 0, effectiveFuelPrices: { hsfo: 0, vlsfo: 0, lsmgo: 0 }, grossFreight: 0, voyageCommission: 0, netFreight: 0, 
+    portCosts: 0, miscCosts: 0, canalCosts: 0, totalVoyageCosts: 0,
+    hireCost: 0, voyageCostInclHire: 0, voyageCostExclHire: 0, grossProfit: 0,
+    netProfit: 0, tce: 0, ntce: 0, gtce: 0, pAndL: 0, totalCo2: 0,
+    co2Laden: 0, co2Ballast: 0, efoi: 0, afrCii: 0, ciiRating: "A",
+    // Enhanced emission fields
+    co2ByFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
+    ciiResult: {
+      actualCii: 0, requiredCii: 0, ciiRatio: 0, rating: 'A' as const,
+      ratingDescription: '', boundaries: { A: 0, B: 0, C: 0, D: 0 }
+    },
+    etsResult: {
+      totalCo2: 0, etsVoyageCoverage: 0, phaseInPercentage: 0,
+      chargeableCo2: 0, etsCost: 0, legBreakdown: []
+    },
+    etsCost: 0, chargeableCo2: 0, etsVoyageCoverage: 0, etsPhaseIn: 0,
+    emissionWarnings: [], emissionErrors: [], ladenDistance: 0,
+    nonEcaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
+    ecaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
+    nonEcaCo2: 0, ecaCo2: 0, nonEcaDistance: 0, grossRate: 0,
+    euCoveredFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
+    totalCo2Cost: 0, euaCo2Cost: 0, euaFreightImpact: 0,
+    fuelEuResult: {
+      voyageYear: new Date().getFullYear(),
+      ghgLimit: 89.34,
+      voyageGhg: 0,
+      totalEuEnergy: 0,
+      hsfoBalance: 0,
+      vlsfoBalance: 0,
+      mgoBalance: 0,
+      totalBalance: 0,
+      penaltyEur: 0,
+      totalPenalty: 0,
+      rewardFactor: 1.0,
+      fuels: {
+        hsfo: { fuelType: 'hsfo', euQuantity: 0, lcv: 0.0405, ghg: 91.6012, euEnergy: 0, balance: 0, penaltyEur: 0, costPerTon: 0, cost: 0 },
+        vlsfo: { fuelType: 'vlsfo', euQuantity: 0, lcv: 0.0410, ghg: 91.2512, euEnergy: 0, balance: 0, penaltyEur: 0, costPerTon: 0, cost: 0 },
+        lsmgo: { fuelType: 'lsmgo', euQuantity: 0, lcv: 0.0427, ghg: 90.6319, euEnergy: 0, balance: 0, penaltyEur: 0, costPerTon: 0, cost: 0 },
+      },
+      costPerTon: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
+      legs: [],
+    },
+    fuelEuTotalPenalty: 0,
+    fuelEuFreightImpact: 0,
+    etsLegDetails: [],
+    perCargoBreakdown: [],
+    repositioningCost: 0,
+    ukEtsResult: {
+      phaseIn: 0,
+      ukCoveredFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
+      ukCoveredCo2: 0,
+      chargeableCo2: 0,
+      ukEtsCost: 0,
+      ukVoyageCoverage: 0,
+      legBreakdown: [],
+    },
+    ukEtsCost: 0,
+    ukChargeableCo2: 0,
+    ukEtsVoyageCoverage: 0,
+    ukEtsPhaseIn: 0,
+    ukEtsFreightImpact: 0,
+  };
+
 const VoyageContext = createContext<VoyageContextValue | null>(null);
 
-export type ResultSource = "local" | "server" | "local_pending";
+export type ResultSource = "local" | "server" | "local_pending" | "server_stale" | "server_pending";
 
 export interface VoyageProviderProps {
   children: ReactNode;
@@ -1039,7 +1112,7 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
       else if (fuel === "H") fuel = fallbackFuel === "L" ? "L" : "V";
       return `${prefix}${fuel}` as SpeedContext;
     };
-    setSequence(rows => rows.map(row => {
+    setSequence(rows => recalculateDerivedSequenceRows(rows.map(row => {
       const nonEca = remap(row.distanceSpeedContext, "V");
       const eca = remap(row.ecaDistanceSpeedContext, "L");
       const portFuelType: "hsfo" | "vlsfo" | "lsmgo" = hasScrubber
@@ -1048,16 +1121,19 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
       return row.distanceSpeedContext === nonEca && row.ecaDistanceSpeedContext === eca && row.portFuelType === portFuelType
         ? row
         : { ...row, distanceSpeedContext: nonEca, ecaDistanceSpeedContext: eca, portFuelType };
-    }));
-  }, []);
+    }), vessel, autoDistanceEnabled, departureUtc)); // speed contexts change leg times (X-015)
+  }, [vessel, autoDistanceEnabled, departureUtc]);
 
   const removeSequence = useCallback((id: number) => {
     setSequence(prev => {
       const row = prev.find(s => s.id === id);
       if (row?.type === "open") return prev; // Can't remove open port
-      return prev.filter(s => s.id !== id);
+      // Removing a row can change the following legs (e.g. laden → ballast
+      // speed when the only loading port goes): recompute the derived leg
+      // times like a fresh load does (X-015, D-056).
+      return recalculateDerivedSequenceRows(prev.filter(s => s.id !== id), vessel, autoDistanceEnabled, departureUtc);
     });
-  }, []);
+  }, [vessel, autoDistanceEnabled, departureUtc]);
 
    // Recalculate distances using fleetgo/distbl API, then update sea times
    // Only calls API for legs whose ports have changed since last calculation
@@ -1927,19 +2003,41 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
   // M10 stage 3 (D-055): the browser always computes; with server display on,
   // the Go result for exactly this sheet is shown instead and the two are
   // compared in the background. Rollback = CALC_AUTHORITY=local.
-  const localResults = useVoyageCalculation(voyageInputs);
   const calcAuthority = useCalcAuthority();
+  // Stage 4 (server_only): the browser does not calculate at all.
+  const localResults = useVoyageCalculation(voyageInputs, calcAuthority !== "server_only");
   // A new token whenever any sheet input changes (the same state the page's
   // sheet document is built from): a server result evaluated for older inputs
   // no longer matches in the very render that shows the edit.
   const inputsToken = useMemo(() => ({}),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [vessel, sequence, cargos, bunker, misc, hireRate, vesselCost, netBB, applyEuaImpact, applyFuelEuImpact, applyUkEtsImpact, departureUtc, autoDistanceEnabled, notes, charterer]);
-  const serverResponse = useServerResult(calcAuthority === "server_display" ? sheetId : null, inputsToken);
+  const serverResponse = useServerResult(calcAuthority !== "local" ? sheetId : null, inputsToken);
   const serverResults = useMemo(() => (serverResponse ? fromResultDTO(serverResponse) : null), [serverResponse]);
-  const results = serverResults ?? localResults;
-  const resultSource: ResultSource = calcAuthority === "local" ? "local" : serverResults ? "server" : "local_pending";
-  useDisplayComparison(localResults, serverResponse);
+  // Stage 4: while the next server result is calculating, keep showing the
+  // last one for this sheet (marked as updating); this provider is per sheet.
+  const lastServerResults = useRef<VoyageResults | null>(null);
+  if (serverResults) lastServerResults.current = serverResults;
+  let results: VoyageResults;
+  let resultSource: ResultSource;
+  if (calcAuthority === "local") {
+    results = localResults ?? EMPTY_VOYAGE_RESULTS;
+    resultSource = "local";
+  } else if (serverResults) {
+    results = serverResults;
+    resultSource = "server";
+  } else if (calcAuthority === "server_display") {
+    results = localResults ?? EMPTY_VOYAGE_RESULTS;
+    resultSource = "local_pending";
+  } else if (lastServerResults.current) {
+    results = lastServerResults.current;
+    resultSource = "server_stale";
+  } else {
+    results = EMPTY_VOYAGE_RESULTS;
+    resultSource = "server_pending";
+  }
+  // Stage-3 comparison only: in stage 4 there is no browser result.
+  useDisplayComparison(localResults, calcAuthority === "server_display" ? serverResponse : null);
 
   const cargoValidation = useMemo(
     () => validateCargoAssignments(cargos, sequence),
@@ -2169,73 +2267,7 @@ export function useVoyageContext() {
       resetState: () => {},
       resultSource: "local",
       inputsToken: {},
-      results: {
-        totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
-        totalSeaDays: 0, totalPortDays: 0, extraSeaDays: 0, extraPortDays: 0, extraCanalDays: 0,
-        totalVoyageDays: 0, baseSeaTime: 0, seaMarginTime: 0,
-        hsfoConsumption: 0, vlsfoConsumption: 0, lsmgoConsumption: 0, 
-        totalBunkerCost: 0, effectiveFuelPrices: { hsfo: 0, vlsfo: 0, lsmgo: 0 }, grossFreight: 0, voyageCommission: 0, netFreight: 0, 
-        portCosts: 0, miscCosts: 0, canalCosts: 0, totalVoyageCosts: 0,
-        hireCost: 0, voyageCostInclHire: 0, voyageCostExclHire: 0, grossProfit: 0,
-        netProfit: 0, tce: 0, ntce: 0, gtce: 0, pAndL: 0, totalCo2: 0,
-        co2Laden: 0, co2Ballast: 0, efoi: 0, afrCii: 0, ciiRating: "A",
-        // Enhanced emission fields
-        co2ByFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
-        ciiResult: {
-          actualCii: 0, requiredCii: 0, ciiRatio: 0, rating: 'A' as const,
-          ratingDescription: '', boundaries: { A: 0, B: 0, C: 0, D: 0 }
-        },
-        etsResult: {
-          totalCo2: 0, etsVoyageCoverage: 0, phaseInPercentage: 0,
-          chargeableCo2: 0, etsCost: 0, legBreakdown: []
-        },
-        etsCost: 0, chargeableCo2: 0, etsVoyageCoverage: 0, etsPhaseIn: 0,
-        emissionWarnings: [], emissionErrors: [], ladenDistance: 0,
-        nonEcaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
-        ecaFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0, total: 0 },
-        nonEcaCo2: 0, ecaCo2: 0, nonEcaDistance: 0, grossRate: 0,
-        euCoveredFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
-        totalCo2Cost: 0, euaCo2Cost: 0, euaFreightImpact: 0,
-        fuelEuResult: {
-          voyageYear: new Date().getFullYear(),
-          ghgLimit: 89.34,
-          voyageGhg: 0,
-          totalEuEnergy: 0,
-          hsfoBalance: 0,
-          vlsfoBalance: 0,
-          mgoBalance: 0,
-          totalBalance: 0,
-          penaltyEur: 0,
-          totalPenalty: 0,
-          rewardFactor: 1.0,
-          fuels: {
-            hsfo: { fuelType: 'hsfo', euQuantity: 0, lcv: 0.0405, ghg: 91.6012, euEnergy: 0, balance: 0, penaltyEur: 0, costPerTon: 0, cost: 0 },
-            vlsfo: { fuelType: 'vlsfo', euQuantity: 0, lcv: 0.0410, ghg: 91.2512, euEnergy: 0, balance: 0, penaltyEur: 0, costPerTon: 0, cost: 0 },
-            lsmgo: { fuelType: 'lsmgo', euQuantity: 0, lcv: 0.0427, ghg: 90.6319, euEnergy: 0, balance: 0, penaltyEur: 0, costPerTon: 0, cost: 0 },
-          },
-          costPerTon: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
-          legs: [],
-        },
-        fuelEuTotalPenalty: 0,
-        fuelEuFreightImpact: 0,
-        etsLegDetails: [],
-        perCargoBreakdown: [],
-        repositioningCost: 0,
-        ukEtsResult: {
-          phaseIn: 0,
-          ukCoveredFuel: { hsfo: 0, vlsfo: 0, lsmgo: 0 },
-          ukCoveredCo2: 0,
-          chargeableCo2: 0,
-          ukEtsCost: 0,
-          ukVoyageCoverage: 0,
-          legBreakdown: [],
-        },
-        ukEtsCost: 0,
-        ukChargeableCo2: 0,
-        ukEtsVoyageCoverage: 0,
-        ukEtsPhaseIn: 0,
-        ukEtsFreightImpact: 0,
-      },
+      results: EMPTY_VOYAGE_RESULTS,
       cargoValidation: { errors: [], hasErrors: false, usesExplicitMapping: false },
       validationIssues: [],
       hasErrors: false,
