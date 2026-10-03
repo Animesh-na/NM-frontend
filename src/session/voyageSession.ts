@@ -436,7 +436,11 @@ export class VoyageSession {
     this.nextSeq = Math.max(L + 1, (this.pending.at(-1)?.seq ?? L) + 1);
     this.serverDoc = m.sheet;
     this.savedSequence = m.dirty ? Math.min(this.savedSequence, m.working_sequence - 1) : m.working_sequence;
-    this.set({ role: "owner", sessionId: m.session_id, persistedVersion: m.persisted_version, workingSequence: m.working_sequence, notice: null });
+    // The server (re)opened the session — possibly on another document (a REST
+    // save elsewhere, a parked session) under the same working_sequence: a
+    // result received before belongs to the old one (M10 parity review).
+    this.set({ role: "owner", sessionId: m.session_id, persistedVersion: m.persisted_version, workingSequence: m.working_sequence, notice: null,
+      result: null, resultWorkingSequence: null, calculating: true });
     this.deps.tabs?.claimOwnership(this.takeOver);
     this.takeOver = false;
     // Rebuild the send model and replay unacknowledged patches in order.
@@ -469,7 +473,7 @@ export class VoyageSession {
     this.localDoc = projectDocument(sheet);
     this.quietDoc = this.localDoc;
     this.userEdited = false; // the UI re-normalises after hydration
-    this.set({ recoveredDoc: sheet });
+    this.set({ recoveredDoc: sheet, result: null, resultWorkingSequence: null, calculating: true });
   }
 
   private mismatch(m: { sheet: unknown; persisted_version: number; session_id: string; last_client_sequence: number; working_sequence: number }) {
@@ -479,7 +483,8 @@ export class VoyageSession {
     this.sentDoc = m.sheet;
     this.lastAcked = m.last_client_sequence;
     this.nextSeq = this.lastAcked + 1;
-    this.set({ role: "owner", sessionId: m.session_id, persistedVersion: m.persisted_version, workingSequence: m.working_sequence });
+    this.set({ role: "owner", sessionId: m.session_id, persistedVersion: m.persisted_version, workingSequence: m.working_sequence,
+      result: null, resultWorkingSequence: null, calculating: true });
     this.deps.tabs?.claimOwnership(this.takeOver);
     this.takeOver = false;
     this.raiseConflict({ reason: "RESUME_MISMATCH", serverDoc: m.sheet });

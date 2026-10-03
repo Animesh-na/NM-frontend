@@ -509,3 +509,19 @@ describe("current result ignores browser-derived row values (M10, D-055)", () =>
     expect(session.currentResult({ ...DOC, sequence: [{ id: 1, distance: 100 }] })).toBeNull();
   });
 });
+
+describe("a result belongs to one opened session (parity review MAJOR-1)", () => {
+  it("a resume onto another document under the same working_sequence clears the old result", async () => {
+    const server = new FakeServer();
+    const { session, sock } = await openSession(server);
+    sock.push({ type: "calculation_result", generation: 0, working_sequence: 0, calculation_id: "calc-0", result: { calculation_id: "calc-0", status: "completed", result: { old: true } } });
+    expect(session.currentResult(DOC)).not.toBeNull();
+    sock.drop();
+    const s2 = await reconnect(server);
+    const other = { vessel: { name: "OTHER", dwt: 1 }, sequence: [{ id: 1 }] };
+    s2.push({ type: "resumed", request_id: "c-9", connection_id: "conn-2", ...sessionState({ sheet: other, persisted_version: 2 }) });
+    expect(session.getSnapshot()).toMatchObject({ result: null, resultWorkingSequence: null, calculating: true });
+    expect(session.currentResult(other)).toBeNull();
+    expect(session.currentResult(DOC)).toBeNull();
+  });
+});

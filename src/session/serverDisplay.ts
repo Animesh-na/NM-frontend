@@ -14,14 +14,16 @@ import type { VoyageResults } from "@/hooks/useVoyageCalculation";
 interface Entry {
   sheetId: string | null;
   response: CalculationResponse | null;
+  /** The provider's inputs token the page evaluated the response against. */
+  inputsToken: object | null;
 }
 
-let entry: Entry = { sheetId: null, response: null };
+let entry: Entry = { sheetId: null, response: null, inputsToken: null };
 const listeners = new Set<() => void>();
 
-export function publishServerResult(sheetId: string | null, response: CalculationResponse | null): void {
-  if (entry.sheetId === sheetId && entry.response === response) return;
-  entry = { sheetId, response };
+export function publishServerResult(sheetId: string | null, response: CalculationResponse | null, inputsToken: object | null = null): void {
+  if (entry.sheetId === sheetId && entry.response === response && entry.inputsToken === inputsToken) return;
+  entry = { sheetId, response, inputsToken };
   listeners.forEach((l) => l());
 }
 
@@ -30,10 +32,15 @@ const subscribe = (l: () => void) => {
   return () => listeners.delete(l);
 };
 
-/** The current server response for this sheet, or null. */
-export function useServerResult(sheetId: string | null): CalculationResponse | null {
+/**
+ * The server response for this sheet if it was evaluated against exactly the
+ * provider's current inputs (`inputsToken` changes with every sheet edit), so
+ * a response published for the previous state is never rendered — not even for
+ * one frame before the page re-evaluates after an edit.
+ */
+export function useServerResult(sheetId: string | null, inputsToken: object | null): CalculationResponse | null {
   const e = useSyncExternalStore(subscribe, () => entry, () => entry);
-  return sheetId !== null && e.sheetId === sheetId ? e.response : null;
+  return sheetId !== null && e.sheetId === sheetId && e.inputsToken !== null && e.inputsToken === inputsToken ? e.response : null;
 }
 
 /**

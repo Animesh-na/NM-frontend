@@ -313,6 +313,8 @@ interface VoyageContextValue {
    // for exactly this sheet), "local_pending" (server display on, server result
    // pending/stale/unavailable — the browser's result is shown meanwhile).
    resultSource: ResultSource;
+   // Identity of the sheet inputs: a new object whenever any of them changes (M10).
+   inputsToken: object;
 
    // Cargo assignment validation (route mapping)
    cargoValidation: CargoValidationResult;
@@ -1927,7 +1929,13 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
   // compared in the background. Rollback = CALC_AUTHORITY=local.
   const localResults = useVoyageCalculation(voyageInputs);
   const calcAuthority = useCalcAuthority();
-  const serverResponse = useServerResult(calcAuthority === "server_display" ? sheetId : null);
+  // A new token whenever any sheet input changes (the same state the page's
+  // sheet document is built from): a server result evaluated for older inputs
+  // no longer matches in the very render that shows the edit.
+  const inputsToken = useMemo(() => ({}),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [vessel, sequence, cargos, bunker, misc, hireRate, vesselCost, netBB, applyEuaImpact, applyFuelEuImpact, applyUkEtsImpact, departureUtc, autoDistanceEnabled, notes, charterer]);
+  const serverResponse = useServerResult(calcAuthority === "server_display" ? sheetId : null, inputsToken);
   const serverResults = useMemo(() => (serverResponse ? fromResultDTO(serverResponse) : null), [serverResponse]);
   const results = serverResults ?? localResults;
   const resultSource: ResultSource = calcAuthority === "local" ? "local" : serverResults ? "server" : "local_pending";
@@ -2061,6 +2069,7 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
         resetState,
         results,
         resultSource,
+        inputsToken,
         cargoValidation,
         validationIssues,
         hasErrors,
@@ -2159,6 +2168,7 @@ export function useVoyageContext() {
       setNetBB: () => {},
       resetState: () => {},
       resultSource: "local",
+      inputsToken: {},
       results: {
         totalDistance: 0, totalEcaDistance: 0, seaDaysBallast: 0, seaDaysLaden: 0,
         totalSeaDays: 0, totalPortDays: 0, extraSeaDays: 0, extraPortDays: 0, extraCanalDays: 0,

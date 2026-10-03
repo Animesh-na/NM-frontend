@@ -83,7 +83,7 @@ describe("VoyageProvider display authority", () => {
   it("local: always the browser's result, even when a server result is published", () => {
     const ctx = mount("sheet-1");
     const local = ctx().results;
-    act(() => publishServerResult("sheet-1", response({ ...local, totalDistance: 999_999 })));
+    act(() => publishServerResult("sheet-1", response({ ...local, totalDistance: 999_999 }), ctx().inputsToken));
     expect(ctx().resultSource).toBe("local");
     expect(ctx().results.totalDistance).toBe(local.totalDistance);
   });
@@ -93,14 +93,29 @@ describe("VoyageProvider display authority", () => {
     const ctx = mount("sheet-1");
     expect(ctx().resultSource).toBe("local_pending");
     const local = ctx().results;
-    act(() => publishServerResult("sheet-2", response({ ...local, totalDistance: 123 })));
+    act(() => publishServerResult("sheet-2", response({ ...local, totalDistance: 123 }), ctx().inputsToken));
     expect(ctx().resultSource).toBe("local_pending");
-    act(() => publishServerResult("sheet-1", response({ ...local, totalDistance: 999_999 })));
+    act(() => publishServerResult("sheet-1", response({ ...local, totalDistance: 999_999 }), ctx().inputsToken));
     expect(ctx().resultSource).toBe("server");
     expect(ctx().results.totalDistance).toBe(999_999);
-    act(() => publishServerResult("sheet-1", null)); // the user typed: stale until the next result
+    act(() => publishServerResult("sheet-1", null, ctx().inputsToken)); // stale until the next result
     expect(ctx().resultSource).toBe("local_pending");
     expect(ctx().results.totalDistance).toBe(local.totalDistance);
+  });
+});
+
+describe("a result published for older inputs is never rendered (parity review MAJOR-2)", () => {
+  it("after an edit the provider shows the browser result in the same render, before the page re-evaluates", () => {
+    setCalcAuthority("server_display");
+    const ctx = mount("sheet-1");
+    const local = ctx().results;
+    act(() => publishServerResult("sheet-1", response({ ...local, totalDistance: 999_999 }), ctx().inputsToken));
+    expect(ctx().resultSource).toBe("server");
+    const before = ctx().inputsToken;
+    act(() => ctx().setHireRate((ctx().hireRate ?? 0) + 1000)); // an edit; nothing republished
+    expect(ctx().inputsToken).not.toBe(before);
+    expect(ctx().resultSource).toBe("local_pending");
+    expect(ctx().results.totalDistance).not.toBe(999_999);
   });
 });
 

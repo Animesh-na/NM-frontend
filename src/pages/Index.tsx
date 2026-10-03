@@ -87,7 +87,7 @@ const Index = () => {
     autoDistanceEnabled: voyage.autoDistanceEnabled,
     notes: voyage.notes,
     charterer: voyage.charterer,
-  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.autoDistanceEnabled, voyage.notes, voyage.charterer]);
+  }), [voyage.vessel, voyage.sequence, voyage.cargos, voyage.bunker, voyage.misc, voyage.hireRate, voyage.vesselCost, voyage.netBB, voyage.applyEuaImpact, voyage.applyFuelEuImpact, voyage.applyUkEtsImpact, voyage.departureUtc, voyage.autoDistanceEnabled, voyage.notes, voyage.charterer]);
 
   // Calculation shadow mode (VITE_CALC_SHADOW, default off): compares this
   // sheet's results with the Go engine in the background. Display is unchanged.
@@ -225,8 +225,8 @@ const Index = () => {
   // screen (or null while pending/stale/unavailable); VoyageContext shows it.
   useEffect(() => {
     const sheetId = activeTab?.id ?? null;
-    publishServerResult(sheetId, session && calcAuthority !== "local" ? session.currentResult(currentDoc) : null);
-  }, [session, sessionSnap, currentDoc, calcAuthority, activeTab?.id]);
+    publishServerResult(sheetId, session && calcAuthority !== "local" ? session.currentResult(currentDoc) : null, voyage.inputsToken);
+  }, [session, sessionSnap, currentDoc, calcAuthority, activeTab?.id, voyage.inputsToken]);
   // The server held newer unsaved edits (another tab, a crash) or the user
   // resolved a conflict: show that document.
   useEffect(() => {
