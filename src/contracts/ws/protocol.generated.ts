@@ -142,6 +142,15 @@ export interface PongMessage {
   traceparent?: string;
 }
 
+export interface ReconnectMessage {
+  type: "reconnect";
+  protocol_version: "ws.v1";
+  message_id: string;
+  request_id?: string;
+  traceparent?: string;
+  reason: string;
+}
+
 export interface ResumeMessage {
   type: "resume";
   protocol_version: "ws.v1";
@@ -244,6 +253,7 @@ export type ServerMessage =
   | ConnectedMessage
   | ErrorMessage
   | PongMessage
+  | ReconnectMessage
   | ResumedMessage
   | SaveCompletedMessage
   | SaveFailedMessage

@@ -45,6 +45,8 @@ export const BACKOFF_BASE_MS = 500;
 export const BACKOFF_CAP_MS = 30_000;
 export const DEFAULT_HEARTBEAT_MS = 20_000;
 export const CONNECT_TIMEOUT_MS = 10_000;
+/** After a server `reconnect` hint (M9), resume within [0, this) ms of the close. */
+export const RECONNECT_HINT_JITTER_MS = 1_000;
 
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 
@@ -128,6 +130,7 @@ export class CalculationSocket {
   private connecting = false;
   private connectTimer: unknown = null;
   private lastInbound = 0;
+  private serverDraining = false; // a `reconnect` hint arrived on the current socket
   status: SocketStatus = "idle";
 
   constructor(
@@ -216,10 +219,13 @@ export class CalculationSocket {
     void this.open();
   }
 
-  private scheduleReconnect(detail?: { code?: number; reason?: string; ticketStatus?: number }): void {
+  private scheduleReconnect(detail?: { code?: number; reason?: string; ticketStatus?: number }, planned?: number): void {
     if (this.stopped) return;
-    const delay = backoffDelay(this.attempt, this.deps.random);
-    this.attempt++;
+    let delay = planned ?? 0;
+    if (planned === undefined) {
+      delay = backoffDelay(this.attempt, this.deps.random);
+      this.attempt++;
+    }
     this.setStatus("waiting", detail);
     this.retryTimer = this.deps.setTimeout(() => {
       this.retryTimer = null;
@@ -287,6 +293,7 @@ export class CalculationSocket {
       } catch {
         return;
       }
+      if (msg.type === "reconnect") this.serverDraining = true;
       this.handlers.onMessage(msg);
     };
     ws.onerror = () => {
@@ -297,6 +304,14 @@ export class CalculationSocket {
       this.clearConnectTimer();
       if (this.ws === ws) this.ws = null;
       this.stopHeartbeat();
+      if (this.serverDraining) {
+        // Planned server shutdown: resume on another instance at once (with
+        // jitter so a drained instance's clients do not arrive together); not
+        // a failure, so the backoff does not grow.
+        this.serverDraining = false;
+        this.scheduleReconnect({ code: ev.code, reason: "server_shutdown" }, Math.floor(this.deps.random() * RECONNECT_HINT_JITTER_MS));
+        return;
+      }
       this.scheduleReconnect({ code: ev.code, reason: ev.reason });
     };
   }

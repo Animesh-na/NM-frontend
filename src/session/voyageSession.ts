@@ -355,6 +355,11 @@ export class VoyageSession {
         return this.onError(m);
       case "pong":
         return;
+      case "reconnect":
+        // The server instance is draining (M9): it still sends the in-flight
+        // result and saves our edits before closing; the transport resumes
+        // elsewhere right after the close.
+        return;
     }
   }
 

@@ -150,3 +150,40 @@ describe("trace context (M8, D-045)", () => {
     expect(tp).toBe(`00-${"07".repeat(16)}-${"07".repeat(8)}-01`);
   });
 });
+
+describe("server shutdown hint (M9)", () => {
+  it("after a reconnect hint the close is a planned move: resume within the jitter window, backoff not grown", async () => {
+    const server = new FakeServer();
+    const { s, statuses } = make(server, { random: () => 0.9 });
+    s.start();
+    await settle();
+    // Two failed attempts grow the backoff to attempt 2 (0.9 × 2000 = 1800 ms).
+    server.last.drop();
+    await vi.advanceTimersByTimeAsync(450);
+    await settle();
+    server.last.drop();
+    await vi.advanceTimersByTimeAsync(900);
+    await settle();
+    expect(server.sockets).toHaveLength(3);
+    server.last.accept();
+
+    server.last.push({ type: "reconnect", reason: "server_shutdown" });
+    server.last.drop(1001);
+    expect(statuses.at(-1)).toBe("waiting");
+    await vi.advanceTimersByTimeAsync(899); // planned: 0.9 × RECONNECT_HINT_JITTER_MS, not the 1800 ms backoff
+    expect(server.sockets).toHaveLength(3);
+    await vi.advanceTimersByTimeAsync(1);
+    await settle();
+    expect(server.sockets).toHaveLength(4);
+
+    // The hint covers that one close only, and did not grow the backoff:
+    // an unplanned drop waits attempt 2 (1800 ms).
+    server.last.drop();
+    await vi.advanceTimersByTimeAsync(1799);
+    expect(server.sockets).toHaveLength(4);
+    await vi.advanceTimersByTimeAsync(1);
+    await settle();
+    expect(server.sockets).toHaveLength(5);
+    s.stop();
+  });
+});
