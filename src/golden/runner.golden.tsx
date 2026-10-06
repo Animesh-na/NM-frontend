@@ -31,7 +31,7 @@ vi.mock("@/services/marineApi", async (orig) => ({
 }));
 
 const GOLDEN_DIR = path.resolve(
-  process.env.GOLDEN_DIR ?? "../Mcs_backend/look-up-service/internal/voyagecalc/testdata/golden",
+  process.env.GOLDEN_DIR ?? "../voyage-backend/internal/voyagecalc/testdata/golden",
 );
 
 interface ManifestEntry {
