@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local environment (public VITE_* values for dev). Never commit: GitHub push protection flags tokens.
+.env
+.env.*
+!.env.example
