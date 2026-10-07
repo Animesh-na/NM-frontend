@@ -69,7 +69,7 @@ function AppContent() {
   useExcelNavigation();
 
   useEffect(() => {
-    setLoggerUser(user ? { id: user.id, email: user.email, token: token ?? undefined } : null);
+    setLoggerUser(user ? { id: user.id, token: token ?? undefined } : null);
   }, [user, token]);
 
   // The config endpoint needs a signed-in user: fetch the stage after sign-in.

@@ -1,7 +1,9 @@
 /**
  * Centralized logging service.
  *
- * - Buffers logs and flushes in batches to the `logs` edge function.
+ * - Buffers logs and flushes them in batches to the backend (POST /api/v1/logs),
+ *   which stores them for the admin log viewer and writes them to the log
+ *   pipeline as log_type=frontend (Loki), separate from backend logs.
  * - Persists unflushed logs to localStorage so they survive reloads / offline periods.
  * - Retries with exponential backoff when the network is down.
  * - Redacts sensitive keys from any context payload.
@@ -20,9 +22,10 @@ interface LogEntry {
   user_agent?: string;
   session_id?: string;
   user_id?: string;
-  user_email?: string;
   component?: string;
   page?: string;
+  /** W3C trace id of the API call the entry is about: links it to the backend trace. */
+  trace_id?: string;
   client_timestamp: string;
 }
 
@@ -87,9 +90,11 @@ function currentPageName(): string {
 }
 
 // ── User identity — set from AuthContext ────────────────────────────────
-let currentUser: { id?: string; email?: string; token?: string } = {};
-export function setLoggerUser(u: { id?: string; email?: string; token?: string } | null) {
-  currentUser = u ?? {};
+// Only the id travels with log entries (never the email); the token
+// authenticates the upload.
+let currentUser: { id?: string; token?: string } = {};
+export function setLoggerUser(u: { id?: string; token?: string } | null) {
+  currentUser = u ? { id: u.id, token: u.token } : {};
 }
 
 // ── Buffer + persistence ────────────────────────────────────────────────
@@ -123,18 +128,16 @@ async function flush() {
   flushing = true;
   const batch = buffer.slice(0, BATCH_SIZE);
   try {
-    // Upstream accepts one log per request — POST each entry sequentially.
+    // One request per batch ({"logs": [...]}, at most BATCH_SIZE entries).
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (currentUser.token) headers.Authorization = `Bearer ${currentUser.token}`;
-    for (const entry of batch) {
-      const res = await fetch(ENDPOINT, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(entry),
-        keepalive: true,
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    }
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ logs: batch }),
+      keepalive: true,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     buffer = buffer.slice(batch.length);
     persist();
     backoffMs = 1000;
@@ -167,9 +170,9 @@ function baseEntry(level: LogLevel, message: string, meta?: Record<string, unkno
     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
     session_id: getSessionId(),
     user_id: currentUser.id,
-    user_email: currentUser.email,
     component,
     page: currentPageName(),
+    trace_id: typeof meta?.trace_id === "string" ? meta.trace_id : undefined,
     client_timestamp: new Date().toISOString(),
   };
 }
@@ -222,17 +225,9 @@ export function initLogger() {
   flushTimer = setInterval(flush, FLUSH_INTERVAL_MS);
 
   window.addEventListener("online", () => { backoffMs = 1000; void flush(); });
-
-  window.addEventListener("beforeunload", () => {
-    try {
-      if (buffer.length === 0) return;
-      // sendBeacon can't set Authorization headers; send each entry as best-effort.
-      for (const entry of buffer.slice(0, BATCH_SIZE)) {
-        const blob = new Blob([JSON.stringify(entry)], { type: "application/json" });
-        navigator.sendBeacon?.(ENDPOINT, blob);
-      }
-    } catch { /* noop */ }
-  });
+  // Entries still buffered when the page closes are already persisted in
+  // localStorage and are sent after the next load (a beacon cannot carry the
+  // Authorization header the endpoint requires).
 
   // Global handlers
   window.addEventListener("error", (e) => {
@@ -252,33 +247,80 @@ export function initLogger() {
     });
   });
 
-  // Fetch interceptor — log slow / failing requests. Skip the logs endpoint itself.
+  // Fetch interceptor — traces API calls and logs slow / failing ones. The
+  // logs endpoint itself is left alone.
   const origFetch = window.fetch.bind(window);
   window.fetch = async (input, init) => {
-    const url = typeof input === "string" ? input : (input as Request).url;
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
     if (url.startsWith(ENDPOINT)) {
       return origFetch(input, init);
     }
-    const method = (init?.method || (typeof input !== "string" ? (input as Request).method : "GET") || "GET").toUpperCase();
+    const method = (init?.method || (input instanceof Request ? input.method : "GET") || "GET").toUpperCase();
+    const traced = withTraceparent(input, init);
+    const path = apiPath(url);
     const start = performance.now();
     try {
-      const res = await origFetch(input, init);
+      const res = await origFetch(input, traced.init);
       const duration = Math.round(performance.now() - start);
       if (!res.ok) {
-        logger.error(`API ${res.status} ${method} ${url}`, { component: "fetch", status: res.status, duration_ms: duration });
+        logger.error(`API ${res.status} ${method} ${path}`, { component: "fetch", status: res.status, duration_ms: duration, trace_id: traced.traceId });
       } else if (duration > 2000) {
-        logger.warn(`Slow API (${duration}ms) ${method} ${url}`, { component: "fetch", status: res.status, duration_ms: duration });
+        logger.warn(`Slow API (${duration}ms) ${method} ${path}`, { component: "fetch", status: res.status, duration_ms: duration, trace_id: traced.traceId });
       }
       return res;
     } catch (err) {
       const duration = Math.round(performance.now() - start);
-      logger.error(`Network error ${method} ${url}`, { component: "fetch", duration_ms: duration, stack: (err as Error).stack });
+      logger.error(`Network error ${method} ${path}`, { component: "fetch", duration_ms: duration, stack: (err as Error).stack, trace_id: traced.traceId });
       throw err;
     }
   };
 
   // Kick off an initial flush.
   void flush();
+}
+
+// ── Trace context for API calls ─────────────────────────────────────────
+function randomHex(bytes: number): string {
+  const a = new Uint8Array(bytes);
+  crypto.getRandomValues(a);
+  return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Whether a URL is this app's own API on the page's origin (no CORS preflight). */
+export function isSameOriginApi(url: string): boolean {
+  try {
+    const u = new URL(url, window.location.href);
+    const api = new URL(MARINE_API_BASE, window.location.href);
+    return u.origin === window.location.origin && u.origin === api.origin && u.pathname.startsWith(api.pathname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Adds a W3C traceparent to a same-origin API call so the backend continues
+ * the trace; returns the trace id (to put on the call's log entries) and the
+ * init to send. An existing traceparent, a Request object or another origin
+ * is left untouched.
+ */
+export function withTraceparent(input: RequestInfo | URL, init?: RequestInit): { init?: RequestInit; traceId?: string } {
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : "";
+  if (!url || !isSameOriginApi(url)) return { init };
+  const headers = new Headers(init?.headers);
+  const existing = headers.get("traceparent");
+  if (existing) return { init, traceId: existing.split("-")[1] };
+  const traceId = randomHex(16);
+  headers.set("traceparent", `00-${traceId}-${randomHex(8)}-01`);
+  return { init: { ...init, headers }, traceId };
+}
+
+/** The URL's path without query or fragment (stable messages, grouped issues). */
+function apiPath(url: string): string {
+  try {
+    return new URL(url, window.location.href).pathname;
+  } catch {
+    return url.split(/[?#]/)[0];
+  }
 }
 
 export function shutdownLogger() {
