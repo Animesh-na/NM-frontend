@@ -10,7 +10,7 @@ The Vessel Section follows a three-layered workflow. This document describes how
 
 | Priority | Source | Description |
 |----------|--------|-------------|
-| 1 | **Vessel Fuel API** | Live search by name/IMO via `vessel-fuel-api` edge function. Returns vessel particulars + fuel consumption (eco & full speed). |
+| 1 | **Vessel Fuel API** | Live search by name/IMO via the Go API's vessel search (`src/services/vesselFuelApi.ts`). Returns vessel particulars + fuel consumption (eco & full speed). |
 | 2 | **DWT-Based Estimation** | When API returns `insufficient_engine_data` or no fuel data, consumption is estimated from DWT using `estimateExtendedConsumption()`. |
 | 3 | **Manual Entry** | User clicks "+ Enter vessel manually" and fills all fields by hand. All values start at zero via `defaultVessel`. |
 

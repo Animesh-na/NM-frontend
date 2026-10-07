@@ -15,7 +15,7 @@ VoyageCalc is a **maritime voyage estimation tool** built with React + TypeScrip
 | **Routing** | React Router DOM v6 | Client-side navigation |
 | **State** | React Context API | Global voyage state management |
 | **Data Fetching** | TanStack React Query | Async data caching (vessel search) |
-| **Backend** | Lovable Cloud (Edge Functions) | API proxy, fuel calculations |
+| **Backend** | Go API (NM-backend) behind the NM-Deploy edge proxy | REST + calculation WebSocket, persistence |
 | **Build** | Vite | Dev server, bundling, HMR |
 | **Testing** | Vitest | Unit + integration tests |
 
@@ -109,15 +109,12 @@ src/
 ## 5. External API Integration
 
 ```
-Browser  ──►  Edge Function (Proxy)  ──►  External Marine API
-                                          (development.effimove.in)
-
-Two edge functions:
-1. marine-api       → Vessel search, port search, sea route distances
-2. vessel-fuel-api  → Vessel fuel consumption (MCR/SFOC-based calculation)
+Browser  ──►  /api/v1 (same origin, edge proxy)  ──►  Go API (NM-backend)
 ```
 
-The edge functions act as **CORS proxies** with API key injection. The browser never contacts the external API directly.
+The browser calls the Go API directly with the user's JWT (`VITE_MARINE_API_BASE`, default `/api/v1` in the
+Docker build). No API key is shipped to the browser. Fuel consumption (MCR/SFOC) is calculated client-side in
+`src/services/vesselFuelApi.ts`. The full architecture is in NM-Deploy's `ARCHITECTURE.md`.
 
 ---
 
