@@ -1,6 +1,5 @@
 // MFA / 2FA API Service — account-level (logged-in) MFA management.
-// Calls the same Edge Function proxy as marineApi, sending the session JWT as
-// X-Auth-Token. Unlike apiRequest in marineApi.ts, this surfaces the HTTP status
+// Calls the Go API like marineApi, with the session JWT. Unlike apiRequest in marineApi.ts, this surfaces the HTTP status
 // and parsed body on errors so callers can map 401/403/409/429/503 to UX.
 import { dispatchSessionExpired, getStoredAuthToken } from "@/utils/authToken";
 import { buildMarineUrl, marineHeaders } from "./apiConfig";

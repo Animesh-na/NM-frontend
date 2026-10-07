@@ -114,7 +114,7 @@ export default function Dashboard() {
       return;
     }
     setExpandedUserId(u.id);
-    trackEvent("organization.user.expand", { component: "Dashboard", target_user_id: u.id, target_user_email: u.email });
+    trackEvent("organization.user.expand", { component: "Dashboard", target_user_id: u.id });
     if (!userSheetsMap[key]) {
       await loadUserSheetsPage(u, 1);
     }

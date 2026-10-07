@@ -5,16 +5,14 @@
 ## 1. Marine API Service
 
 **File:** `src/services/marineApi.ts`  
-**Edge Function:** `supabase/functions/marine-api/index.ts`
 
 ### Purpose
-Proxy to the external Marine API (`development.effimove.in/marine/api/v1`) for vessel search, port search, and sea route distance calculation.
+Client for the Go API (NM-backend, `VITE_MARINE_API_BASE`) for vessel search, port search, sea route distances, sheets and workbooks.
 
 ### Architecture
 ```
-Browser → Edge Function (marine-api) → External Marine API
-          ↑ Adds API-Key header
-          ↑ Handles CORS
+Browser → /api/v1 (same origin, edge proxy) → Go API
+          ↑ Authorization: Bearer <user JWT>; no API key in the browser
 ```
 
 ### Endpoints
@@ -42,7 +40,6 @@ Browser → Edge Function (marine-api) → External Marine API
 ## 2. Vessel Fuel API Service
 
 **File:** `src/services/vesselFuelApi.ts`  
-**Edge Function:** `supabase/functions/vessel-fuel-api/index.ts`
 
 ### Purpose
 Searches vessels AND calculates fuel consumption from engine data (MCR + SFOC). Returns vessels with their consumption profiles.

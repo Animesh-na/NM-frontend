@@ -7,7 +7,7 @@
 
 ## Table of Contents
 
-1. [Vessel Fuel Consumption API (Edge Function)](#1-vessel-fuel-consumption-api)
+1. [Vessel Fuel Consumption API](#1-vessel-fuel-consumption-api)
 2. [Voyage Time Calculations](#2-voyage-time-calculations)
 3. [Bunker Consumption (Voyage Engine)](#3-bunker-consumption-voyage-engine)
 4. [Bunker Cost](#4-bunker-cost)
@@ -22,7 +22,7 @@
 
 ## 1. Vessel Fuel Consumption API
 
-**Source:** `supabase/functions/vessel-fuel-api/index.ts`
+**Source:** `src/services/vesselFuelApi.ts` (formerly a Supabase edge function)
 
 When a vessel is searched, the API reads engine data from the upstream marine database and calculates daily fuel consumption (TPD = Tonnes Per Day).
 
