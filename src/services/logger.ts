@@ -26,6 +26,8 @@ interface LogEntry {
   page?: string;
   /** W3C trace id of the API call the entry is about: links it to the backend trace. */
   trace_id?: string;
+  /** Recorded while nobody was signed in: the server stores it without a user. */
+  anonymous?: boolean;
   client_timestamp: string;
 }
 
@@ -94,7 +96,19 @@ function currentPageName(): string {
 // authenticates the upload.
 let currentUser: { id?: string; token?: string } = {};
 export function setLoggerUser(u: { id?: string; token?: string } | null) {
-  currentUser = u ? { id: u.id, token: u.token } : {};
+  const prev = currentUser;
+  const next = u ? { id: u.id, token: u.token } : {};
+  // Signing out or switching user: the previous user's pending entries go up
+  // now, with the previous user's token — never later under someone else's.
+  if (prev.id && prev.token && prev.id !== next.id) {
+    const theirs = buffer.filter((e) => e.user_id === prev.id);
+    if (theirs.length) {
+      buffer = buffer.filter((e) => e.user_id !== prev.id);
+      persist();
+      void send(theirs, prev.token);
+    }
+  }
+  currentUser = next;
 }
 
 // ── Buffer + persistence ────────────────────────────────────────────────
@@ -119,25 +133,37 @@ function persist() {
   } catch { /* quota — ignore */ }
 }
 
+/** POSTs one batch ({"logs": [...]}) authenticated as the given token. */
+async function send(batch: LogEntry[], token: string): Promise<void> {
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ logs: batch }),
+    keepalive: true,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 async function flush() {
   if (flushing || buffer.length === 0) return;
   if (typeof navigator !== "undefined" && navigator.onLine === false) return;
   // Upstream rejects unauthenticated log posts (401). Keep entries buffered
   // until a session token exists, then they are delivered with the next tick.
   if (!currentUser.token) return;
+  // Entries belong to the user who was signed in when they were recorded:
+  // only theirs (and anonymous ones) go up under this token. Leftovers of
+  // another user (e.g. persisted across a reload) are dropped, never
+  // misattributed.
+  const foreign = buffer.filter((e) => e.user_id && e.user_id !== currentUser.id);
+  if (foreign.length) {
+    buffer = buffer.filter((e) => !e.user_id || e.user_id === currentUser.id);
+    persist();
+    if (buffer.length === 0) return;
+  }
   flushing = true;
   const batch = buffer.slice(0, BATCH_SIZE);
   try {
-    // One request per batch ({"logs": [...]}, at most BATCH_SIZE entries).
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (currentUser.token) headers.Authorization = `Bearer ${currentUser.token}`;
-    const res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ logs: batch }),
-      keepalive: true,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await send(batch, currentUser.token);
     buffer = buffer.slice(batch.length);
     persist();
     backoffMs = 1000;
@@ -170,6 +196,7 @@ function baseEntry(level: LogLevel, message: string, meta?: Record<string, unkno
     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
     session_id: getSessionId(),
     user_id: currentUser.id,
+    anonymous: currentUser.id ? undefined : true,
     component,
     page: currentPageName(),
     trace_id: typeof meta?.trace_id === "string" ? meta.trace_id : undefined,

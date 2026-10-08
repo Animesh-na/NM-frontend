@@ -90,3 +90,69 @@ describe("logger: delivery", () => {
     mod.shutdownLogger();
   });
 });
+
+describe("logger: attribution", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    localStorage.clear();
+    fetchMock = vi.fn(async () => new Response("{}", { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+  const posts = () => fetchMock.mock.calls
+    .filter(([u]) => String(u).endsWith("/logs"))
+    .map(([, init]) => ({
+      auth: new Headers((init as RequestInit).headers).get("Authorization"),
+      logs: JSON.parse(String((init as RequestInit).body)).logs as Array<{ message: string; user_id?: string; anonymous?: boolean }>,
+    }));
+
+  it("marks entries recorded while signed out as anonymous", async () => {
+    const { logger, setLoggerUser } = await loadLogger();
+    logger.info("before sign-in");
+    setLoggerUser({ id: "user-1", token: "tok-1" });
+    logger.info("after sign-in");
+    await logger.flush();
+    const [p] = posts();
+    expect(p.auth).toBe("Bearer tok-1");
+    expect(p.logs.find((l) => l.message === "before sign-in")).toMatchObject({ anonymous: true });
+    expect(p.logs.find((l) => l.message === "before sign-in")?.user_id).toBeUndefined();
+    expect(p.logs.find((l) => l.message === "after sign-in")).toMatchObject({ user_id: "user-1" });
+    expect(p.logs.find((l) => l.message === "after sign-in")?.anonymous).toBeUndefined();
+  });
+
+  it("sends a user's pending entries with their own token when they sign out, never under the next user", async () => {
+    const { logger, setLoggerUser } = await loadLogger();
+    setLoggerUser({ id: "user-1", token: "tok-1" });
+    logger.info("user-1 action");
+    logger.info("User logged out");
+    setLoggerUser(null);
+    await vi.waitFor(() => expect(posts()).toHaveLength(1));
+    expect(posts()[0]).toMatchObject({ auth: "Bearer tok-1" });
+    expect(posts()[0].logs.map((l) => l.message)).toEqual(["user-1 action", "User logged out"]);
+
+    setLoggerUser({ id: "user-2", token: "tok-2" });
+    logger.info("user-2 action");
+    await logger.flush();
+    const second = posts()[1];
+    expect(second.auth).toBe("Bearer tok-2");
+    expect(second.logs.map((l) => l.message)).toEqual(["user-2 action"]);
+  });
+
+  it("drops another user's leftovers instead of sending them under the current token", async () => {
+    localStorage.setItem("voyagecalc_pending_logs", JSON.stringify([
+      { level: "info", message: "old user's entry", user_id: "someone-else", client_timestamp: new Date().toISOString() },
+    ]));
+    const mod = await loadLogger();
+    mod.initLogger();
+    mod.setLoggerUser({ id: "user-1", token: "tok-1" });
+    mod.logger.info("mine");
+    await mod.logger.flush();
+    const sent = posts().flatMap((p) => p.logs.map((l) => l.message));
+    expect(sent).toContain("mine");
+    expect(sent).not.toContain("old user's entry");
+    mod.shutdownLogger();
+  });
+});
