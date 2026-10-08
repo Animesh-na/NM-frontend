@@ -315,9 +315,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     logger.info("User logged out", { component: "AuthContext" });
+    // Recorded server-side as auth.logout (best effort; the session ends
+    // locally either way — JWTs are not revoked).
+    const current = token ?? getStoredAuthToken();
+    if (current) {
+      void fetch(buildMarineUrl("/auth/logout"), {
+        method: "POST",
+        headers: marineHeaders({ Authorization: `Bearer ${current}` }),
+        keepalive: true,
+      }).catch(() => undefined);
+    }
     sessionExpiredShownRef.current = false;
     clearSession();
-  }, [clearSession]);
+  }, [clearSession, token]);
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, user, token, login, verifyMfa, resendMfaCode, setUserMfaMethod, logout, mode, setMode, availableModes }}>
