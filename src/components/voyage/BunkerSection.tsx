@@ -5,7 +5,7 @@ import { BunkerPriceDialog } from "./BunkerPriceDialog";
 import { toast } from "@/hooks/use-toast";
 import { InfoTooltip } from "./InfoTooltip";
 import { buildFuelPricing, effectivePrice } from "@/utils/bunkerPricing";
-import { computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
+import { bunkerLotLabels, computeFifoCoverage, orderBunkerLots } from "@/utils/fuelBreakdown";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 
 export function BunkerSection() {
   const { 
-    bunker, updateBunker, updateBunkerField, addPortBunkering, removePortBunkering,
+    bunker, updateBunker, updateBunkerField, syncPortBunkering,
     updatePortBunkering, results, sequence, vessel 
   } = useVoyageContext();
   
@@ -115,27 +115,20 @@ export function BunkerSection() {
     fetchPrices({ force: false });
   }, [fetchPrices]);
 
-  // Prune stale state when bunkering calls are removed from the sequence:
-  // drop their price rows, their market-feed quotes and their auto-fill marker.
+  // One price row per bunkering call (D-065), paired with the calls in voyage
+  // order the way the engine pairs them. Runs only when the calls change.
+  const bunkeringCallsKey = JSON.stringify(bunkeringPorts.map(p => [p.portUnloc || "", p.port]));
   useEffect(() => {
-    const validUnlocs = new Set(bunkeringPorts.map(p => p.portUnloc));
-    const stale = bunker.portBunkering.filter(p => !validUnlocs.has(p.portUnloc));
-    if (stale.length) {
-      stale.forEach(p => {
-        removePortBunkering(p.id);
-        autoFilled.current.delete(`port:${p.id}:${p.portName}`);
-      });
-    }
-  }, [bunkeringPorts, bunker.portBunkering, removePortBunkering]);
+    const calls = (JSON.parse(bunkeringCallsKey) as [string, string][]).map(([portUnloc, port]) => ({ portUnloc, port }));
+    syncPortBunkering(calls);
+  }, [bunkeringCallsKey, syncPortBunkering]);
 
-  // Auto-add a price row for every bunkering call in the sequence.
+  // Forget the auto-fill marker of rows that no longer exist, so a row created
+  // later with the same id is filled again.
   useEffect(() => {
-    bunkeringPorts.forEach(p => {
-      if (!bunker.portBunkering.some(pb => pb.portUnloc === p.portUnloc)) {
-        addPortBunkering(p.portUnloc, p.port);
-      }
-    });
-  }, [bunkeringPorts, bunker.portBunkering, addPortBunkering]);
+    const live = new Set(bunker.portBunkering.map(p => `port:${p.id}:${p.portName}`));
+    autoFilled.current.forEach(k => { if (k.startsWith("port:") && !live.has(k)) autoFilled.current.delete(k); });
+  }, [bunker.portBunkering]);
 
   // Keep the market feed limited to ports still relevant to the voyage.
   useEffect(() => {
@@ -195,11 +188,12 @@ export function BunkerSection() {
     effectivePrice(buildFuelPricing(pricingBunker, fuelType, fifoCoverage[fuelType]), consumptionOf[fuelType]);
 
   // Per-lot price/coverage breakdown for the tooltip
+  const orderedLabels = bunkerLotLabels(orderedLots);
   const getPriceBreakdown = (fuelType: 'hsfo' | 'vlsfo' | 'lsmgo') => {
     const lots = [
       { label: "BOB", price: bobIgnored ? 0 : bunker[fuelType].price || 0, skipped: bobIgnored, tonnes: bobTonnes(fuelType) },
-      ...orderedLots.map((p) => ({
-        label: p.portName,
+      ...orderedLots.map((p, i) => ({
+        label: orderedLabels[i],
         price: p[fuelType]?.price || 0,
         skipped: false,
         tonnes: p[fuelType]?.quantity || 0,
@@ -254,6 +248,7 @@ export function BunkerSection() {
   };
 
   const fuels = ["hsfo", "vlsfo", "lsmgo"] as const;
+  const lotLabels = bunkerLotLabels(bunker.portBunkering);
 
   return (
     <div className="calc-card-row">
@@ -349,9 +344,9 @@ export function BunkerSection() {
               ))}
             </div>
 
-            {bunker.portBunkering.map((port) => (
+            {bunker.portBunkering.map((port, i) => (
               <div key={port.id} className="grid grid-cols-1 sm:grid-cols-[minmax(72px,auto)_repeat(3,minmax(0,1fr))] items-center divide-y sm:divide-y-0 sm:divide-x divide-border border-t border-border">
-                <div className="px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap">{port.portName}</div>
+                <div className="px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap">{lotLabels[i]}</div>
                 {fuels.map(fuel => (
                   <div key={fuel} className="min-w-0 flex items-center gap-1 px-2 py-0.5">
                     <span className="text-[10px] font-medium shrink-0">{fuel.toUpperCase()}</span>
@@ -363,7 +358,7 @@ export function BunkerSection() {
                     <div className="input-with-unit min-w-0 flex-1">
                       <input type="number" className="form-input-sm w-full min-w-0 flex-1 font-mono text-right text-xs"
                         title="Double-click to look up latest market prices"
-                        onDoubleClick={() => setPriceLookup({ fuel, scope: String(port.id), search: port.portName, target: port.portName })}
+                        onDoubleClick={() => setPriceLookup({ fuel, scope: String(port.id), search: port.portName, target: lotLabels[i] })}
                         value={port[fuel].price || ""} onChange={(e) => updatePortBunkering(port.id, fuel, "price", parseFloat(e.target.value) || 0)} placeholder="0" />
                       <span className="unit">$ / t</span>
                     </div>
