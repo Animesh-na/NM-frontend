@@ -21,6 +21,7 @@ import {
   type ValidationIssue,
 } from "@/utils/validation";
 import { toast } from "sonner";
+import { syncBunkerLots, type BunkerCall } from "@/utils/fuelBreakdown";
 
 // Default voyage departure used for the distance/weather-routing API when the
 // user has not picked one: current UTC time, rounded down to the hour.
@@ -285,6 +286,8 @@ interface VoyageContextValue {
   updateBunkerField: (field: keyof BunkerState, value: number | boolean | string) => void;
   addPortBunkering: (portUnloc: string, portName: string) => void;
   removePortBunkering: (id: number) => void;
+  /** Make the bunkering price rows match the voyage's bunkering calls: one row per call (D-065). */
+  syncPortBunkering: (calls: BunkerCall[]) => void;
   updatePortBunkering: (id: number, fuelType: string, field: string, value: number) => void;
   
   // Miscellaneous costs and extra time
@@ -1746,6 +1749,21 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
     }));
   }, []);
 
+  const syncPortBunkering = useCallback((calls: BunkerCall[]) => {
+    setBunker(prev => {
+      let nextId = prev.portBunkering.reduce((m, p) => Math.max(m, p.id), 0);
+      const lots = syncBunkerLots(calls, prev.portBunkering, (call) => ({
+        id: ++nextId,
+        portUnloc: call.portUnloc,
+        portName: call.port,
+        hsfo: { quantity: 0, price: 0 },
+        vlsfo: { quantity: 0, price: 0 },
+        lsmgo: { quantity: 0, price: 0 },
+      }));
+      return lots === prev.portBunkering ? prev : { ...prev, portBunkering: lots };
+    });
+  }, []);
+
   const updatePortBunkering = useCallback((id: number, fuelType: string, field: string, value: number) => {
     setBunker(prev => ({
       ...prev,
@@ -2163,6 +2181,7 @@ export function VoyageProvider({ children, initialData, sheetId = null }: Voyage
         updateBunkerField,
         addPortBunkering,
         removePortBunkering,
+        syncPortBunkering,
         updatePortBunkering,
         misc,
         setMisc,
@@ -2255,6 +2274,7 @@ export function useVoyageContext() {
       updateBunkerField: () => {},
       addPortBunkering: () => {},
       removePortBunkering: () => {},
+      syncPortBunkering: () => {},
       updatePortBunkering: () => {},
       misc: {
         miscCost: 0,

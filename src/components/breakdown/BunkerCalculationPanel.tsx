@@ -130,9 +130,14 @@ export function BunkerCalculationPanel({ bunker, results, vessel, sequence }: Bu
   // ============================================
   // FUEL COSTS
   // ============================================
-  const hsfoCost = results.hsfoConsumption * bunker.hsfo.price;
-  const vlsfoCost = results.vlsfoConsumption * bunker.vlsfo.price;
-  const lsmgoCost = results.lsmgoConsumption * bunker.lsmgo.price;
+  // The $/t the engine applied (average / FIFO / ignore-BOB blend of BOB and the
+  // bunkering lots), not the BOB price — otherwise the per-fuel costs do not add
+  // up to totalBunkerCost as soon as the voyage has a bunkering call.
+  const price = results.effectiveFuelPrices ?? { hsfo: bunker.hsfo.price, vlsfo: bunker.vlsfo.price, lsmgo: bunker.lsmgo.price };
+  const formatPrice = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/t`;
+  const hsfoCost = results.hsfoConsumption * price.hsfo;
+  const vlsfoCost = results.vlsfoConsumption * price.vlsfo;
+  const lsmgoCost = results.lsmgoConsumption * price.lsmgo;
 
   // Calculate total bunkered
   const totalBunkeredHsfo = bunker.portBunkering.reduce((sum, p) => sum + p.hsfo.quantity, 0);
@@ -545,17 +550,17 @@ export function BunkerCalculationPanel({ bunker, results, vessel, sequence }: Bu
           <div className="bg-amber-500/10 rounded-lg p-3 text-center">
             <div className="text-xs text-muted-foreground">HSFO</div>
             <div className="font-mono font-semibold text-amber-600">{formatCurrency(hsfoCost)}</div>
-            <div className="text-[10px] text-muted-foreground">{results.hsfoConsumption.toFixed(1)} MT × ${bunker.hsfo.price}</div>
+            <div className="text-[10px] text-muted-foreground">{formatMT(results.hsfoConsumption)} × {formatPrice(price.hsfo)}</div>
           </div>
           <div className="bg-blue-500/10 rounded-lg p-3 text-center">
             <div className="text-xs text-muted-foreground">VLSFO</div>
             <div className="font-mono font-semibold text-blue-600">{formatCurrency(vlsfoCost)}</div>
-            <div className="text-[10px] text-muted-foreground">{results.vlsfoConsumption.toFixed(1)} MT × ${bunker.vlsfo.price}</div>
+            <div className="text-[10px] text-muted-foreground">{formatMT(results.vlsfoConsumption)} × {formatPrice(price.vlsfo)}</div>
           </div>
           <div className="bg-green-500/10 rounded-lg p-3 text-center">
             <div className="text-xs text-muted-foreground">LSMGO</div>
             <div className="font-mono font-semibold text-green-600">{formatCurrency(lsmgoCost)}</div>
-            <div className="text-[10px] text-muted-foreground">{results.lsmgoConsumption.toFixed(1)} MT × ${bunker.lsmgo.price}</div>
+            <div className="text-[10px] text-muted-foreground">{formatMT(results.lsmgoConsumption)} × {formatPrice(price.lsmgo)}</div>
           </div>
           <div className="bg-primary/10 rounded-lg p-3 text-center">
             <div className="text-xs text-muted-foreground">Total Bunker Cost</div>

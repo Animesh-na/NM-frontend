@@ -325,6 +325,53 @@ export function orderBunkerLots<T extends BunkerLotRef>(
   return [...ordered, ...pending];
 }
 
+/** A bunkering call of the voyage that needs a price lot. */
+export interface BunkerCall {
+  portUnloc: string;
+  port: string;
+}
+
+/**
+ * One price lot per bunkering call (D-065). Pairs each call, in voyage order,
+ * with the first unused lot of the same port (UN/LOCODE, else port name) — the
+ * same pairing the engine uses — keeps the paired lots with their prices,
+ * creates a lot for each unpaired call and drops lots no call uses (including
+ * duplicates). Unlike matchLotIndex there is no positional fallback: a call at
+ * a new port never inherits another port's prices.
+ *
+ * Returns the input array itself when nothing changes, so callers can bail out.
+ */
+export function syncBunkerLots<T extends BunkerLotRef>(
+  calls: BunkerCall[],
+  lots: T[],
+  create: (call: BunkerCall) => T,
+): T[] {
+  const pending = [...lots];
+  const next = calls.map((call) => {
+    const u = clean(call.portUnloc);
+    const n = clean(call.port);
+    let idx = u ? pending.findIndex((l) => clean(lotKey(l)) === u) : -1;
+    if (idx < 0 && n) idx = pending.findIndex((l) => !(u && clean(lotKey(l))) && clean(lotName(l)) === n);
+    return idx >= 0 ? pending.splice(idx, 1)[0] : create(call);
+  });
+  const unchanged = next.length === lots.length && next.every((l, i) => l === lots[i]);
+  return unchanged ? lots : next;
+}
+
+/** Display label of each lot: the port name, plus "(call n)" when the port has several calls. */
+export function bunkerLotLabels(lots: BunkerLotRef[]): string[] {
+  const key = (l: BunkerLotRef) => clean(lotKey(l)) || clean(lotName(l));
+  const total = new Map<string, number>();
+  lots.forEach((l) => total.set(key(l), (total.get(key(l)) || 0) + 1));
+  const seen = new Map<string, number>();
+  return lots.map((l) => {
+    const k = key(l);
+    const n = (seen.get(k) || 0) + 1;
+    seen.set(k, n);
+    return (total.get(k) || 0) > 1 ? `${lotName(l)} (call ${n})` : lotName(l);
+  });
+}
+
 /**
  * FIFO coverage: how much of each fuel is burnt under each successive bunker
  * price lot.
